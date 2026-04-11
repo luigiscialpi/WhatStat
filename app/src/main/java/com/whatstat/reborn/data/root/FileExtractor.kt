@@ -130,7 +130,11 @@ class FileExtractor @Inject constructor(
     suspend fun cleanup() = withContext(Dispatchers.IO) {
         listOf(KEY_DEST, CRYPT14_DEST, WA_DB_DEST, "msgstore.db").forEach { name ->
             File(workDir, name).let { file ->
-                if (file.exists()) file.delete()
+                if (file.exists()) {
+                    if (!file.delete()) {
+                        rootManager.execute("rm -f '${file.absolutePath}'")
+                    }
+                }
             }
         }
     }
@@ -140,6 +144,14 @@ class FileExtractor @Inject constructor(
      */
     suspend fun copyFromUri(uri: Uri, destFileName: String): File = withContext(Dispatchers.IO) {
         val destFile = File(workDir, destFileName)
+        
+        // Se il file esiste ma era stato creato da root, un log o delete normale fallirebbe per EACCES
+        if (destFile.exists()) {
+            if (!destFile.delete()) {
+                rootManager.execute("rm -f '${destFile.absolutePath}'")
+            }
+        }
+
         context.contentResolver.openInputStream(uri)?.use { input ->
             destFile.outputStream().use { output ->
                 input.copyTo(output)

@@ -178,7 +178,7 @@ fun SetupScreen(
 
             // ── Error card & Manual Mode ───────────────────────────
             AnimatedVisibility(
-                visible = state.error != null && !state.isManualModeVisible,
+                visible = state.error != null,
                 enter = fadeIn() + slideInVertically()
             ) {
                 Column {
@@ -197,11 +197,13 @@ fun SetupScreen(
                         )
                     }
                     Spacer(Modifier.height(8.dp))
-                    Button(
-                        onClick = { viewModel.showManualMode() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Seleziona File Manualmente")
+                    if (!state.isManualModeVisible) {
+                        Button(
+                            onClick = { viewModel.showManualMode() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Seleziona File Manualmente")
+                        }
                     }
                 }
             }
