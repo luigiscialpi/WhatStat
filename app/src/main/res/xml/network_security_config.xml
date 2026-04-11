@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Configuration: blocca TUTTO il traffico di rete.
+    WhatStat Reborn è un'app 100% offline — nessun dato esce dal dispositivo.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Nessun trust anchor = nessuna connessione HTTPS possibile -->
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WhatStat Reborn</string>
+
+    <!-- Setup Screen -->
+    <string name="setup_title">WhatStat Reborn</string>
+    <string name="setup_subtitle">L\'app accede al database di WhatsApp sul tuo dispositivo.\nTutti i dati rimangono locali, nulla viene inviato.</string>
+    <string name="setup_btn_start">Inizia analisi</string>
+    <string name="setup_btn_loading">Elaborazione…</string>
+    <string name="setup_step_root">Accesso root</string>
+    <string name="setup_step_extraction">Estrazione file</string>
+    <string name="setup_step_decryption">Decifratura database</string>
+    <string name="setup_step_contacts">Lettura contatti</string>
+
+    <!-- Errors -->
+    <string name="error_root_not_available">Root non disponibile. Assicurati che Magisk sia installato e che l\'app abbia i permessi root.</string>
+    <string name="error_root_not_granted">Permessi root negati. Apri Magisk e concedi i permessi a WhatStat Reborn.</string>
+    <string name="error_key_not_found">File chiave non trovato in /data/data/com.whatsapp/files/key. WhatsApp è installato?</string>
+    <string name="error_crypt14_not_found">Database cifrato non trovato. Assicurati che il backup locale sia attivo in WhatsApp.</string>
+    <string name="error_crypt15_detected">Rilevato backup crypt15 (E2E). Disattiva il backup crittografato end-to-end nelle impostazioni di WhatsApp.</string>
+    <string name="error_decryption_failed">Decifratura fallita: %s</string>
+    <string name="error_database_open">Impossibile aprire il database: %s</string>
+    <string name="error_unknown">Errore imprevisto: %s</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Panoramica</string>
+    <string name="stat_total_messages">Messaggi totali</string>
+    <string name="stat_active_chats">Chat attive</string>
+    <string name="stat_avg_per_day">Media/giorno</string>
+    <string name="stat_longest_streak">Streak più lungo</string>
+    <string name="stat_streak_days">%d giorni</string>
+    <string name="stat_total_media">File media</string>
+    <string name="stat_contacts">Contatti</string>
+    <string name="dashboard_hourly_title">Quando sei più attivo</string>
+    <string name="dashboard_btn_analyze_chats">Analizza le singole chat</string>
+
+    <!-- Chat List -->
+    <string name="chatlist_title">Le tue chat</string>
+    <string name="chatlist_search_hint">Cerca chat…</string>
+    <string name="chatlist_messages">%,d messaggi</string>
+
+    <!-- Chat Detail -->
+    <string name="chatdetail_sent">Inviati</string>
+    <string name="chatdetail_received">Ricevuti</string>
+    <string name="chatdetail_ratio">Rapporto invio</string>
+    <string name="chatdetail_first_message">Primo messaggio</string>
+    <string name="chatdetail_avg_response">Tempo medio risposta</string>
+    <string name="chatdetail_conv_starters">Chi inizia le conversazioni</string>
+    <string name="chatdetail_hourly">Attività oraria</string>
+    <string name="chatdetail_weekly">Attività settimanale</string>
+    <string name="chatdetail_monthly">Evoluzione mensile</string>
+    <string name="chatdetail_top_words">Parole più usate</string>
+    <string name="chatdetail_media">Media condivisi</string>
+
+    <!-- Days of week -->
+    <string name="day_sun">Dom</string>
+    <string name="day_mon">Lun</string>
+    <string name="day_tue">Mar</string>
+    <string name="day_wed">Mer</string>
+    <string name="day_thu">Gio</string>
+    <string name="day_fri">Ven</string>
+    <string name="day_sat">Sab</string>
+</resources>

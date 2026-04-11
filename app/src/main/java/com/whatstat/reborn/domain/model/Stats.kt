@@ -1,0 +1,50 @@
+package com.whatstat.reborn.domain.model
+
+import com.whatstat.reborn.data.db.model.DayCount
+import com.whatstat.reborn.data.db.model.HourlyCount
+import com.whatstat.reborn.data.db.model.MonthlyCount
+import com.whatstat.reborn.data.db.model.WordFrequency
+
+/**
+ * Statistiche globali aggregate su tutte le chat.
+ */
+data class GlobalStats(
+    val totalMessages: Int,
+    val totalChats: Int,
+    val totalContacts: Int,
+    val totalMediaFiles: Int,
+    val oldestMessageDate: Long,       // Unix timestamp ms
+    val mostActiveChat: String,
+    val mostActiveHour: Int,           // 0–23
+    val mostActiveDayOfWeek: Int,      // 0=domenica
+    val averageMessagesPerDay: Float,
+    val longestStreak: Int             // giorni consecutivi con almeno un messaggio
+)
+
+/**
+ * Statistiche complete per una singola chat.
+ */
+data class ChatStats(
+    val chatId: Long,
+    val contactName: String,
+    val jid: String,
+    val isGroup: Boolean,
+    val totalMessages: Int,
+    val sentByMe: Int,
+    val receivedFromThem: Int,
+    val sentRatio: Float,              // percentuale messaggi inviati (0.0–1.0)
+    val firstMessageDate: Long,        // Unix timestamp ms
+    val lastMessageDate: Long,
+    val averageResponseTimeMs: Long,
+    val iStartedConversations: Int,
+    val theyStartedConversations: Int,
+    val longestMessage: String,
+    val averageMessageLength: Float,
+    val mediaCount: Int,
+    val audioCount: Int,
+    val videoCount: Int,
+    val hourlyDistribution: List<HourlyCount>,   // 24 elementi
+    val weeklyDistribution: List<DayCount>,       // 7 elementi
+    val monthlyTrend: List<MonthlyCount>,
+    val topWords: List<WordFrequency>
+)

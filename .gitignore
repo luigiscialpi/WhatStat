@@ -1,0 +1,25 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# App build output
+/app/build
+
+# Decrypted databases (NEVER commit these)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+whatsapp.key
+msgstore.db.crypt14
+wa.db
+
+# Dev document
+WhatsAppAnalyzer_Dev.md
