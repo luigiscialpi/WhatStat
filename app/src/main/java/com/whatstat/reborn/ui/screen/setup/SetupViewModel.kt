@@ -48,22 +48,27 @@ class SetupViewModel @Inject constructor(
             // Mostra lo step corrente come LOADING
             _state.update { it.copy(rootStatus = StepStatus.LOADING) }
 
-            val result = repository.performSetup { step ->
-                when (step) {
-                    SetupStep.ROOT_CHECK -> _state.update {
-                        it.copy(rootStatus = StepStatus.SUCCESS, extractionStatus = StepStatus.LOADING)
+            val result = repository.performSetup(
+                onStepComplete = { step ->
+                    when (step) {
+                        SetupStep.ROOT_CHECK -> _state.update {
+                            it.copy(rootStatus = StepStatus.SUCCESS, extractionStatus = StepStatus.LOADING)
+                        }
+                        SetupStep.FILE_EXTRACTION -> _state.update {
+                            it.copy(extractionStatus = StepStatus.SUCCESS, decryptionStatus = StepStatus.LOADING)
+                        }
+                        SetupStep.DECRYPTION -> _state.update {
+                            it.copy(decryptionStatus = StepStatus.SUCCESS, contactsStatus = StepStatus.LOADING)
+                        }
+                        SetupStep.DATABASE_OPEN -> _state.update {
+                            it.copy(contactsStatus = StepStatus.SUCCESS)
+                        }
                     }
-                    SetupStep.FILE_EXTRACTION -> _state.update {
-                        it.copy(extractionStatus = StepStatus.SUCCESS, decryptionStatus = StepStatus.LOADING)
-                    }
-                    SetupStep.DECRYPTION -> _state.update {
-                        it.copy(decryptionStatus = StepStatus.SUCCESS, contactsStatus = StepStatus.LOADING)
-                    }
-                    SetupStep.DATABASE_OPEN -> _state.update {
-                        it.copy(contactsStatus = StepStatus.SUCCESS)
-                    }
+                },
+                onDecryptionProgress = { progress ->
+                    _state.update { it.copy(decryptionProgress = progress) }
                 }
-            }
+            )
 
             result.fold(
                 onSuccess = {
@@ -127,18 +132,23 @@ class SetupViewModel @Inject constructor(
 
             _state.update { it.copy(decryptionStatus = StepStatus.LOADING) }
 
-            val result = repository.performManualSetup { step ->
-                when (step) {
-                    SetupStep.ROOT_CHECK -> _state.update { it.copy(rootStatus = StepStatus.SUCCESS) }
-                    SetupStep.FILE_EXTRACTION -> _state.update { it.copy(extractionStatus = StepStatus.SUCCESS) }
-                    SetupStep.DECRYPTION -> _state.update {
-                        it.copy(decryptionStatus = StepStatus.SUCCESS, contactsStatus = StepStatus.LOADING)
+            val result = repository.performManualSetup(
+                onStepComplete = { step ->
+                    when (step) {
+                        SetupStep.ROOT_CHECK -> _state.update { it.copy(rootStatus = StepStatus.SUCCESS) }
+                        SetupStep.FILE_EXTRACTION -> _state.update { it.copy(extractionStatus = StepStatus.SUCCESS) }
+                        SetupStep.DECRYPTION -> _state.update {
+                            it.copy(decryptionStatus = StepStatus.SUCCESS, contactsStatus = StepStatus.LOADING)
+                        }
+                        SetupStep.DATABASE_OPEN -> _state.update {
+                            it.copy(contactsStatus = StepStatus.SUCCESS)
+                        }
                     }
-                    SetupStep.DATABASE_OPEN -> _state.update {
-                        it.copy(contactsStatus = StepStatus.SUCCESS)
-                    }
+                },
+                onDecryptionProgress = { progress ->
+                    _state.update { it.copy(decryptionProgress = progress) }
                 }
-            }
+            )
 
             result.fold(
                 onSuccess = {
@@ -171,6 +181,7 @@ data class SetupState(
     val extractionStatus: StepStatus = StepStatus.IDLE,
     val decryptionStatus: StepStatus = StepStatus.IDLE,
     val contactsStatus: StepStatus   = StepStatus.IDLE,
+    val decryptionProgress: Float    = 0f,
     
     // UI State per la modalità manuale
     val isManualModeVisible: Boolean = false,

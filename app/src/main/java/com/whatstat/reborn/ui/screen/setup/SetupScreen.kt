@@ -43,6 +43,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -168,7 +169,8 @@ fun SetupScreen(
                     SetupStep(
                         label = "Decifratura database",
                         status = state.decryptionStatus,
-                        icon = Icons.Outlined.Key
+                        icon = Icons.Outlined.Key,
+                        progress = if (state.decryptionStatus == StepStatus.LOADING) state.decryptionProgress else null
                     )
                     SetupStep(
                         label = "Lettura contatti",
@@ -335,59 +337,84 @@ private fun ManualFileButton(
 private fun SetupStep(
     label: String,
     status: StepStatus,
-    icon: ImageVector
+    icon: ImageVector,
+    progress: Float? = null
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            modifier = Modifier.size(22.dp),
-            tint = when (status) {
-                StepStatus.SUCCESS -> MaterialTheme.colorScheme.primary
-                StepStatus.ERROR   -> MaterialTheme.colorScheme.error
-                else               -> MaterialTheme.colorScheme.onSurfaceVariant
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = when (status) {
+                    StepStatus.SUCCESS -> MaterialTheme.colorScheme.primary
+                    StepStatus.ERROR   -> MaterialTheme.colorScheme.error
+                    else               -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+            Spacer(Modifier.width(14.dp))
+            Text(
+                label,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = when (status) {
+                    StepStatus.SUCCESS -> MaterialTheme.colorScheme.onSurface
+                    StepStatus.ERROR   -> MaterialTheme.colorScheme.error
+                    else               -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+            when (status) {
+                StepStatus.IDLE -> Icon(
+                    Icons.Outlined.RadioButtonUnchecked,
+                    null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.outline
+                )
+                StepStatus.LOADING -> CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                StepStatus.SUCCESS -> Icon(
+                    Icons.Filled.CheckCircle,
+                    null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                StepStatus.ERROR -> Icon(
+                    Icons.Filled.Error,
+                    null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
             }
-        )
-        Spacer(Modifier.width(14.dp))
-        Text(
-            label,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium,
-            color = when (status) {
-                StepStatus.SUCCESS -> MaterialTheme.colorScheme.onSurface
-                StepStatus.ERROR   -> MaterialTheme.colorScheme.error
-                else               -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+        
+        if (progress != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 36.dp, bottom = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                LinearProgressIndicator(
+                    progress = progress,
+                    modifier = Modifier.weight(1f).height(4.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primaryContainer
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "${(progress * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
-        )
-        when (status) {
-            StepStatus.IDLE -> Icon(
-                Icons.Outlined.RadioButtonUnchecked,
-                null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.outline
-            )
-            StepStatus.LOADING -> CircularProgressIndicator(
-                modifier = Modifier.size(20.dp),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.primary
-            )
-            StepStatus.SUCCESS -> Icon(
-                Icons.Filled.CheckCircle,
-                null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            StepStatus.ERROR -> Icon(
-                Icons.Filled.Error,
-                null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.error
-            )
         }
     }
 }

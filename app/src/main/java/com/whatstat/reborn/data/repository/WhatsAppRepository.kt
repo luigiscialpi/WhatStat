@@ -39,7 +39,8 @@ class WhatsAppRepository @Inject constructor(
      * @return Result.success(Unit) se tutto ok, Result.failure con AppError altrimenti
      */
     suspend fun performSetup(
-        onStepComplete: suspend (SetupStep) -> Unit = {}
+        onStepComplete: suspend (SetupStep) -> Unit = {},
+        onDecryptionProgress: (Float) -> Unit = {}
     ): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             // Step 1: Verifica root
@@ -65,7 +66,7 @@ class WhatsAppRepository @Inject constructor(
 
             // Step 3: Decifra il database
             val outputDb = File(context.filesDir, "msgstore.db")
-            val decryptResult = decryptor.decrypt(files.crypt14File, files.keyFile, outputDb)
+            val decryptResult = decryptor.decrypt(files.crypt14File, files.keyFile, outputDb, onDecryptionProgress)
             decryptResult.getOrElse { throwable ->
                 throw AppErrorException(
                     AppError.DecryptionFailed(throwable.message ?: "Errore sconosciuto")
@@ -90,7 +91,8 @@ class WhatsAppRepository @Inject constructor(
      * usando i file già copiati manualmente dall'utente.
      */
     suspend fun performManualSetup(
-        onStepComplete: suspend (SetupStep) -> Unit = {}
+        onStepComplete: suspend (SetupStep) -> Unit = {},
+        onDecryptionProgress: (Float) -> Unit = {}
     ): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             // Saltiamo esplicitamente gli step 1 e 2 per feedback visivo
@@ -107,7 +109,7 @@ class WhatsAppRepository @Inject constructor(
 
             // Step 3: Decifra il database
             val outputDb = File(context.filesDir, "msgstore.db")
-            val decryptResult = decryptor.decrypt(crypt14File, keyFile, outputDb)
+            val decryptResult = decryptor.decrypt(crypt14File, keyFile, outputDb, onDecryptionProgress)
             decryptResult.getOrElse { throwable ->
                 throw AppErrorException(
                     AppError.DecryptionFailed(throwable.message ?: "Errore sconosciuto")

@@ -24,7 +24,7 @@ class Crypt14Decryptor @Inject constructor(
         private const val CIPHER_ALGO    = "AES/GCM/NoPadding"
         private const val IV_LENGTH      = 12   // byte
         private const val AUTH_TAG_BITS  = 128  // bit (= 16 byte)
-        private const val BUFFER_SIZE    = 16384 // 16KB stream chunk
+        private const val BUFFER_SIZE    = 65536 // 64KB per IO più veloce e CPU-friendly
 
         private val KNOWN_IV_OFFSETS = intArrayOf(67, 51, 99, 91, 86, 15)
     }
@@ -32,7 +32,8 @@ class Crypt14Decryptor @Inject constructor(
     suspend fun decrypt(
         crypt14File: File,
         keyFile: File,
-        outputFile: File
+        outputFile: File,
+        onProgress: (Float) -> Unit = {}
     ): Result<File> = withContext(Dispatchers.IO) {
         runCatching {
             val key = keyReader.readKey(keyFile)
@@ -61,14 +62,14 @@ class Crypt14Decryptor @Inject constructor(
                 if (offset + IV_LENGTH >= crypt14File.length()) continue
 
                 try {
-                    if (tryStandardStreamWithOffset(crypt14File, secretKey, offset, outputFile, wrapZlib = true)) {
+                    if (tryStandardStreamWithOffset(crypt14File, secretKey, offset, outputFile, wrapZlib = true, onProgress)) {
                         success = true
                         break
                     }
                 } catch (e: Exception) { errors.add("O$offset-Z: ${e.message}") }
 
                 try {
-                    if (tryStandardStreamWithOffset(crypt14File, secretKey, offset, outputFile, wrapZlib = false)) {
+                    if (tryStandardStreamWithOffset(crypt14File, secretKey, offset, outputFile, wrapZlib = false, onProgress)) {
                         success = true
                         break
                     }
@@ -91,8 +92,12 @@ class Crypt14Decryptor @Inject constructor(
         secretKey: SecretKeySpec,
         ivOffset: Int,
         outputFile: File,
-        wrapZlib: Boolean
+        wrapZlib: Boolean,
+        onProgress: (Float) -> Unit
     ): Boolean {
+        val totalSize = crypt14File.length()
+        var totalReadFromSource = 0L
+
         FileInputStream(crypt14File).use { fis ->
             // Skip IV offset sicuro
             var skipped = 0L
@@ -101,16 +106,30 @@ class Crypt14Decryptor @Inject constructor(
                 if (s <= 0) break
                 skipped += s
             }
+            totalReadFromSource += skipped
 
             val iv = ByteArray(IV_LENGTH)
             val read = fis.read(iv)
             if (read != IV_LENGTH) return false
+            totalReadFromSource += read
 
             val cipher = Cipher.getInstance(CIPHER_ALGO)
             val gcmSpec = GCMParameterSpec(AUTH_TAG_BITS, iv)
             cipher.init(Cipher.DECRYPT_MODE, secretKey, gcmSpec)
 
-            val cis = CipherInputStream(fis, cipher)
+            // Usiamo un wrapper per monitorare i byte letti dal file sorgente
+            val reportingFis = object : java.io.FilterInputStream(fis) {
+                override fun read(b: ByteArray, off: Int, len: Int): Int {
+                    val r = super.read(b, off, len)
+                    if (r > 0) {
+                        totalReadFromSource += r
+                        onProgress(totalReadFromSource.toFloat() / totalSize.toFloat())
+                    }
+                    return r
+                }
+            }
+
+            val cis = CipherInputStream(reportingFis, cipher)
             val inflater = if (wrapZlib) Inflater() else Inflater(true)
             val iis = InflaterInputStream(cis, inflater, BUFFER_SIZE)
 
@@ -145,6 +164,7 @@ class Crypt14Decryptor @Inject constructor(
                 }
             }
         }
+        onProgress(1.0f) // Assicura 100% fine
         return true
     }
 
