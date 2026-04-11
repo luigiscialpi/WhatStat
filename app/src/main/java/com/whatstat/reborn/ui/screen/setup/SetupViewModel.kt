@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.net.Uri
+import com.whatstat.reborn.data.root.FileExtractor
 
 @HiltViewModel
 class SetupViewModel @Inject constructor(
@@ -87,6 +89,78 @@ class SetupViewModel @Inject constructor(
             )
         }
     }
+
+    fun showManualMode() {
+        _state.update { it.copy(isManualModeVisible = true) }
+    }
+
+    fun handleManualFileSelected(uri: Uri, fileDestName: String) {
+        viewModelScope.launch {
+            try {
+                repository.copyFileFromUri(uri, fileDestName)
+                _state.update { current ->
+                    when (fileDestName) {
+                        FileExtractor.KEY_DEST -> current.copy(hasManualKey = true)
+                        FileExtractor.CRYPT14_DEST -> current.copy(hasManualCrypt14 = true)
+                        FileExtractor.WA_DB_DEST -> current.copy(hasManualWaDb = true)
+                        else -> current
+                    }
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Errore lettura file: ${e.message}") }
+            }
+        }
+    }
+
+    fun startManualSetup() {
+        if (_state.value.isLoading) return
+
+        viewModelScope.launch {
+            _state.update {
+                it.copy(
+                    isLoading = true,
+                    error = null,
+                    decryptionStatus = StepStatus.IDLE,
+                    contactsStatus = StepStatus.IDLE
+                )
+            }
+
+            _state.update { it.copy(decryptionStatus = StepStatus.LOADING) }
+
+            val result = repository.performManualSetup { step ->
+                when (step) {
+                    SetupStep.ROOT_CHECK -> _state.update { it.copy(rootStatus = StepStatus.SUCCESS) }
+                    SetupStep.FILE_EXTRACTION -> _state.update { it.copy(extractionStatus = StepStatus.SUCCESS) }
+                    SetupStep.DECRYPTION -> _state.update {
+                        it.copy(decryptionStatus = StepStatus.SUCCESS, contactsStatus = StepStatus.LOADING)
+                    }
+                    SetupStep.DATABASE_OPEN -> _state.update {
+                        it.copy(contactsStatus = StepStatus.SUCCESS)
+                    }
+                }
+            }
+
+            result.fold(
+                onSuccess = {
+                    _state.update { it.copy(isLoading = false, isComplete = true) }
+                },
+                onFailure = { throwable ->
+                    val errorMessage = when (throwable) {
+                        is AppErrorException -> throwable.appError.userMessage
+                        else -> throwable.message ?: "Errore sconosciuto"
+                    }
+                    _state.update { current ->
+                        current.copy(
+                            isLoading = false,
+                            error = errorMessage,
+                            decryptionStatus = if (current.decryptionStatus == StepStatus.LOADING) StepStatus.ERROR else current.decryptionStatus,
+                            contactsStatus = if (current.contactsStatus == StepStatus.LOADING) StepStatus.ERROR else current.contactsStatus
+                        )
+                    }
+                }
+            )
+        }
+    }
 }
 
 data class SetupState(
@@ -96,7 +170,13 @@ data class SetupState(
     val rootStatus: StepStatus    = StepStatus.IDLE,
     val extractionStatus: StepStatus = StepStatus.IDLE,
     val decryptionStatus: StepStatus = StepStatus.IDLE,
-    val contactsStatus: StepStatus   = StepStatus.IDLE
+    val contactsStatus: StepStatus   = StepStatus.IDLE,
+    
+    // UI State per la modalità manuale
+    val isManualModeVisible: Boolean = false,
+    val hasManualKey: Boolean        = false,
+    val hasManualCrypt14: Boolean    = false,
+    val hasManualWaDb: Boolean       = false
 )
 
 enum class StepStatus { IDLE, LOADING, SUCCESS, ERROR }

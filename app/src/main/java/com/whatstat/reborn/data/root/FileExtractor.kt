@@ -2,6 +2,7 @@ package com.whatstat.reborn.data.root
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
+import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -89,14 +90,15 @@ class FileExtractor @Inject constructor(
         )
     }
 
-    /**
-     * Copia un file usando comandi root e imposta i permessi per la lettura.
-     */
     private suspend fun copyWithRoot(sourcePath: String, dest: File) {
-        val result = rootManager.execute("cp '$sourcePath' '${dest.absolutePath}'")
+        dest.parentFile?.mkdirs()
+        // Usa cat per evitare problemi con i contesti SELinux
+        val result = rootManager.execute("cat '$sourcePath' > '${dest.absolutePath}'")
         if (!result.success) {
+            // Include l'output perché STDERR potrebbe essere rediretto su STDOUT
+            val errorMsg = (result.error + result.output).joinToString("\n").trim()
             throw IOException(
-                "Impossibile copiare $sourcePath: ${result.error.joinToString()}"
+                "Impossibile copiare $sourcePath: $errorMsg"
             )
         }
         // Rende il file leggibile dall'app senza root
@@ -131,6 +133,19 @@ class FileExtractor @Inject constructor(
                 if (file.exists()) file.delete()
             }
         }
+    }
+
+    /**
+     * Copia un file selezionato manualmente (tramite content uri) nello storage privato.
+     */
+    suspend fun copyFromUri(uri: Uri, destFileName: String): File = withContext(Dispatchers.IO) {
+        val destFile = File(workDir, destFileName)
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            destFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        } ?: throw IOException("Impossibile leggere il file selezionato: $uri")
+        destFile
     }
 }
 

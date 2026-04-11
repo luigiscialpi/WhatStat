@@ -9,6 +9,7 @@ import com.whatstat.reborn.data.root.RootManager
 import com.whatstat.reborn.data.root.RootStatus
 import com.whatstat.reborn.domain.model.AppError
 import dagger.hilt.android.qualifiers.ApplicationContext
+import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -84,6 +85,48 @@ class WhatsAppRepository @Inject constructor(
         }
     }
 
+    /**
+     * Esegue il flusso di setup saltando root ed estrazione,
+     * usando i file già copiati manualmente dall'utente.
+     */
+    suspend fun performManualSetup(
+        onStepComplete: suspend (SetupStep) -> Unit = {}
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            // Saltiamo esplicitamente gli step 1 e 2 per feedback visivo
+            onStepComplete(SetupStep.ROOT_CHECK)
+            onStepComplete(SetupStep.FILE_EXTRACTION)
+
+            val keyFile = File(context.filesDir, FileExtractor.KEY_DEST)
+            val crypt14File = File(context.filesDir, FileExtractor.CRYPT14_DEST)
+            val waDbFile = File(context.filesDir, FileExtractor.WA_DB_DEST)
+            
+            if (!keyFile.exists() || !crypt14File.exists()) {
+                 throw AppErrorException(AppError.ExtractionError("I file chiave e database non sono stati copiati correttamente."))
+            }
+
+            // Step 3: Decifra il database
+            val outputDb = File(context.filesDir, "msgstore.db")
+            val decryptResult = decryptor.decrypt(crypt14File, keyFile, outputDb)
+            decryptResult.getOrElse { throwable ->
+                throw AppErrorException(
+                    AppError.DecryptionFailed(throwable.message ?: "Errore sconosciuto")
+                )
+            }
+            onStepComplete(SetupStep.DECRYPTION)
+
+            // Step 4: Apri il database per le query (waDbFile opzionale)
+            try {
+                database.open(outputDb, waDbFile)
+            } catch (e: Exception) {
+                throw AppErrorException(
+                    AppError.DatabaseError(e.message ?: "Impossibile aprire il database")
+                )
+            }
+            onStepComplete(SetupStep.DATABASE_OPEN)
+        }
+    }
+
     /** Verifica se il database è già aperto e pronto (per skip del setup). */
     fun isDatabaseReady(): Boolean = database.isOpen()
 
@@ -91,6 +134,11 @@ class WhatsAppRepository @Inject constructor(
     suspend fun cleanup() = withContext(Dispatchers.IO) {
         database.close()
         fileExtractor.cleanup()
+    }
+
+    /** Proxy per copiare file da Uri senza esporre FileExtractor al ViewModel */
+    suspend fun copyFileFromUri(uri: Uri, destFileName: String) {
+        fileExtractor.copyFromUri(uri, destFileName)
     }
 }
 
