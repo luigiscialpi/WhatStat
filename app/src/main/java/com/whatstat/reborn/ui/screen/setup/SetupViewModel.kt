@@ -14,10 +14,18 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.net.Uri
 import com.whatstat.reborn.data.root.FileExtractor
+import com.whatstat.reborn.data.repository.GlobalStepStatus
+import com.whatstat.reborn.service.SetupService
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.collectLatest
 
 @HiltViewModel
 class SetupViewModel @Inject constructor(
-    private val repository: WhatsAppRepository
+    private val repository: WhatsAppRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SetupState())
@@ -28,70 +36,43 @@ class SetupViewModel @Inject constructor(
         if (repository.isDatabaseReady()) {
             _state.update { it.copy(isComplete = true) }
         }
+
+        // Osserva lo stato globale nel repository (proveniente dal Service o dal repo direttamente)
+        viewModelScope.launch {
+            repository.setupState.collectLatest { repoState ->
+                _state.update { it.copy(
+                    isLoading = repoState.isLoading,
+                    isComplete = repoState.isComplete,
+                    error = repoState.error,
+                    rootStatus = mapGlobalStatus(repoState.rootStatus),
+                    extractionStatus = mapGlobalStatus(repoState.extractionStatus),
+                    decryptionStatus = mapGlobalStatus(repoState.decryptionStatus),
+                    contactsStatus = mapGlobalStatus(repoState.contactsStatus),
+                    decryptionProgress = repoState.decryptionProgress
+                ) }
+            }
+        }
+    }
+
+    private fun mapGlobalStatus(status: GlobalStepStatus): StepStatus {
+        return when (status) {
+            GlobalStepStatus.IDLE -> StepStatus.IDLE
+            GlobalStepStatus.LOADING -> StepStatus.LOADING
+            GlobalStepStatus.SUCCESS -> StepStatus.SUCCESS
+            GlobalStepStatus.ERROR -> StepStatus.ERROR
+        }
     }
 
     fun startSetup() {
         if (_state.value.isLoading) return
-
-        viewModelScope.launch {
-            _state.update {
-                it.copy(
-                    isLoading = true,
-                    error = null,
-                    rootStatus = StepStatus.IDLE,
-                    extractionStatus = StepStatus.IDLE,
-                    decryptionStatus = StepStatus.IDLE,
-                    contactsStatus = StepStatus.IDLE
-                )
-            }
-
-            // Mostra lo step corrente come LOADING
-            _state.update { it.copy(rootStatus = StepStatus.LOADING) }
-
-            val result = repository.performSetup(
-                onStepComplete = { step ->
-                    when (step) {
-                        SetupStep.ROOT_CHECK -> _state.update {
-                            it.copy(rootStatus = StepStatus.SUCCESS, extractionStatus = StepStatus.LOADING)
-                        }
-                        SetupStep.FILE_EXTRACTION -> _state.update {
-                            it.copy(extractionStatus = StepStatus.SUCCESS, decryptionStatus = StepStatus.LOADING)
-                        }
-                        SetupStep.DECRYPTION -> _state.update {
-                            it.copy(decryptionStatus = StepStatus.SUCCESS, contactsStatus = StepStatus.LOADING)
-                        }
-                        SetupStep.DATABASE_OPEN -> _state.update {
-                            it.copy(contactsStatus = StepStatus.SUCCESS)
-                        }
-                    }
-                },
-                onDecryptionProgress = { progress ->
-                    _state.update { it.copy(decryptionProgress = progress) }
-                }
-            )
-
-            result.fold(
-                onSuccess = {
-                    _state.update { it.copy(isLoading = false, isComplete = true) }
-                },
-                onFailure = { throwable ->
-                    val errorMessage = when (throwable) {
-                        is AppErrorException -> throwable.appError.userMessage
-                        else -> throwable.message ?: "Errore sconosciuto"
-                    }
-                    // Marca lo step corrente in LOADING come ERROR
-                    _state.update { current ->
-                        current.copy(
-                            isLoading = false,
-                            error = errorMessage,
-                            rootStatus = if (current.rootStatus == StepStatus.LOADING) StepStatus.ERROR else current.rootStatus,
-                            extractionStatus = if (current.extractionStatus == StepStatus.LOADING) StepStatus.ERROR else current.extractionStatus,
-                            decryptionStatus = if (current.decryptionStatus == StepStatus.LOADING) StepStatus.ERROR else current.decryptionStatus,
-                            contactsStatus = if (current.contactsStatus == StepStatus.LOADING) StepStatus.ERROR else current.contactsStatus
-                        )
-                    }
-                }
-            )
+        repository.resetState()
+        val intent = Intent(context, SetupService::class.java).apply {
+            action = SetupService.ACTION_START_FULL
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
         }
     }
 
@@ -119,56 +100,14 @@ class SetupViewModel @Inject constructor(
 
     fun startManualSetup() {
         if (_state.value.isLoading) return
-
-        viewModelScope.launch {
-            _state.update {
-                it.copy(
-                    isLoading = true,
-                    error = null,
-                    decryptionStatus = StepStatus.IDLE,
-                    contactsStatus = StepStatus.IDLE
-                )
-            }
-
-            _state.update { it.copy(decryptionStatus = StepStatus.LOADING) }
-
-            val result = repository.performManualSetup(
-                onStepComplete = { step ->
-                    when (step) {
-                        SetupStep.ROOT_CHECK -> _state.update { it.copy(rootStatus = StepStatus.SUCCESS) }
-                        SetupStep.FILE_EXTRACTION -> _state.update { it.copy(extractionStatus = StepStatus.SUCCESS) }
-                        SetupStep.DECRYPTION -> _state.update {
-                            it.copy(decryptionStatus = StepStatus.SUCCESS, contactsStatus = StepStatus.LOADING)
-                        }
-                        SetupStep.DATABASE_OPEN -> _state.update {
-                            it.copy(contactsStatus = StepStatus.SUCCESS)
-                        }
-                    }
-                },
-                onDecryptionProgress = { progress ->
-                    _state.update { it.copy(decryptionProgress = progress) }
-                }
-            )
-
-            result.fold(
-                onSuccess = {
-                    _state.update { it.copy(isLoading = false, isComplete = true) }
-                },
-                onFailure = { throwable ->
-                    val errorMessage = when (throwable) {
-                        is AppErrorException -> throwable.appError.userMessage
-                        else -> throwable.message ?: "Errore sconosciuto"
-                    }
-                    _state.update { current ->
-                        current.copy(
-                            isLoading = false,
-                            error = errorMessage,
-                            decryptionStatus = if (current.decryptionStatus == StepStatus.LOADING) StepStatus.ERROR else current.decryptionStatus,
-                            contactsStatus = if (current.contactsStatus == StepStatus.LOADING) StepStatus.ERROR else current.contactsStatus
-                        )
-                    }
-                }
-            )
+        repository.resetState()
+        val intent = Intent(context, SetupService::class.java).apply {
+            action = SetupService.ACTION_START_MANUAL
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
         }
     }
 }

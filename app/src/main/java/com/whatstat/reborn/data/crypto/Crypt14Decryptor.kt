@@ -24,7 +24,7 @@ class Crypt14Decryptor @Inject constructor(
         private const val CIPHER_ALGO    = "AES/GCM/NoPadding"
         private const val IV_LENGTH      = 12   // byte
         private const val AUTH_TAG_BITS  = 128  // bit (= 16 byte)
-        private const val BUFFER_SIZE    = 65536 // 64KB per IO più veloce e CPU-friendly
+        private const val BUFFER_SIZE    = 262144 // 256KB per massime prestazioni IO
 
         private val KNOWN_IV_OFFSETS = intArrayOf(67, 51, 99, 91, 86, 15)
     }
@@ -119,11 +119,18 @@ class Crypt14Decryptor @Inject constructor(
 
             // Usiamo un wrapper per monitorare i byte letti dal file sorgente
             val reportingFis = object : java.io.FilterInputStream(fis) {
+                private var lastReportedProgress = -1f
+
                 override fun read(b: ByteArray, off: Int, len: Int): Int {
                     val r = super.read(b, off, len)
                     if (r > 0) {
                         totalReadFromSource += r
-                        onProgress(totalReadFromSource.toFloat() / totalSize.toFloat())
+                        val currentProgress = totalReadFromSource.toFloat() / totalSize.toFloat()
+                        // Throttle: invia solo se c'è un salto dell'1% o se siamo alla fine
+                        if (currentProgress - lastReportedProgress >= 0.01f || currentProgress >= 0.99f) {
+                            onProgress(currentProgress)
+                            lastReportedProgress = currentProgress
+                        }
                     }
                     return r
                 }

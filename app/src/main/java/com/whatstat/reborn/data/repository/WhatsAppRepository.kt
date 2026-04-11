@@ -15,6 +15,10 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /**
  * Repository principale che orchestra tutto il flusso:
@@ -30,6 +34,13 @@ class WhatsAppRepository @Inject constructor(
     private val database: WhatsAppDatabase,
     @ApplicationContext private val context: Context
 ) {
+    private val _setupState = MutableStateFlow(RepositorySetupState())
+    val setupState: StateFlow<RepositorySetupState> = _setupState.asStateFlow()
+
+    fun resetState() {
+        _setupState.update { RepositorySetupState() }
+    }
+
     /**
      * Esegue il flusso completo di setup.
      * Emette un callback per ogni step completato, permettendo alla UI
@@ -38,23 +49,24 @@ class WhatsAppRepository @Inject constructor(
      * @param onStepComplete callback invocato quando uno step è completato
      * @return Result.success(Unit) se tutto ok, Result.failure con AppError altrimenti
      */
-    suspend fun performSetup(
-        onStepComplete: suspend (SetupStep) -> Unit = {},
-        onDecryptionProgress: (Float) -> Unit = {}
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun performSetup(): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
+            _setupState.update { it.copy(isLoading = true, error = null) }
+
             // Step 1: Verifica root
+            _setupState.update { it.copy(rootStatus = GlobalStepStatus.LOADING) }
             val rootStatus = rootManager.checkRootAccess()
             when (rootStatus) {
                 RootStatus.NOT_AVAILABLE -> throw AppErrorException(AppError.RootNotAvailable)
                 RootStatus.NOT_GRANTED   -> throw AppErrorException(AppError.RootNotGranted)
                 RootStatus.GRANTED       -> { /* ok */ }
             }
-            onStepComplete(SetupStep.ROOT_CHECK)
+            _setupState.update { it.copy(rootStatus = GlobalStepStatus.SUCCESS, extractionStatus = GlobalStepStatus.LOADING) }
 
             // Step 2: Estrai file da WhatsApp
             val extractResult = fileExtractor.extractAll()
             val files = extractResult.getOrElse { throwable ->
+                _setupState.update { it.copy(extractionStatus = GlobalStepStatus.ERROR) }
                 when (throwable) {
                     is CryptVersionException -> throw AppErrorException(AppError.Crypt15Detected)
                     else -> throw AppErrorException(
@@ -62,27 +74,37 @@ class WhatsAppRepository @Inject constructor(
                     )
                 }
             }
-            onStepComplete(SetupStep.FILE_EXTRACTION)
+            _setupState.update { it.copy(extractionStatus = GlobalStepStatus.SUCCESS, decryptionStatus = GlobalStepStatus.LOADING) }
 
             // Step 3: Decifra il database
             val outputDb = File(context.filesDir, "msgstore.db")
-            val decryptResult = decryptor.decrypt(files.crypt14File, files.keyFile, outputDb, onDecryptionProgress)
+            val decryptResult = decryptor.decrypt(files.crypt14File, files.keyFile, outputDb) { progress ->
+                _setupState.update { it.copy(decryptionProgress = progress) }
+            }
             decryptResult.getOrElse { throwable ->
+                _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
                 throw AppErrorException(
                     AppError.DecryptionFailed(throwable.message ?: "Errore sconosciuto")
                 )
             }
-            onStepComplete(SetupStep.DECRYPTION)
+            _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.SUCCESS, contactsStatus = GlobalStepStatus.LOADING) }
 
             // Step 4: Apri il database per le query
             try {
                 database.open(outputDb, files.waDbFile)
             } catch (e: Exception) {
+                _setupState.update { it.copy(contactsStatus = GlobalStepStatus.ERROR) }
                 throw AppErrorException(
                     AppError.DatabaseError(e.message ?: "Impossibile aprire il database")
                 )
             }
-            onStepComplete(SetupStep.DATABASE_OPEN)
+            _setupState.update { it.copy(contactsStatus = GlobalStepStatus.SUCCESS, isLoading = false, isComplete = true) }
+        }.onFailure { throwable ->
+            val errorMessage = when (throwable) {
+                is AppErrorException -> throwable.appError.userMessage
+                else -> throwable.message ?: "Errore sconosciuto"
+            }
+            _setupState.update { it.copy(isLoading = false, error = errorMessage) }
         }
     }
 
@@ -90,42 +112,51 @@ class WhatsAppRepository @Inject constructor(
      * Esegue il flusso di setup saltando root ed estrazione,
      * usando i file già copiati manualmente dall'utente.
      */
-    suspend fun performManualSetup(
-        onStepComplete: suspend (SetupStep) -> Unit = {},
-        onDecryptionProgress: (Float) -> Unit = {}
-    ): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun performManualSetup(): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
+            _setupState.update { it.copy(isLoading = true, error = null) }
+
             // Saltiamo esplicitamente gli step 1 e 2 per feedback visivo
-            onStepComplete(SetupStep.ROOT_CHECK)
-            onStepComplete(SetupStep.FILE_EXTRACTION)
+            _setupState.update { it.copy(rootStatus = GlobalStepStatus.SUCCESS, extractionStatus = GlobalStepStatus.SUCCESS, decryptionStatus = GlobalStepStatus.LOADING) }
 
             val keyFile = File(context.filesDir, FileExtractor.KEY_DEST)
             val crypt14File = File(context.filesDir, FileExtractor.CRYPT14_DEST)
             val waDbFile = File(context.filesDir, FileExtractor.WA_DB_DEST)
             
             if (!keyFile.exists() || !crypt14File.exists()) {
+                 _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
                  throw AppErrorException(AppError.ExtractionError("I file chiave e database non sono stati copiati correttamente."))
             }
 
             // Step 3: Decifra il database
             val outputDb = File(context.filesDir, "msgstore.db")
-            val decryptResult = decryptor.decrypt(crypt14File, keyFile, outputDb, onDecryptionProgress)
+            val decryptResult = decryptor.decrypt(crypt14File, keyFile, outputDb) { progress ->
+                _setupState.update { it.copy(decryptionProgress = progress) }
+            }
             decryptResult.getOrElse { throwable ->
+                _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
                 throw AppErrorException(
                     AppError.DecryptionFailed(throwable.message ?: "Errore sconosciuto")
                 )
             }
-            onStepComplete(SetupStep.DECRYPTION)
+            _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.SUCCESS, contactsStatus = GlobalStepStatus.LOADING) }
 
             // Step 4: Apri il database per le query (waDbFile opzionale)
             try {
                 database.open(outputDb, waDbFile)
             } catch (e: Exception) {
+                _setupState.update { it.copy(contactsStatus = GlobalStepStatus.ERROR) }
                 throw AppErrorException(
                     AppError.DatabaseError(e.message ?: "Impossibile aprire il database")
                 )
             }
-            onStepComplete(SetupStep.DATABASE_OPEN)
+            _setupState.update { it.copy(contactsStatus = GlobalStepStatus.SUCCESS, isLoading = false, isComplete = true) }
+        }.onFailure { throwable ->
+            val errorMessage = when (throwable) {
+                is AppErrorException -> throwable.appError.userMessage
+                else -> throwable.message ?: "Errore sconosciuto"
+            }
+            _setupState.update { it.copy(isLoading = false, error = errorMessage) }
         }
     }
 
@@ -150,6 +181,19 @@ enum class SetupStep {
     DECRYPTION,
     DATABASE_OPEN
 }
+
+data class RepositorySetupState(
+    val isLoading: Boolean = false,
+    val isComplete: Boolean = false,
+    val error: String? = null,
+    val rootStatus: GlobalStepStatus = GlobalStepStatus.IDLE,
+    val extractionStatus: GlobalStepStatus = GlobalStepStatus.IDLE,
+    val decryptionStatus: GlobalStepStatus = GlobalStepStatus.IDLE,
+    val contactsStatus: GlobalStepStatus = GlobalStepStatus.IDLE,
+    val decryptionProgress: Float = 0f
+)
+
+enum class GlobalStepStatus { IDLE, LOADING, SUCCESS, ERROR }
 
 /**
  * Wrapper per lanciare AppError come eccezione nel flusso Result.

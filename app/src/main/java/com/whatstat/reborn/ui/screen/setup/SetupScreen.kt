@@ -27,6 +27,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.whatstat.reborn.data.root.FileExtractor
+import android.Manifest
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.ManagedActivityResultLauncher
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AdminPanelSettings
@@ -72,6 +76,22 @@ fun SetupScreen(
 
     LaunchedEffect(state.isComplete) {
         if (state.isComplete) onSetupComplete()
+    }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            Toast.makeText(context, "Il permesso notifiche è necessario per seguire il progresso in background", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun checkAndStart(isManual: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (isManual) viewModel.startManualSetup() else viewModel.startSetup()
     }
 
     Box(
@@ -270,9 +290,9 @@ fun SetupScreen(
             Button(
                 onClick = { 
                     if (state.isManualModeVisible) {
-                        viewModel.startManualSetup()
+                        checkAndStart(true)
                     } else {
-                        viewModel.startSetup() 
+                        checkAndStart(false) 
                     }
                 },
                 enabled = !state.isLoading && (!state.isManualModeVisible || (state.hasManualKey && state.hasManualCrypt14)),
