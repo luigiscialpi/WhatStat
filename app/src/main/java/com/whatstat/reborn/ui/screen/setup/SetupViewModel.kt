@@ -94,6 +94,7 @@ class SetupViewModel @Inject constructor(
                         FileExtractor.KEY_DEST -> current.copy(hasManualKey = true)
                         FileExtractor.CRYPT14_DEST -> current.copy(hasManualCrypt14 = true)
                         FileExtractor.WA_DB_DEST -> current.copy(hasManualWaDb = true)
+                        FileExtractor.DB_DECRYPTED_DEST -> current.copy(hasManualDbDecrypted = true)
                         else -> current
                     }
                 }
@@ -138,7 +139,8 @@ data class SetupState(
     val isManualModeVisible: Boolean = false,
     val hasManualKey: Boolean        = false,
     val hasManualCrypt14: Boolean    = false,
-    val hasManualWaDb: Boolean       = false
+    val hasManualWaDb: Boolean       = false,
+    val hasManualDbDecrypted: Boolean = false
 )
 
 enum class StepStatus { IDLE, LOADING, SUCCESS, ERROR }

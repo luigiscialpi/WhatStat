@@ -275,6 +275,14 @@ fun SetupScreen(
                             }
                         )
                         ManualFileButton(
+                            label = "Database già decifrato (msgstore.db)",
+                            isLoaded = state.hasManualDbDecrypted,
+                            onClick = { 
+                                currentSelectionType = FileExtractor.DB_DECRYPTED_DEST
+                                launcher.launch("application/octet-stream") 
+                            }
+                        )
+                        ManualFileButton(
                             label = "Contatti (wa.db) - Opzionale",
                             isLoaded = state.hasManualWaDb,
                             onClick = { 
@@ -321,7 +329,11 @@ fun SetupScreen(
                             checkAndStart(false) 
                         }
                     },
-                    enabled = !state.isLoading && (!state.isManualModeVisible || (state.hasManualKey && state.hasManualCrypt14)),
+                    enabled = !state.isLoading && (
+        !state.isManualModeVisible || 
+        (state.hasManualKey && state.hasManualCrypt14) ||
+        (state.hasManualKey && state.hasManualDbDecrypted)
+    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),

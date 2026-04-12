@@ -138,23 +138,51 @@ class WhatsAppRepository @Inject constructor(
 
             val keyFile = File(context.filesDir, FileExtractor.KEY_DEST)
             val crypt14File = File(context.filesDir, FileExtractor.CRYPT14_DEST)
+            val dbDecryptedFile = File(context.filesDir, FileExtractor.DB_DECRYPTED_DEST)
             val waDbFile = File(context.filesDir, FileExtractor.WA_DB_DEST)
             
-            if (!keyFile.exists() || !crypt14File.exists()) {
+            // Determina se l'utente ha fornito un db già decifrato
+            val hasDecryptedDb = dbDecryptedFile.exists()
+            
+            if (!keyFile.exists()) {
                  _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
-                 throw AppErrorException(AppError.ExtractionError("I file chiave e database non sono stati copiati correttamente."))
+                 throw AppErrorException(AppError.ExtractionError("Il file chiave non è stato copiato."))
+            }
+            
+            if (!hasDecryptedDb && !crypt14File.exists()) {
+                 _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
+                 throw AppErrorException(AppError.ExtractionError("Il file database non è stato copiato."))
             }
 
-            // Step 3: Decifra il database
-            val outputDb = File(context.filesDir, "msgstore.db")
-            val decryptResult = decryptor.decrypt(crypt14File, keyFile, outputDb) { progress ->
-                _setupState.update { it.copy(decryptionProgress = progress) }
-            }
-            decryptResult.getOrElse { throwable ->
-                _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
-                throw AppErrorException(
-                    AppError.DecryptionFailed(throwable.message ?: "Errore sconosciuto")
-                )
+            // Step 3: Decifra il database OPZIONE: usa db già decifrato
+            val outputDb: File
+            if (hasDecryptedDb) {
+                // Usa il file già decifrato
+                outputDb = dbDecryptedFile
+                // Verifica che sia un SQLite valido
+                try {
+                    val header = ByteArray(16)
+                    outputDb.inputStream().use { it.read(header) }
+                    val magic = String(header, 0, 15)
+                    if (!magic.startsWith("SQLite format 3")) {
+                        throw AppErrorException(AppError.DecryptionError("Il file non sembra un database SQLite valido."))
+                    }
+                } catch (e: AppErrorException) { throw e }
+                catch (e: Exception) {
+                    throw AppErrorException(AppError.DecryptionError("Errore lettura file: ${e.message}"))
+                }
+            } else {
+                // Decifra il file crypt14
+                outputDb = File(context.filesDir, "msgstore.db")
+                val decryptResult = decryptor.decrypt(crypt14File, keyFile, outputDb) { progress ->
+                    _setupState.update { it.copy(decryptionProgress = progress) }
+                }
+                decryptResult.getOrElse { throwable ->
+                    _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
+                    throw AppErrorException(
+                        AppError.DecryptionFailed(throwable.message ?: "Errore sconosciuto")
+                    )
+                }
             }
             _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.SUCCESS, contactsStatus = GlobalStepStatus.LOADING) }
 

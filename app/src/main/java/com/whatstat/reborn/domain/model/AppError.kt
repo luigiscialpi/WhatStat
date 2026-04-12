@@ -33,6 +33,10 @@ sealed class AppError(val userMessage: String) {
         "Decifratura fallita: $reason"
     )
 
+    data class DecryptionError(val reason: String) : AppError(
+        "Errore decifratura: $reason"
+    )
+
     data class DatabaseError(val reason: String) : AppError(
         "Errore nel database: $reason"
     )

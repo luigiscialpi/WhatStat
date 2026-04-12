@@ -36,6 +36,9 @@ class FileExtractor @Inject constructor(
         const val KEY_DEST     = "whatsapp.key"
         const val CRYPT14_DEST = "msgstore.db.crypt14"
         const val WA_DB_DEST   = "wa.db"
+        
+        // Per import manuale (db già decifrato)
+        const val DB_DECRYPTED_DEST = "msgstore.db"
     }
 
     /**
