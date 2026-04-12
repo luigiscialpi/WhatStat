@@ -33,6 +33,7 @@ import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.FolderOpen
@@ -44,6 +45,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -287,38 +289,54 @@ fun SetupScreen(
             Spacer(Modifier.height(24.dp))
 
             // ── Action button ────────────────────────────────────
-            Button(
-                onClick = { 
-                    if (state.isManualModeVisible) {
-                        checkAndStart(true)
-                    } else {
-                        checkAndStart(false) 
-                    }
-                },
-                enabled = !state.isLoading && (!state.isManualModeVisible || (state.hasManualKey && state.hasManualCrypt14)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                if (state.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.5.dp,
-                        color = MaterialTheme.colorScheme.onPrimary
+            if (state.isLoading) {
+                // Pulsante Cancel durante il caricamento
+                OutlinedButton(
+                    onClick = { viewModel.cancelSetup() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Annulla",
+                        modifier = Modifier.size(22.dp)
                     )
                     Spacer(Modifier.width(12.dp))
+                    Text(
+                        "Annulla",
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
-                Text(
-                    if (state.isLoading) "Elaborazione…" 
-                    else if (state.isManualModeVisible) "Decifra Database"
-                    else "Inizia analisi",
-                    style = MaterialTheme.typography.labelLarge
-                )
+            } else {
+                Button(
+                    onClick = { 
+                        if (state.isManualModeVisible) {
+                            checkAndStart(true)
+                        } else {
+                            checkAndStart(false) 
+                        }
+                    },
+                    enabled = !state.isLoading && (!state.isManualModeVisible || (state.hasManualKey && state.hasManualCrypt14)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(
+                        if (state.isManualModeVisible) "Decifra Database"
+                        else "Inizia analisi",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
             }
         }
     }

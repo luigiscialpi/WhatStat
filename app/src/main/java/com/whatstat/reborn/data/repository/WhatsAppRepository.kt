@@ -36,10 +36,21 @@ class WhatsAppRepository @Inject constructor(
 ) {
     private val _setupState = MutableStateFlow(RepositorySetupState())
     val setupState: StateFlow<RepositorySetupState> = _setupState.asStateFlow()
+    
+    @Volatile
+    private var isCancelled = false
 
     fun resetState() {
+        isCancelled = false
         _setupState.update { RepositorySetupState() }
     }
+
+    fun cancelOperation() {
+        isCancelled = true
+        _setupState.update { it.copy(isLoading = false, error = "Operazione annullata") }
+    }
+
+    fun isOperationCancelled(): Boolean = isCancelled
 
     /**
      * Esegue il flusso completo di setup.
@@ -77,8 +88,14 @@ class WhatsAppRepository @Inject constructor(
             _setupState.update { it.copy(extractionStatus = GlobalStepStatus.SUCCESS, decryptionStatus = GlobalStepStatus.LOADING) }
 
             // Step 3: Decifra il database
+            if (isOperationCancelled()) {
+                return@withContext Result.success(Unit)
+            }
             val outputDb = File(context.filesDir, "msgstore.db")
             val decryptResult = decryptor.decrypt(files.crypt14File, files.keyFile, outputDb) { progress ->
+                if (isOperationCancelled()) {
+                    throw InterruptedException("Cancelled")
+                }
                 _setupState.update { it.copy(decryptionProgress = progress) }
             }
             decryptResult.getOrElse { throwable ->
@@ -162,6 +179,35 @@ class WhatsAppRepository @Inject constructor(
 
     /** Verifica se il database è già aperto e pronto (per skip del setup). */
     fun isDatabaseReady(): Boolean = database.isOpen()
+
+    /**
+     * Tenta di ripristinare una sessione precedente se i file decifrati
+     * sono già presenti nella memoria interna dell'app.
+     */
+    suspend fun tryRestoreSession(): Boolean = withContext(Dispatchers.IO) {
+        val outputDb = File(context.filesDir, "msgstore.db")
+        val waDbFile = File(context.filesDir, FileExtractor.WA_DB_DEST)
+
+        if (outputDb.exists() && outputDb.length() > 0) {
+            try {
+                database.open(outputDb, waDbFile)
+                if (database.isOpen()) {
+                    _setupState.update { it.copy(
+                        isComplete = true,
+                        rootStatus = GlobalStepStatus.SUCCESS,
+                        extractionStatus = GlobalStepStatus.SUCCESS,
+                        decryptionStatus = GlobalStepStatus.SUCCESS,
+                        contactsStatus = GlobalStepStatus.SUCCESS
+                    ) }
+                    return@withContext true
+                }
+            } catch (e: Exception) {
+                // Se non riusciamo ad aprire, facciamo finta di nulla e chiediamo il setup
+                outputDb.delete()
+            }
+        }
+        false
+    }
 
     /** Chiude il database e pulisce i file estratti. */
     suspend fun cleanup() = withContext(Dispatchers.IO) {

@@ -35,6 +35,11 @@ class SetupViewModel @Inject constructor(
         // Se il database è già aperto (es. dopo rotazione schermo), skip del setup
         if (repository.isDatabaseReady()) {
             _state.update { it.copy(isComplete = true) }
+        } else {
+            // Tenta di ripristinare la sessione salvata
+            viewModelScope.launch {
+                repository.tryRestoreSession()
+            }
         }
 
         // Osserva lo stato globale nel repository (proveniente dal Service o dal repo direttamente)
@@ -109,6 +114,13 @@ class SetupViewModel @Inject constructor(
         } else {
             context.startService(intent)
         }
+    }
+
+    fun cancelSetup() {
+        val intent = Intent(context, SetupService::class.java).apply {
+            action = SetupService.ACTION_CANCEL
+        }
+        context.startService(intent)
     }
 }
 

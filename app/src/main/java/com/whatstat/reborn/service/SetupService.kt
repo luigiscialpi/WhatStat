@@ -40,6 +40,7 @@ class SetupService : Service() {
         const val NOTIFICATION_ID = 1001
         const val ACTION_START_FULL = "START_FULL"
         const val ACTION_START_MANUAL = "START_MANUAL"
+        const val ACTION_CANCEL = "ACTION_CANCEL"
     }
 
     override fun onCreate() {
@@ -53,12 +54,23 @@ class SetupService : Service() {
         super.onStartCommand(intent, flags, startId)
 
         val action = intent?.action
-        if (action == ACTION_START_FULL || action == ACTION_START_MANUAL) {
-            startForeground(NOTIFICATION_ID, createNotification(0f))
-            startSetup(action == ACTION_START_MANUAL)
+        when (action) {
+            ACTION_START_FULL, ACTION_START_MANUAL -> {
+                startForeground(NOTIFICATION_ID, createNotification(0f))
+                startSetup(action == ACTION_START_MANUAL)
+            }
+            ACTION_CANCEL -> {
+                cancelSetup()
+            }
         }
 
         return START_NOT_STICKY
+    }
+
+    private fun cancelSetup() {
+        repository.cancelOperation()
+        serviceScope.cancel()
+        stopSelf()
     }
 
     private fun startSetup(isManual: Boolean) {
