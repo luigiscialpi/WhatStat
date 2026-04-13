@@ -29,7 +29,7 @@ class ChatDao @Inject constructor(
             SELECT
                 c._id AS chat_id,
                 j.raw_string AS jid,
-                j.cached_name AS name,
+                j.user AS name,
                 CASE WHEN j.server = 'g.us' THEN 1 ELSE 0 END AS is_group,
                 c.subject
             FROM chat c
@@ -52,7 +52,7 @@ class ChatDao @Inject constructor(
     /** Ritorna il nome della chat più attiva (più messaggi). */
     fun getMostActiveChat(): String {
         val query = """
-            SELECT COALESCE(j.cached_name, c.subject, j.raw_string) AS display_name
+            SELECT COALESCE(j.user, c.subject, j.raw_string) AS display_name
             FROM chat c
             JOIN jid j ON c.jid_row_id = j._id
             JOIN message m ON m.chat_row_id = c._id
@@ -68,14 +68,14 @@ class ChatDao @Inject constructor(
 
     /**
      * Ritorna la lista di tutte le chat con info per il ranking.
-     * Include il nome visualizzato (da jid.cached_name, chat.subject, o wa.db).
+     * Include il nome visualizzato (da jid.user, chat.subject, o wa.db).
      */
     fun getChatList(): List<ChatListItem> {
         val query = """
             SELECT
                 c._id AS chat_id,
                 j.raw_string AS jid,
-                COALESCE(j.cached_name, c.subject, j.user) AS display_name,
+                COALESCE(j.user, c.subject, j.user) AS display_name,
                 CASE WHEN j.server = 'g.us' THEN 1 ELSE 0 END AS is_group,
                 COUNT(m._id) AS total_messages,
                 MAX(m.timestamp) AS last_message_ts

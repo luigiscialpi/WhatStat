@@ -10,6 +10,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.whatstat.reborn.data.repository.WhatsAppRepository
 import com.whatstat.reborn.ui.screen.chatdetail.ChatDetailScreen
 import com.whatstat.reborn.ui.screen.chatlist.ChatListScreen
 import com.whatstat.reborn.ui.screen.dashboard.DashboardScreen
@@ -32,7 +33,10 @@ sealed class Screen(val route: String) {
  * Setup → Dashboard → ChatList → ChatDetail
  */
 @Composable
-fun AppNavigation(navController: NavHostController) {
+fun AppNavigation(
+    navController: NavHostController,
+    repository: WhatsAppRepository
+) {
     val animDuration = 350
 
     NavHost(
@@ -69,6 +73,12 @@ fun AppNavigation(navController: NavHostController) {
             DashboardScreen(
                 onNavigateToChatList = {
                     navController.navigate(Screen.ChatList.route)
+                },
+                onNavigateBack = {
+                    repository.resetState()
+                    navController.navigate(Screen.Setup.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }

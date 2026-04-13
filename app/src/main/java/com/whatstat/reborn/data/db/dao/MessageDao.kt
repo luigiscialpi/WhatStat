@@ -60,7 +60,7 @@ class MessageDao @Inject constructor(
             SELECT
                 c._id               AS chat_id,
                 j.raw_string        AS jid,
-                COALESCE(j.cached_name, c.subject) AS name,
+                COALESCE(j.user, c.subject) AS name,
                 COUNT(*)            AS total,
                 SUM(CASE WHEN m.from_me = 1 THEN 1 ELSE 0 END) AS sent,
                 SUM(CASE WHEN m.from_me = 0 THEN 1 ELSE 0 END) AS received

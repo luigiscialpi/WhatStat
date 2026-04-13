@@ -26,6 +26,9 @@ class DashboardViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
     init {
         loadStats()
     }
@@ -33,18 +36,26 @@ class DashboardViewModel @Inject constructor(
     private fun loadStats() {
         viewModelScope.launch {
             _isLoading.value = true
+            _error.value = null
             try {
+                android.util.Log.d("DashboardVM", "Caricamento statistiche in corso...")
                 val stats = analyticsRepository.getGlobalStats()
+                android.util.Log.d("DashboardVM", "Stats caricate: $stats")
                 _globalStats.value = stats
 
                 val hourly = analyticsRepository.getGlobalHourlyDistribution()
+                android.util.Log.d("DashboardVM", "Hourly data: ${hourly.size} entries")
                 _hourlyData.value = hourly
             } catch (e: Exception) {
-                // In caso di errore, i dati rimangono null
-                // e la UI mostrerà il loader
+                android.util.Log.e("DashboardVM", "Errore caricamento stats", e)
+                _error.value = "Errore: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    fun retry() {
+        loadStats()
     }
 }

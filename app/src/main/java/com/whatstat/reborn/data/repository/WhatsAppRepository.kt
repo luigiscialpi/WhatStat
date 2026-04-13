@@ -1,7 +1,7 @@
 package com.whatstat.reborn.data.repository
 
 import android.content.Context
-import com.whatstat.reborn.data.crypto.Crypt14Decryptor
+import com.whatstat.reborn.data.crypto.WaCryptToolsDecryptor
 import com.whatstat.reborn.data.db.WhatsAppDatabase
 import com.whatstat.reborn.data.root.CryptVersionException
 import com.whatstat.reborn.data.root.FileExtractor
@@ -30,7 +30,7 @@ import kotlinx.coroutines.flow.update
 class WhatsAppRepository @Inject constructor(
     private val rootManager: RootManager,
     private val fileExtractor: FileExtractor,
-    private val decryptor: Crypt14Decryptor,
+    private val decryptor: WaCryptToolsDecryptor,
     private val database: WhatsAppDatabase,
     @ApplicationContext private val context: Context
 ) {
@@ -140,15 +140,15 @@ class WhatsAppRepository @Inject constructor(
             val crypt14File = File(context.filesDir, FileExtractor.CRYPT14_DEST)
             val dbDecryptedFile = File(context.filesDir, FileExtractor.DB_DECRYPTED_DEST)
             val waDbFile = File(context.filesDir, FileExtractor.WA_DB_DEST)
-            
+
             // Determina se l'utente ha fornito un db già decifrato
             val hasDecryptedDb = dbDecryptedFile.exists()
-            
+
             if (!keyFile.exists()) {
                  _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
                  throw AppErrorException(AppError.ExtractionError("Il file chiave non è stato copiato."))
             }
-            
+
             if (!hasDecryptedDb && !crypt14File.exists()) {
                  _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
                  throw AppErrorException(AppError.ExtractionError("Il file database non è stato copiato."))
@@ -248,6 +248,8 @@ class WhatsAppRepository @Inject constructor(
         fileExtractor.copyFromUri(uri, destFileName)
     }
 }
+
+// --- Inner classes ---
 
 enum class SetupStep {
     ROOT_CHECK,
