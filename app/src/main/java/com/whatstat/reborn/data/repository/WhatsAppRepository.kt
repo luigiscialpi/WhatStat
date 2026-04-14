@@ -1,7 +1,7 @@
 package com.whatstat.reborn.data.repository
 
 import android.content.Context
-import com.whatstat.reborn.data.crypto.WaCryptToolsDecryptor
+import com.whatstat.reborn.data.crypto.Crypt14Decryptor
 import com.whatstat.reborn.data.db.WhatsAppDatabase
 import com.whatstat.reborn.data.root.CryptVersionException
 import com.whatstat.reborn.data.root.FileExtractor
@@ -30,7 +30,7 @@ import kotlinx.coroutines.flow.update
 class WhatsAppRepository @Inject constructor(
     private val rootManager: RootManager,
     private val fileExtractor: FileExtractor,
-    private val decryptor: WaCryptToolsDecryptor,
+    private val decryptor: Crypt14Decryptor,
     private val database: WhatsAppDatabase,
     @ApplicationContext private val context: Context
 ) {

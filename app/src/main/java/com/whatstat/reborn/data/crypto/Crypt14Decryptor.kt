@@ -2,9 +2,8 @@ package com.whatstat.reborn.data.crypto
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.util.zip.Inflater
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
@@ -17,156 +16,13 @@ class Crypt14Decryptor @Inject constructor(
     private val keyReader: KeyReader
 ) {
     companion object {
-        private const val GCM_ALGO = "AES/GCM/NoPadding"
+        private const val CTR_ALGO = "AES/CTR/NoPadding"
+        private const val CIPHER_ALGO = "AES/GCM/NoPadding"
+        private const val IV_LENGTH = 16
         private const val AUTH_TAG_BITS = 128
-        private const val BUFFER_SIZE = 262144
+        private const val FOOTER_SIZE = 32 // auth_tag (16) + md5_checksum (16)
+        private const val BUFFER_SIZE = 65536
     }
-
-    data class IVResult(val iv: ByteArray, val dataOffset: Int)
-
-    // ─── Header parsing ───────────────────────────────────────────────────────
-
-    fun parseHeader(data: ByteArray): IVResult? {
-        var pos = 0
-        if (data[0].toInt() and 0xFF > 0x0F) {
-            while (pos < data.size && data[pos].toInt() and 0x80 != 0) pos++
-            pos++
-        }
-        val protobufStart = pos
-
-        return try {
-            val log = StringBuilder()
-            val iv = findIVInProtobuf(data, pos, depth = 0, log)
-                ?: throw DecryptionException(
-                    "IV non trovato nel protobuf.\n\n" +
-                    "=== PARSING LOG ===\n$log\n\n" +
-                    "=== HEADER HEX (primi 120 byte) ===\n" +
-                    data.take(120).chunked(16).joinToString("\n") { row ->
-                        row.joinToString(" ") { "%02x".format(it.toInt() and 0xFF) }
-                    }
-                )
-
-            val dataOffset = computeDataOffset(data, protobufStart)
-            IVResult(iv, dataOffset)
-        } catch (e: DecryptionException) {
-            throw e
-        } catch (e: Exception) {
-            throw DecryptionException(
-                "parseHeader exception: ${e.message}\n" +
-                "Header: ${data.take(32).joinToString(",") { "%02x".format(it.toInt() and 0xFF) }}"
-            )
-        }
-    }
-
-    private fun findIVInProtobuf(
-        data: ByteArray,
-        startPos: Int,
-        depth: Int,
-        log: StringBuilder
-    ): ByteArray? {
-        if (depth > 2) return null
-        var pos = startPos
-
-        while (pos < data.size - 1) {
-            val tagByte = data[pos].toInt() and 0xFF
-            if (tagByte == 0x00) { pos++; continue }
-            val wireType = tagByte and 0x07
-            val fieldNum = tagByte ushr 3
-            pos++
-
-            when (wireType) {
-                0 -> {
-                    val (value, consumed) = readVarint(data, pos)
-                    log.append("  [depth=$depth] field=$fieldNum varint=$value\n")
-                    pos += consumed
-                }
-                2 -> {
-                    val (len, consumed) = readVarint(data, pos)
-                    pos += consumed
-                    val fieldEnd = pos + len.toInt()
-                    if (fieldEnd > data.size) {
-                        log.append("  [depth=$depth] field=$fieldNum len=$len FUORI BOUNDS\n")
-                        return null
-                    }
-
-                    val preview = data.copyOfRange(pos, minOf(pos + 8, fieldEnd))
-                        .joinToString(",") { "%02x".format(it.toInt() and 0xFF) }
-                    log.append("  [depth=$depth] field=$fieldNum len=$len preview=[$preview]\n")
-
-                    if (len == 12L || len == 16L) {
-                        val candidate = data.copyOfRange(pos, fieldEnd)
-                        if (!candidate.all { it == 0.toByte() }) {
-                            log.append("  → IV TROVATO len=$len a pos=$pos depth=$depth\n")
-                            return candidate
-                        } else {
-                            log.append("  → len=$len ma tutti zeri, skip\n")
-                        }
-                    }
-
-                    if (len in 2..200 && depth < 2) {
-                        val nested = data.copyOfRange(pos, fieldEnd)
-                        val found = findIVInProtobuf(nested, 0, depth + 1, log)
-                        if (found != null) return found
-                    }
-
-                    pos = fieldEnd
-                }
-                5 -> { log.append("  [depth=$depth] field=$fieldNum 32bit\n"); pos += 4 }
-                1 -> { log.append("  [depth=$depth] field=$fieldNum 64bit\n"); pos += 8 }
-                else -> {
-                    log.append("  [depth=$depth] wireType=$wireType SCONOSCIUTO a pos=${pos - 1}\n")
-                    if (depth > 0) return null
-                    pos++
-                }
-            }
-        }
-        return null
-    }
-
-    private fun computeDataOffset(data: ByteArray, startPos: Int): Int {
-        var pos = startPos
-        var lastValidPos = startPos
-
-        while (pos < data.size - 1) {
-            val tagByte = data[pos].toInt() and 0xFF
-            if (tagByte == 0x00) break
-            val wireType = tagByte and 0x07
-            pos++
-
-            when (wireType) {
-                0 -> { val (_, c) = readVarint(data, pos); pos += c }
-                2 -> {
-                    val (len, c) = readVarint(data, pos)
-                    pos += c
-                    val fieldEnd = pos + len.toInt()
-                    if (fieldEnd > data.size) break
-                    pos = fieldEnd
-                }
-                5 -> pos += 4
-                1 -> pos += 8
-                else -> break
-            }
-            lastValidPos = pos
-        }
-
-        return if (lastValidPos in 50..300) lastValidPos else 67
-    }
-
-    private fun readVarint(data: ByteArray, start: Int): Pair<Long, Int> {
-        var result = 0L
-        var shift = 0
-        var offset = start
-        while (offset < data.size) {
-            val b = data[offset].toInt() and 0xFF
-            result = result or ((b and 0x7F).toLong() shl shift)
-            offset++
-            if (b and 0x80 == 0) break
-            shift += 7
-        }
-        return Pair(result, offset - start)
-    }
-
-    // ─── Decrypt entry point ──────────────────────────────────────────────────
 
     suspend fun decrypt(
         crypt14File: File,
@@ -175,316 +31,327 @@ class Crypt14Decryptor @Inject constructor(
         onProgress: (Float) -> Unit = {}
     ): Result<File> = withContext(Dispatchers.IO) {
         runCatching {
-            val keyOptions = keyReader.readKeyOptions(keyFile)
-            if (keyOptions.isEmpty()) throw DecryptionException("Nessuna chiave trovata nel file key")
+            onProgress(0.05f)
 
-            val headerBuffer = ByteArray(512)
-            crypt14File.inputStream().use { it.read(headerBuffer) }
+            // 1. Carica e deserializza la chiave
+            val keyData = keyReader.readKey(keyFile)
+            val aesKey: ByteArray = when (keyData.keyType) {
+                KeyReader.KeyData.KeyType.CRYPT14 -> keyData.aesKey
+                KeyReader.KeyData.KeyType.CRYPT15 -> keyReader.deriveEncryptionKey(keyData.aesKey)
+            }
+            val secretKey = SecretKeySpec(aesKey, "AES")
+            onProgress(0.1f)
 
-            val ivResult = try {
-                parseHeader(headerBuffer)
-                    ?: throw DecryptionException("parseHeader ha restituito null")
-            } catch (e: DecryptionException) { throw e }
+            // 2. Leggi SOLO il file parzialmente per identificare l'header protobuf
+            val fileLength = crypt14File.length()
+            val headerBuffer = ByteArray(4096)
+            var bytesReadInHeader = 0
+            crypt14File.inputStream().use { fis ->
+                bytesReadInHeader = fis.read(headerBuffer)
+            }
+            if (bytesReadInHeader < 50) {
+                throw DecryptionException("File crypt14 troppo corto!")
+            }
+            val headerResult = parseProtobufHeader(headerBuffer.copyOf(bytesReadInHeader))
+            onProgress(0.2f)
 
-            // IV candidati dal protobuf
-            val protobufIvs = if (ivResult.iv.size == 16) {
-                listOf(ivResult.iv, ivResult.iv.copyOf(12))
-            } else {
-                listOf(ivResult.iv)
+            // 3. Estrai limiti dati
+            val debugLog = java.lang.StringBuilder("--- VERBOSE DEBUG ---\n")
+
+            val dataStart = headerResult.dataOffset
+            val dataEnd = fileLength - FOOTER_SIZE
+            val dataLength = dataEnd - dataStart
+            if (dataLength <= 0) {
+                throw DecryptionException("File cifrato troppo piccolo o corrotto (size: $fileLength, dataStart: $dataStart)")
             }
 
-            // Diagnosi brute force offset con IV dal protobuf — salva file e continua
-            val diagOffset = StringBuilder()
-            for (key in keyOptions) {
-                val secretKey = SecretKeySpec(key, "AES")
+            debugLog.append("Len: $fileLength\n")
+            debugLog.append("Start: $dataStart | End: $dataEnd | Len: $dataLength\n")
+            debugLog.append("Protobuf IV: ${headerResult.iv.joinToString("") { "%02X".format(it) }}\n")
 
-                // IV dal protobuf (field 4)
-                for (iv in protobufIvs) {
-                    diagOffset.append(bruteForceOffsetDiag(crypt14File, secretKey, iv))
-                }
+            val aesEcb = Cipher.getInstance("AES/ECB/NoPadding")
+            aesEcb.init(Cipher.ENCRYPT_MODE, secretKey)
+            val h = aesEcb.doFinal(ByteArray(16))
+            
+            val j0 = ByteArray(16)
+            for (i in 0 until 16) j0[i] = (j0[i].toInt() xor headerResult.iv[i].toInt()).toByte()
+            gfMul(j0, h)
+            
+            val lenBlock = ByteArray(16)
+            lenBlock[15] = 0x80.toByte() 
+            for (i in 0 until 16) j0[i] = (j0[i].toInt() xor lenBlock[i].toInt()).toByte()
+            gfMul(j0, h)
 
-                // IV field 5 hardcoded dal tuo header (2a 10 + 16 byte)
-                val field5iv = byteArrayOf(
-                    0x31, 0x15, 0x40, 0x70, 0x3f, 0x34, 0x07, 0xdf.toByte(),
-                    0x88.toByte(), 0x09, 0x5a, 0xfb.toByte(), 0x73, 0x6a, 0x00, 0x77
-                )
-                diagOffset.append(bruteForceOffsetDiag(crypt14File, secretKey, field5iv))
-                diagOffset.append(bruteForceOffsetDiag(crypt14File, secretKey, field5iv.copyOf(12)))
-            }
-            saveDiagnosisToFile(diagOffset.toString())
+            debugLog.append("J0 (GHASH): ${j0.joinToString("") { "%02X".format(it) }}\n")
 
-            // IV candidati letti direttamente dai byte del file crypt14
-            val rawIvCandidates = mutableListOf<Pair<String, ByteArray>>()
-            FileInputStream(crypt14File).use { fis ->
-                val buf = ByteArray(512)
-                fis.read(buf)
-                for (ivOff in listOf(67, 69, 71, 51, 53, 8, 10)) {
-                    if (ivOff + 16 <= buf.size) {
-                        val iv16 = buf.copyOfRange(ivOff, ivOff + 16)
-                        if (!iv16.all { it == 0.toByte() })
-                            rawIvCandidates.add("raw_iv16@$ivOff" to iv16)
-                    }
-                    if (ivOff + 12 <= buf.size) {
-                        val iv12 = buf.copyOfRange(ivOff, ivOff + 12)
-                        if (!iv12.all { it == 0.toByte() })
-                            rawIvCandidates.add("raw_iv12@$ivOff" to iv12)
-                    }
-                }
-                for (i in 0..288) {
-                    val candidate = buf.copyOfRange(i, i + 12)
-                    if (!candidate.all { it == 0.toByte() })
-                        rawIvCandidates.add("scan@$i" to candidate)
-                }
+            val ctrIv = j0.copyOf()
+            var carry = 1
+            for (i in 15 downTo 12) {
+                val sum = (ctrIv[i].toInt() and 0xFF) + carry
+                ctrIv[i] = sum.toByte()
+                carry = sum ushr 8
+                if (carry == 0) break
             }
 
-            val offsetsToTry = (listOf(
-                ivResult.dataOffset,
-                275, 277, 280, 270, 265, 260,
-                193, 191, 192, 190,
-                83, 67, 99, 114, 131, 155
-            ) + (250..290 step 1).toList()).distinct()
+            debugLog.append("CTR IV (+1): ${ctrIv.joinToString("") { "%02X".format(it) }}\n")
 
-            // FASE 1: prova IV dal protobuf
-            for (key in keyOptions) {
-                val secretKey = SecretKeySpec(key, "AES")
-                for (iv in protobufIvs) {
-                    for (dataOffset in offsetsToTry) {
-                        if (quickProbe(crypt14File, secretKey, iv, dataOffset)) {
-                            if (tryDecryptFull(crypt14File, secretKey, iv, dataOffset, outputFile, onProgress)) {
-                                return@runCatching outputFile
-                            }
-                        }
-                    }
-                }
-            }
-
-            // FASE 2: scansione esaustiva IV
-            val diagLog = StringBuilder("=== SCANSIONE ESAUSTIVA IV ===\n")
-            diagLog.append("KEY: ${keyOptions.first().joinToString("") { "%02x".format(it) }}\n\n")
-
-            for (key in keyOptions) {
-                val secretKey = SecretKeySpec(key, "AES")
-                for ((ivLabel, iv) in rawIvCandidates) {
-                    for (dataOffset in offsetsToTry) {
-                        if (quickProbeWithLog(crypt14File, secretKey, iv, dataOffset, ivLabel, diagLog)) {
-                            if (tryDecryptFull(crypt14File, secretKey, iv, dataOffset, outputFile, onProgress)) {
-                                saveDiagnosisToFile(diagLog.toString())
-                                return@runCatching outputFile
-                            }
-                        }
-                    }
-                }
-            }
-
-            saveDiagnosisToFile(diagLog.toString())
-            outputFile.takeIf { it.exists() }?.delete()
-            throw DecryptionException(
-                "Decifratura fallita.\n" +
-                "IV protobuf: ${ivResult.iv.joinToString("") { "%02x".format(it) }}\n" +
-                "dataOffset: ${ivResult.dataOffset}\n\n" +
-                "Log salvato in Download/whatstat_diag_*.txt"
+            val cipher = Cipher.getInstance(CTR_ALGO)
+            cipher.init(
+                Cipher.DECRYPT_MODE,
+                secretKey,
+                javax.crypto.spec.IvParameterSpec(ctrIv)
             )
-        }
-    }
+            onProgress(0.25f)
 
-    private fun bruteForceOffsetDiag(
-        file: File,
-        secretKey: SecretKeySpec,
-        iv: ByteArray
-    ): String {
-        val sb = StringBuilder()
-        sb.append("=== BRUTE FORCE OFFSET (AES-CTR) ===\n")
-        sb.append("IV: ${iv.copyOf(12).joinToString("") { "%02x".format(it) }}\n\n")
+            var bytesProcessed = 0L
+            val progressUpdateInterval = maxOf(1L, dataLength / 100)
 
-        val ctrIv = iv.copyOf(12) + byteArrayOf(0, 0, 0, 1)
-
-        for (offset in 50..400) {
-            try {
-                FileInputStream(file).use { fis ->
-                    skipBytes(fis, offset)
-                    val chunk = ByteArray(32)
-                    val read = fis.read(chunk)
-                    if (read < 16) return@use
-
-                    val cipher = Cipher.getInstance("AES/CTR/NoPadding")
-                    cipher.init(Cipher.DECRYPT_MODE, secretKey,
-                        javax.crypto.spec.IvParameterSpec(ctrIv))
-                    val dec = cipher.update(chunk, 0, read) ?: return@use
-
-                    val ascii = String(dec, 0, minOf(16, dec.size), Charsets.US_ASCII)
-                        .replace(Regex("[^\\x20-\\x7E]"), ".")
-                    // Logga SEMPRE, non solo SQLite
-                    sb.append("off=$offset → $ascii\n")
-                }
-            } catch (e: Exception) {
-                sb.append("off=$offset → ERR: ${e.message}\n")
-            }
-        }
-        return sb.toString()
-    }
-
-    // ─── Probe ────────────────────────────────────────────────────────────────
-
-    private fun quickProbe(
-        file: File,
-        secretKey: SecretKeySpec,
-        iv: ByteArray,
-        dataOffset: Int
-    ): Boolean {
-        return try {
-            FileInputStream(file).use { fis ->
-                skipBytes(fis, dataOffset)
-                // Leggi solo i primi 32 byte — GCM decifra in streaming
-                // anche senza auth tag usando update() invece di doFinal()
-                val chunk = ByteArray(32)
-                val read = fis.read(chunk)
-                if (read < 16) return false
-
-                val cipher = Cipher.getInstance(GCM_ALGO)
-                cipher.init(Cipher.DECRYPT_MODE, secretKey,
-                    GCMParameterSpec(AUTH_TAG_BITS, iv.copyOf(12)))
-                // update() decifra senza verificare l'auth tag
-                val dec = cipher.update(chunk, 0, read) ?: return false
-                if (dec.size < 15) return false
-                isSqlite(dec)
-            }
-        } catch (e: Exception) { false }
-    }
-
-    private fun quickProbeWithLog(
-        file: File,
-        secretKey: SecretKeySpec,
-        iv: ByteArray,
-        dataOffset: Int,
-        ivLabel: String,
-        log: StringBuilder
-    ): Boolean {
-        return try {
-            FileInputStream(file).use { fis ->
-                skipBytes(fis, dataOffset)
-                val chunk = ByteArray(32)
-                val read = fis.read(chunk)
-                if (read < 16) return false
-
-                val cipher = Cipher.getInstance(GCM_ALGO)
-                cipher.init(Cipher.DECRYPT_MODE, secretKey,
-                    GCMParameterSpec(AUTH_TAG_BITS, iv.copyOf(12)))
-                val dec = cipher.update(chunk, 0, read) ?: return false
-
-                val ascii = if (dec.size >= 16)
-                    String(dec, 0, 16, Charsets.US_ASCII).replace(Regex("[^\\x20-\\x7E]"), ".")
-                else "too_short"
-
-                val found = dec.size >= 15 && isSqlite(dec)
-                if (found) {
-                    log.append("*** TROVATO! $ivLabel offset=$dataOffset → $ascii\n")
-                    log.append("    IV: ${iv.joinToString("") { "%02x".format(it) }}\n")
-                }
-                found
-            }
-        } catch (e: Exception) { false }
-    }
-
-    // ─── Decifratura completa ─────────────────────────────────────────────────
-
-    private fun tryDecryptFull(
-        file: File,
-        secretKey: SecretKeySpec,
-        iv: ByteArray,
-        dataOffset: Int,
-        outputFile: File,
-        onProgress: (Float) -> Unit
-    ): Boolean {
-        return try {
-            FileInputStream(file).use { fis ->
-                skipBytes(fis, dataOffset)
-                val ciphertext = fis.readBytes()
-
-                // Prova 1: GCM con IV troncato a 12 byte (standard)
-                // Prova 2: GCM con IV a 16 byte intero (non standard)
-                val plaintext: ByteArray = tryGcmDecrypt(ciphertext, secretKey, iv.copyOf(12))
-                    ?: (if (iv.size == 16) tryGcmDecrypt(ciphertext, secretKey, iv) else null)
-                    ?: return false
-
-                // Controlla SQLite diretto
-                if (isSqlite(plaintext)) {
-                    FileOutputStream(outputFile).use { it.write(plaintext) }
-                    onProgress(1f)
-                    return true
+            crypt14File.inputStream().use { fis ->
+                var skipped = 0L
+                while (skipped < dataStart) {
+                    val s = fis.skip(dataStart - skipped)
+                    if (s <= 0L) {
+                        if (fis.read() == -1) break
+                        skipped++
+                    } else {
+                        skipped += s
+                    }
                 }
 
-                // Prova decompressione zlib
-                val decompressed: ByteArray = tryInflate(plaintext) ?: return false
-                if (isSqlite(decompressed)) {
-                    FileOutputStream(outputFile).use { it.write(decompressed) }
-                    onProgress(1f)
-                    return true
+                val limitedFis = object : java.io.FilterInputStream(fis) {
+                    var readCount = 0L
+                    override fun read(): Int {
+                        if (readCount >= dataLength) return -1
+                        val b = super.read()
+                        if (b != -1) readCount++
+                        return b
+                    }
+                    override fun read(b: ByteArray, off: Int, len: Int): Int {
+                        if (readCount >= dataLength) return -1
+                        val limitLen = minOf(len.toLong(), dataLength - readCount).toInt()
+                        val r = super.read(b, off, limitLen)
+                        if (r != -1) readCount += r
+                        return r
+                    }
                 }
 
-                false
+                val cis = javax.crypto.CipherInputStream(limitedFis, cipher)
+
+                val peekBuffer = ByteArray(32)
+                var peekRead = 0
+                while (peekRead < 32) {
+                    val r = cis.read(peekBuffer, peekRead, 32 - peekRead)
+                    if (r == -1) break
+                    peekRead += r
+                }
+                
+                debugLog.append("PEEK Decrtpted (32B): ${peekBuffer.copyOfRange(0, peekRead).joinToString("") { "%02X".format(it) }}\n")
+
+                val pushbackStream = java.io.SequenceInputStream(java.io.ByteArrayInputStream(peekBuffer, 0, peekRead), cis)
+
+                val inflater = Inflater() 
+                val iis = java.util.zip.InflaterInputStream(pushbackStream, inflater, BUFFER_SIZE)
+
+                outputFile.outputStream().use { fos ->
+                    val buffer = ByteArray(BUFFER_SIZE)
+                    var count: Int
+                    try {
+                        while (iis.read(buffer).also { count = it } != -1) {
+                            fos.write(buffer, 0, count)
+                            val currentRead = limitedFis.readCount
+                            if (currentRead - bytesProcessed > progressUpdateInterval) {
+                                bytesProcessed = currentRead
+                                val prog = 0.25f + (0.75f * (currentRead.toFloat() / dataLength.toFloat()))
+                                onProgress(prog)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        debugLog.append("ERR a byte $bytesProcessed: ${e.message}")
+                        throw DecryptionException(debugLog.toString())
+                    }
+                }
             }
-        } catch (e: Exception) {
-            outputFile.takeIf { it.exists() }?.delete()
-            false
+
+            onProgress(1f)
+            
+            // 6. Verifica SQLite dal nuovo file creato
+            val checkBuffer = ByteArray(16)
+            outputFile.inputStream().use { it.read(checkBuffer) }
+            val magic = String(checkBuffer, 0, 15, Charsets.US_ASCII)
+            if (magic != "SQLite format 3") {
+                outputFile.delete()
+                throw DecryptionException("Output file non ha intestazione database valida: apparentemente decompressione ha prodotto roba corrotta.")
+            }
+            
+            outputFile
         }
     }
 
-    private fun tryGcmDecrypt(
-        ciphertext: ByteArray,
-        secretKey: SecretKeySpec,
-        iv: ByteArray
-    ): ByteArray? {
-        return try {
-            val cipher = Cipher.getInstance(GCM_ALGO)
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(AUTH_TAG_BITS, iv))
-            cipher.doFinal(ciphertext)
-        } catch (e: Exception) { null }
+    /**
+     * Risultato del parsing dell'header protobuf.
+     */
+    data class HeaderParseResult(
+        val iv: ByteArray,
+        val dataOffset: Int
+    )
+
+    /**
+     * Parsa l'header protobuf di un file .crypt14/.crypt15.
+     * Restituisce l'IV estratto e l'offset da cui iniziano i dati veri e propri.
+     */
+    private fun parseProtobufHeader(data: ByteArray): HeaderParseResult {
+        var offset = 0
+
+        // Byte 0: dimensione del messaggio protobuf (1 byte)
+        val protobufSize = data[offset].toInt() and 0xFF
+        offset++
+
+        // Byte 1: verifica se c'e il feature flag
+        if (data[offset].toInt() and 0xFF == 0x01) {
+            offset++ // Consuma il feature flag
+        }
+
+        // Leggi il messaggio protobuf raw
+        val protobufRaw = data.copyOfRange(offset, offset + protobufSize)
+        offset += protobufSize
+
+        val iv = extractIvFromProtobuf(protobufRaw)
+            ?: throw DecryptionException("Impossibile estrarre IV dal header protobuf")
+
+        if (iv.size != IV_LENGTH) {
+            throw DecryptionException("IV ha lunghezza errata: trovati ${iv.size} byte, attesi $IV_LENGTH")
+        }
+
+        return HeaderParseResult(iv = iv, dataOffset = offset)
     }
 
-    private fun tryInflate(data: ByteArray): ByteArray? {
-        val inflater = Inflater()
-        return try {
-            inflater.setInput(data)
-            val out = java.io.ByteArrayOutputStream()
-            val buf = ByteArray(BUFFER_SIZE)
-            while (!inflater.finished()) {
-                val count = inflater.inflate(buf)
-                if (count == 0) break
-                out.write(buf, 0, count)
+    /**
+     * Estrae il campo IV (Initialization Vector) dal messaggio protobuf BackupPrefix.
+     */
+    private fun extractIvFromProtobuf(data: ByteArray): ByteArray? {
+        var pos = 0
+        while (pos < data.size) {
+            val tag = readVarint(data, pos)
+            pos = tag.second
+            val fieldNumber = (tag.first ushr 3).toInt()
+            val wireType = (tag.first and 0x07).toInt()
+
+            when (wireType) {
+                0 -> {
+                    val v = readVarint(data, pos)
+                    pos = v.second
+                }
+                2 -> {
+                    val lenResult = readVarint(data, pos)
+                    val len = lenResult.first.toInt()
+                    pos = lenResult.second
+                    val fieldData = data.copyOfRange(pos, pos + len)
+                    pos += len
+
+                    when (fieldNumber) {
+                        2 -> {
+                            // c14_cipher: field 5 è l'IV
+                            val iv = extractFieldFromSubmessage(fieldData, targetField = 5)
+                            if (iv != null) return iv
+                        }
+                        3 -> {
+                            // c15_iv: field 1 è l'IV
+                            val iv = extractFieldFromSubmessage(fieldData, targetField = 1)
+                            if (iv != null) return iv
+                        }
+                    }
+                }
+                else -> break
             }
-            out.toByteArray().takeIf { it.isNotEmpty() }
-        } catch (e: Exception) { null }
-        finally { inflater.end() }
+        }
+        return null
     }
 
-    private fun isSqlite(data: ByteArray): Boolean =
-        data.size >= 15 &&
-        String(data, 0, 15, Charsets.US_ASCII).startsWith("SQLite format 3")
+    /**
+     * Parsing minimale dei sottomessaggi per estrarre bytes (length-delimited).
+     */
+    private fun extractFieldFromSubmessage(data: ByteArray, targetField: Int): ByteArray? {
+        var pos = 0
+        while (pos < data.size) {
+            val tag = readVarint(data, pos)
+            pos = tag.second
+            val fieldNumber = (tag.first ushr 3).toInt()
+            val wireType = (tag.first and 0x07).toInt()
 
-    // ─── Utils ────────────────────────────────────────────────────────────────
+            when (wireType) {
+                0 -> {
+                    val v = readVarint(data, pos)
+                    pos = v.second
+                }
+                2 -> {
+                    val lenResult = readVarint(data, pos)
+                    val len = lenResult.first.toInt()
+                    pos = lenResult.second
+                    val fieldData = data.copyOfRange(pos, pos + len)
+                    pos += len
+                    
+                    if (fieldNumber == targetField) return fieldData
+                }
+                else -> break
+            }
+        }
+        return null
+    }
 
-    private fun skipBytes(fis: FileInputStream, count: Int) {
-        var skipped = 0L
-        while (skipped < count) {
-            val s = fis.skip(count - skipped)
-            if (s <= 0) break
-            skipped += s
+    /**
+     * Utilità per il Protobuf wire format (leggere i varint, numeri interi a lunghezza variabile).
+     */
+    private fun readVarint(data: ByteArray, startPos: Int): Pair<Long, Int> {
+        var result = 0L
+        var shift = 0
+        var pos = startPos
+        while (pos < data.size) {
+            val b = data[pos].toInt() and 0xFF
+            result = result or ((b.toLong() and 0x7F) shl shift)
+            pos++
+            if (b and 0x80 == 0) break
+            shift += 7
+        }
+        return Pair(result, pos)
+    }
+
+    private fun getLong(bytes: ByteArray, off: Int): Long {
+        var result = 0L
+        for (i in 0 until 8) {
+            result = (result shl 8) or (bytes[off + i].toLong() and 0xFFL)
+        }
+        return result
+    }
+
+    private fun putLong(value: Long, bytes: ByteArray, off: Int) {
+        for (i in 7 downTo 0) {
+            bytes[off + i] = (value ushr ((7 - i) * 8)).toByte()
         }
     }
 
-    private suspend fun saveDiagnosisToFile(content: String) {
-        withContext(Dispatchers.IO) {
-            try {
-                val dir = android.os.Environment.getExternalStoragePublicDirectory(
-                    android.os.Environment.DIRECTORY_DOWNLOADS
-                )
-                File(dir, "whatstat_diag_${System.currentTimeMillis()}.txt").writeText(content)
-            } catch (e: Exception) {
-                try {
-                    File("/sdcard/Download/whatstat_diag.txt").writeText(content)
-                } catch (e2: Exception) { /* niente da fare */ }
+    private fun gfMul(x: ByteArray, y: ByteArray) {
+        var z0 = 0L
+        var z1 = 0L
+        var v0 = getLong(y, 0)
+        var v1 = getLong(y, 8)
+        
+        for (i in 0 until 16) {
+            val b = x[i].toInt() and 0xFF
+            for (j in 7 downTo 0) {
+                if ((b and (1 shl j)) != 0) {
+                    z0 = z0 xor v0
+                    z1 = z1 xor v1
+                }
+                val msb = v1 and 1L
+                v1 = (v0 shl 63) or (v1 ushr 1)
+                v0 = v0 ushr 1
+                if (msb != 0L) {
+                    v0 = v0 xor -0x1f00000000000000L // 0xe100000000000000L in signed format
+                }
             }
         }
+        putLong(z0, x, 0)
+        putLong(z1, x, 8)
     }
 }
 

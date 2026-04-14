@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -217,12 +218,14 @@ fun SetupScreen(
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(
-                            state.error ?: "",
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        SelectionContainer {
+                            Text(
+                                state.error ?: "",
+                                modifier = Modifier.padding(16.dp),
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                     Spacer(Modifier.height(8.dp))
                     if (!state.isManualModeVisible) {
@@ -465,6 +468,7 @@ private fun SetupStep(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
+            Spacer(Modifier.height(48.dp))
         }
     }
 }

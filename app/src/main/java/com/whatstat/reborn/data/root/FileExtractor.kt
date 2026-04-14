@@ -5,7 +5,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.topjohnwu.superuser.Shell
+import com.topjohnwu.superuser.io.SuFile
+import com.topjohnwu.superuser.io.SuFileInputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,9 +28,11 @@ class FileExtractor @Inject constructor(
     companion object {
         // Percorsi dei file WhatsApp sul dispositivo rootato
         const val KEY_PATH     = "/data/data/com.whatsapp/files/key"
+        const val KEY_PATH_ALT  = "/data/user/0/com.whatsapp/files/key"
         const val CRYPT14_PATH = "/sdcard/WhatsApp/Databases/msgstore.db.crypt14"
         const val CRYPT15_PATH = "/sdcard/WhatsApp/Databases/msgstore.db.crypt15"
         const val WA_DB_PATH   = "/data/data/com.whatsapp/databases/wa.db"
+        const val WA_DB_PATH_ALT = "/data/data/com.whatsapp/databases/contacts.db"
 
         // Percorsi alternativi (Android 11+ con scoped storage)
         const val CRYPT14_PATH_ALT = "/sdcard/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14"
@@ -43,22 +49,20 @@ class FileExtractor @Inject constructor(
 
     /**
      * Estrae tutti i file necessari nella directory privata dell'app.
-     * Cerca automaticamente nei percorsi standard e alternativi.
+     * Usa su <userId> per accedere ai work profile.
      */
     suspend fun extractAll(): Result<ExtractedFiles> = withContext(Dispatchers.IO) {
         runCatching {
-            // 1. Copia la chiave AES
+            val keyInfo = findKeyFile()
             val keyDest = File(workDir, KEY_DEST)
-            copyWithRoot(KEY_PATH, keyDest)
+            copyWithUserId(keyInfo.first, keyInfo.second, keyDest)
 
-            // 2. Cerca e copia il database cifrato (supporta entrambi i percorsi)
             val crypt14Dest = File(workDir, CRYPT14_DEST)
-            val crypt14Source = findCryptFile()
-            copyWithRoot(crypt14Source, crypt14Dest)
+            copyWithSuFile(findCryptFile(), crypt14Dest)
 
-            // 3. Copia il database contatti
+            val waDbInfo = findWaDbFile()
             val waDbDest = File(workDir, WA_DB_DEST)
-            copyWithRoot(WA_DB_PATH, waDbDest)
+            copyWithUserId(waDbInfo.first, waDbInfo.second, waDbDest)
 
             ExtractedFiles(
                 keyFile     = keyDest,
@@ -69,46 +73,144 @@ class FileExtractor @Inject constructor(
     }
 
     /**
-     * Cerca il file di backup crypt14 nei percorsi noti.
-     * Supporta sia il percorso legacy che quello di Android 11+.
-     *
-     * @throws IOException se nessun file crypt14 viene trovato
-     * @throws CryptVersionException se viene trovato solo un crypt15
+     * Trova l'userId di WhatsApp e il percorso del file key.
+     * @return Pair(userId, path)
      */
-    private suspend fun findCryptFile(): String {
-        // Prova percorso standard
-        if (rootManager.fileExists(CRYPT14_PATH)) return CRYPT14_PATH
-        // Prova percorso Android 11+
-        if (rootManager.fileExists(CRYPT14_PATH_ALT)) return CRYPT14_PATH_ALT
-        // Controlla se è crypt15 (backup E2E attivo)
-        if (rootManager.fileExists(CRYPT15_PATH) || rootManager.fileExists(CRYPT15_PATH_ALT)) {
-            throw CryptVersionException(
-                "Rilevato backup crypt15 (E2E). Disattiva il backup crittografato " +
-                "end-to-end nelle impostazioni di WhatsApp per usare WhatStat Reborn."
-            )
+    private fun findKeyFile(): Pair<Int, String> {
+        // Diagnostica
+        android.util.Log.d("FileExtractor", "=== DIAGNOSTICA ===")
+        val lsData = Shell.cmd("ls /data/data/").exec()
+        android.util.Log.d("FileExtractor", "/data/data: ${lsData.out.take(5)}")
+        
+        val pmUsers = Shell.cmd("pm list users").exec()
+        android.util.Log.d("FileExtractor", "pm list users: success=${pmUsers.isSuccess}, out=${pmUsers.out}, err=${pmUsers.err}")
+        
+        val userIds = mutableListOf<Int>()
+        for (line in pmUsers.out) {
+            val match = Regex("""\{(\d+):""").find(line)
+            if (match != null) {
+                match.groupValues.getOrNull(1)?.toIntOrNull()?.let { if (it != 0) userIds.add(it) }
+            }
         }
-        throw IOException(
-            "Database cifrato non trovato. Assicurati che il backup locale " +
-            "sia attivo in WhatsApp (Impostazioni → Chat → Backup delle chat)."
-        )
+        
+        android.util.Log.d("FileExtractor", "User IDs trovati: $userIds")
+        
+        // Prova direttamente user 999 (XSpace)
+        android.util.Log.d("FileExtractor", "Provo user 999...")
+        val test999 = Shell.cmd("su 999 -c \"ls /data/user/999/com.whatsapp/files/key\"").exec()
+        android.util.Log.d("FileExtractor", "su 999 key: ${test999.out}, err: ${test999.err}")
+        
+        if (test999.isSuccess && test999.out.any { it.contains("key") }) {
+            return Pair(999, "/data/user/999/com.whatsapp/files/key")
+        }
+        
+        // Prova ogni userId
+        for (userId in userIds) {
+            val path = "/data/user/$userId/com.whatsapp/files/key"
+            val check = Shell.cmd("su $userId -c \"ls '$path' 2>/dev/null\"").exec()
+            android.util.Log.d("FileExtractor", "su $userId -c: ${check.out}")
+            if (check.isSuccess && check.out.any { it.contains("key") }) {
+                return Pair(userId, path)
+            }
+        }
+        
+        // Prova user 0
+        val keyPath = "/data/user/0/com.whatsapp/files/key"
+        if (SuFile(keyPath).exists()) {
+            return Pair(0, keyPath)
+        }
+        
+        throw IOException("File key non trovato in nessun profilo utente. Prova il metodo manuale.")
     }
 
-    private suspend fun copyWithRoot(sourcePath: String, dest: File) {
-        dest.parentFile?.mkdirs()
-        // Usa cat per evitare problemi con i contesti SELinux
-        val result = rootManager.execute("cat '$sourcePath' > '${dest.absolutePath}'")
-        if (!result.success) {
-            // Include l'output perché STDERR potrebbe essere rediretto su STDOUT
-            val errorMsg = (result.error + result.output).joinToString("\n").trim()
-            throw IOException(
-                "Impossibile copiare $sourcePath: $errorMsg"
-            )
+    /**
+     * Trova l'userId di WhatsApp e il percorso del database contatti.
+     */
+    private fun findWaDbFile(): Pair<Int, String> {
+        // Prova SuFile direttamente come ha funzionato per key
+        val dataUser = SuFile("/data/user")
+        dataUser.listFiles()?.forEach { userDir ->
+            val dbDir = SuFile(userDir, "com.whatsapp/databases")
+            android.util.Log.d("WhatStat", "Controllo: ${dbDir.absolutePath} exists=${dbDir.exists()}")
+            if (dbDir.exists()) {
+                val files = dbDir.listFiles()
+                android.util.Log.d("WhatStat", "Files in databases: ${files?.map { it.name }}")
+                
+                // Prova tutti i file .db che trova
+                files?.forEach { f ->
+                    android.util.Log.d("WhatStat", "  → ${f.name} (${f.length()} bytes)")
+                }
+                
+                val waDb = SuFile(dbDir, "wa.db")
+                if (waDb.exists()) return Pair(0, waDb.absolutePath)
+                
+                val contacts = SuFile(dbDir, "contacts.db")
+                if (contacts.exists()) return Pair(0, contacts.absolutePath)
+            }
         }
-        // Rende il file leggibile dall'app senza root
-        rootManager.execute("chmod 644 '${dest.absolutePath}'")
-        // Imposta owner all'UID dell'app
-        val appUid = android.os.Process.myUid()
-        rootManager.execute("chown $appUid:$appUid '${dest.absolutePath}'")
+        
+        throw IOException("wa.db non trovato. Controlla logcat tag WhatStat.")
+    }
+
+    /**
+     * Copia file usando su <userId>.
+     */
+    private fun copyWithUserId(userId: Int, sourcePath: String, dest: File) {
+        dest.parentFile?.mkdirs()
+        try {
+            if (userId == 0) {
+                copyWithSuFile(sourcePath, dest)
+                return
+            }
+            // Usa su <userId> per impersonare l'utente
+            val result = Shell.cmd("su $userId -c \"cat '$sourcePath'\" > '${dest.absolutePath}'").exec()
+            if (!result.isSuccess || dest.length() == 0L) {
+                throw IOException("Copia fallita per user $userId: ${result.err}")
+            }
+            dest.setReadable(true, false)
+            dest.setWritable(true, false)
+        } catch (e: Exception) {
+            throw IOException("Impossibile copiare $sourcePath: ${e.message}")
+        }
+    }
+
+    /**
+     * Copia file usando SuFile (accesso standard).
+     */
+    private fun copyWithSuFile(sourcePath: String, dest: File) {
+        dest.parentFile?.mkdirs()
+        try {
+            SuFileInputStream.open(SuFile(sourcePath)).use { input ->
+                FileOutputStream(dest).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            dest.setReadable(true, false)
+            dest.setWritable(true, false)
+        } catch (e: Exception) {
+            throw IOException("Impossibile copiare $sourcePath: ${e.message}")
+        }
+    }
+
+    /**
+     * Cerca il file crypt14.
+     */
+    private fun findCryptFile(): String {
+        val paths = listOf(
+            "/sdcard/WhatsApp/Databases/msgstore.db.crypt14",
+            "/sdcard/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14",
+            "/storage/emulated/0/WhatsApp/Databases/msgstore.db.crypt14"
+        )
+        for (path in paths) {
+            val f = SuFile(path)
+            if (f.exists()) {
+                if (path.endsWith(".crypt15")) {
+                    throw CryptVersionException("Rilevato backup crypt15 (E2E).")
+                }
+                return path
+            }
+        }
+        throw IOException("Database cifrato non trovato.")
     }
 
     /**
@@ -132,13 +234,7 @@ class FileExtractor @Inject constructor(
      */
     suspend fun cleanup() = withContext(Dispatchers.IO) {
         listOf(KEY_DEST, CRYPT14_DEST, WA_DB_DEST, "msgstore.db").forEach { name ->
-            File(workDir, name).let { file ->
-                if (file.exists()) {
-                    if (!file.delete()) {
-                        rootManager.execute("rm -f '${file.absolutePath}'")
-                    }
-                }
-            }
+            File(workDir, name).delete()
         }
     }
 

@@ -434,18 +434,62 @@ data class ExtractedFiles(
 
 ## 5. Livello 2 — Decryption Engine
 
-### Struttura dell'header crypt14
+> Implementazione basata sull'analisi del codice sorgente di
+> [wa-crypt-tools](https://github.com/ElDavoo/wa-crypt-tools) (ElDavoo).
+> Testata con WhatsApp 2.24.16.76 stable e 2.24.26.11 beta.
 
-Il file `msgstore.db.crypt14` ha questa struttura binaria:
+### Concetti fondamentali
+
+Il file `msgstore.db.crypt14` e il file `key` NON sono dati raw.
+Entrambi usano formati strutturati che vanno parsati correttamente:
+
+- **File key**: e un oggetto Java serializzato (`java.io.ObjectOutputStream`), 
+  non un semplice array di byte.
+- **File .crypt14**: ha un header protobuf di dimensione variabile, 
+  non un header a offset fisso.
+
+### Struttura del file key (crypt14)
+
+Il file `/data/data/com.whatsapp/files/key` e un Java Serialized `byte[]`.
+Dopo la deserializzazione con `ObjectInputStream`, si ottiene un array di **131 byte**
+con questo layout:
 
 ```
-[0..14]  : Protobuf header (versione, backup token, ecc.)
-[15..26] : IV (Initialization Vector) — 12 byte per AES-GCM
-[27..N]  : Dati cifrati (database SQLite compresso con zlib)
-[N+1..]  : Auth tag AES-GCM (16 byte, alla fine)
+Offset  Lunghezza  Campo
+------  ---------  -----
+0-1     2 byte     cipher_version     (atteso: 0x0001)
+2       1 byte     key_version        (supportati: 0x01, 0x02, 0x03)
+3-34    32 byte    server_salt
+35-50   16 byte    googleIdSalt
+51-82   32 byte    hashedGoogleID     (= SHA-256 di googleIdSalt)
+83-98   16 byte    padding            (sempre zero, IV placeholder)
+99-130  32 byte    cipherKey          <-- LA CHIAVE AES-256 EFFETTIVA
 ```
 
-La chiave si trova nel file `key` estratto da `/data/data/com.whatsapp/files/key`. Non è raw AES — è un file binario strutturato da cui bisogna estrarre i 32 byte della chiave effettiva.
+> **ATTENZIONE**: la chiave AES e all'offset **99 dell'array deserializzato**,
+> NON all'offset 126 del file raw. L'overhead della serializzazione Java e variabile.
+
+### Struttura del file .crypt14
+
+Il file cifrato ha questa struttura:
+
+```
++------+------+---------------------------+---------------------+-----------+----------+
+| 1 B  | 0/1B | N byte (variabile)        | M byte              | 16 byte   | 16 byte  |
+| size | feat | Protobuf BackupPrefix     | Dati cifrati        | Auth Tag  | Checksum |
+|      | flag |                           | (AES-GCM)           | (GCM)     | (MD5)    |
++------+------+---------------------------+---------------------+-----------+----------+
+```
+
+L'header e un messaggio Protobuf di tipo `BackupPrefix` che contiene:
+- `key_type`: 0 = WA_PROVIDED (crypt14), 1 = HSM_CONTROLLED (crypt15)
+- `c14_cipher.IV`: l'Initialization Vector per AES-GCM (**16 byte**, non 12)
+- `c14_cipher.server_salt`, `c14_cipher.google_id`, ecc.
+- `info`: metadati (versione WhatsApp, feature flags, jid suffix)
+
+Il footer (ultimi 32 byte) contiene:
+- **Authentication Tag** GCM (16 byte) 
+- **MD5 checksum** di tutto il file precedente (16 byte)
 
 ### KeyReader.kt
 
@@ -453,33 +497,111 @@ La chiave si trova nel file `key` estratto da `/data/data/com.whatsapp/files/key
 class KeyReader @Inject constructor() {
 
     companion object {
-        // La chiave AES-256 (32 byte) si trova all'offset 126 nel file key
-        // Questo offset è stato reverse-engineered dalla community (ElDavoo/wa-crypt-tools)
-        private const val KEY_OFFSET = 126
-        private const val KEY_LENGTH = 32
+        // Layout dell'array deserializzato (131 byte per crypt14)
+        // Fonte: wa-crypt-tools/src/wa_crypt_tools/lib/key/key14.py
+        private const val CRYPT14_KEY_ARRAY_SIZE = 131
+        private const val CRYPT15_KEY_ARRAY_SIZE = 32
+        private const val AES_KEY_OFFSET = 99
+        private const val AES_KEY_LENGTH = 32
+        private const val SERVER_SALT_OFFSET = 3
+        private const val SERVER_SALT_LENGTH = 32
+        private const val GOOGLE_ID_OFFSET = 35
+        private const val GOOGLE_ID_LENGTH = 16
     }
 
     /**
-     * Legge e restituisce la chiave AES-256 raw dal file key di WhatsApp.
+     * Risultato della lettura del file key.
+     * Contiene la chiave AES e il tipo di formato rilevato.
      */
-    fun readKey(keyFile: File): ByteArray {
-        val keyFileBytes = keyFile.readBytes()
+    data class KeyData(
+        val aesKey: ByteArray,
+        val keyType: KeyType
+    ) {
+        enum class KeyType { CRYPT14, CRYPT15 }
+    }
 
-        if (keyFileBytes.size < KEY_OFFSET + KEY_LENGTH) {
+    /**
+     * Legge il file key di WhatsApp deserializzandolo come Java Object.
+     *
+     * Il file key e un oggetto Java serializzato (byte[]).
+     * - Se l'array deserializzato e 131 byte -> crypt14
+     *   La chiave AES-256 e all'offset 99 (32 byte).
+     * - Se l'array deserializzato e 32 byte -> crypt15
+     *   E la root key (richiede derivazione HMAC ulteriore).
+     *
+     * Fonte: wa-crypt-tools keyfactory.py + key14.py
+     */
+    fun readKey(keyFile: File): KeyData {
+        val keyArray: ByteArray = try {
+            ObjectInputStream(keyFile.inputStream().buffered()).use { ois ->
+                ois.readObject() as ByteArray
+            }
+        } catch (e: Exception) {
             throw IllegalStateException(
-                "File key malformato: attesi almeno ${KEY_OFFSET + KEY_LENGTH} byte, " +
-                "trovati ${keyFileBytes.size}"
+                "Impossibile deserializzare il file key come Java Object: ${e.message}", e
             )
         }
 
-        return keyFileBytes.copyOfRange(KEY_OFFSET, KEY_OFFSET + KEY_LENGTH)
+        return when (keyArray.size) {
+            CRYPT14_KEY_ARRAY_SIZE -> {
+                // Validazione cipher_version (primi 2 byte devono essere 0x0001)
+                val cipherVersion = keyArray.copyOfRange(0, 2)
+                if (!cipherVersion.contentEquals(byteArrayOf(0x00, 0x01))) {
+                    throw IllegalStateException(
+                        "Versione cipher non supportata: ${cipherVersion.toHex()}"
+                    )
+                }
+                // Validazione key_version (byte 2, supportati: 0x01, 0x02, 0x03)
+                val keyVersion = keyArray[2]
+                if (keyVersion !in 1..3) {
+                    throw IllegalStateException(
+                        "Versione key non supportata: $keyVersion"
+                    )
+                }
+                // Estrazione chiave AES-256 dall'offset 99
+                val aesKey = keyArray.copyOfRange(AES_KEY_OFFSET, AES_KEY_OFFSET + AES_KEY_LENGTH)
+                KeyData(aesKey, KeyData.KeyType.CRYPT14)
+            }
+
+            CRYPT15_KEY_ARRAY_SIZE -> {
+                // La root key per crypt15 (richiede derivazione HMAC)
+                KeyData(keyArray, KeyData.KeyType.CRYPT15)
+            }
+
+            else -> throw IllegalStateException(
+                "Formato key non riconosciuto: ${keyArray.size} byte " +
+                "(attesi $CRYPT14_KEY_ARRAY_SIZE per crypt14 o $CRYPT15_KEY_ARRAY_SIZE per crypt15)"
+            )
+        }
+    }
+
+    /**
+     * Per crypt15: deriva la chiave di cifratura dalla root key
+     * usando HMAC-SHA256 con il messaggio "backup encryption".
+     *
+     * Fonte: wa-crypt-tools key15.py, metodo get()
+     */
+    fun deriveEncryptionKey(rootKey: ByteArray): ByteArray {
+        // Step 1: privatekey = HMAC-SHA256(seed=0x00*32, data=rootKey)
+        val seed = ByteArray(32) // 32 byte di zeri
+        val mac = Mac.getInstance("HmacSHA256")
+        mac.init(SecretKeySpec(seed, "HmacSHA256"))
+        val privateKey = mac.doFinal(rootKey)
+
+        // Step 2: encryptionKey = HMAC-SHA256(privateKey, data="" + "backup encryption" + 0x01)
+        val mac2 = Mac.getInstance("HmacSHA256")
+        mac2.init(SecretKeySpec(privateKey, "HmacSHA256"))
+        mac2.update("backup encryption".toByteArray(Charsets.US_ASCII))
+        mac2.update(byteArrayOf(0x01))
+        return mac2.doFinal()
     }
 
     /**
      * Restituisce la chiave come stringa esadecimale (utile per debug).
+     * NON usare in produzione: non loggare mai la chiave.
      */
-    fun keyToHex(key: ByteArray): String =
-        key.joinToString("") { "%02x".format(it) }
+    fun ByteArray.toHex(): String =
+        joinToString("") { "%02x".format(it) }
 }
 ```
 
@@ -491,16 +613,22 @@ class Crypt14Decryptor @Inject constructor(
 ) {
     companion object {
         private const val CIPHER_ALGO    = "AES/GCM/NoPadding"
-        private const val IV_LENGTH      = 12
-        private const val AUTH_TAG_BITS  = 128
-        private const val BUFFER_SIZE    = 16384 // 16KB per streaming
-
-        private val KNOWN_IV_OFFSETS = intArrayOf(67, 51, 99, 91, 86, 15)
+        private const val IV_LENGTH      = 16       // WhatsApp usa IV di 16 byte, non 12
+        private const val AUTH_TAG_BITS  = 128      // 16 byte di authentication tag
+        private const val FOOTER_SIZE    = 32       // auth_tag (16) + md5 checksum (16)
+        private const val BUFFER_SIZE    = 16384    // 16KB per streaming
     }
 
     /**
-     * Decifra il database usando CipherInputStream per evitare problemi di memoria (OOM)
-     * e gestire correttamente il chunking AES-GCM su Android.
+     * Decifra un file .crypt14 (o .crypt15) usando la chiave dal file key.
+     *
+     * Algoritmo (basato su wa-crypt-tools wadecrypt.py):
+     * 1. Deserializza il file key -> estrai chiave AES-256
+     * 2. Parsa l'header protobuf del file cifrato -> estrai IV (16 byte)
+     * 3. Separa dati cifrati dal footer (auth tag + checksum)
+     * 4. Decifra con AES-GCM(key, iv)
+     * 5. Decompri con zlib (standard, CON header)
+     * 6. Verifica output: deve iniziare con "SQLite format 3"
      */
     suspend fun decrypt(
         crypt14File: File,
@@ -508,67 +636,251 @@ class Crypt14Decryptor @Inject constructor(
         outputFile: File
     ): Result<File> = withContext(Dispatchers.IO) {
         runCatching {
-            val key = keyReader.readKey(keyFile)
-            val secretKey = SecretKeySpec(key, "AES")
+            // -- Step 1: Carica e deserializza la chiave --
+            val keyData = keyReader.readKey(keyFile)
+            val aesKey: ByteArray = when (keyData.keyType) {
+                KeyReader.KeyData.KeyType.CRYPT14 -> keyData.aesKey
+                KeyReader.KeyData.KeyType.CRYPT15 -> keyReader.deriveEncryptionKey(keyData.aesKey)
+            }
+            val secretKey = SecretKeySpec(aesKey, "AES")
 
-            // Prova diversi offset per trovare l'inizio del IV
-            val headerBuffer = ByteArray(1024)
-            crypt14File.inputStream().use { it.read(headerBuffer) }
-            
-            val dynamicOffset = tryParseProtobufHeaders(headerBuffer)
-            val offsets = mutableListOf<Int>().apply {
-                dynamicOffset?.let { add(it) }
-                addAll(KNOWN_IV_OFFSETS.toList())
+            // -- Step 2: Parsa l'header protobuf ed estrai l'IV --
+            val allBytes = crypt14File.readBytes()
+            val headerParseResult = parseProtobufHeader(allBytes)
+
+            // -- Step 3: Separa dati cifrati dal footer --
+            // I dati cifrati iniziano subito dopo l'header protobuf.
+            // Gli ultimi 32 byte sono: auth_tag (16) + md5_checksum (16).
+            val dataStart = headerParseResult.dataOffset
+            val dataEnd = allBytes.size - FOOTER_SIZE
+            if (dataEnd <= dataStart) {
+                throw DecryptionException("File cifrato troppo piccolo o corrotto")
+            }
+            val encryptedData = allBytes.copyOfRange(dataStart, dataEnd)
+            val authTag = allBytes.copyOfRange(dataEnd, dataEnd + 16)
+            // val md5Checksum = allBytes.copyOfRange(dataEnd + 16, allBytes.size)
+
+            // -- Step 4: Decifra con AES-GCM --
+            // In Java, GCM si aspetta l'auth tag concatenato ai dati cifrati
+            val ciphertextWithTag = encryptedData + authTag
+            val cipher = Cipher.getInstance(CIPHER_ALGO)
+            cipher.init(
+                Cipher.DECRYPT_MODE,
+                secretKey,
+                GCMParameterSpec(AUTH_TAG_BITS, headerParseResult.iv)
+            )
+            val decrypted = cipher.doFinal(ciphertextWithTag)
+
+            // -- Step 5: Decomprimi con zlib (standard, CON header) --
+            // WhatsApp comprime con zlib (header 78 01), NON raw deflate.
+            // Inflater() SENZA il parametro "true" (che indica raw deflate).
+            val inflater = Inflater()
+            inflater.setInput(decrypted)
+            val bos = ByteArrayOutputStream(decrypted.size * 2)
+            val buffer = ByteArray(BUFFER_SIZE)
+            while (!inflater.finished()) {
+                val count = inflater.inflate(buffer)
+                if (count == 0 && inflater.needsInput()) break
+                bos.write(buffer, 0, count)
+            }
+            inflater.end()
+            val decompressed = bos.toByteArray()
+
+            // -- Step 6: Verifica output --
+            if (decompressed.size < 16) {
+                throw DecryptionException(
+                    "Output decompresso troppo piccolo: ${decompressed.size} byte"
+                )
+            }
+            val magic = String(decompressed, 0, 15, Charsets.US_ASCII)
+            if (magic != "SQLite format 3") {
+                throw DecryptionException(
+                    "Output non e un database SQLite valido (magic: '$magic')"
+                )
             }
 
-            var success = false
-            for (offset in offsets) {
-                if (tryStreamDecrypt(crypt14File, secretKey, offset, outputFile)) {
-                    success = true
-                    break
-                }
-            }
-
-            if (!success) throw DecryptionException("Errore: Magic code SQLite non trovato dopo decifratura.")
+            outputFile.writeBytes(decompressed)
             outputFile
         }
     }
 
-    private fun tryStreamDecrypt(file: File, key: SecretKeySpec, offset: Int, out: File): Boolean {
-        return try {
-            FileInputStream(file).use { fis ->
-                fis.skip(offset.toLong())
-                val iv = ByteArray(IV_LENGTH).also { fis.read(it) }
+    /**
+     * Risultato del parsing dell'header protobuf.
+     */
+    data class HeaderParseResult(
+        val iv: ByteArray,
+        val dataOffset: Int
+    )
 
-                val cipher = Cipher.getInstance(CIPHER_ALGO).apply {
-                    init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(AUTH_TAG_BITS, iv))
+    /**
+     * Parsa l'header protobuf di un file .crypt14/.crypt15.
+     *
+     * Formato dell'header (fonte: wa-crypt-tools dbfactory.py):
+     * - Byte 0: dimensione del messaggio protobuf (1 byte)
+     * - Byte 1 (opzionale): flag feature table (0x01 se presente)
+     * - Byte 1/2..N: messaggio protobuf BackupPrefix
+     *
+     * L'IV viene estratto dal campo c14_cipher.IV (crypt14)
+     * o c15_iv.IV (crypt15) del messaggio protobuf.
+     */
+    private fun parseProtobufHeader(data: ByteArray): HeaderParseResult {
+        var offset = 0
+
+        // Byte 0: dimensione del messaggio protobuf
+        val protobufSize = data[offset].toInt() and 0xFF
+        offset++
+
+        // Byte 1: verifica se c'e il feature flag
+        if (data[offset].toInt() and 0xFF == 0x01) {
+            offset++ // Consuma il feature flag
+        }
+
+        // Leggi il messaggio protobuf raw
+        val protobufRaw = data.copyOfRange(offset, offset + protobufSize)
+        offset += protobufSize
+
+        // Parsa il protobuf per estrarre l'IV.
+        // Usiamo un parser minimale per estrarre il campo IV
+        // senza dipendere dalla libreria protobuf completa.
+        val iv = extractIvFromProtobuf(protobufRaw)
+            ?: throw DecryptionException("Impossibile estrarre IV dal header protobuf")
+
+        if (iv.size != IV_LENGTH) {
+            throw DecryptionException(
+                "IV ha lunghezza ${iv.size} byte, attesi $IV_LENGTH"
+            )
+        }
+
+        return HeaderParseResult(iv = iv, dataOffset = offset)
+    }
+
+    /**
+     * Estrae il campo IV dal messaggio protobuf BackupPrefix.
+     *
+     * Struttura protobuf BackupPrefix:
+     *   field 1 (key_type): varint
+     *   field 2 (c14_cipher): messaggio annidato C14_cipher
+     *     -> field 5 (IV): bytes (16 byte)
+     *   field 3 (c15_iv): messaggio annidato C15_IV
+     *     -> field 1 (IV): bytes (16 byte)
+     *
+     * Questo parser minimale evita la dipendenza dalla libreria protobuf.
+     * Per i dettagli del formato wire protobuf, vedi:
+     * https://protobuf.dev/programming-guides/encoding/
+     */
+    private fun extractIvFromProtobuf(data: ByteArray): ByteArray? {
+        // Cerca il campo IV nei sotto-messaggi c14_cipher o c15_iv.
+        // Per crypt14: il campo 2 (c14_cipher) contiene il sotto-campo 5 (IV).
+        // Per crypt15: il campo 3 (c15_iv) contiene il sotto-campo 1 (IV).
+        //
+        // Parser protobuf wire format minimale:
+        // Ogni campo e preceduto da un "tag" = (field_number << 3) | wire_type
+        // wire_type 0 = varint, 2 = length-delimited (bytes/string/embedded message)
+
+        var pos = 0
+        while (pos < data.size) {
+            val tag = readVarint(data, pos)
+            pos = tag.second
+            val fieldNumber = (tag.first ushr 3).toInt()
+            val wireType = (tag.first and 0x07).toInt()
+
+            when (wireType) {
+                0 -> {
+                    // Varint: leggi e ignora
+                    val v = readVarint(data, pos)
+                    pos = v.second
                 }
+                2 -> {
+                    // Length-delimited: leggi lunghezza e contenuto
+                    val lenResult = readVarint(data, pos)
+                    val len = lenResult.first.toInt()
+                    pos = lenResult.second
+                    val fieldData = data.copyOfRange(pos, pos + len)
+                    pos += len
 
-                val cis = CipherInputStream(fis, cipher)
-                val iis = InflaterInputStream(cis, Inflater(true))
-
-                FileOutputStream(out).use { fos ->
-                    val buffer = ByteArray(BUFFER_SIZE)
-                    val readFirst = iis.read(buffer)
-                    if (readFirst < 16) return false
-                    
-                    // Verifica "SQLite format 3"
-                    if (!String(buffer, 0, 16).startsWith("SQLite format 3")) return false
-                    
-                    fos.write(buffer, 0, readFirst)
-                    var b: Int
-                    while (iis.read(buffer).also { b = it } != -1) {
-                        fos.write(buffer, 0, b)
+                    when (fieldNumber) {
+                        2 -> {
+                            // c14_cipher: parsa il sotto-messaggio per estrarre field 5 (IV)
+                            val iv = extractFieldFromSubmessage(fieldData, targetField = 5)
+                            if (iv != null) return iv
+                        }
+                        3 -> {
+                            // c15_iv: parsa il sotto-messaggio per estrarre field 1 (IV)
+                            val iv = extractFieldFromSubmessage(fieldData, targetField = 1)
+                            if (iv != null) return iv
+                        }
                     }
                 }
+                else -> {
+                    // Altri wire type non attesi nell'header, interrompi
+                    break
+                }
             }
-            true
-        } catch (e: Exception) { false }
+        }
+        return null
+    }
+
+    /**
+     * Estrae un campo bytes (length-delimited) da un sotto-messaggio protobuf.
+     */
+    private fun extractFieldFromSubmessage(data: ByteArray, targetField: Int): ByteArray? {
+        var pos = 0
+        while (pos < data.size) {
+            val tag = readVarint(data, pos)
+            pos = tag.second
+            val fieldNumber = (tag.first ushr 3).toInt()
+            val wireType = (tag.first and 0x07).toInt()
+
+            when (wireType) {
+                0 -> {
+                    val v = readVarint(data, pos)
+                    pos = v.second
+                }
+                2 -> {
+                    val lenResult = readVarint(data, pos)
+                    val len = lenResult.first.toInt()
+                    pos = lenResult.second
+                    val fieldData = data.copyOfRange(pos, pos + len)
+                    pos += len
+                    if (fieldNumber == targetField) return fieldData
+                }
+                else -> break
+            }
+        }
+        return null
+    }
+
+    /**
+     * Legge un varint protobuf dal buffer alla posizione data.
+     * Restituisce il valore e la nuova posizione nel buffer.
+     */
+    private fun readVarint(data: ByteArray, startPos: Int): Pair<Long, Int> {
+        var result = 0L
+        var shift = 0
+        var pos = startPos
+        while (pos < data.size) {
+            val b = data[pos].toInt() and 0xFF
+            result = result or ((b.toLong() and 0x7F) shl shift)
+            pos++
+            if (b and 0x80 == 0) break
+            shift += 7
+        }
+        return Pair(result, pos)
     }
 }
+
+class DecryptionException(message: String) : Exception(message)
 ```
 
-> **Nota importante:** WhatsApp ha cambiato leggermente la struttura dell'header nelle versioni più recenti. Se la decifratura fallisce, potrebbe essere necessario aggiustare `HEADER_LENGTH` o il parsing dell'IV. Consulta il progetto open source `ElDavoo/wa-crypt-tools` su GitHub per la specifica aggiornata dell'header protobuf.
+> **Note implementative:**
+> - L'implementazione sopra carica l'intero file in memoria (`readBytes()`).
+>   Per backup molto grandi (> 100 MB), considerare un approccio streaming con
+>   chunk di dati, come fa `chunked_decrypt()` in wa-crypt-tools.
+> - Il parser protobuf e minimale e gestisce solo i campi necessari.
+>   Se si preferisce robustezza, si possono compilare i file `.proto` di wa-crypt-tools
+>   con `protoc --java_out` e usare le classi generate.
+> - La verifica MD5 del checksum nel footer e opzionale ma consigliata
+>   per rilevare corruzioni del file.
 
 ### Test della decifratura
 
@@ -591,8 +903,34 @@ class DecryptorTest {
         val expected = "SQLite format 3\u0000".toByteArray()
         assertArrayEquals(expected, magic.toByteArray())
     }
+
+    @Test
+    fun `chiave sbagliata genera errore di decifratura`() = runTest {
+        // Crea un file key fake: un Java Serialized byte[131] con contenuto random
+        val wrongKeyFile = createFakeKeyFile()
+        val cryptFile    = File("test_assets/msgstore.db.crypt14")
+        val outputFile   = File.createTempFile("output", ".db")
+
+        val decryptor = Crypt14Decryptor(KeyReader())
+        val result = decryptor.decrypt(cryptFile, wrongKeyFile, outputFile)
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `il KeyReader distingue crypt14 da crypt15`() {
+        val keyReader = KeyReader()
+
+        // File key crypt14 (131 byte dopo deserializzazione)
+        val key14 = keyReader.readKey(File("test_assets/key"))
+        assertEquals(KeyReader.KeyData.KeyType.CRYPT14, key14.keyType)
+        assertEquals(32, key14.aesKey.size)
+
+        // File key crypt15 (32 byte dopo deserializzazione)
+        val key15 = keyReader.readKey(File("test_assets/encrypted_backup.key"))
+        assertEquals(KeyReader.KeyData.KeyType.CRYPT15, key15.keyType)
+        assertEquals(32, key15.aesKey.size)
+    }
 }
-```
 
 ---
 

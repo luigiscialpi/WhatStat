@@ -20,3 +20,7 @@ local.properties
 whatsapp.key
 msgstore.db.crypt14
 wa.db
+
+# Other repositories
+/WhatStat.apk_Decompiler.com
+/wa-crypt-tools
