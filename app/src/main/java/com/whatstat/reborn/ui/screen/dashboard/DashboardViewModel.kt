@@ -2,7 +2,10 @@ package com.whatstat.reborn.ui.screen.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.whatstat.reborn.data.db.model.DateRange
+import com.whatstat.reborn.data.db.model.DayCount
 import com.whatstat.reborn.data.db.model.HourlyCount
+import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.domain.model.GlobalStats
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,11 +26,20 @@ class DashboardViewModel @Inject constructor(
     private val _hourlyData = MutableStateFlow<List<HourlyCount>>(emptyList())
     val hourlyData: StateFlow<List<HourlyCount>> = _hourlyData.asStateFlow()
 
+    private val _weeklyData = MutableStateFlow<List<DayCount>>(emptyList())
+    val weeklyData: StateFlow<List<DayCount>> = _weeklyData.asStateFlow()
+
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+
+    private val _selectedTimeRange = MutableStateFlow(TimeRange.CUSTOM)
+    val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
+    
+    private val _customDateRange = MutableStateFlow<DateRange?>(null)
+    val customDateRange: StateFlow<DateRange?> = _customDateRange.asStateFlow()
 
     init {
         loadStats()
@@ -38,21 +50,41 @@ class DashboardViewModel @Inject constructor(
             _isLoading.value = true
             _error.value = null
             try {
-                android.util.Log.d("DashboardVM", "Caricamento statistiche in corso...")
-                val stats = analyticsRepository.getGlobalStats()
-                android.util.Log.d("DashboardVM", "Stats caricate: $stats")
+                val (startTime, endTime) = if (_selectedTimeRange.value == TimeRange.CUSTOM) {
+                    _customDateRange.value?.let {
+                        analyticsRepository.getDateRangeBounds(it)
+                    } ?: (null to null)
+                } else {
+                    analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
+                }
+                
+                val stats = analyticsRepository.getGlobalStats(_selectedTimeRange.value)
                 _globalStats.value = stats
 
-                val hourly = analyticsRepository.getGlobalHourlyDistribution()
-                android.util.Log.d("DashboardVM", "Hourly data: ${hourly.size} entries")
+                val hourly = analyticsRepository.getGlobalHourlyDistribution(startTime, endTime)
                 _hourlyData.value = hourly
+
+                val weekly = analyticsRepository.getGlobalWeeklyDistribution(startTime, endTime)
+                _weeklyData.value = weekly
             } catch (e: Exception) {
-                android.util.Log.e("DashboardVM", "Errore caricamento stats", e)
                 _error.value = "Errore: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    fun setTimeRange(range: TimeRange) {
+        _selectedTimeRange.value = range
+        loadStats()
+    }
+    
+    fun setCustomDateRange(dateRange: DateRange?) {
+        _customDateRange.value = dateRange
+        if (dateRange != null) {
+            _selectedTimeRange.value = TimeRange.CUSTOM
+        }
+        loadStats()
     }
 
     fun retry() {

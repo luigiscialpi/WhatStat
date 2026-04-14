@@ -11,21 +11,27 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.whatstat.reborn.data.repository.WhatsAppRepository
+import com.whatstat.reborn.ui.screen.calls.CallsStatsScreen
 import com.whatstat.reborn.ui.screen.chatdetail.ChatDetailScreen
 import com.whatstat.reborn.ui.screen.chatlist.ChatListScreen
 import com.whatstat.reborn.ui.screen.dashboard.DashboardScreen
+import com.whatstat.reborn.ui.screen.media.MediaStatsScreen
 import com.whatstat.reborn.ui.screen.setup.SetupScreen
+import com.whatstat.reborn.ui.screen.wordsearch.WordSearchScreen
 
 /**
  * Routes dell'app.
  */
 sealed class Screen(val route: String) {
-    data object Setup     : Screen("setup")
-    data object Dashboard : Screen("dashboard")
-    data object ChatList  : Screen("chat_list")
+    data object Setup        : Screen("setup")
+    data object Dashboard   : Screen("dashboard")
+    data object ChatList   : Screen("chat_list")
     data object ChatDetail : Screen("chat_detail/{chatId}") {
         fun createRoute(chatId: Long) = "chat_detail/$chatId"
     }
+    data object WordSearch  : Screen("word_search")
+    data object CallsStats : Screen("calls_stats")
+    data object MediaStats : Screen("media_stats")
 }
 
 /**
@@ -74,11 +80,44 @@ fun AppNavigation(
                 onNavigateToChatList = {
                     navController.navigate(Screen.ChatList.route)
                 },
+                onNavigateToWordSearch = {
+                    navController.navigate(Screen.WordSearch.route)
+                },
+                onNavigateToCalls = {
+                    navController.navigate(Screen.CallsStats.route)
+                },
+                onNavigateToMedia = {
+                    navController.navigate(Screen.MediaStats.route)
+                },
                 onNavigateBack = {
                     repository.resetState()
                     navController.navigate(Screen.Setup.route) {
                         popUpTo(0) { inclusive = true }
                     }
+                }
+            )
+        }
+
+        composable(Screen.WordSearch.route) {
+            WordSearchScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.CallsStats.route) {
+            CallsStatsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.MediaStats.route) {
+            MediaStatsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

@@ -23,9 +23,9 @@ class MessageDao @Inject constructor(
         return cursor.use { if (it.moveToFirst()) it.getInt(0) else 0 }
     }
 
-    /** Conta i messaggi per una chat specifica (totale, inviati, ricevuti). */
-    fun getMessageCountForChat(chatId: Long): ChatMessageCount {
-        val query = """
+    /** Conta i messaggi per una chat specifica (totale, inviati, ricevuti) con filtro temporale opzionale. */
+    fun getMessageCountForChat(chatId: Long, startTime: Long? = null, endTime: Long? = null): ChatMessageCount {
+        val queryBuilder = StringBuilder("""
             SELECT
                 ? AS chat_id,
                 '' AS jid,
@@ -35,10 +35,19 @@ class MessageDao @Inject constructor(
                 SUM(CASE WHEN from_me = 0 THEN 1 ELSE 0 END) AS received
             FROM message
             WHERE chat_row_id = ? AND message_type = 0
-        """.trimIndent()
-        val cursor = database.getMsgDb().rawQuery(
-            query, arrayOf(chatId.toString(), chatId.toString())
-        )
+        """.trimIndent())
+        val args = mutableListOf(chatId.toString(), chatId.toString())
+        
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use {
             if (it.moveToFirst()) ChatMessageCount(
                 chatId   = chatId,
@@ -76,67 +85,101 @@ class MessageDao @Inject constructor(
         return cursor.use { parseChatMessageCount(it) }
     }
 
-    /** Distribuzione oraria dei messaggi per una chat specifica (24 valori). */
-    fun getHourlyDistribution(chatId: Long): List<HourlyCount> {
-        val query = """
+    /** Distribuzione oraria dei messaggi per una chat specifica (24 valori) con filtro temporale opzionale. */
+    fun getHourlyDistribution(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<HourlyCount> {
+        val queryBuilder = StringBuilder("""
             SELECT
                 CAST(strftime('%H', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS hour,
                 COUNT(*) AS count
             FROM message
             WHERE chat_row_id = ? AND message_type = 0
-            GROUP BY hour
-            ORDER BY hour
-        """.trimIndent()
-
-        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
+        """.trimIndent())
+        val args = mutableListOf(chatId.toString())
+        
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        queryBuilder.append(" GROUP BY hour ORDER BY hour")
+        
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseHourlyCount(it) }
     }
 
-    /** Distribuzione oraria globale (tutte le chat). */
-    fun getGlobalHourlyDistribution(): List<HourlyCount> {
-        val query = """
+    /** Distribuzione oraria globale (tutte le chat) con filtro temporale opzionale. */
+    fun getGlobalHourlyDistribution(startTime: Long? = null, endTime: Long? = null): List<HourlyCount> {
+        val queryBuilder = StringBuilder("""
             SELECT
                 CAST(strftime('%H', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS hour,
                 COUNT(*) AS count
             FROM message
             WHERE message_type = 0
-            GROUP BY hour
-            ORDER BY hour
-        """.trimIndent()
-
-        val cursor = database.getMsgDb().rawQuery(query, null)
+        """.trimIndent())
+        val args = mutableListOf<String>()
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        queryBuilder.append(" GROUP BY hour ORDER BY hour")
+        
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseHourlyCount(it) }
     }
 
-    /** Distribuzione per giorno della settimana (0=domenica, 6=sabato). */
-    fun getDayOfWeekDistribution(chatId: Long): List<DayCount> {
-        val query = """
+    /** Distribuzione per giorno della settimana (0=domenica, 6=sabato) con filtro temporale opzionale. */
+    fun getDayOfWeekDistribution(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<DayCount> {
+        val queryBuilder = StringBuilder("""
             SELECT
                 CAST(strftime('%w', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
                 COUNT(*) AS count
             FROM message
             WHERE chat_row_id = ? AND message_type = 0
-            GROUP BY day
-            ORDER BY day
-        """.trimIndent()
-
-        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
+        """.trimIndent())
+        val args = mutableListOf(chatId.toString())
+        
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        queryBuilder.append(" GROUP BY day ORDER BY day")
+        
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseDayCount(it) }
     }
 
-    /** Distribuzione settimanale globale. */
-    fun getGlobalWeeklyDistribution(): List<DayCount> {
-        val query = """
+    /** Distribuzione settimanale globale con filtro temporale opzionale. */
+    fun getGlobalWeeklyDistribution(startTime: Long? = null, endTime: Long? = null): List<DayCount> {
+        val queryBuilder = StringBuilder("""
             SELECT
                 CAST(strftime('%w', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
                 COUNT(*) AS count
             FROM message
             WHERE message_type = 0
-            GROUP BY day
-            ORDER BY day
-        """.trimIndent()
-
-        val cursor = database.getMsgDb().rawQuery(query, null)
+        """.trimIndent())
+        val args = mutableListOf<String>()
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        queryBuilder.append(" GROUP BY day ORDER BY day")
+        
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseDayCount(it) }
     }
 
@@ -280,16 +323,22 @@ class MessageDao @Inject constructor(
     /**
      * Restituisce le date (come epoch day) in cui c'è stato almeno un messaggio.
      * Usato per calcolare il longest streak.
+     * Supporta filtro temporale opzionale.
      */
-    fun getActiveDates(): List<Long> {
-        val query = """
+    fun getActiveDates(startTime: Long? = null): List<Long> {
+        val queryBuilder = StringBuilder("""
             SELECT DISTINCT CAST(timestamp / 86400000 AS INTEGER) AS epoch_day
             FROM message
             WHERE message_type = 0 AND timestamp > 0
-            ORDER BY epoch_day
-        """.trimIndent()
-
-        val cursor = database.getMsgDb().rawQuery(query, null)
+        """.trimIndent())
+        val args = mutableListOf<String>()
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        queryBuilder.append(" ORDER BY epoch_day")
+        
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use {
             buildList {
                 while (it.moveToNext()) add(it.getLong(0))
@@ -317,6 +366,123 @@ class MessageDao @Inject constructor(
 
         val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
         return cursor.use { if (it.moveToFirst()) it.getLong(0) else 0L }
+    }
+
+    /**
+     * Conta i messaggi totali nel database con filtro temporale opzionale.
+     */
+    fun getTotalMessageCount(startTime: Long? = null, endTime: Long? = null): Int {
+        val queryBuilder = StringBuilder("SELECT COUNT(*) FROM message WHERE message_type = 0")
+        val args = mutableListOf<String>()
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
+        return cursor.use { if (it.moveToFirst()) it.getInt(0) else 0 }
+    }
+
+    /**
+     * Ricerca una parola e restituisce il conteggio per utente.
+     * Usa sender_jid_row_id per identificare il mittente.
+     */
+    fun searchWordFrequency(word: String): List<com.whatstat.reborn.data.db.model.WordSearchResult> {
+        val query = """
+            SELECT
+                COALESCE(j.raw_string, m.chat_row_id || '@chat.whatsapp.net') AS jid,
+                COUNT(*) AS count
+            FROM message m
+            LEFT JOIN jid j ON m.sender_jid_row_id = j._id
+            WHERE m.text_data LIKE ? ESCAPE '\\' AND m.message_type = 0
+            GROUP BY COALESCE(j.raw_string, m.chat_row_id || '@chat.whatsapp.net')
+            ORDER BY count DESC
+            LIMIT 50
+        """.trimIndent()
+        val escaped = word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        val cursor = database.getMsgDb().rawQuery(query, arrayOf("%$escaped%"))
+        return cursor.use { parseWordSearchResults(it) }
+    }
+
+    /**
+     * Estrazione statistiche chiamate (audio vs video, perse, durata).
+     * Usa la tabella call_log dedicata.
+     */
+    fun getCallStats(): List<com.whatstat.reborn.data.db.model.CallStat> {
+        val query = """
+            SELECT
+                COALESCE(j.raw_string, cl.jid_row_id || '@s.whatsapp.net') AS jid,
+                COUNT(*) AS total_calls,
+                SUM(CASE WHEN cl.video_call = 1 THEN 1 ELSE 0 END) AS video_calls,
+                SUM(CASE WHEN cl.call_result = 0 THEN 1 ELSE 0 END) AS missed_calls,
+                COALESCE(SUM(cl.duration), 0) AS total_duration
+            FROM call_log cl
+            LEFT JOIN jid j ON cl.jid_row_id = j._id
+            GROUP BY cl.jid_row_id
+            ORDER BY total_calls DESC
+            LIMIT 50
+        """.trimIndent()
+        val cursor = database.getMsgDb().rawQuery(query, null)
+        return cursor.use { parseCallStats(it) }
+    }
+
+    /**
+     * Estrazione statistiche link (count per utente).
+     * Usa la tabella message_link con JOIN a message.
+     */
+    fun getLinkStats(): List<com.whatstat.reborn.data.db.model.LinkStat> {
+        val query = """
+            SELECT
+                COALESCE(j.raw_string, m.sender_jid_row_id || '@s.whatsapp.net') AS jid,
+                COUNT(*) AS total_links,
+                COUNT(DISTINCT SUBSTR(m.text_data, 1, 30)) AS unique_domains
+            FROM message_link ml
+            JOIN message m ON ml.message_row_id = m._id
+            LEFT JOIN jid j ON m.sender_jid_row_id = j._id
+            WHERE m.text_data LIKE 'http%' OR m.text_data LIKE 'https%'
+            GROUP BY COALESCE(j.raw_string, m.sender_jid_row_id || '@s.whatsapp.net')
+            ORDER BY total_links DESC
+            LIMIT 50
+        """.trimIndent()
+        val cursor = database.getMsgDb().rawQuery(query, null)
+        return cursor.use { parseLinkStats(it) }
+    }
+
+    private fun parseWordSearchResults(cursor: Cursor): List<com.whatstat.reborn.data.db.model.WordSearchResult> = buildList {
+        while (cursor.moveToNext()) {
+            add(com.whatstat.reborn.data.db.model.WordSearchResult(
+                jid = cursor.getString(0) ?: "",
+                displayName = null,
+                count = cursor.getInt(1)
+            ))
+        }
+    }
+
+    private fun parseCallStats(cursor: Cursor): List<com.whatstat.reborn.data.db.model.CallStat> = buildList {
+        while (cursor.moveToNext()) {
+            add(com.whatstat.reborn.data.db.model.CallStat(
+                jid = cursor.getString(0) ?: "",
+                displayName = null,
+                totalCalls = cursor.getInt(1),
+                videoCalls = cursor.getInt(2),
+                missedCalls = cursor.getInt(3),
+                totalDurationSec = cursor.getLong(4)
+            ))
+        }
+    }
+
+    private fun parseLinkStats(cursor: Cursor): List<com.whatstat.reborn.data.db.model.LinkStat> = buildList {
+        while (cursor.moveToNext()) {
+            add(com.whatstat.reborn.data.db.model.LinkStat(
+                jid = cursor.getString(0) ?: "",
+                displayName = null,
+                totalLinks = cursor.getInt(1),
+                uniqueDomains = cursor.getInt(2)
+            ))
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════

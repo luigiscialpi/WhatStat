@@ -6,6 +6,26 @@ package com.whatstat.reborn.data.db.model
  * per restituire i risultati delle query al cursor.
  */
 
+/** Range temporale per i filtri */
+enum class TimeRange(val label: String, val millisBack: Long?) {
+    TODAY("Oggi", 0L),
+    YESTERDAY("Ieri", 86400000L),
+    LAST_7_DAYS("7 giorni", 604800000L),
+    LAST_30_DAYS("30 giorni", 2592000000L),
+    LAST_YEAR("Anno", 31536000000L),
+    CUSTOM("Personalizzato", null)
+}
+
+data class DateRange(
+    val startTime: Long?,
+    val endTime: Long?
+) {
+    companion object {
+        val ALL = DateRange(null, null)
+        val TODAY = DateRange(System.currentTimeMillis() - 86400000L, System.currentTimeMillis())
+    }
+}
+
 /** Conteggio messaggi per singola chat */
 data class ChatMessageCount(
     val chatId: Long,
@@ -70,4 +90,29 @@ data class ChatListItem(
     val isGroup: Boolean,
     val totalMessages: Int,
     val lastMessageTimestamp: Long
+)
+
+/** Statistiche chiamate per contatto */
+data class CallStat(
+    val jid: String,
+    val displayName: String?,
+    val totalCalls: Int,
+    val videoCalls: Int,
+    val missedCalls: Int,
+    val totalDurationSec: Long
+)
+
+/** Statistiche link per contatto */
+data class LinkStat(
+    val jid: String,
+    val displayName: String?,
+    val totalLinks: Int,
+    val uniqueDomains: Int
+)
+
+/** Risultato ricerca parole */
+data class WordSearchResult(
+    val jid: String,
+    val displayName: String?,
+    val count: Int
 )
