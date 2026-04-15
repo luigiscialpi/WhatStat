@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.automirrored.outlined.PhoneMissed
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.Timer
@@ -32,6 +34,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,6 +68,7 @@ fun CallsStatsScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
     LaunchedEffect(chatId) {
         chatId?.let { viewModel.setChatId(it) }
@@ -121,6 +126,31 @@ fun CallsStatsScreen(
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
+        // Search bar (solo se ci sono risultati)
+        if (!isLoading && callStats.isNotEmpty()) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.setSearchQuery(it) },
+                placeholder = { Text("Cerca contatto…") },
+                leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                            Icon(Icons.Outlined.Clear, contentDescription = "Cancella")
+                        }
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                )
+            )
+        }
+
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -158,6 +188,13 @@ fun CallsStatsScreen(
                 )
             }
 
+            val filteredStats = remember(callStats, searchQuery) {
+                if (searchQuery.isBlank()) callStats
+                else callStats.filter {
+                    (it.displayName ?: it.jid).contains(searchQuery, ignoreCase = true)
+                }
+            }
+
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -177,7 +214,7 @@ fun CallsStatsScreen(
                 }
 
                 // ── Dettaglio per persona ─────────────────────
-                items(callStats) { stat ->
+                items(filteredStats) { stat ->
                     CallDetailCard(stat)
                 }
 

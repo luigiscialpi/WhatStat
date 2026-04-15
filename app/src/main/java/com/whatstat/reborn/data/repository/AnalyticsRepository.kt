@@ -9,7 +9,10 @@ import com.whatstat.reborn.data.db.model.HourlyCount
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.domain.model.ChatStats
 import com.whatstat.reborn.domain.model.GlobalStats
+import com.whatstat.reborn.domain.model.SlowChatStats
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -75,104 +78,128 @@ class AnalyticsRepository @Inject constructor(
     }
 
     /**
-     * Calcola le statistiche complete per una singola chat.
-     * Supporta filtro temporale opzionale.
+     * Calcola le statistiche veloci per una singola chat (conteggi, date, distribuzioni).
+     * Ritorna in <1s grazie agli indici.
      */
-    suspend fun getChatStats(chatId: Long, startTime: Long? = null, endTime: Long? = null): ChatStats = withContext(Dispatchers.IO) {
-        val basicInfo  = chatDao.getChatBasicInfo(chatId)
-        val msgCount   = messageDao.getMessageCountForChat(chatId, startTime, endTime)
-        val hourly     = messageDao.getHourlyDistribution(chatId, startTime, endTime)
-        val weekly     = messageDao.getDayOfWeekDistribution(chatId, startTime, endTime)
-        val monthly    = messageDao.getMonthlyTrend(chatId)
-        val topWords   = messageDao.getTopWords(chatId, startTime, endTime)
-        val mediaStats = messageDao.getMediaStats(chatId)
-        val starters   = messageDao.getConversationStarters(chatId)
-        val avgResp    = messageDao.getAverageResponseTime(chatId)
+    suspend fun getQuickChatStats(chatId: Long, startTime: Long? = null, endTime: Long? = null): ChatStats = withContext(Dispatchers.IO) {
+        val basicInfo = chatDao.getChatBasicInfo(chatId)
 
-        // Risolvi il nome dal database contatti (wa.db) o usa subject per gruppi
-        val displayName = if (basicInfo.isGroup) {
-            basicInfo.subject ?: contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")
-        } else {
-            contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")
-        }
+        coroutineScope {
+            val dMsgCount   = async { messageDao.getMessageCountForChat(chatId, startTime, endTime) }
+            val dHourly     = async { messageDao.getHourlyDistribution(chatId, startTime, endTime) }
+            val dWeekly     = async { messageDao.getDayOfWeekDistribution(chatId, startTime, endTime) }
+            val dMonthly    = async { messageDao.getMonthlyTrend(chatId) }
+            val dMediaStats = async { messageDao.getMediaStats(chatId) }
+            val dFirstTs    = async { messageDao.getFirstMessageTimestamp(chatId) }
+            val dLastTs     = async { messageDao.getLastMessageTimestamp(chatId) }
+            val dAvgLen     = async { messageDao.getAverageMessageLength(chatId) }
 
-        val total = msgCount.total.coerceAtLeast(1)
-
-        // Breakdown messaggi per mittente (pie chart)
-        val rawSenders = messageDao.getMessageCountBySender(chatId, startTime, endTime)
-        val senderJids = rawSenders.map { it.jid }
-        val contactNames = contactDao.resolveContactNames(senderJids)
-        val resolvedSenders = rawSenders.map { stat ->
-            val name = when {
-                stat.jid == "me@s.whatsapp.net" -> "Tu"
-                else -> contactNames[stat.jid]
-                    ?: contactDao.resolveContactName(stat.jid)
-                    ?: stat.displayName
+            val displayName = if (basicInfo.isGroup) {
+                basicInfo.subject ?: contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")
+            } else {
+                contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")
             }
-            stat.copy(displayName = name)
+
+            val msgCount = dMsgCount.await()
+            val total = msgCount.total.coerceAtLeast(1)
+            val mediaStats = dMediaStats.await()
+
+            ChatStats(
+                chatId                   = chatId,
+                contactName              = displayName,
+                jid                      = basicInfo.jid,
+                isGroup                  = basicInfo.isGroup,
+                totalMessages            = msgCount.total,
+                sentByMe                 = msgCount.sent,
+                receivedFromThem         = msgCount.received,
+                sentRatio                = msgCount.sent.toFloat() / total,
+                firstMessageDate         = dFirstTs.await(),
+                lastMessageDate          = dLastTs.await(),
+                averageResponseTimeMs    = 0L,
+                iStartedConversations    = 0,
+                theyStartedConversations = 0,
+                longestMessage           = "",
+                averageMessageLength     = dAvgLen.await(),
+                mediaCount               = mediaStats.sumOf { it.count },
+                audioCount               = mediaStats.filter { it.mimeType.startsWith("audio") }.sumOf { it.count },
+                videoCount               = mediaStats.filter { it.mimeType.startsWith("video") }.sumOf { it.count },
+                hourlyDistribution       = dHourly.await(),
+                weeklyDistribution       = dWeekly.await(),
+                monthlyTrend             = dMonthly.await(),
+                topWords                 = emptyList(),
+                senderBreakdown          = emptyList(),
+                conversationStarterBreakdown = emptyList()
+            )
         }
-        // Aggrega eventuali @lid duplicati
-        val aggregatedSenders = resolvedSenders
-            .groupBy { it.displayName }
-            .map { (name, group) ->
+    }
+
+    /**
+     * Calcola le statistiche lente (top words, sender breakdown, starters, response time).
+     * Ritorna un partial update da mergiare con i dati quick.
+     */
+    suspend fun getSlowChatStats(chatId: Long, startTime: Long? = null, endTime: Long? = null): SlowChatStats = withContext(Dispatchers.IO) {
+        val basicInfo = chatDao.getChatBasicInfo(chatId)
+
+        coroutineScope {
+            val dTopWords   = async { messageDao.getTopWords(chatId, startTime, endTime) }
+            val dStarters   = async { messageDao.getConversationStarters(chatId) }
+            val dAvgResp    = async { messageDao.getAverageResponseTime(chatId) }
+            val dSenders    = async { messageDao.getMessageCountBySender(chatId, startTime, endTime) }
+            val dStartersBySender = async { messageDao.getConversationStartersBySender(chatId, startTime, endTime) }
+            val dLongest    = async { messageDao.getLongestMessage(chatId) }
+
+            val starters = dStarters.await()
+
+            // Risoluzione nomi per sender breakdown
+            val rawSenders = dSenders.await()
+            val senderJids = rawSenders.map { it.jid }
+            val contactNames = contactDao.resolveContactNames(senderJids)
+            val aggregatedSenders = rawSenders.map { stat ->
+                val name = when {
+                    stat.jid == "me@s.whatsapp.net" -> "Tu"
+                    else -> contactNames[stat.jid]
+                        ?: contactDao.resolveContactName(stat.jid)
+                        ?: stat.displayName
+                }
+                stat.copy(displayName = name)
+            }.groupBy { it.displayName }.map { (name, group) ->
                 com.whatstat.reborn.data.db.model.SenderStat(
                     jid = group.first().jid,
                     displayName = name,
                     count = group.sumOf { it.count }
                 )
-            }
-            .sortedByDescending { it.count }
+            }.sortedByDescending { it.count }
 
-        // Breakdown conversation starters per mittente
-        val rawStarters = messageDao.getConversationStartersBySender(chatId, startTime, endTime)
-        val starterJids = rawStarters.map { it.jid }
-        val starterNames = contactDao.resolveContactNames(starterJids)
-        val resolvedStarters = rawStarters.map { stat ->
-            val name = when {
-                stat.jid == "me@s.whatsapp.net" -> "Tu"
-                else -> starterNames[stat.jid]
-                    ?: contactDao.resolveContactName(stat.jid)
-                    ?: stat.jid.substringBefore("@")
-            }
-            stat.copy(displayName = name)
-        }
-        val aggregatedStarters = resolvedStarters
-            .groupBy { it.displayName }
-            .map { (name, group) ->
+            // Risoluzione nomi per conversation starters
+            val rawStarters = dStartersBySender.await()
+            val starterJids = rawStarters.map { it.jid }
+            val starterNames = contactDao.resolveContactNames(starterJids)
+            val aggregatedStarters = rawStarters.map { stat ->
+                val name = when {
+                    stat.jid == "me@s.whatsapp.net" -> "Tu"
+                    else -> starterNames[stat.jid]
+                        ?: contactDao.resolveContactName(stat.jid)
+                        ?: stat.jid.substringBefore("@")
+                }
+                stat.copy(displayName = name)
+            }.groupBy { it.displayName }.map { (name, group) ->
                 com.whatstat.reborn.data.db.model.SenderStat(
                     jid = group.first().jid,
                     displayName = name,
                     count = group.sumOf { it.count }
                 )
-            }
-            .sortedByDescending { it.count }
+            }.sortedByDescending { it.count }
 
-        ChatStats(
-            chatId                   = chatId,
-            contactName              = displayName,
-            jid                      = basicInfo.jid,
-            isGroup                  = basicInfo.isGroup,
-            totalMessages            = msgCount.total,
-            sentByMe                 = msgCount.sent,
-            receivedFromThem         = msgCount.received,
-            sentRatio                = msgCount.sent.toFloat() / total,
-            firstMessageDate         = messageDao.getFirstMessageTimestamp(chatId),
-            lastMessageDate          = messageDao.getLastMessageTimestamp(chatId),
-            averageResponseTimeMs    = avgResp,
-            iStartedConversations    = starters.startedByMe,
-            theyStartedConversations = starters.startedByThem,
-            longestMessage           = messageDao.getLongestMessage(chatId),
-            averageMessageLength     = messageDao.getAverageMessageLength(chatId),
-            mediaCount               = mediaStats.sumOf { it.count },
-            audioCount               = mediaStats.filter { it.mimeType.startsWith("audio") }.sumOf { it.count },
-            videoCount               = mediaStats.filter { it.mimeType.startsWith("video") }.sumOf { it.count },
-            hourlyDistribution       = hourly,
-            weeklyDistribution       = weekly,
-            monthlyTrend             = monthly,
-            topWords                 = topWords,
-            senderBreakdown          = aggregatedSenders,
-            conversationStarterBreakdown = aggregatedStarters
-        )
+            SlowChatStats(
+                topWords                 = dTopWords.await(),
+                senderBreakdown          = aggregatedSenders,
+                conversationStarterBreakdown = aggregatedStarters,
+                averageResponseTimeMs    = dAvgResp.await(),
+                iStartedConversations    = starters.startedByMe,
+                theyStartedConversations = starters.startedByThem,
+                longestMessage           = dLongest.await()
+            )
+        }
     }
 
     /**

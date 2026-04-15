@@ -528,6 +528,10 @@ class MessageDao @Inject constructor(
         val conditions = mutableListOf("m.text_data IS NOT NULL", "m.message_type = 0")
         val args = mutableListOf<String>()
         
+        // Pre-filtro SQL: carica solo messaggi che contengono la parola
+        conditions.add("m.text_data LIKE '%' || ? || '%'")
+        args.add(searchWord)
+        
         if (chatId != null) {
             conditions.add("m.chat_row_id = ?")
             args.add(chatId.toString())
@@ -541,7 +545,7 @@ class MessageDao @Inject constructor(
             args.add(endTime.toString())
         }
         
-        // Carica i messaggi con info mittente
+        // Carica solo i messaggi che contengono la parola
         val query = """
             SELECT
                 m.from_me,

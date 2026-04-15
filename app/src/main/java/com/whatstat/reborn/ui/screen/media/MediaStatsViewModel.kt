@@ -21,6 +21,9 @@ class MediaStatsViewModel @Inject constructor(
     private val _linkStats = MutableStateFlow<List<LinkStat>>(emptyList())
     val linkStats: StateFlow<List<LinkStat>> = _linkStats.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
     private val _linkStatsBySender = MutableStateFlow<List<LinkStat>>(emptyList())
     val linkStatsBySender: StateFlow<List<LinkStat>> = _linkStatsBySender.asStateFlow()
 
@@ -54,6 +57,10 @@ class MediaStatsViewModel @Inject constructor(
     fun clearSelection() {
         _selectedChatJid.value = null
         _linkStatsBySender.value = emptyList()
+    }
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
     }
 
     private var initialized = false

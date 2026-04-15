@@ -28,6 +28,9 @@ class ChatDetailViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _isLoadingSlow = MutableStateFlow(true)
+    val isLoadingSlow: StateFlow<Boolean> = _isLoadingSlow.asStateFlow()
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
@@ -44,6 +47,7 @@ class ChatDetailViewModel @Inject constructor(
     private fun loadChatStats() {
         viewModelScope.launch {
             _isLoading.value = true
+            _isLoadingSlow.value = true
             _error.value = null
             try {
                 val (startTime, endTime) = if (_selectedTimeRange.value == TimeRange.CUSTOM) {
@@ -53,13 +57,34 @@ class ChatDetailViewModel @Inject constructor(
                 } else {
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
-                
-                val stats = analyticsRepository.getChatStats(chatId, startTime, endTime)
-                _chatStats.value = stats
+
+                // Fase 1: statistiche veloci — la UI appare subito
+                val quickStats = analyticsRepository.getQuickChatStats(chatId, startTime, endTime)
+                _chatStats.value = quickStats
+                _isLoading.value = false
+
+                // Fase 2: statistiche lente — aggiornano la UI progressivamente
+                try {
+                    val slowStats = analyticsRepository.getSlowChatStats(chatId, startTime, endTime)
+                    _chatStats.value = quickStats.copy(
+                        topWords                 = slowStats.topWords,
+                        senderBreakdown          = slowStats.senderBreakdown,
+                        conversationStarterBreakdown = slowStats.conversationStarterBreakdown,
+                        averageResponseTimeMs    = slowStats.averageResponseTimeMs,
+                        iStartedConversations    = slowStats.iStartedConversations,
+                        theyStartedConversations = slowStats.theyStartedConversations,
+                        longestMessage           = slowStats.longestMessage
+                    )
+                } catch (e: Exception) {
+                    // Le stat veloci restano visibili anche se le lente falliscono
+                    android.util.Log.w("WhatStat", "Slow stats failed: ${e.message}")
+                } finally {
+                    _isLoadingSlow.value = false
+                }
             } catch (e: Exception) {
                 _error.value = e.message ?: "Errore nel caricamento delle statistiche"
-            } finally {
                 _isLoading.value = false
+                _isLoadingSlow.value = false
             }
         }
     }

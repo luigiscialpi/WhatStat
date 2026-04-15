@@ -25,7 +25,9 @@ class WhatsAppDatabase @Inject constructor(
     private var waDb: SQLiteDatabase? = null
 
     /**
-     * Apre entrambi i database in modalità read-only.
+     * Apre entrambi i database.
+     * msgstore.db in READWRITE per creare indici di ottimizzazione.
+     * wa.db in READONLY (non serve modificarlo).
      * I file devono già essere stati decifrati / estratti.
      */
     @Synchronized
@@ -35,13 +37,54 @@ class WhatsAppDatabase @Inject constructor(
         msgDb = SQLiteDatabase.openDatabase(
             msgstoreFile.absolutePath,
             null,
-            SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS
+            SQLiteDatabase.OPEN_READWRITE or SQLiteDatabase.NO_LOCALIZED_COLLATORS
         )
+        // Abilita WAL per letture concorrenti (più thread possono leggere in parallelo)
+        msgDb?.enableWriteAheadLogging()
         waDb = SQLiteDatabase.openDatabase(
             waDbFile.absolutePath,
             null,
             SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS
         )
+
+        // Crea indici per ottimizzare le query
+        createIndexes()
+    }
+
+    /**
+     * Crea indici sulla copia locale di msgstore.db per velocizzare le query.
+     * Usa IF NOT EXISTS per evitare errori a riaperture successive.
+     */
+    private fun createIndexes() {
+        val db = msgDb ?: return
+        try {
+            // Indice composito principale: chat_row_id + message_type + timestamp
+            // Copre: getMessageCountForChat, getHourlyDistribution, getDayOfWeekDistribution,
+            //        getMonthlyTrend, getTopWords, getConversationStarters, ecc.
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_chat_type_ts ON message (chat_row_id, message_type, timestamp)")
+
+            // Indice per from_me nelle query per mittente (pie chart, starters)
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_chat_type_from ON message (chat_row_id, message_type, from_me)")
+
+            // Indice per sender_jid_row_id (JOINs nelle query per-sender)
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_sender_jid ON message (sender_jid_row_id)")
+
+            // Indice per message_media (LEFT JOIN nelle query media/link)
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_media_row ON message_media (message_row_id)")
+
+            // Indice per chat.jid_row_id (JOIN chat → jid)
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_chat_jid ON chat (jid_row_id)")
+
+            // Indice per call_log (query chiamate)
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_call_log_jid ON call_log (jid_row_id)")
+
+            // Indice per ricerca testo con LIKE (searchWordFrequency)
+            db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_chat_text ON message (chat_row_id, message_type) WHERE text_data IS NOT NULL")
+
+            android.util.Log.d("WhatStat", "Database indexes created successfully")
+        } catch (e: Exception) {
+            android.util.Log.w("WhatStat", "Failed to create some indexes: ${e.message}")
+        }
     }
 
     /**

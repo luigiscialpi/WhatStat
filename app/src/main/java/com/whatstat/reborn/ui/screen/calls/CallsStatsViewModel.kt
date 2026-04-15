@@ -21,6 +21,9 @@ class CallsStatsViewModel @Inject constructor(
     private val _callStats = MutableStateFlow<List<CallStat>>(emptyList())
     val callStats: StateFlow<List<CallStat>> = _callStats.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -52,6 +55,10 @@ class CallsStatsViewModel @Inject constructor(
             _selectedTimeRange.value = TimeRange.CUSTOM
         }
         loadStats()
+    }
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
     }
 
     private fun loadStats() {

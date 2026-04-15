@@ -25,8 +25,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,6 +37,8 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,6 +68,7 @@ fun MediaStatsScreen(
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
     val debugInfo by viewModel.debugInfo.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
     var showTooltip by remember { mutableStateOf(false) }
     var tooltipTitle by remember { mutableStateOf("") }
@@ -78,7 +83,13 @@ fun MediaStatsScreen(
     val isChatDetail = chatId != null
     // Per chat detail, linkStats contiene già lo split per mittente
     // Per vista globale, mostra linkStats (per chat) e linkStatsBySender (dopo click)
-    val displayStats = if (isChatDetail) linkStats else linkStatsBySender.ifEmpty { linkStats }
+    val allDisplayStats = if (isChatDetail) linkStats else linkStatsBySender.ifEmpty { linkStats }
+    val displayStats = remember(allDisplayStats, searchQuery) {
+        if (searchQuery.isBlank()) allDisplayStats
+        else allDisplayStats.filter {
+            (it.displayName ?: it.jid).contains(searchQuery, ignoreCase = true)
+        }
+    }
     val isShowingBreakdown = !isChatDetail && linkStatsBySender.isNotEmpty()
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -145,6 +156,31 @@ fun MediaStatsScreen(
                 onDateRangeChanged = { viewModel.setCustomDateRange(it) },
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
+
+            // ── SEARCH BAR (solo se ci sono risultati) ──
+            if (!isLoading && allDisplayStats.isNotEmpty()) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.setSearchQuery(it) },
+                    placeholder = { Text("Cerca contatto…") },
+                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                                Icon(Icons.Outlined.Clear, contentDescription = "Cancella")
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    )
+                )
+            }
 
             // ── LOADING / EMPTY / LIST ───────────────────
             when {

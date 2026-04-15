@@ -51,3 +51,16 @@ data class ChatStats(
     val senderBreakdown: List<SenderStat> = emptyList(),
     val conversationStarterBreakdown: List<SenderStat> = emptyList()
 )
+
+/**
+ * Risultati delle query lente, da mergiare con ChatStats.
+ */
+data class SlowChatStats(
+    val topWords: List<WordFrequency>,
+    val senderBreakdown: List<SenderStat>,
+    val conversationStarterBreakdown: List<SenderStat>,
+    val averageResponseTimeMs: Long,
+    val iStartedConversations: Int,
+    val theyStartedConversations: Int,
+    val longestMessage: String
+)

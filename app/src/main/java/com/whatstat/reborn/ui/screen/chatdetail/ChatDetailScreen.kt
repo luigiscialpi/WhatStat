@@ -1,6 +1,7 @@
 package com.whatstat.reborn.ui.screen.chatdetail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -81,6 +82,7 @@ fun ChatDetailScreen(
 ) {
     val stats by viewModel.chatStats.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val isLoadingSlow by viewModel.isLoadingSlow.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
 
@@ -199,8 +201,9 @@ fun ChatDetailScreen(
                                         senders = s.senderBreakdown,
                                         totalMessages = s.totalMessages
                                     )
+                                } else if (isLoadingSlow) {
+                                    LoadingSection()
                                 } else {
-                                    // Fallback per dati mancanti
                                     val otherName = if (!s.isGroup) s.contactName else "Loro"
                                     MessagePieChart(
                                         senders = listOf(
@@ -254,16 +257,19 @@ fun ChatDetailScreen(
 
                         // ── Conversation Starters ────────────────────────────
                         item {
-                            val starterTotal = (s.iStartedConversations + s.theyStartedConversations)
-                                .coerceAtLeast(1)
                             SectionCard(title = "Chi inizia le conversazioni") {
                                 if (s.conversationStarterBreakdown.isNotEmpty()) {
+                                    val breakdownTotal = s.conversationStarterBreakdown.sumOf { it.count }.coerceAtLeast(1)
                                     MessagePieChart(
                                         senders = s.conversationStarterBreakdown,
-                                        totalMessages = starterTotal,
+                                        totalMessages = breakdownTotal,
                                         centerLabel = "conversazioni"
                                     )
+                                } else if (isLoadingSlow) {
+                                    LoadingSection()
                                 } else {
+                                    val starterTotal = (s.iStartedConversations + s.theyStartedConversations)
+                                        .coerceAtLeast(1)
                                     val otherName = if (!s.isGroup) s.contactName else "Loro"
                                     MessagePieChart(
                                         senders = listOf(
@@ -310,9 +316,9 @@ fun ChatDetailScreen(
                         }
 
                         // ── Top Words ────────────────────────────────────────
-                        if (s.topWords.isNotEmpty()) {
-                            item {
-                                SectionCard(title = "Parole più usate") {
+                        item {
+                            SectionCard(title = "Parole più usate") {
+                                if (s.topWords.isNotEmpty()) {
                                     InteractiveWordCloud(
                                         words = s.topWords.take(30),
                                         onWordClick = { word, count ->
@@ -320,6 +326,14 @@ fun ChatDetailScreen(
                                             tooltipValue = "%,d volte".format(count)
                                             showTooltip = true
                                         }
+                                    )
+                                } else if (isLoadingSlow) {
+                                    LoadingSection()
+                                } else {
+                                    Text(
+                                        "Nessuna parola trovata",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -464,6 +478,30 @@ private fun formatDuration(ms: Long): String {
     }
 }
 
+// ── Loading placeholder per sezioni lente ────────────────────────────────────
+
+@Composable
+private fun LoadingSection() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(20.dp),
+            strokeWidth = 2.dp
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            "Calcolo in corso…",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
 // ── Pie Chart messaggi per mittente ──────────────────────────────────────────
 
 private val pieColors = listOf(
@@ -488,134 +526,121 @@ private fun MessagePieChart(
     centerLabel: String = "messaggi"
 ) {
     val total = totalMessages.coerceAtLeast(1)
+    var expanded by remember { mutableStateOf(false) }
+    val showExpand = senders.size > 10
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // ── Donut Chart ──
-        Box(
-            modifier = Modifier.size(140.dp),
-            contentAlignment = Alignment.Center
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            androidx.compose.foundation.Canvas(
-                modifier = Modifier.size(140.dp)
+            // ── Donut Chart ──
+            Box(
+                modifier = Modifier.size(140.dp),
+                contentAlignment = Alignment.Center
             ) {
-                val strokeWidth = 28.dp.toPx()
-                val arcSize = size.minDimension - strokeWidth
-                val topLeft = androidx.compose.ui.geometry.Offset(
-                    (size.width - arcSize) / 2f,
-                    (size.height - arcSize) / 2f
-                )
-                val arcRect = androidx.compose.ui.geometry.Size(arcSize, arcSize)
-                var startAngle = -90f
-
-                senders.forEachIndexed { index, sender ->
-                    val sweep = (sender.count.toFloat() / total) * 360f
-                    drawArc(
-                        color = pieColors[index % pieColors.size],
-                        startAngle = startAngle,
-                        sweepAngle = sweep,
-                        useCenter = false,
-                        topLeft = topLeft,
-                        size = arcRect,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(
-                            width = strokeWidth,
-                            cap = androidx.compose.ui.graphics.StrokeCap.Butt
-                        )
+                androidx.compose.foundation.Canvas(
+                    modifier = Modifier.size(140.dp)
+                ) {
+                    val strokeWidth = 28.dp.toPx()
+                    val arcSize = size.minDimension - strokeWidth
+                    val topLeft = androidx.compose.ui.geometry.Offset(
+                        (size.width - arcSize) / 2f,
+                        (size.height - arcSize) / 2f
                     )
-                    startAngle += sweep
+                    val arcRect = androidx.compose.ui.geometry.Size(arcSize, arcSize)
+                    var startAngle = -90f
+
+                    senders.forEachIndexed { index, sender ->
+                        val sweep = (sender.count.toFloat() / total) * 360f
+                        drawArc(
+                            color = pieColors[index % pieColors.size],
+                            startAngle = startAngle,
+                            sweepAngle = sweep,
+                            useCenter = false,
+                            topLeft = topLeft,
+                            size = arcRect,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = strokeWidth,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Butt
+                            )
+                        )
+                        startAngle += sweep
+                    }
+                }
+                // Totale al centro
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "%,d".format(totalMessages),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        centerLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-            // Totale al centro
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "%,d".format(totalMessages),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    centerLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+
+            Spacer(Modifier.width(16.dp))
+
+            // ── Legenda ──
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                val displayCount = if (expanded) senders.size else minOf(senders.size, 10)
+                senders.take(displayCount).forEachIndexed { index, sender ->
+                    val pct = (sender.count.toFloat() / total * 100)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(pieColors[index % pieColors.size])
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            sender.displayName,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                        Text(
+                            "%,d".format(sender.count),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            "(%.0f%%)".format(pct),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
 
-        Spacer(Modifier.width(16.dp))
-
-        // ── Legenda ──
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            senders.take(10).forEachIndexed { index, sender ->
-                val pct = (sender.count.toFloat() / total * 100)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(pieColors[index % pieColors.size])
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        sender.displayName,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
-                    Text(
-                        "%,d".format(sender.count),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        "(%.0f%%)".format(pct),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            if (senders.size > 10) {
-                val othersCount = senders.drop(10).sumOf { it.count }
-                val othersPct = (othersCount.toFloat() / total * 100)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(Color.Gray)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "Altri (${senders.size - 10})",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        "%,d".format(othersCount),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        "(%.0f%%)".format(othersPct),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+        // ── Toggle "Mostra tutti" / "Mostra meno" ──
+        if (showExpand) {
+            Text(
+                text = if (expanded) "Mostra meno" else "Mostra tutti (${senders.size})",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(top = 8.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }
