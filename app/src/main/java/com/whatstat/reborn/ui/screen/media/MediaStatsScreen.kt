@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -71,9 +72,7 @@ fun MediaStatsScreen(
     var showDebug by remember { mutableStateOf(false) }
 
     LaunchedEffect(chatId) {
-        if (chatId != null) {
-            viewModel.setChatId(chatId)
-        }
+        viewModel.initialize(chatId)
     }
 
     val isChatDetail = chatId != null
@@ -291,44 +290,50 @@ private fun LinkStatCardContent(stat: LinkStat) {
                 style = MaterialTheme.typography.titleMedium
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            if (stat.mediaCount > 0) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Outlined.PhotoLibrary,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
-                    Text(
-                        "${stat.mediaCount}",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                    Text(
-                        "media",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.width(56.dp)
+            ) {
+                Icon(
+                    Icons.Outlined.PhotoLibrary,
+                    contentDescription = null,
+                    tint = if (stat.mediaCount > 0) MaterialTheme.colorScheme.secondary
+                           else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                )
+                Text(
+                    "${stat.mediaCount}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = if (stat.mediaCount > 0) MaterialTheme.colorScheme.secondary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                )
+                Text(
+                    "media",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            if (stat.totalLinks > 0) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Outlined.Link,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        "${stat.totalLinks}",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        "link",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.width(56.dp)
+            ) {
+                Icon(
+                    Icons.Outlined.Link,
+                    contentDescription = null,
+                    tint = if (stat.totalLinks > 0) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                )
+                Text(
+                    "${stat.totalLinks}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = if (stat.totalLinks > 0) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                )
+                Text(
+                    "link",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

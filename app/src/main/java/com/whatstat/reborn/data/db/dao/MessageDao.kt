@@ -582,7 +582,7 @@ class MessageDao @Inject constructor(
      * Raggruppa per chat - mostra link e media per ogni conversazione.
      */
     fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> {
-        val conditions = mutableListOf<String>("m.message_type = 0")
+        val conditions = mutableListOf<String>("m.message_type != 7")
         val args = mutableListOf<String>()
         
         if (chatId != null) {
@@ -636,7 +636,7 @@ class MessageDao @Inject constructor(
      * Per gruppi: ritorna tutti i partecipanti con i rispettivi link.
      */
     fun getLinkStatsBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> {
-        val conditions = mutableListOf("m.chat_row_id = ?", "m.message_type = 0")
+        val conditions = mutableListOf("m.chat_row_id = ?", "m.message_type != 7")
         val args = mutableListOf(chatId.toString())
         
         if (startTime != null) {

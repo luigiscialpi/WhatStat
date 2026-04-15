@@ -56,8 +56,14 @@ class MediaStatsViewModel @Inject constructor(
         _linkStatsBySender.value = emptyList()
     }
 
-    init {
-        loadStats()
+    private var initialized = false
+
+    fun initialize(chatId: Long?) {
+        if (!initialized) {
+            initialized = true
+            _chatId.value = chatId
+            loadStats()
+        }
     }
 
     fun setTimeRange(range: TimeRange) {
