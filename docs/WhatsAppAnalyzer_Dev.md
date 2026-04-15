@@ -1484,6 +1484,38 @@ class AnalyticsRepository @Inject constructor(
 
 ---
 
+### ⚠️ Comportamento DB: `sender_jid_row_id = 0` nelle chat 1-a-1
+
+**Scoperta critica** verificata su dispositivi reali con DB Browser for SQLite:
+
+Nelle chat dirette (1-a-1), WhatsApp imposta `sender_jid_row_id = 0` per **tutti** i messaggi, sia inviati che ricevuti. Un `LEFT JOIN jid ON sender_jid_row_id = j._id` non restituisce mai il mittente in questo contesto.
+
+| Contesto | `sender_jid_row_id` | Soluzione |
+|---|---|---|
+| Chat di **gruppo** | JID del membro che ha scritto | `JOIN jid ON sender_jid_row_id = j._id` funziona ✅ |
+| Chat **1-a-1** | Sempre 0 per tutti | Usare `from_me` + JOIN `chat` + `jid` per il JID dell'altra persona ✅ |
+
+**Pattern corretto per chat 1-a-1:**
+```sql
+-- Per il mittente nelle chat 1-a-1:
+-- from_me=1 → "Tu" (l'utente corrente)
+-- from_me=0 → prendi il JID della chat come mittente
+LEFT JOIN jid j ON m.sender_jid_row_id = j._id AND m.sender_jid_row_id > 0
+LEFT JOIN chat c ON m.chat_row_id = c._id
+LEFT JOIN jid chat_jid ON c.jid_row_id = chat_jid._id
+-- Poi in SELECT:
+CASE WHEN m.from_me = 1 THEN 'Tu'
+     WHEN j.raw_string IS NOT NULL THEN j.raw_string  -- gruppi
+     ELSE chat_jid.raw_string                          -- 1-a-1
+END AS sender_jid
+```
+
+**File impattati:**
+- `MessageDao.kt` → `searchWordFrequency()`, `getLinkStatsBySender()`, `getCallStats(chatId)`
+- `AnalyticsRepository.kt` → risoluzione `me@s.whatsapp.net` → `"Tu"` in tutti i mapping
+
+---
+
 ## 8. Livello 5 — UI con Jetpack Compose
 
 ### Navigazione

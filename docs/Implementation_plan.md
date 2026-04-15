@@ -81,23 +81,81 @@ La Dashboard cambierà volto per diventare un vero hub di navigazione.
 
 ---
 
-## ✅ Implementato
+## ✅ Implementato (stato finale)
 
-Tutte le feature sopra descritte sono state implementate:
+Tutte le feature sopra descritte sono state implementate e verificate con build completata con successo.
 
 ### Data Layer
-- `TimeRange` enum con: Oggi, Ieri, 7 giorni, 30 giorni, Anno, Personalizzato
-- DTO: `CallStat`, `LinkStat`, `WordSearchResult`, `DayCount`, `HourlyCount`
+- `TimeRange` enum con: Tutto, Oggi, Ieri, 7 giorni, 30 giorni, Anno, Personalizzato
+- **Default `ALL_TIME`** in tutti i ViewModel (non più CUSTOM)
+- DTO: `CallStat` (con `audioDurationSec`, `videoDurationSec`), `LinkStat` (con `mediaCount`), `WordSearchResult`, `DayCount`, `HourlyCount`
 - `DateRange` per filtri custom
 
 ### Repository
 - TimeRange → epoch milliseconds conversion
 - Filtri temporali su tutte le query
+- `getGlobalStats()` ora riceve correttamente `customDateRange` da `DashboardViewModel`
+- Risoluzione `me@s.whatsapp.net` → `"Tu"` (non più `"Me"`) in tutti i mapping
+
+### MessageDao — Bug fix critici
+- **`countWords()`**: regex `(.)\\1{2,}` → `$1$1` (non rimuove le doppie legittime come "bello", "tutto")
+- **`searchWordFrequency()`**: riscritta — conteggio esatto Kotlin in-memory (no `LIKE` substring), usa `from_me` + `chat_jid` per identificare i mittenti nelle chat 1-a-1
+- **`getLinkStatsBySender()`**: usa `from_me` + `chat_jid` (non `sender_jid_row_id` che è sempre 0 nelle chat 1-a-1)
+- **`getCallStats(chatId)`**: split per `from_me` nelle chat 1-a-1; aggiunge `audioDurationSec`, `videoDurationSec`
 
 ### UI - Dashboard
 - Filter chips sticky
 - Heatmap oraria interattiva (tooltip al tocco)
 - Attività settimanale interattiva (tooltip al tocco)
+- Action grid con navigazione
+
+### UI - Chat Detail
+- Filtri temporali sticky, default ALL_TIME
+- Heatmap oraria interattiva
+- Attività settimanale interattiva
+- Top parole interattive (tooltip al tocco)
+- Navigazione a Radar Parole / Calls / Media con chatId
+
+### UI - Word Search (Radar Parole)
+- Ricerca con debounce 300ms, min 2 caratteri
+- Filtri temporali
+- Filtro per chat
+- **Conteggio occorrenze ESATTE** (non messaggi, non substring)
+- Tooltip per utente
+- DateRangePicker con `padding(horizontal = 16.dp)`
+- FilterChips con `vertical = 4.dp`
+- `Spacer(48.dp)` in fondo alla LazyColumn
+- Debug panel con `statusBarsPadding()`
+
+### UI - Calls Stats
+- **`CallSummaryCard`**: card riepilogativa con totali + barre di progresso durata audio/video
+- **`CallDetailCard`**: per-persona con split audio/video duration
+- Split "Tu" vs "Altra persona" nelle chat 1-a-1
+- `formatDuration()` helper (es. "1h 23m" o "45m")
+- DateRangePicker con `padding(horizontal = 16.dp)`
+- FilterChips con `vertical = 4.dp`
+- `Spacer(48.dp)` in fondo alla LazyColumn
+
+### UI - Media Stats
+- Vista chat 1-a-1: split diretto "Tu" vs "Altra persona" **senza tap** (carica `getLinkStatsBySender` direttamente)
+- Vista globale: ranking per chat → tap → breakdown per mittente
+- Card mostra prominentemente `mediaCount` (📷 secondary color) E `totalLinks` (🔗 primary color)
+- `LinkStatCard` non-clickable nella vista chat (no tap necessario)
+- DateRangePicker con `padding(horizontal = 16.dp)`
+- FilterChips con `vertical = 4.dp`
+- `Spacer(48.dp)` in fondo alla LazyColumn
+- Debug panel con `statusBarsPadding()`
+
+---
+
+## ❓ Open Questions — Risolte
+
+| Domanda | Risposta |
+|---|---|
+| Barra filtri "Sticky" intralcia i grafici? | Implementato come LazyRow di FilterChips sopra il contenuto, non sticky |
+| Barra di progresso per calcoli lenti? | I calcoli sono abbastanza veloci; indicatori ciclici esistenti sufficienti |
+| Sentiment Analysis | Non implementato in questa fase |
+| Durata chiamate nei gruppi | Funziona via `jid_row_id` nella `call_log` |
 - Action grid con navigazione
 
 ### UI - Chat Detail
