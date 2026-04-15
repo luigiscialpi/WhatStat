@@ -153,31 +153,60 @@ Tutte le feature sopra descritte sono state implementate e verificate con build 
 | Domanda | Risposta |
 |---|---|
 | Barra filtri "Sticky" intralcia i grafici? | Implementato come LazyRow di FilterChips sopra il contenuto, non sticky |
-| Barra di progresso per calcoli lenti? | I calcoli sono abbastanza veloci; indicatori ciclici esistenti sufficienti |
+| Barra di progresso per calcoli lenti? | Progressive loading implementato: stat veloci in <1s, stat lente con indicatore "Calcolo in corso…" |
 | Sentiment Analysis | Non implementato in questa fase |
 | Durata chiamate nei gruppi | Funziona via `jid_row_id` nella `call_log` |
+| Performance con 400K+ messaggi | Risolto con 7 indici SQL, WAL mode, query parallele e progressive loading |
 - Action grid con navigazione
 
 ### UI - Chat Detail
-- Filtri temporali sticky
+- Filtri temporali sticky, default ALL_TIME
 - Heatmap oraria interattiva
 - Attività settimanale interattiva
 - Top parole interattive (tooltip al tocco)
 - Navigazione a Radar Parole / Calls / Media con chatId
+- **Donut chart "Chi scrive di più"**: breakdown per singolo mittente, espandibile con "Mostra tutti (N)"
+- **Donut chart "Chi inizia le conversazioni"**: breakdown per singolo mittente, totale calcolato dalla breakdown
+- **Progressive loading**: stat veloci (<1s) + stat lente con indicatore "Calcolo in corso…"
+- **Risoluzione nomi contatti**: tutti i nomi via `wa_contacts` (wa.db)
 
-### UI - Word Search
-- Ricerca con debounce 300ms
+### UI - Word Search (Radar Parole)
+- Ricerca con debounce 300ms, min 2 caratteri
 - Filtri temporali
 - Filtro per chat
-- Conteggio occorrenze (non messaggi)
+- **Conteggio occorrenze ESATTE** (non messaggi, non substring)
+- **Pre-filtro SQL** `LIKE '%word%'` per velocizzare la query
 - Tooltip per utente
+- DateRangePicker con `padding(horizontal = 16.dp)`
+- FilterChips con `vertical = 4.dp`
+- `Spacer(48.dp)` in fondo alla LazyColumn
+- Debug panel con `statusBarsPadding()`
 
 ### UI - Calls Stats
-- Statistiche chiamate (totale, video, perse, durata)
-- Filtri temporali
-- Filtro per chat (via jid)
+- **`CallSummaryCard`**: card riepilogativa con totali + barre di progresso durata audio/video
+- **`CallDetailCard`**: per-persona con split audio/video duration
+- Split "Tu" vs "Altra persona" nelle chat 1-a-1
+- `formatDuration()` helper (es. "1h 23m" o "45m")
+- **Search bar client-side**: filtra contatti per nome, nascosta se non ci sono risultati
+- DateRangePicker con `padding(horizontal = 16.dp)`
+- FilterChips con `vertical = 4.dp`
+- `Spacer(48.dp)` in fondo alla LazyColumn
 
 ### UI - Media Stats
-- Statistiche link per utente
-- Filtri temporali
-- Filtro per chat (via message_link.chat_row_id)
+- Vista chat 1-a-1: split diretto "Tu" vs "Altra persona" **senza tap** (carica `getLinkStatsBySender` direttamente)
+- Vista globale: ranking per chat → tap → breakdown per mittente
+- Card mostra prominentemente `mediaCount` (📷 secondary color) E `totalLinks` (🔗 primary color)
+- `LinkStatCard` non-clickable nella vista chat (no tap necessario)
+- **Search bar client-side**: filtra contatti per nome, nascosta se non ci sono risultati
+- DateRangePicker con `padding(horizontal = 16.dp)`
+- FilterChips con `vertical = 4.dp`
+- `Spacer(48.dp)` in fondo alla LazyColumn
+- Debug panel con `statusBarsPadding()`
+
+### Performance & Database
+- **7 indici SQL**: compositi su `(chat_row_id, message_type, timestamp)`, `(chat_row_id, message_type, from_me)`, `sender_jid_row_id`, `message_media(message_row_id)`, `chat(jid_row_id)`, `call_log(jid_row_id)`, indice parziale su `text_data IS NOT NULL`
+- **WAL mode**: `enableWriteAheadLogging()` per letture concorrenti
+- **Query parallelizzate**: 14 query `async {}` in `coroutineScope`, `await()` parallelo
+- **Progressive loading**: `getQuickChatStats()` + `getSlowChatStats()` con `SlowChatStats` data class
+- **Pre-filtro SQL**: `searchWordFrequency` usa `LIKE '%' || ? || '%'` nel WHERE
+- **DB aperto READWRITE**: per creare indici sulla copia locale (non sul DB originale di WhatsApp)

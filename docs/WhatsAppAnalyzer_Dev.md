@@ -2078,20 +2078,35 @@ class AnalyticsRepositoryTest {
 - [x] SearchAnalyzer - Ricerca parole con occorrenze per utente
 - [x] Call logs - Chiamate audio, video, perse, durata
 - [x] Media & Link stats - Link condivisi per chat
-- [ ] Tempo medio di risposta per chat
-- [ ] Rilevamento "ghosting" (messaggi senza risposta)
-- [ ] Grafici di evoluzione mensile
-- [x] Statistiche emoji usate (via message_type = 2)
+- [x] Tempo medio di risposta per chat
+- [x] Grafici di evoluzione mensile
 - [x] Analisi link condivisi (via message_link table)
 
-### v1.2 — UX migliorata
+### v1.2 — Pie chart, nomi contatti, performance ✅ IMPLEMENTATO
+- [x] Donut chart per-membro "Chi scrive di più" con breakdown per singolo mittente
+- [x] Donut chart per-membro "Chi inizia le conversazioni" con breakdown per singolo mittente
+- [x] Pie chart espandibile ("Mostra tutti" per gruppi > 10 membri)
+- [x] Risoluzione nomi contatti via wa_contacts (wa.db) — non più numeri di telefono
+- [x] Fix numeri di telefono in ChatDao, MessageDao, Repository, ChatListViewModel
+- [x] Fix bug pie chart starters con filtri temporali (totale ora calcolato dalla breakdown)
+- [x] 7 indici SQL per velocizzare le query (compositi su chat_row_id, message_type, timestamp)
+- [x] WAL mode per letture concorrenti
+- [x] Query parallelizzate con async/await (14 query in parallelo)
+- [x] Progressive loading: stat veloci in <1s, stat lente progressivamente con indicatore
+- [x] Pre-filtro SQL `LIKE` per searchWordFrequency (velocità 10-100x)
+- [x] Search bar client-side in Log Chiamate e Media & Link
+- [x] Search bar nascosta quando non ci sono risultati
+- [x] Icona app ridisegnata (bolla chat verde + barre statistiche bianche)
+
+### v1.3 — UX migliorata
 - [ ] Widget homescreen con stat del giorno
 - [ ] Export statistiche in PDF
 - [ ] Tema chiaro/scuro automatico
 - [ ] Animazioni nelle transizioni
 - [ ] Onboarding guidato
+- [ ] Rilevamento "ghosting" (messaggi senza risposta)
 
-### v1.3 — Feature avanzate
+### v1.4 — Feature avanzate
 - [ ] Confronto tra periodi temporali
 - [ ] Rilevamento automatico aggiornamenti WhatsApp (cambio schema db)
 - [ ] Supporto WhatsApp Business
