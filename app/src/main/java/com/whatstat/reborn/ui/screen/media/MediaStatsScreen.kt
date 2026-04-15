@@ -175,11 +175,13 @@ fun MediaStatsScreen(
                 }
 
                 else -> {
+                    /* 
                     Text(
                         if (isChatDetail) "Media & Link per persona" else "Re dei Link",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
+                    */
 
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
