@@ -51,13 +51,22 @@ class AnalyticsRepository @Inject constructor(
             0f
         }
 
+        val mostActiveChatJid = chatDao.getMostActiveChat()
+        val mostActiveChatName = if (mostActiveChatJid.contains("@g.us")) {
+            // Per gruppi, il subject è già nel JID? No, è un JID tipo 123@g.us
+            // Risolvi il nome via wa_contacts o chatDao
+            contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
+        } else {
+            contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
+        }
+
         GlobalStats(
             totalMessages       = totalMessages,
             totalChats          = totalChats,
             totalContacts       = contactDao.getContactCount(),
             totalMediaFiles     = messageDao.getMediaCount(),
             oldestMessageDate   = oldestTs,
-            mostActiveChat      = chatDao.getMostActiveChat(),
+            mostActiveChat      = mostActiveChatName,
             mostActiveHour      = hourly.maxByOrNull { it.count }?.hour ?: 0,
             mostActiveDayOfWeek = weekly.maxByOrNull { it.count }?.dayOfWeek ?: 0,
             averageMessagesPerDay = avgPerDay,
@@ -80,13 +89,63 @@ class AnalyticsRepository @Inject constructor(
         val starters   = messageDao.getConversationStarters(chatId)
         val avgResp    = messageDao.getAverageResponseTime(chatId)
 
-        // Risolvi il nome dal database contatti se mancante
-        val displayName = basicInfo.name
-            ?: basicInfo.subject
-            ?: contactDao.resolveContactName(basicInfo.jid)
-            ?: basicInfo.jid.substringBefore("@")
+        // Risolvi il nome dal database contatti (wa.db) o usa subject per gruppi
+        val displayName = if (basicInfo.isGroup) {
+            basicInfo.subject ?: contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")
+        } else {
+            contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")
+        }
 
         val total = msgCount.total.coerceAtLeast(1)
+
+        // Breakdown messaggi per mittente (pie chart)
+        val rawSenders = messageDao.getMessageCountBySender(chatId, startTime, endTime)
+        val senderJids = rawSenders.map { it.jid }
+        val contactNames = contactDao.resolveContactNames(senderJids)
+        val resolvedSenders = rawSenders.map { stat ->
+            val name = when {
+                stat.jid == "me@s.whatsapp.net" -> "Tu"
+                else -> contactNames[stat.jid]
+                    ?: contactDao.resolveContactName(stat.jid)
+                    ?: stat.displayName
+            }
+            stat.copy(displayName = name)
+        }
+        // Aggrega eventuali @lid duplicati
+        val aggregatedSenders = resolvedSenders
+            .groupBy { it.displayName }
+            .map { (name, group) ->
+                com.whatstat.reborn.data.db.model.SenderStat(
+                    jid = group.first().jid,
+                    displayName = name,
+                    count = group.sumOf { it.count }
+                )
+            }
+            .sortedByDescending { it.count }
+
+        // Breakdown conversation starters per mittente
+        val rawStarters = messageDao.getConversationStartersBySender(chatId, startTime, endTime)
+        val starterJids = rawStarters.map { it.jid }
+        val starterNames = contactDao.resolveContactNames(starterJids)
+        val resolvedStarters = rawStarters.map { stat ->
+            val name = when {
+                stat.jid == "me@s.whatsapp.net" -> "Tu"
+                else -> starterNames[stat.jid]
+                    ?: contactDao.resolveContactName(stat.jid)
+                    ?: stat.jid.substringBefore("@")
+            }
+            stat.copy(displayName = name)
+        }
+        val aggregatedStarters = resolvedStarters
+            .groupBy { it.displayName }
+            .map { (name, group) ->
+                com.whatstat.reborn.data.db.model.SenderStat(
+                    jid = group.first().jid,
+                    displayName = name,
+                    count = group.sumOf { it.count }
+                )
+            }
+            .sortedByDescending { it.count }
 
         ChatStats(
             chatId                   = chatId,
@@ -110,7 +169,9 @@ class AnalyticsRepository @Inject constructor(
             hourlyDistribution       = hourly,
             weeklyDistribution       = weekly,
             monthlyTrend             = monthly,
-            topWords                 = topWords
+            topWords                 = topWords,
+            senderBreakdown          = aggregatedSenders,
+            conversationStarterBreakdown = aggregatedStarters
         )
     }
 

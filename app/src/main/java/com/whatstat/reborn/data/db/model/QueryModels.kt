@@ -119,3 +119,10 @@ data class WordSearchResult(
     val displayName: String?,
     val count: Int
 )
+
+/** Conteggio messaggi per singolo mittente (pie chart) */
+data class SenderStat(
+    val jid: String,
+    val displayName: String,
+    val count: Int
+)

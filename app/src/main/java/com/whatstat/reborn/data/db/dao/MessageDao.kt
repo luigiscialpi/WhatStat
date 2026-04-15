@@ -69,7 +69,7 @@ class MessageDao @Inject constructor(
             SELECT
                 c._id               AS chat_id,
                 j.raw_string        AS jid,
-                COALESCE(j.user, c.subject) AS name,
+                COALESCE(c.subject, j.raw_string) AS name,
                 COUNT(*)            AS total,
                 SUM(CASE WHEN m.from_me = 1 THEN 1 ELSE 0 END) AS sent,
                 SUM(CASE WHEN m.from_me = 0 THEN 1 ELSE 0 END) AS received
@@ -256,6 +256,59 @@ class MessageDao @Inject constructor(
     }
 
     /**
+     * Conteggio messaggi per mittente in una chat (per pie chart).
+     * Usa from_me + sender_jid per distinguere correttamente in chat 1-a-1 e gruppi.
+     */
+    fun getMessageCountBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.SenderStat> {
+        val conditions = mutableListOf("m.chat_row_id = ?", "m.message_type = 0")
+        val args = mutableListOf(chatId.toString())
+
+        if (startTime != null) {
+            conditions.add("m.timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            conditions.add("m.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+
+        val query = """
+            SELECT
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
+                    ELSE COALESCE(chat_jid.raw_string, 'unknown')
+                END AS sender_jid,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'Tu'
+                    WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
+                    ELSE COALESCE(chat_jid.raw_string, 'Sconosciuto')
+                END AS sender_name,
+                COUNT(*) AS msg_count
+            FROM message m
+            LEFT JOIN jid sender_jid ON m.sender_jid_row_id = sender_jid._id AND m.sender_jid_row_id > 0
+            LEFT JOIN chat c ON m.chat_row_id = c._id
+            LEFT JOIN jid chat_jid ON c.jid_row_id = chat_jid._id
+            WHERE ${conditions.joinToString(" AND ")}
+            GROUP BY sender_jid
+            ORDER BY msg_count DESC
+        """.trimIndent()
+
+        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
+        return cursor.use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) {
+                    add(com.whatstat.reborn.data.db.model.SenderStat(
+                        jid = cursor.getString(0) ?: "",
+                        displayName = cursor.getString(1) ?: "Sconosciuto",
+                        count = cursor.getInt(2)
+                    ))
+                }
+            }
+        }
+    }
+
+    /**
      * Chi ha iniziato più conversazioni.
      * Una "nuova conversazione" = messaggio dopo almeno 3 ore di silenzio.
      */
@@ -279,6 +332,66 @@ class MessageDao @Inject constructor(
 
         val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
         return cursor.use { parseConversationStarters(it) }
+    }
+
+    /**
+     * Chi ha iniziato più conversazioni, per singolo mittente.
+     * Per gruppi: ritorna il dettaglio per ogni membro.
+     * Per 1-a-1: ritorna Tu vs l'altra persona (con JID per risoluzione nome).
+     */
+    fun getConversationStartersBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.SenderStat> {
+        val timeConditions = mutableListOf<String>()
+        val args = mutableListOf(chatId.toString())
+
+        if (startTime != null) {
+            timeConditions.add("AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            timeConditions.add("AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        val timeFilter = timeConditions.joinToString(" ")
+
+        val query = """
+            SELECT
+                CASE 
+                    WHEN from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN sender_jid IS NOT NULL THEN sender_jid
+                    ELSE COALESCE(chat_jid, 'unknown')
+                END AS starter_jid,
+                COUNT(*) AS starter_count
+            FROM (
+                SELECT
+                    m.from_me,
+                    CASE WHEN m.sender_jid_row_id > 0 THEN sj.raw_string ELSE NULL END AS sender_jid,
+                    cj.raw_string AS chat_jid,
+                    m.timestamp,
+                    LAG(m.timestamp) OVER (ORDER BY m.timestamp) AS prev_timestamp
+                FROM message m
+                LEFT JOIN jid sj ON m.sender_jid_row_id = sj._id AND m.sender_jid_row_id > 0
+                LEFT JOIN chat c ON m.chat_row_id = c._id
+                LEFT JOIN jid cj ON c.jid_row_id = cj._id
+                WHERE m.chat_row_id = ? AND m.message_type = 0 $timeFilter
+            )
+            WHERE prev_timestamp IS NULL
+               OR (timestamp - prev_timestamp) > 10800000
+            GROUP BY starter_jid
+            ORDER BY starter_count DESC
+        """.trimIndent()
+
+        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
+        return cursor.use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) {
+                    add(com.whatstat.reborn.data.db.model.SenderStat(
+                        jid = cursor.getString(0) ?: "",
+                        displayName = cursor.getString(0) ?: "Sconosciuto",
+                        count = cursor.getInt(1)
+                    ))
+                }
+            }
+        }
     }
 
     /** Conta i file media totali. */
@@ -437,8 +550,8 @@ class MessageDao @Inject constructor(
                     ELSE COALESCE(chat_jid.raw_string, 'unknown')
                 END AS other_jid,
                 CASE 
-                    WHEN j.user IS NOT NULL THEN j.user
-                    ELSE chat_jid.user
+                    WHEN j.raw_string IS NOT NULL THEN j.raw_string
+                    ELSE chat_jid.raw_string
                 END AS other_name,
                 m.text_data
             FROM message m
@@ -601,7 +714,7 @@ class MessageDao @Inject constructor(
         val query = """
             SELECT
                 j.raw_string AS jid,
-                COALESCE(j.user, j.raw_string) AS display_name,
+                j.raw_string AS display_name,
                 SUM(CASE WHEN m.text_data LIKE 'http%' OR m.text_data LIKE 'https%' THEN 1 ELSE 0 END) AS total_links,
                 COUNT(DISTINCT mm.message_row_id) AS media_count
             FROM message m
@@ -658,8 +771,8 @@ class MessageDao @Inject constructor(
                 END AS sender_jid,
                 CASE 
                     WHEN m.from_me = 1 THEN 'Tu'
-                    WHEN sender_jid.user IS NOT NULL THEN sender_jid.user
-                    ELSE chat_jid.user
+                    WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
+                    ELSE chat_jid.raw_string
                 END AS sender_name,
                 SUM(CASE WHEN m.text_data LIKE 'http%' OR m.text_data LIKE 'https%' THEN 1 ELSE 0 END) AS total_links,
                 COUNT(DISTINCT CASE WHEN mm.message_row_id IS NOT NULL THEN m._id ELSE NULL END) AS media_count

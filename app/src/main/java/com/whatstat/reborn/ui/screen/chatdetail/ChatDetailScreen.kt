@@ -1,5 +1,6 @@
 package com.whatstat.reborn.ui.screen.chatdetail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -189,36 +191,25 @@ fun ChatDetailScreen(
                             }
                         }
 
-                        // ── Send/Receive Ratio ───────────────────────────────
+                        // ── Distribuzione messaggi (Pie Chart) ───────────
                         item {
-                            SectionCard(title = "Rapporto invio/ricezione") {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        "Tu: %.0f%%".format(s.sentRatio * 100),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Medium
+                            SectionCard(title = "Chi scrive di più") {
+                                if (s.senderBreakdown.isNotEmpty()) {
+                                    MessagePieChart(
+                                        senders = s.senderBreakdown,
+                                        totalMessages = s.totalMessages
                                     )
-                                    Text(
-                                        "Loro: %.0f%%".format((1 - s.sentRatio) * 100),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.secondary,
-                                        fontWeight = FontWeight.Medium
+                                } else {
+                                    // Fallback per dati mancanti
+                                    val otherName = if (!s.isGroup) s.contactName else "Loro"
+                                    MessagePieChart(
+                                        senders = listOf(
+                                            com.whatstat.reborn.data.db.model.SenderStat("me", "Tu", s.sentByMe),
+                                            com.whatstat.reborn.data.db.model.SenderStat("other", otherName, s.receivedFromThem)
+                                        ),
+                                        totalMessages = s.totalMessages
                                     )
                                 }
-                                Spacer(Modifier.height(8.dp))
-                                LinearProgressIndicator(
-                                    progress = { s.sentRatio },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(10.dp)
-                                        .clip(RoundedCornerShape(5.dp)),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    trackColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
-                                )
                             }
                         }
 
@@ -248,7 +239,8 @@ fun ChatDetailScreen(
                                     modifier = Modifier.weight(1f),
                                     label = "File media",
                                     value = "%,d".format(s.mediaCount),
-                                    icon = Icons.Outlined.PhotoLibrary
+                                    icon = Icons.Outlined.PhotoLibrary,
+                                    isSmallText = true
                                 )
                                 StatCard(
                                     modifier = Modifier.weight(1f),
@@ -262,36 +254,24 @@ fun ChatDetailScreen(
 
                         // ── Conversation Starters ────────────────────────────
                         item {
+                            val starterTotal = (s.iStartedConversations + s.theyStartedConversations)
+                                .coerceAtLeast(1)
                             SectionCard(title = "Chi inizia le conversazioni") {
-                                val total = (s.iStartedConversations + s.theyStartedConversations)
-                                    .coerceAtLeast(1)
-                                val myRatio = s.iStartedConversations.toFloat() / total
-
-                                Column {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            "Tu: ${s.iStartedConversations}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Text(
-                                            "Loro: ${s.theyStartedConversations}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.secondary
-                                        )
-                                    }
-                                    Spacer(Modifier.height(8.dp))
-                                    LinearProgressIndicator(
-                                        progress = { myRatio },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(10.dp)
-                                            .clip(RoundedCornerShape(5.dp)),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        trackColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
+                                if (s.conversationStarterBreakdown.isNotEmpty()) {
+                                    MessagePieChart(
+                                        senders = s.conversationStarterBreakdown,
+                                        totalMessages = starterTotal,
+                                        centerLabel = "conversazioni"
+                                    )
+                                } else {
+                                    val otherName = if (!s.isGroup) s.contactName else "Loro"
+                                    MessagePieChart(
+                                        senders = listOf(
+                                            com.whatstat.reborn.data.db.model.SenderStat("me", "Tu", s.iStartedConversations),
+                                            com.whatstat.reborn.data.db.model.SenderStat("other", otherName, s.theyStartedConversations)
+                                        ),
+                                        totalMessages = starterTotal,
+                                        centerLabel = "conversazioni"
                                     )
                                 }
                             }
@@ -481,5 +461,161 @@ private fun formatDuration(ms: Long): String {
         hours > 0 -> "${hours}h ${minutes}m"
         minutes > 0 -> "${minutes} min"
         else -> "<1 min"
+    }
+}
+
+// ── Pie Chart messaggi per mittente ──────────────────────────────────────────
+
+private val pieColors = listOf(
+    Color(0xFF6750A4), // primary-like
+    Color(0xFF625B71), // secondary-like
+    Color(0xFF7D5260), // tertiary-like
+    Color(0xFF006D40),
+    Color(0xFFBA1A1A),
+    Color(0xFF3F51B5),
+    Color(0xFFFF9800),
+    Color(0xFF009688),
+    Color(0xFFE91E63),
+    Color(0xFF8BC34A),
+    Color(0xFF795548),
+    Color(0xFF607D8B)
+)
+
+@Composable
+private fun MessagePieChart(
+    senders: List<com.whatstat.reborn.data.db.model.SenderStat>,
+    totalMessages: Int,
+    centerLabel: String = "messaggi"
+) {
+    val total = totalMessages.coerceAtLeast(1)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // ── Donut Chart ──
+        Box(
+            modifier = Modifier.size(140.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            androidx.compose.foundation.Canvas(
+                modifier = Modifier.size(140.dp)
+            ) {
+                val strokeWidth = 28.dp.toPx()
+                val arcSize = size.minDimension - strokeWidth
+                val topLeft = androidx.compose.ui.geometry.Offset(
+                    (size.width - arcSize) / 2f,
+                    (size.height - arcSize) / 2f
+                )
+                val arcRect = androidx.compose.ui.geometry.Size(arcSize, arcSize)
+                var startAngle = -90f
+
+                senders.forEachIndexed { index, sender ->
+                    val sweep = (sender.count.toFloat() / total) * 360f
+                    drawArc(
+                        color = pieColors[index % pieColors.size],
+                        startAngle = startAngle,
+                        sweepAngle = sweep,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcRect,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(
+                            width = strokeWidth,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Butt
+                        )
+                    )
+                    startAngle += sweep
+                }
+            }
+            // Totale al centro
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "%,d".format(totalMessages),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    centerLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(Modifier.width(16.dp))
+
+        // ── Legenda ──
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            senders.take(10).forEachIndexed { index, sender ->
+                val pct = (sender.count.toFloat() / total * 100)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(pieColors[index % pieColors.size])
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        sender.displayName,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    Text(
+                        "%,d".format(sender.count),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "(%.0f%%)".format(pct),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (senders.size > 10) {
+                val othersCount = senders.drop(10).sumOf { it.count }
+                val othersPct = (othersCount.toFloat() / total * 100)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color.Gray)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Altri (${senders.size - 10})",
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        "%,d".format(othersCount),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "(%.0f%%)".format(othersPct),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }

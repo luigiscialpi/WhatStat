@@ -237,7 +237,8 @@ fun DashboardScreen(
                                     modifier = Modifier.weight(1f),
                                     label = "File media",
                                     value = "%,d".format(s.totalMediaFiles),
-                                    icon = Icons.Outlined.PhotoLibrary
+                                    icon = Icons.Outlined.PhotoLibrary,
+                                    isSmallText = true
                                 )
                                 StatCard(
                                     modifier = Modifier.weight(1f),

@@ -3,6 +3,7 @@ package com.whatstat.reborn.domain.model
 import com.whatstat.reborn.data.db.model.DayCount
 import com.whatstat.reborn.data.db.model.HourlyCount
 import com.whatstat.reborn.data.db.model.MonthlyCount
+import com.whatstat.reborn.data.db.model.SenderStat
 import com.whatstat.reborn.data.db.model.WordFrequency
 
 /**
@@ -46,5 +47,7 @@ data class ChatStats(
     val hourlyDistribution: List<HourlyCount>,   // 24 elementi
     val weeklyDistribution: List<DayCount>,       // 7 elementi
     val monthlyTrend: List<MonthlyCount>,
-    val topWords: List<WordFrequency>
+    val topWords: List<WordFrequency>,
+    val senderBreakdown: List<SenderStat> = emptyList(),
+    val conversationStarterBreakdown: List<SenderStat> = emptyList()
 )

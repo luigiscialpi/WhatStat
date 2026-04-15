@@ -57,7 +57,9 @@ class ChatListViewModel @Inject constructor(
 
                 val enrichedChats = chats.map { chat ->
                     val resolvedName = contactNames[chat.jid]
-                    if (resolvedName != null && chat.displayName == chat.jid.substringBefore("@")) {
+                    if (resolvedName != null && !chat.isGroup) {
+                        chat.copy(displayName = resolvedName)
+                    } else if (resolvedName != null && chat.displayName.contains("@")) {
                         chat.copy(displayName = resolvedName)
                     } else {
                         chat
