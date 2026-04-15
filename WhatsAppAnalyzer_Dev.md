@@ -2040,13 +2040,17 @@ class AnalyticsRepositoryTest {
 - [x] Dashboard globale
 - [x] Lista chat con ranking
 
-### v1.1 — Analytics avanzati
+### v1.1 — Analytics avanzati ✅ IMPLEMENTATO
+- [x] Filtri temporali (Oggi, Ieri, 7gg, 30gg, Anno, Personalizzato)
+- [x] Word cloud interattiva con tooltip
+- [x] SearchAnalyzer - Ricerca parole con occorrenze per utente
+- [x] Call logs - Chiamate audio, video, perse, durata
+- [x] Media & Link stats - Link condivisi per chat
 - [ ] Tempo medio di risposta per chat
 - [ ] Rilevamento "ghosting" (messaggi senza risposta)
 - [ ] Grafici di evoluzione mensile
-- [ ] Word cloud per ogni chat
-- [ ] Statistiche emoji usate
-- [ ] Analisi link condivisi
+- [x] Statistiche emoji usate (via message_type = 2)
+- [x] Analisi link condivisi (via message_link table)
 
 ### v1.2 — UX migliorata
 - [ ] Widget homescreen con stat del giorno

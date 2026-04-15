@@ -201,15 +201,31 @@ class MessageDao @Inject constructor(
 
     /**
      * Parole più frequenti in una chat (esclude stop words italiane e inglesi).
+     * Supporta filtro temporale opzionale.
      */
-    fun getTopWords(chatId: Long, limit: Int = 50): List<WordFrequency> {
+    fun getTopWords(chatId: Long, startTime: Long? = null, endTime: Long? = null, limit: Int = 50): List<WordFrequency> {
+        val conditions = mutableListOf<String>()
+        val args = mutableListOf<String>()
+        
+        conditions.add("chat_row_id = ? AND text_data IS NOT NULL AND message_type = 0")
+        args.add(chatId.toString())
+        
+        if (startTime != null) {
+            conditions.add("timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            conditions.add("timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        
         val query = """
             SELECT text_data
             FROM message
-            WHERE chat_row_id = ? AND text_data IS NOT NULL AND message_type = 0
+            WHERE ${conditions.joinToString(" AND ")}
         """.trimIndent()
 
-        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
+        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
         val texts = cursor.use {
             buildList {
                 while (it.moveToNext()) {
@@ -387,31 +403,90 @@ class MessageDao @Inject constructor(
     }
 
     /**
-     * Ricerca una parola e restituisce il conteggio per utente.
-     * Usa sender_jid_row_id per identificare il mittente.
+     * Ricerca una parola e restituisce il conteggio OCCORRENZE per chat.
+     * Gruppa per chat per mostrare in quali conversazioni appare la parola.
+     * Usa JOIN con chat e jid per ottenere nomi dei contatti.
      */
-    fun searchWordFrequency(word: String): List<com.whatstat.reborn.data.db.model.WordSearchResult> {
+    fun searchWordFrequency(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.WordSearchResult> {
+        val searchWord = word.lowercase()
+        
+        val args = mutableListOf<String>()
+        args.add("%$searchWord%")
+        
+        val conditions = mutableListOf<String>("m.text_data IS NOT NULL AND LOWER(m.text_data) LIKE ?")
+        
+        if (chatId != null) {
+            conditions.add("m.chat_row_id = ?")
+            args.add(chatId.toString())
+        }
+        if (startTime != null) {
+            conditions.add("m.timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            conditions.add("m.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        
         val query = """
             SELECT
-                COALESCE(j.raw_string, m.chat_row_id || '@chat.whatsapp.net') AS jid,
-                COUNT(*) AS count
+                j.raw_string AS jid,
+                COALESCE(j.user, j.raw_string) AS display_name,
+                SUM(
+                    (LENGTH(LOWER(COALESCE(m.text_data, ''))) - LENGTH(REPLACE(LOWER(COALESCE(m.text_data, '')), ?, ''))
+                ) / LENGTH(?) AS count
             FROM message m
-            LEFT JOIN jid j ON m.sender_jid_row_id = j._id
-            WHERE m.text_data LIKE ? ESCAPE '\\' AND m.message_type = 0
-            GROUP BY COALESCE(j.raw_string, m.chat_row_id || '@chat.whatsapp.net')
+            INNER JOIN chat c ON m.chat_row_id = c._id
+            INNER JOIN jid j ON c.jid_row_id = j._id
+            WHERE ${conditions.joinToString(" AND ")}
+            GROUP BY j.raw_string
+            HAVING count > 0
             ORDER BY count DESC
             LIMIT 50
         """.trimIndent()
-        val escaped = word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        val cursor = database.getMsgDb().rawQuery(query, arrayOf("%$escaped%"))
+        
+        val finalArgs = listOf(searchWord, searchWord) + args
+        val cursor = database.getMsgDb().rawQuery(query, finalArgs.toTypedArray())
         return cursor.use { parseWordSearchResults(it) }
     }
 
     /**
      * Estrazione statistiche chiamate (audio vs video, perse, durata).
      * Usa la tabella call_log dedicata.
+     * Supporta filtro per jid (chat) e temporale opzionale.
+     * NOTA: call_log non ha chat_row_id, quindi filtriamo via jid_row_id.
      */
-    fun getCallStats(): List<com.whatstat.reborn.data.db.model.CallStat> {
+    fun getCallStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.CallStat> {
+        val conditions = mutableListOf<String>()
+        val args = mutableListOf<String>()
+        
+        // Try to filter by chat's jid via subquery
+        if (chatId != null) {
+            // Filtra le chiamate dove uno dei partecipanti è il jid della chat
+            conditions.add("""
+                EXISTS (
+                    SELECT 1 FROM chat c 
+                    JOIN jid j2 ON c.jid_row_id = j2._id 
+                    WHERE c._id = ? AND (
+                        cl.jid_row_id = c.jid_row_id 
+                        OR cl.group_jid_row_id = c.jid_row_id
+                    )
+                )
+            """.trimIndent())
+            args.add(chatId.toString())
+        }
+        
+        if (startTime != null) {
+            conditions.add("cl.timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            conditions.add("cl.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        
+        val whereClause = if (conditions.isNotEmpty()) "WHERE ${conditions.joinToString(" AND ")}" else ""
+        
         val query = """
             SELECT
                 COALESCE(j.raw_string, cl.jid_row_id || '@s.whatsapp.net') AS jid,
@@ -421,42 +496,79 @@ class MessageDao @Inject constructor(
                 COALESCE(SUM(cl.duration), 0) AS total_duration
             FROM call_log cl
             LEFT JOIN jid j ON cl.jid_row_id = j._id
+            $whereClause
             GROUP BY cl.jid_row_id
             ORDER BY total_calls DESC
             LIMIT 50
         """.trimIndent()
-        val cursor = database.getMsgDb().rawQuery(query, null)
+        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
         return cursor.use { parseCallStats(it) }
     }
 
     /**
      * Estrazione statistiche link (count per utente).
      * Usa la tabella message_link con JOIN a message.
+     * Supporta filtro per chat e temporale opzionale.
      */
-    fun getLinkStats(): List<com.whatstat.reborn.data.db.model.LinkStat> {
+    /**
+     * Estrazione statistiche link E media.
+     * Raggruppa per chat - mostra link e media per ogni conversazione.
+     */
+    fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> {
+        val conditions = mutableListOf<String>("m.message_type = 0")
+        val args = mutableListOf<String>()
+        
+        if (chatId != null) {
+            conditions.add("m.chat_row_id = ?")
+            args.add(chatId.toString())
+        }
+        if (startTime != null) {
+            conditions.add("m.timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            conditions.add("m.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        
         val query = """
             SELECT
-                COALESCE(j.raw_string, m.sender_jid_row_id || '@s.whatsapp.net') AS jid,
-                COUNT(*) AS total_links,
-                COUNT(DISTINCT SUBSTR(m.text_data, 1, 30)) AS unique_domains
-            FROM message_link ml
-            JOIN message m ON ml.message_row_id = m._id
-            LEFT JOIN jid j ON m.sender_jid_row_id = j._id
-            WHERE m.text_data LIKE 'http%' OR m.text_data LIKE 'https%'
-            GROUP BY COALESCE(j.raw_string, m.sender_jid_row_id || '@s.whatsapp.net')
-            ORDER BY total_links DESC
+                j.raw_string AS jid,
+                COALESCE(j.user, j.raw_string) AS display_name,
+                SUM(CASE WHEN m.text_data LIKE 'http%' OR m.text_data LIKE 'https%' THEN 1 ELSE 0 END) AS total_links,
+                COUNT(DISTINCT mm.message_row_id) AS media_count
+            FROM message m
+            INNER JOIN chat c ON m.chat_row_id = c._id
+            INNER JOIN jid j ON c.jid_row_id = j._id
+            LEFT JOIN message_media mm ON m._id = mm.message_row_id
+            WHERE ${conditions.joinToString(" AND ")}
+            GROUP BY j.raw_string
+            HAVING total_links > 0 OR media_count > 0
+            ORDER BY (total_links + media_count) DESC
             LIMIT 50
         """.trimIndent()
-        val cursor = database.getMsgDb().rawQuery(query, null)
-        return cursor.use { parseLinkStats(it) }
+        
+        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
+        return cursor.use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) {
+                    add(LinkStat(
+                        jid = cursor.getString(0) ?: "",
+                        displayName = cursor.getString(1),
+                        totalLinks = cursor.getInt(2),
+                        uniqueDomains = cursor.getInt(3)
+                    ))
+                }
+            }
+        }
     }
 
     private fun parseWordSearchResults(cursor: Cursor): List<com.whatstat.reborn.data.db.model.WordSearchResult> = buildList {
         while (cursor.moveToNext()) {
-            add(com.whatstat.reborn.data.db.model.WordSearchResult(
+            add(WordSearchResult(
                 jid = cursor.getString(0) ?: "",
-                displayName = null,
-                count = cursor.getInt(1)
+                displayName = cursor.getString(1),
+                count = cursor.getInt(2)
             ))
         }
     }
@@ -567,12 +679,18 @@ class MessageDao @Inject constructor(
         )
 
         val freq = mutableMapOf<String, Int>()
+        // Rimuovi duplicati consecutivi nelle parole
+        val normalize = { word: String -> word.replace(Regex("(.)\\1+"), "$1") }
+        
         texts.forEach { text ->
             text.lowercase()
                 .replace(Regex("[^a-zàáâãäåæçèéêëìíîïðñòóôõöøùúûüý\\s]"), "")
                 .split(Regex("\\s+"))
                 .filter { it.length > 2 && it !in stopWords }
-                .forEach { word -> freq[word] = (freq[word] ?: 0) + 1 }
+                .forEach { word -> 
+                    val normalized = normalize(word)
+                    freq[normalized] = (freq[normalized] ?: 0) + 1 
+                }
         }
 
         return freq.entries

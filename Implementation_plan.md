@@ -78,3 +78,48 @@ La Dashboard cambierà volto per diventare un vero hub di navigazione.
 1. Verificare che cambiando il filtro "Oggi" i contatori della dashboard si azzerino correttamente (se non ci sono messaggi oggi).
 2. Provare la ricerca di una parola comune (es. "ciao") e verificare che la classifica mittenti sia coerente.
 3. Testare la navigazione fluida tra i nuovi hub della Dashboard.
+
+---
+
+## ✅ Implementato
+
+Tutte le feature sopra descritte sono state implementate:
+
+### Data Layer
+- `TimeRange` enum con: Oggi, Ieri, 7 giorni, 30 giorni, Anno, Personalizzato
+- DTO: `CallStat`, `LinkStat`, `WordSearchResult`, `DayCount`, `HourlyCount`
+- `DateRange` per filtri custom
+
+### Repository
+- TimeRange → epoch milliseconds conversion
+- Filtri temporali su tutte le query
+
+### UI - Dashboard
+- Filter chips sticky
+- Heatmap oraria interattiva (tooltip al tocco)
+- Attività settimanale interattiva (tooltip al tocco)
+- Action grid con navigazione
+
+### UI - Chat Detail
+- Filtri temporali sticky
+- Heatmap oraria interattiva
+- Attività settimanale interattiva
+- Top parole interattive (tooltip al tocco)
+- Navigazione a Radar Parole / Calls / Media con chatId
+
+### UI - Word Search
+- Ricerca con debounce 300ms
+- Filtri temporali
+- Filtro per chat
+- Conteggio occorrenze (non messaggi)
+- Tooltip per utente
+
+### UI - Calls Stats
+- Statistiche chiamate (totale, video, perse, durata)
+- Filtri temporali
+- Filtro per chat (via jid)
+
+### UI - Media Stats
+- Statistiche link per utente
+- Filtri temporali
+- Filtro per chat (via message_link.chat_row_id)

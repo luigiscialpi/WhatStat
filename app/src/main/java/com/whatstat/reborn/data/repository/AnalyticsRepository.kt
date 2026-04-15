@@ -75,7 +75,7 @@ class AnalyticsRepository @Inject constructor(
         val hourly     = messageDao.getHourlyDistribution(chatId, startTime, endTime)
         val weekly     = messageDao.getDayOfWeekDistribution(chatId, startTime, endTime)
         val monthly    = messageDao.getMonthlyTrend(chatId)
-        val topWords   = messageDao.getTopWords(chatId)
+        val topWords   = messageDao.getTopWords(chatId, startTime, endTime)
         val mediaStats = messageDao.getMediaStats(chatId)
         val starters   = messageDao.getConversationStarters(chatId)
         val avgResp    = messageDao.getAverageResponseTime(chatId)
@@ -174,10 +174,10 @@ class AnalyticsRepository @Inject constructor(
     }
 
     /**
-     * Ricerca frequenza parola.
+     * Ricerca frequenza parola con filtro temporale e opzionalmente per chat.
      */
-    suspend fun searchWord(word: String): List<com.whatstat.reborn.data.db.model.WordSearchResult> = withContext(Dispatchers.IO) {
-        val results = messageDao.searchWordFrequency(word)
+    suspend fun searchWord(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.WordSearchResult> = withContext(Dispatchers.IO) {
+        val results = messageDao.searchWordFrequency(word, chatId, startTime, endTime)
         if (results.isEmpty()) return@withContext emptyList()
         
         val jids = results.map { it.jid }
@@ -190,10 +190,10 @@ class AnalyticsRepository @Inject constructor(
     }
 
     /**
-     * Statistiche chiamate globali.
+     * Statistiche chiamate globali o per chat con filtro temporale.
      */
-    suspend fun getCallStats(): List<com.whatstat.reborn.data.db.model.CallStat> = withContext(Dispatchers.IO) {
-        val callStats = messageDao.getCallStats()
+    suspend fun getCallStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.CallStat> = withContext(Dispatchers.IO) {
+        val callStats = messageDao.getCallStats(chatId, startTime, endTime)
         if (callStats.isEmpty()) return@withContext emptyList()
         
         val jids = callStats.map { it.jid }
@@ -206,10 +206,10 @@ class AnalyticsRepository @Inject constructor(
     }
 
     /**
-     * Statistiche link globali.
+     * Statistiche link globali o per chat con filtro temporale.
      */
-    suspend fun getLinkStats(): List<com.whatstat.reborn.data.db.model.LinkStat> = withContext(Dispatchers.IO) {
-        val linkStats = messageDao.getLinkStats()
+    suspend fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> = withContext(Dispatchers.IO) {
+        val linkStats = messageDao.getLinkStats(chatId, startTime, endTime)
         if (linkStats.isEmpty()) return@withContext emptyList()
         
         val jids = linkStats.map { it.jid }

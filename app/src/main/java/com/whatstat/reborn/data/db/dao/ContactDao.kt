@@ -50,12 +50,14 @@ class ContactDao @Inject constructor(
 
     /**
      * Risolve una lista di JID nei nomi dei contatti.
+     * Preferisce wa_contacts se disponibile, altrimenti usa jid.user.
      * Restituisce una mappa JID → nome.
      */
     fun resolveContactNames(jids: List<String>): Map<String, String> {
         if (jids.isEmpty()) return emptyMap()
         val result = mutableMapOf<String, String>()
-        // Processa in batch per evitare query troppo lunghe
+        
+        // Try wa_contacts first
         jids.chunked(50).forEach { batch ->
             val placeholders = batch.joinToString(",") { "?" }
             try {
@@ -72,9 +74,39 @@ class ContactDao @Inject constructor(
                     }
                 }
             } catch (_: Exception) {
-                // Ignora errori di schema
+                // wa_contacts not available, fall through to jid table
             }
         }
+        
+        // Fallback: resolve remaining JIDs using jid table
+        val unresolved = jids.filter { it !in result }
+        if (unresolved.isEmpty()) return result
+        
+        val placeholders = unresolved.joinToString(",") { "?" }
+        try {
+            val cursor = database.getMsgDb().rawQuery(
+                """SELECT raw_string, user FROM jid WHERE raw_string IN ($placeholders)""",
+                unresolved.toTypedArray()
+            )
+            cursor.use {
+                while (it.moveToNext()) {
+                    val jid = it.getString(0) ?: continue
+                    val user = it.getString(1) ?: continue
+                    if (jid !in result) {
+                        result[jid] = user
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // Fallback to extracting phone number from JID
+            unresolved.forEach { jid ->
+                val phone = jid.substringBefore("@")
+                if (phone.length >= 6) {
+                    result[jid] = phone
+                }
+            }
+        }
+        
         return result
     }
 }

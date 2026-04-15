@@ -25,7 +25,10 @@ import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -56,6 +59,7 @@ import com.whatstat.reborn.ui.component.InteractiveDailyBarChart
 import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
 import com.whatstat.reborn.ui.component.StatCard
 import com.whatstat.reborn.ui.component.WordCloudView
+import com.whatstat.reborn.ui.component.InteractiveWordCloud
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -67,7 +71,10 @@ private val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 fun ChatDetailScreen(
     chatId: Long,
     viewModel: ChatDetailViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToWordSearch: () -> Unit = {},
+    onNavigateToCalls: () -> Unit = {},
+    onNavigateToMedia: () -> Unit = {}
 ) {
     val stats by viewModel.chatStats.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -325,7 +332,52 @@ fun ChatDetailScreen(
                         if (s.topWords.isNotEmpty()) {
                             item {
                                 SectionCard(title = "Parole più usate") {
-                                    WordCloudView(words = s.topWords.take(30))
+                                    InteractiveWordCloud(
+                                        words = s.topWords.take(30),
+                                        onWordClick = { word, count ->
+                                            tooltipTitle = word
+                                            tooltipValue = "%,d volte".format(count)
+                                            showTooltip = true
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // ── Action Grid (2x2) ────────────────────────────────
+                        item {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = "Radar Parole",
+                                        subtitle = "Cerca parole frequenti",
+                                        icon = Icons.Outlined.Search,
+                                        onClick = onNavigateToWordSearch
+                                    )
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = "Log Chiamate",
+                                        subtitle = "Audio, video, perse",
+                                        icon = Icons.Outlined.Call,
+                                        onClick = onNavigateToCalls
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = "Media & Link",
+                                        subtitle = "Documenti e URL",
+                                        icon = Icons.Outlined.Link,
+                                        onClick = onNavigateToMedia
+                                    )
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = "Tutte le Chat",
+                                        subtitle = "Altre conversazioni",
+                                        icon = Icons.Outlined.Group,
+                                        onClick = onNavigateBack
+                                    )
                                 }
                             }
                         }
@@ -370,6 +422,51 @@ private fun SectionCard(
             )
             Spacer(Modifier.height(16.dp))
             content()
+        }
+    }
+}
+
+@Composable
+private fun ActionCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.height(100.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(Modifier.size(12.dp))
+            Column {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

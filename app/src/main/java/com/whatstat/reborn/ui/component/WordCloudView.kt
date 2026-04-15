@@ -1,6 +1,7 @@
 package com.whatstat.reborn.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -48,7 +49,6 @@ fun WordCloudView(
             val fontSize = (12 + ratio * 14).sp
             val alpha = 0.4f + ratio * 0.6f
 
-            // Alterna i colori tra primary, secondary e tertiary
             val color = when (index % 3) {
                 0 -> primary
                 1 -> secondary
@@ -59,6 +59,66 @@ fun WordCloudView(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(color.copy(alpha = alpha * 0.15f))
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    word.word,
+                    fontSize = fontSize,
+                    fontWeight = if (ratio > 0.5f) FontWeight.SemiBold else FontWeight.Normal,
+                    color = color.copy(alpha = alpha)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Versione interattiva della word cloud che permette di toccare le parole per vedere il conteggio.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun InteractiveWordCloud(
+    words: List<WordFrequency>,
+    modifier: Modifier = Modifier,
+    onWordClick: ((String, Int) -> Unit)? = null
+) {
+    if (words.isEmpty()) return
+
+    val maxFreq = remember(words) {
+        words.maxOf { it.frequency }.toFloat().coerceAtLeast(1f)
+    }
+
+    val primary = MaterialTheme.colorScheme.primary
+    val secondary = MaterialTheme.colorScheme.secondary
+    val tertiary = MaterialTheme.colorScheme.tertiary
+
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        words.forEachIndexed { index, word ->
+            val ratio = word.frequency / maxFreq
+            val fontSize = (12 + ratio * 14).sp
+            val alpha = 0.4f + ratio * 0.6f
+
+            val color = when (index % 3) {
+                0 -> primary
+                1 -> secondary
+                else -> tertiary
+            }
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(color.copy(alpha = alpha * 0.15f))
+                    .then(
+                        if (onWordClick != null) {
+                            Modifier.clickable { onWordClick.invoke(word.word, word.frequency) }
+                        } else {
+                            Modifier
+                        }
+                    )
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {
                 Text(

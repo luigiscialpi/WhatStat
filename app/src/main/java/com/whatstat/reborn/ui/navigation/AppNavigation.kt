@@ -29,9 +29,15 @@ sealed class Screen(val route: String) {
     data object ChatDetail : Screen("chat_detail/{chatId}") {
         fun createRoute(chatId: Long) = "chat_detail/$chatId"
     }
-    data object WordSearch  : Screen("word_search")
-    data object CallsStats : Screen("calls_stats")
-    data object MediaStats : Screen("media_stats")
+    data object WordSearch  : Screen("word_search") {
+        fun createRoute(chatId: Long? = null) = if (chatId != null) "word_search/$chatId" else "word_search"
+    }
+    data object CallsStats : Screen("calls_stats") {
+        fun createRoute(chatId: Long? = null) = if (chatId != null) "calls_stats/$chatId" else "calls_stats"
+    }
+    data object MediaStats : Screen("media_stats") {
+        fun createRoute(chatId: Long? = null) = if (chatId != null) "media_stats/$chatId" else "media_stats"
+    }
 }
 
 /**
@@ -98,27 +104,73 @@ fun AppNavigation(
             )
         }
 
-        composable(Screen.WordSearch.route) {
+        composable(
+            route = Screen.WordSearch.route + "/{chatId}",
+            arguments = listOf(navArgument("chatId") {
+                type = NavType.LongType
+                defaultValue = -1L
+            })
+        ) { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getLong("chatId")?.takeIf { it != -1L }
             WordSearchScreen(
+                chatId = chatId,
                 onNavigateBack = {
                     navController.popBackStack()
                 }
+            )
+        }
+
+        composable(
+            route = Screen.CallsStats.route + "/{chatId}",
+            arguments = listOf(navArgument("chatId") {
+                type = NavType.LongType
+                defaultValue = -1L
+            })
+        ) { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getLong("chatId")?.takeIf { it != -1L }
+            CallsStatsScreen(
+                chatId = chatId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(
+            route = Screen.MediaStats.route + "/{chatId}",
+            arguments = listOf(navArgument("chatId") {
+                type = NavType.LongType
+                defaultValue = -1L
+            })
+        ) { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getLong("chatId")?.takeIf { it != -1L }
+            MediaStatsScreen(
+                chatId = chatId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Also support routes without chatId
+        composable(Screen.WordSearch.route) {
+            WordSearchScreen(
+                chatId = null,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
         composable(Screen.CallsStats.route) {
             CallsStatsScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
+                chatId = null,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
         composable(Screen.MediaStats.route) {
             MediaStatsScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
+                chatId = null,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
@@ -142,6 +194,15 @@ fun AppNavigation(
                 chatId = chatId,
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToWordSearch = {
+                    navController.navigate(Screen.WordSearch.createRoute(chatId))
+                },
+                onNavigateToCalls = {
+                    navController.navigate(Screen.CallsStats.createRoute(chatId))
+                },
+                onNavigateToMedia = {
+                    navController.navigate(Screen.MediaStats.createRoute(chatId))
                 }
             )
         }
