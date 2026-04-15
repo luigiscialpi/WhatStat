@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -19,25 +21,38 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.automirrored.outlined.PhoneMissed
 import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.whatstat.reborn.data.db.model.CallStat
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
+
+private fun formatDuration(seconds: Long): String {
+    val hours = seconds / 3600
+    val mins = (seconds % 3600) / 60
+    return if (hours > 0) "${hours}h ${mins}m" else "${mins}m"
+}
 
 @Composable
 fun CallsStatsScreen(
@@ -84,7 +99,7 @@ fun CallsStatsScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
             items(TimeRange.entries.filter { it != TimeRange.CUSTOM }) { range ->
                 FilterChip(
@@ -102,7 +117,8 @@ fun CallsStatsScreen(
         // Custom Date Range
         DateRangePicker(
             dateRange = customDateRange,
-            onDateRangeChanged = { viewModel.setCustomDateRange(it) }
+            onDateRangeChanged = { viewModel.setCustomDateRange(it) },
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
 
         if (isLoading) {
@@ -128,70 +144,229 @@ fun CallsStatsScreen(
                 )
             }
         } else {
+            // Calcola i totali
+            val totals = remember(callStats) {
+                CallStat(
+                    jid = "",
+                    displayName = "Riepilogo",
+                    totalCalls = callStats.sumOf { it.totalCalls },
+                    videoCalls = callStats.sumOf { it.videoCalls },
+                    missedCalls = callStats.sumOf { it.missedCalls },
+                    totalDurationSec = callStats.sumOf { it.totalDurationSec },
+                    audioDurationSec = callStats.sumOf { it.audioDurationSec },
+                    videoDurationSec = callStats.sumOf { it.videoDurationSec }
+                )
+            }
+
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // ── Riepilogo totale ──────────────────────────
+                item {
+                    CallSummaryCard(totals)
+                }
+
+                item {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Dettaglio",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                // ── Dettaglio per persona ─────────────────────
                 items(callStats) { stat ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
-                            Text(
-                                stat.displayName ?: stat.jid.substringBefore("@"),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        Icons.Outlined.Call,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text("${stat.totalCalls}", style = MaterialTheme.typography.titleMedium)
-                                    Text("Totali", style = MaterialTheme.typography.bodySmall)
-                                }
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        Icons.Outlined.Videocam,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.secondary
-                                    )
-                                    Text("${stat.videoCalls}", style = MaterialTheme.typography.titleMedium)
-                                    Text("Video", style = MaterialTheme.typography.bodySmall)
-                                }
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        Icons.AutoMirrored.Outlined.PhoneMissed,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
-                                    Text("${stat.missedCalls}", style = MaterialTheme.typography.titleMedium)
-                                    Text("Perse", style = MaterialTheme.typography.bodySmall)
-                                }
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        "${stat.totalDurationSec / 60}m",
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    Text("Durata", style = MaterialTheme.typography.bodySmall)
-                                }
-                            }
-                        }
-                    }
+                    CallDetailCard(stat)
+                }
+
+                // Bottom spacer
+                item { Spacer(Modifier.height(48.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CallSummaryCard(totals: CallStat) {
+    val audioCalls = totals.totalCalls - totals.videoCalls
+    val totalDur = totals.totalDurationSec.coerceAtLeast(1)
+    val audioRatio = totals.audioDurationSec.toFloat() / totalDur
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                "Riepilogo",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Contatori
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Outlined.Call, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("${totals.totalCalls}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Totali", style = MaterialTheme.typography.bodySmall)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Outlined.Call, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("$audioCalls", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Audio", style = MaterialTheme.typography.bodySmall)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Outlined.Videocam, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                    Text("${totals.videoCalls}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Video", style = MaterialTheme.typography.bodySmall)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.AutoMirrored.Outlined.PhoneMissed, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Text("${totals.missedCalls}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Perse", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            Spacer(Modifier.height(12.dp))
+
+            // Durate
+            Text(
+                "Durata totale: ${formatDuration(totals.totalDurationSec)}",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            // Barra audio vs video
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Outlined.Call, contentDescription = null, modifier = Modifier.padding(end = 4.dp), tint = MaterialTheme.colorScheme.primary)
+                Text("Audio", style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(44.dp))
+                LinearProgressIndicator(
+                    progress = { audioRatio },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+                Text(
+                    formatDuration(totals.audioDurationSec),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 8.dp).width(52.dp)
+                )
+            }
+
+            Spacer(Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Outlined.Videocam, contentDescription = null, modifier = Modifier.padding(end = 4.dp), tint = MaterialTheme.colorScheme.secondary)
+                Text("Video", style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(44.dp))
+                LinearProgressIndicator(
+                    progress = { 1f - audioRatio },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = MaterialTheme.colorScheme.secondary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+                Text(
+                    formatDuration(totals.videoDurationSec),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 8.dp).width(52.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CallDetailCard(stat: CallStat) {
+    val audioCalls = stat.totalCalls - stat.videoCalls
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                stat.displayName ?: stat.jid.substringBefore("@"),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Outlined.Call, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("${stat.totalCalls}", style = MaterialTheme.typography.titleMedium)
+                    Text("Totali", style = MaterialTheme.typography.bodySmall)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Outlined.Videocam, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                    Text("${stat.videoCalls}", style = MaterialTheme.typography.titleMedium)
+                    Text("Video", style = MaterialTheme.typography.bodySmall)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.AutoMirrored.Outlined.PhoneMissed, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Text("${stat.missedCalls}", style = MaterialTheme.typography.titleMedium)
+                    Text("Perse", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            // Durate split
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            Spacer(Modifier.height(6.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Call, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 4.dp))
+                    Text(formatDuration(stat.audioDurationSec), style = MaterialTheme.typography.bodySmall)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Videocam, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(end = 4.dp))
+                    Text(formatDuration(stat.videoDurationSec), style = MaterialTheme.typography.bodySmall)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 4.dp))
+                    Text(formatDuration(stat.totalDurationSec), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

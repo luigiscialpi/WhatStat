@@ -35,7 +35,7 @@ class DashboardViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    private val _selectedTimeRange = MutableStateFlow(TimeRange.CUSTOM)
+    private val _selectedTimeRange = MutableStateFlow(TimeRange.ALL_TIME)
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
     
     private val _customDateRange = MutableStateFlow<DateRange?>(null)
@@ -58,7 +58,7 @@ class DashboardViewModel @Inject constructor(
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
                 
-                val stats = analyticsRepository.getGlobalStats(_selectedTimeRange.value)
+                val stats = analyticsRepository.getGlobalStats(_selectedTimeRange.value, _customDateRange.value)
                 _globalStats.value = stats
 
                 val hourly = analyticsRepository.getGlobalHourlyDistribution(startTime, endTime)

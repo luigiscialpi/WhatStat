@@ -84,7 +84,13 @@ class MediaStatsViewModel @Inject constructor(
                 } else {
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
-                _linkStats.value = analyticsRepository.getLinkStats(_chatId.value, startTime, endTime)
+                val cid = _chatId.value
+                if (cid != null) {
+                    // Per una chat specifica: mostra direttamente lo split per mittente
+                    _linkStats.value = analyticsRepository.getLinkStatsBySender(cid, startTime, endTime)
+                } else {
+                    _linkStats.value = analyticsRepository.getLinkStats(null, startTime, endTime)
+                }
             } catch (e: Exception) {
                 _linkStats.value = emptyList()
             } finally {

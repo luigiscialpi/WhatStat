@@ -31,7 +31,7 @@ class ChatDetailViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    private val _selectedTimeRange = MutableStateFlow(TimeRange.CUSTOM)
+    private val _selectedTimeRange = MutableStateFlow(TimeRange.ALL_TIME)
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
     
     private val _customDateRange = MutableStateFlow<DateRange?>(null)

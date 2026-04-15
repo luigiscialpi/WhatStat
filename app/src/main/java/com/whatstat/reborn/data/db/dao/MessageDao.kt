@@ -403,13 +403,16 @@ class MessageDao @Inject constructor(
     }
 
     /**
-     * Ricerca una parola e restituisce il conteggio OCCORRENZE per chat.
-     * Gruppa per chat per mostrare in quali conversazioni appare la parola.
+     * Ricerca una parola e restituisce il conteggio OCCORRENZE ESATTE per mittente.
+     * Usa from_me per distinguere i messaggi propri da quelli ricevuti,
+     * poiché nelle chat 1-a-1 sender_jid_row_id è sempre 0.
+     * Per i gruppi, usa sender_jid_row_id quando disponibile.
+     * Conta solo occorrenze esatte della parola (non sottostringhe).
      */
     fun searchWordFrequency(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.WordSearchResult> {
         val searchWord = word.lowercase()
         
-        val conditions = mutableListOf("m.text_data IS NOT NULL")
+        val conditions = mutableListOf("m.text_data IS NOT NULL", "m.message_type = 0")
         val args = mutableListOf<String>()
         
         if (chatId != null) {
@@ -425,47 +428,84 @@ class MessageDao @Inject constructor(
             args.add(endTime.toString())
         }
         
-        // Query: cerca nel text_data e gruppa per MITTENTE
+        // Carica i messaggi con info mittente
         val query = """
             SELECT
-                COALESCE(j.raw_string, 'me@s.whatsapp.net') AS jid,
-                COALESCE(j.user, 'Me') AS display_name,
-                COUNT(*) AS count
+                m.from_me,
+                CASE 
+                    WHEN j.raw_string IS NOT NULL THEN j.raw_string
+                    ELSE COALESCE(chat_jid.raw_string, 'unknown')
+                END AS other_jid,
+                CASE 
+                    WHEN j.user IS NOT NULL THEN j.user
+                    ELSE chat_jid.user
+                END AS other_name,
+                m.text_data
             FROM message m
-            LEFT JOIN jid j ON m.sender_jid_row_id = j._id
+            LEFT JOIN jid j ON m.sender_jid_row_id = j._id AND m.sender_jid_row_id > 0
+            LEFT JOIN chat c ON m.chat_row_id = c._id
+            LEFT JOIN jid chat_jid ON c.jid_row_id = chat_jid._id
             WHERE ${conditions.joinToString(" AND ")}
-              AND LOWER(m.text_data) LIKE LOWER(?)
-            GROUP BY COALESCE(j.raw_string, 'me@s.whatsapp.net')
-            ORDER BY count DESC
-            LIMIT 50
         """.trimIndent()
         
-val searchArg = "%$searchWord%"
-        val finalArgs = args + listOf(searchArg)
+        android.util.Log.d("WhatStat", "searchWordFrequency: chatId=$chatId, word=$searchWord")
         
-        // Debug: show what's being passed
-        android.util.Log.d("WhatStat", "searchWordFrequency: chatId=$chatId, word=$searchWord, finalArgs=$finalArgs")
+        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
         
-        val cursor = database.getMsgDb().rawQuery(query, finalArgs.toTypedArray())
-        return cursor.use { cur ->
-            android.util.Log.d("WhatStat", "Cursor count: ${cur.count}")
-            parseWordSearchResults(cur)
+        // Conta occorrenze esatte della parola per ogni mittente
+        data class SenderInfo(val jid: String, val displayName: String?)
+        val counts = mutableMapOf<SenderInfo, Int>()
+        
+        cursor.use { cur ->
+            while (cur.moveToNext()) {
+                val fromMe = cur.getInt(0)
+                val otherJid = cur.getString(1) ?: "unknown"
+                val otherName = cur.getString(2)
+                val text = cur.getString(3) ?: continue
+                
+                val sender = if (fromMe == 1) {
+                    SenderInfo("me@s.whatsapp.net", "Tu")
+                } else {
+                    SenderInfo(otherJid, otherName)
+                }
+                
+                // Conta occorrenze esatte: split sugli spazi e match esatto
+                val wordCount = text.lowercase()
+                    .replace(Regex("[^a-zàáâãäåæçèéêëìíîïðñòóôõöøùúûüý\\s]"), "")
+                    .split(Regex("\\s+"))
+                    .count { it == searchWord }
+                
+                if (wordCount > 0) {
+                    counts[sender] = (counts[sender] ?: 0) + wordCount
+                }
+            }
         }
+        
+        android.util.Log.d("WhatStat", "searchWordFrequency results: ${counts.size} senders")
+        
+        return counts.entries
+            .sortedByDescending { it.value }
+            .take(50)
+            .map { (sender, count) ->
+                com.whatstat.reborn.data.db.model.WordSearchResult(
+                    jid = sender.jid,
+                    displayName = sender.displayName,
+                    count = count
+                )
+            }
     }
 
     /**
      * Estrazione statistiche chiamate (audio vs video, perse, durata).
      * Usa la tabella call_log dedicata.
      * Supporta filtro per jid (chat) e temporale opzionale.
-     * NOTA: call_log non ha chat_row_id, quindi filtriamo via jid_row_id.
+     * Per una chat specifica, splitta per from_me (Tu vs Altro).
      */
     fun getCallStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.CallStat> {
         val conditions = mutableListOf<String>()
         val args = mutableListOf<String>()
         
-        // Try to filter by chat's jid via subquery
         if (chatId != null) {
-            // Filtra le chiamate dove uno dei partecipanti è il jid della chat
             conditions.add("""
                 EXISTS (
                     SELECT 1 FROM chat c 
@@ -490,22 +530,46 @@ val searchArg = "%$searchWord%"
         
         val whereClause = if (conditions.isNotEmpty()) "WHERE ${conditions.joinToString(" AND ")}" else ""
         
-        val query = """
-            SELECT
-                COALESCE(j.raw_string, cl.jid_row_id || '@s.whatsapp.net') AS jid,
-                COUNT(*) AS total_calls,
-                SUM(CASE WHEN cl.video_call = 1 THEN 1 ELSE 0 END) AS video_calls,
-                SUM(CASE WHEN cl.call_result = 0 THEN 1 ELSE 0 END) AS missed_calls,
-                COALESCE(SUM(cl.duration), 0) AS total_duration
-            FROM call_log cl
-            LEFT JOIN jid j ON cl.jid_row_id = j._id
-            $whereClause
-            GROUP BY cl.jid_row_id
-            ORDER BY total_calls DESC
-            LIMIT 50
-        """.trimIndent()
-        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
-        return cursor.use { parseCallStats(it) }
+        if (chatId != null) {
+            // Per una chat specifica: splitta per from_me (Tu vs Altro)
+            val query = """
+                SELECT
+                    CASE WHEN cl.from_me = 1 THEN 'me@s.whatsapp.net' ELSE COALESCE(j.raw_string, cl.jid_row_id || '@s.whatsapp.net') END AS jid,
+                    COUNT(*) AS total_calls,
+                    SUM(CASE WHEN cl.video_call = 1 THEN 1 ELSE 0 END) AS video_calls,
+                    SUM(CASE WHEN cl.call_result = 0 THEN 1 ELSE 0 END) AS missed_calls,
+                    COALESCE(SUM(cl.duration), 0) AS total_duration,
+                    COALESCE(SUM(CASE WHEN cl.video_call = 0 THEN cl.duration ELSE 0 END), 0) AS audio_duration,
+                    COALESCE(SUM(CASE WHEN cl.video_call = 1 THEN cl.duration ELSE 0 END), 0) AS video_duration
+                FROM call_log cl
+                LEFT JOIN jid j ON cl.jid_row_id = j._id
+                $whereClause
+                GROUP BY cl.from_me
+                ORDER BY total_calls DESC
+            """.trimIndent()
+            val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
+            return cursor.use { parseCallStats(it) }
+        } else {
+            // Vista globale: raggruppa per contatto
+            val query = """
+                SELECT
+                    COALESCE(j.raw_string, cl.jid_row_id || '@s.whatsapp.net') AS jid,
+                    COUNT(*) AS total_calls,
+                    SUM(CASE WHEN cl.video_call = 1 THEN 1 ELSE 0 END) AS video_calls,
+                    SUM(CASE WHEN cl.call_result = 0 THEN 1 ELSE 0 END) AS missed_calls,
+                    COALESCE(SUM(cl.duration), 0) AS total_duration,
+                    COALESCE(SUM(CASE WHEN cl.video_call = 0 THEN cl.duration ELSE 0 END), 0) AS audio_duration,
+                    COALESCE(SUM(CASE WHEN cl.video_call = 1 THEN cl.duration ELSE 0 END), 0) AS video_duration
+                FROM call_log cl
+                LEFT JOIN jid j ON cl.jid_row_id = j._id
+                $whereClause
+                GROUP BY cl.jid_row_id
+                ORDER BY total_calls DESC
+                LIMIT 50
+            """.trimIndent()
+            val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
+            return cursor.use { parseCallStats(it) }
+        }
     }
 
     /**
@@ -559,7 +623,7 @@ val searchArg = "%$searchWord%"
                         jid = cursor.getString(0) ?: "",
                         displayName = cursor.getString(1),
                         totalLinks = cursor.getInt(2),
-                        uniqueDomains = cursor.getInt(3)
+                        mediaCount = cursor.getInt(3)
                     ))
                 }
             }
@@ -568,7 +632,7 @@ val searchArg = "%$searchWord%"
 
     /**
      * Estrazione link per sender in una specifica chat.
-     * Per chat singole: ritorna Me vs Altro.
+     * Per chat singole: ritorna Tu vs Altro.
      * Per gruppi: ritorna tutti i partecipanti con i rispettivi link.
      */
     fun getLinkStatsBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> {
@@ -584,18 +648,32 @@ val searchArg = "%$searchWord%"
             args.add(endTime.toString())
         }
         
-        // Query semplice - la risoluzione nomi avviene nel Repository
+        // Usa from_me + chat_jid per distinguere correttamente nelle chat 1-a-1
         val query = """
             SELECT
-                CASE WHEN m.from_me = 1 THEN 'me@s.whatsapp.net' ELSE COALESCE(sender_jid.raw_string, 'other@s.whatsapp.net') END AS sender_jid,
-                CASE WHEN m.from_me = 1 THEN 'Me' ELSE sender_jid.user END AS sender_name,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
+                    ELSE COALESCE(chat_jid.raw_string, 'other@s.whatsapp.net')
+                END AS sender_jid,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'Tu'
+                    WHEN sender_jid.user IS NOT NULL THEN sender_jid.user
+                    ELSE chat_jid.user
+                END AS sender_name,
                 SUM(CASE WHEN m.text_data LIKE 'http%' OR m.text_data LIKE 'https%' THEN 1 ELSE 0 END) AS total_links,
                 COUNT(DISTINCT CASE WHEN mm.message_row_id IS NOT NULL THEN m._id ELSE NULL END) AS media_count
             FROM message m
-            LEFT JOIN jid sender_jid ON m.sender_jid_row_id = sender_jid._id
+            LEFT JOIN jid sender_jid ON m.sender_jid_row_id = sender_jid._id AND m.sender_jid_row_id > 0
+            LEFT JOIN chat c ON m.chat_row_id = c._id
+            LEFT JOIN jid chat_jid ON c.jid_row_id = chat_jid._id
             LEFT JOIN message_media mm ON m._id = mm.message_row_id
             WHERE ${conditions.joinToString(" AND ")}
-            GROUP BY m.from_me, sender_jid.raw_string
+            GROUP BY m.from_me, CASE 
+                WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
+                ELSE COALESCE(chat_jid.raw_string, 'other@s.whatsapp.net')
+            END
             HAVING total_links > 0 OR media_count > 0
             ORDER BY (total_links + media_count) DESC
         """.trimIndent()
@@ -608,7 +686,7 @@ val searchArg = "%$searchWord%"
                         jid = cursor.getString(0) ?: "",
                         displayName = cursor.getString(1),
                         totalLinks = cursor.getInt(2),
-                        uniqueDomains = cursor.getInt(3)
+                        mediaCount = cursor.getInt(3)
                     ))
                 }
             }
@@ -633,7 +711,9 @@ val searchArg = "%$searchWord%"
                 totalCalls = cursor.getInt(1),
                 videoCalls = cursor.getInt(2),
                 missedCalls = cursor.getInt(3),
-                totalDurationSec = cursor.getLong(4)
+                totalDurationSec = cursor.getLong(4),
+                audioDurationSec = cursor.getLong(5),
+                videoDurationSec = cursor.getLong(6)
             ))
         }
     }
@@ -644,7 +724,7 @@ val searchArg = "%$searchWord%"
                 jid = cursor.getString(0) ?: "",
                 displayName = null,
                 totalLinks = cursor.getInt(1),
-                uniqueDomains = cursor.getInt(2)
+                mediaCount = cursor.getInt(2)
             ))
         }
     }
@@ -731,8 +811,8 @@ val searchArg = "%$searchWord%"
         )
 
         val freq = mutableMapOf<String, Int>()
-        // Rimuovi duplicati consecutivi nelle parole
-        val normalize = { word: String -> word.replace(Regex("(.)\\1+"), "$1") }
+        // Normalizza solo ripetizioni eccessive (3+ dello stesso carattere → 2)
+        val normalize = { word: String -> word.replace(Regex("(.)\\1{2,}"), "$1$1") }
         
         texts.forEach { text ->
             text.lowercase()

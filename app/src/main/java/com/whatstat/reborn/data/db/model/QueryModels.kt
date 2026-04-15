@@ -100,15 +100,17 @@ data class CallStat(
     val totalCalls: Int,
     val videoCalls: Int,
     val missedCalls: Int,
-    val totalDurationSec: Long
+    val totalDurationSec: Long,
+    val audioDurationSec: Long = 0L,
+    val videoDurationSec: Long = 0L
 )
 
-/** Statistiche link per contatto */
+/** Statistiche link e media per contatto */
 data class LinkStat(
     val jid: String,
     val displayName: String?,
     val totalLinks: Int,
-    val uniqueDomains: Int
+    val mediaCount: Int
 )
 
 /** Risultato ricerca parole */

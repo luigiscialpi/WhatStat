@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -76,9 +77,10 @@ fun MediaStatsScreen(
     }
 
     val isChatDetail = chatId != null
-    // Show breakdown in list instead of tooltip
-    val displayStats = linkStatsBySender.ifEmpty { linkStats }
-    val isShowingBreakdown = linkStatsBySender.isNotEmpty()
+    // Per chat detail, linkStats contiene già lo split per mittente
+    // Per vista globale, mostra linkStats (per chat) e linkStatsBySender (dopo click)
+    val displayStats = if (isChatDetail) linkStats else linkStatsBySender.ifEmpty { linkStats }
+    val isShowingBreakdown = !isChatDetail && linkStatsBySender.isNotEmpty()
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -123,7 +125,7 @@ fun MediaStatsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
                 items(TimeRange.entries.filter { it != TimeRange.CUSTOM }) { range ->
                     FilterChip(
@@ -141,7 +143,8 @@ fun MediaStatsScreen(
             // ── DATE RANGE ───────────────────────────────
             DateRangePicker(
                 dateRange = customDateRange,
-                onDateRangeChanged = { viewModel.setCustomDateRange(it) }
+                onDateRangeChanged = { viewModel.setCustomDateRange(it) },
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
 
             // ── LOADING / EMPTY / LIST ───────────────────
@@ -165,7 +168,7 @@ fun MediaStatsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "Nessun link trovato",
+                            "Nessun link o media trovato",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -174,7 +177,7 @@ fun MediaStatsScreen(
 
                 else -> {
                     Text(
-                        if (isChatDetail) "Link per persona" else "Re dei Link",
+                        if (isChatDetail) "Media & Link per persona" else "Re dei Link",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
@@ -184,7 +187,7 @@ fun MediaStatsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (isShowingBreakdown) {
-                            // Show back button row
+                            // Show back button row (solo vista globale)
                             item {
                                 Card(
                                     onClick = { viewModel.clearSelection() },
@@ -214,15 +217,13 @@ fun MediaStatsScreen(
                             LinkStatCard(
                                 stat = stat,
                                 showTotal = true,
-                                onClick = {
-                                    if (isChatDetail) {
-                                        viewModel.loadLinkStatsBySender(chatId!!)
-                                    } else {
-                                        viewModel.loadLinkStatsBySenderForJid(stat.jid)
-                                    }
-                                }
+                                onClick = if (isChatDetail) null else {{
+                                    viewModel.loadLinkStatsBySenderForJid(stat.jid)
+                                }}
                             )
                         }
+                        // Bottom spacer
+                        item { Spacer(Modifier.height(48.dp)) }
                     }
                 }
             }
@@ -248,45 +249,86 @@ fun MediaStatsScreen(
 private fun LinkStatCard(
     stat: LinkStat,
     showTotal: Boolean,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null
 ) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    val cardModifier = Modifier.fillMaxWidth()
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = cardModifier,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    stat.displayName ?: stat.jid.substringBefore("@"),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    "${stat.uniqueDomains} media · ${stat.jid}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            LinkStatCardContent(stat)
+        }
+    } else {
+        Card(
+            modifier = cardModifier,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            LinkStatCardContent(stat)
+        }
+    }
+}
+
+@Composable
+private fun LinkStatCardContent(stat: LinkStat) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                stat.displayName ?: stat.jid.substringBefore("@"),
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            if (stat.mediaCount > 0) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Outlined.PhotoLibrary,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                    Text(
+                        "${stat.mediaCount}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    Text(
+                        "media",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Icon(
-                    Icons.Outlined.Link,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    "${stat.totalLinks}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            if (stat.totalLinks > 0) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Outlined.Link,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "${stat.totalLinks}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "link",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -380,6 +422,7 @@ private fun DebugPanel(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.95f))
+            .statusBarsPadding()
             .padding(16.dp)
     ) {
         SelectionContainer {

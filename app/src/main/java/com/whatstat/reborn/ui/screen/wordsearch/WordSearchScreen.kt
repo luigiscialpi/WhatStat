@@ -106,7 +106,7 @@ fun WordSearchScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
             items(TimeRange.entries.filter { it != TimeRange.CUSTOM }) { range ->
                 FilterChip(
@@ -124,7 +124,8 @@ fun WordSearchScreen(
         // Custom Date Range
         DateRangePicker(
             dateRange = customDateRange,
-            onDateRangeChanged = { viewModel.setCustomDateRange(it) }
+            onDateRangeChanged = { viewModel.setCustomDateRange(it) },
+            modifier = Modifier.padding(horizontal = 16.dp)
         )
 
         OutlinedTextField(
@@ -190,6 +191,8 @@ fun WordSearchScreen(
                         }
                     }
                 }
+                // Bottom spacer
+                item { Spacer(Modifier.height(48.dp)) }
             }
         } else if (searchQuery.length >= 2) {
             Box(
@@ -244,6 +247,7 @@ private fun WordSearchDebugPanel(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.95f))
+            .statusBarsPadding()
             .padding(16.dp)
     ) {
         SelectionContainer {

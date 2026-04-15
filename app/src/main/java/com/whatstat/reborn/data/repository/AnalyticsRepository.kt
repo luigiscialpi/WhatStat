@@ -199,7 +199,8 @@ class AnalyticsRepository @Inject constructor(
         val aggregated = mutableMapOf<String, com.whatstat.reborn.data.db.model.WordSearchResult>()
         results.forEach { result ->
             val canonicalJid = lidToReal[result.jid] ?: result.jid
-            val displayName = contactNames[canonicalJid] ?: contactNames[result.jid] ?: canonicalJid.substringBefore("@")
+            val displayName = if (canonicalJid == "me@s.whatsapp.net") "Tu"
+                else contactNames[canonicalJid] ?: contactNames[result.jid] ?: canonicalJid.substringBefore("@")
             val existing = aggregated[canonicalJid]
             if (existing != null) {
                 aggregated[canonicalJid] = existing.copy(count = existing.count + result.count)
@@ -221,7 +222,8 @@ class AnalyticsRepository @Inject constructor(
         val contactNames = contactDao.resolveContactNames(jids)
         
         callStats.map { stat ->
-            val displayName = contactNames[stat.jid] ?: stat.jid.substringBefore("@")
+            val displayName = if (stat.jid == "me@s.whatsapp.net") "Tu"
+                else contactNames[stat.jid] ?: stat.jid.substringBefore("@")
             stat.copy(displayName = displayName)
         }
     }
@@ -237,14 +239,15 @@ class AnalyticsRepository @Inject constructor(
         val contactNames = contactDao.resolveContactNames(jids)
         
         linkStats.map { stat ->
-            val displayName = contactNames[stat.jid] ?: stat.jid.substringBefore("@")
+            val displayName = if (stat.jid == "me@s.whatsapp.net") "Tu"
+                else contactNames[stat.jid] ?: stat.jid.substringBefore("@")
             stat.copy(displayName = displayName)
         }
     }
 
     /**
      * Statistiche link per sender in una specifica chat.
-     * Per chat singole: Me vs Altro.
+     * Per chat singole: Tu vs Altro.
      * Per gruppi: tutti i partecipanti.
      */
     suspend fun getLinkStatsBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> = withContext(Dispatchers.IO) {
@@ -261,18 +264,19 @@ class AnalyticsRepository @Inject constructor(
         val aggregated = mutableMapOf<String, com.whatstat.reborn.data.db.model.LinkStat>()
         linkStats.forEach { stat ->
             val canonicalJid = lidToReal[stat.jid] ?: stat.jid
-            val displayName = contactNames[canonicalJid] ?: contactNames[stat.jid] ?: stat.displayName ?: canonicalJid.substringBefore("@")
+            val displayName = if (canonicalJid == "me@s.whatsapp.net") "Tu"
+                else contactNames[canonicalJid] ?: contactNames[stat.jid] ?: stat.displayName ?: canonicalJid.substringBefore("@")
             val existing = aggregated[canonicalJid]
             if (existing != null) {
                 aggregated[canonicalJid] = existing.copy(
                     totalLinks = existing.totalLinks + stat.totalLinks,
-                    uniqueDomains = existing.uniqueDomains + stat.uniqueDomains
+                    mediaCount = existing.mediaCount + stat.mediaCount
                 )
             } else {
                 aggregated[canonicalJid] = stat.copy(jid = canonicalJid, displayName = displayName)
             }
         }
-        aggregated.values.sortedByDescending { it.totalLinks + it.uniqueDomains }
+        aggregated.values.sortedByDescending { it.totalLinks + it.mediaCount }
     }
 
     /**
