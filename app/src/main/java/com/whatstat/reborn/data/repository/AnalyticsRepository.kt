@@ -157,6 +157,7 @@ class AnalyticsRepository @Inject constructor(
     fun getTimeRangeBounds(timeRange: TimeRange, customRange: DateRange? = null): Pair<Long?, Long?> {
         val now = System.currentTimeMillis()
         return when (timeRange) {
+            TimeRange.ALL_TIME -> null to null // No time filter
             TimeRange.TODAY -> now - 86400000L to now
             TimeRange.YESTERDAY -> now - 172800000L to now - 86400000L
             TimeRange.LAST_7_DAYS -> now - 604800000L to now
@@ -174,6 +175,14 @@ class AnalyticsRepository @Inject constructor(
     }
 
     /**
+     * Ricerca frequenza parola - versione diretta senza risoluzione nomi
+     */
+    suspend fun searchWordDirect(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.WordSearchResult> = withContext(Dispatchers.IO) {
+        val results = messageDao.searchWordFrequency(word, chatId, startTime, endTime)
+        results
+    }
+
+    /**
      * Ricerca frequenza parola con filtro temporale e opzionalmente per chat.
      */
     suspend fun searchWord(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.WordSearchResult> = withContext(Dispatchers.IO) {
@@ -183,10 +192,22 @@ class AnalyticsRepository @Inject constructor(
         val jids = results.map { it.jid }
         val contactNames = contactDao.resolveContactNames(jids)
         
-        results.map { result ->
-            val displayName = contactNames[result.jid] ?: result.jid.substringBefore("@")
-            result.copy(displayName = displayName)
+        // Resolve @lid → @s.whatsapp.net and aggregate counts
+        val lidJids = jids.filter { it.endsWith("@lid") }
+        val lidToReal = if (lidJids.isNotEmpty()) contactDao.resolveLidToRealJid(lidJids) else emptyMap()
+        
+        val aggregated = mutableMapOf<String, com.whatstat.reborn.data.db.model.WordSearchResult>()
+        results.forEach { result ->
+            val canonicalJid = lidToReal[result.jid] ?: result.jid
+            val displayName = contactNames[canonicalJid] ?: contactNames[result.jid] ?: canonicalJid.substringBefore("@")
+            val existing = aggregated[canonicalJid]
+            if (existing != null) {
+                aggregated[canonicalJid] = existing.copy(count = existing.count + result.count)
+            } else {
+                aggregated[canonicalJid] = result.copy(jid = canonicalJid, displayName = displayName)
+            }
         }
+        aggregated.values.sortedByDescending { it.count }
     }
 
     /**
@@ -219,5 +240,47 @@ class AnalyticsRepository @Inject constructor(
             val displayName = contactNames[stat.jid] ?: stat.jid.substringBefore("@")
             stat.copy(displayName = displayName)
         }
+    }
+
+    /**
+     * Statistiche link per sender in una specifica chat.
+     * Per chat singole: Me vs Altro.
+     * Per gruppi: tutti i partecipanti.
+     */
+    suspend fun getLinkStatsBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> = withContext(Dispatchers.IO) {
+        val linkStats = messageDao.getLinkStatsBySender(chatId, startTime, endTime)
+        if (linkStats.isEmpty()) return@withContext emptyList()
+        
+        val jids = linkStats.map { it.jid }
+        val contactNames = contactDao.resolveContactNames(jids)
+        
+        // Resolve @lid → @s.whatsapp.net and aggregate counts
+        val lidJids = jids.filter { it.endsWith("@lid") }
+        val lidToReal = if (lidJids.isNotEmpty()) contactDao.resolveLidToRealJid(lidJids) else emptyMap()
+        
+        val aggregated = mutableMapOf<String, com.whatstat.reborn.data.db.model.LinkStat>()
+        linkStats.forEach { stat ->
+            val canonicalJid = lidToReal[stat.jid] ?: stat.jid
+            val displayName = contactNames[canonicalJid] ?: contactNames[stat.jid] ?: stat.displayName ?: canonicalJid.substringBefore("@")
+            val existing = aggregated[canonicalJid]
+            if (existing != null) {
+                aggregated[canonicalJid] = existing.copy(
+                    totalLinks = existing.totalLinks + stat.totalLinks,
+                    uniqueDomains = existing.uniqueDomains + stat.uniqueDomains
+                )
+            } else {
+                aggregated[canonicalJid] = stat.copy(jid = canonicalJid, displayName = displayName)
+            }
+        }
+        aggregated.values.sortedByDescending { it.totalLinks + it.uniqueDomains }
+    }
+
+    /**
+     * Statistiche link per sender dato un JID della chat.
+     * Trova prima il chat_id dal JID, poi carica i dettagli per sender.
+     */
+    suspend fun getLinkStatsByJid(jid: String, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> = withContext(Dispatchers.IO) {
+        val chatId = messageDao.getChatIdByJid(jid) ?: return@withContext emptyList()
+        getLinkStatsBySender(chatId, startTime, endTime)
     }
 }

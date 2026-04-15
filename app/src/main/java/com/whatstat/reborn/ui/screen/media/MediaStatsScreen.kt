@@ -1,5 +1,8 @@
 package com.whatstat.reborn.ui.screen.media
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,13 +17,14 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,11 +41,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.whatstat.reborn.ui.component.ChartTooltip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.whatstat.reborn.data.db.model.LinkStat
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
 
@@ -52,17 +57,28 @@ fun MediaStatsScreen(
     onNavigateBack: () -> Unit
 ) {
     val linkStats by viewModel.linkStats.collectAsState()
+    val linkStatsBySender by viewModel.linkStatsBySender.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val debugInfo by viewModel.debugInfo.collectAsState()
 
     var showTooltip by remember { mutableStateOf(false) }
     var tooltipTitle by remember { mutableStateOf("") }
-    var tooltipValue by remember { mutableStateOf("") }
+    var tooltipStats by remember { mutableStateOf<List<Pair<String, Int>>>(emptyList()) }
+    var tooltipTotal by remember { mutableStateOf(0) }
+    var showDebug by remember { mutableStateOf(false) }
 
     LaunchedEffect(chatId) {
-        chatId?.let { viewModel.setChatId(it) }
+        if (chatId != null) {
+            viewModel.setChatId(chatId)
+        }
     }
+
+    val isChatDetail = chatId != null
+    // Show breakdown in list instead of tooltip
+    val displayStats = linkStatsBySender.ifEmpty { linkStats }
+    val isShowingBreakdown = linkStatsBySender.isNotEmpty()
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -86,12 +102,20 @@ fun MediaStatsScreen(
                         tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
-
                 Text(
-                    "Media & Link",
+                    if (isChatDetail) "Media & Link nella chat" else "Media & Link",
                     style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f)
                 )
+                IconButton(onClick = { showDebug = !showDebug }) {
+                    Icon(
+                        Icons.Outlined.BugReport,
+                        contentDescription = "Debug",
+                        tint = if (showDebug) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
 
             // ── FILTER CHIPS ─────────────────────────────
@@ -133,7 +157,7 @@ fun MediaStatsScreen(
                     }
                 }
 
-                linkStats.isEmpty() -> {
+                displayStats.isEmpty() -> {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -149,85 +173,297 @@ fun MediaStatsScreen(
                 }
 
                 else -> {
-
                     Text(
-                        "Re dei Link",
+                        if (isChatDetail) "Link per persona" else "Re dei Link",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
 
                     LazyColumn(
-                        contentPadding = PaddingValues(
-                            horizontal = 16.dp,
-                            vertical = 8.dp
-                        ),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(linkStats) { stat ->
-                            Card(
-                                onClick = {
-                                    tooltipTitle =
-                                        stat.displayName ?: stat.jid.substringBefore("@")
-                                    tooltipValue =
-                                        "%,d link (%,d domini)".format(
-                                            stat.totalLinks,
-                                            stat.uniqueDomains
-                                        )
-                                    showTooltip = true
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor =
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                        if (isShowingBreakdown) {
+                            // Show back button row
+                            item {
+                                Card(
+                                    onClick = { viewModel.clearSelection() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
                                         Text(
-                                            stat.displayName
-                                                ?: stat.jid.substringBefore("@"),
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                        Text(
-                                            "${stat.uniqueDomains} domini unici",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Icon(
-                                            Icons.Outlined.Link,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Text(
-                                            "${stat.totalLinks}",
-                                            style = MaterialTheme.typography.headlineSmall,
-                                            color = MaterialTheme.colorScheme.primary
+                                            "← Torna a tutti i link",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
                                     }
                                 }
                             }
                         }
+                        items(displayStats) { stat ->
+                            LinkStatCard(
+                                stat = stat,
+                                showTotal = true,
+                                onClick = {
+                                    if (isChatDetail) {
+                                        viewModel.loadLinkStatsBySender(chatId!!)
+                                    } else {
+                                        viewModel.loadLinkStatsBySenderForJid(stat.jid)
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
+        } // fine Column
 
-            // ── TOOLTIP ───────────────────────────────────
-            if (showTooltip) {
-                ChartTooltip(
-                    title = tooltipTitle,
-                    value = tooltipValue,
-                    onDismiss = { showTooltip = false }
+        // ── DEBUG PANEL overlay ───────────────────────
+        if (showDebug) {
+            DebugPanel(
+                linkStats = linkStats,
+                linkStatsBySender = linkStatsBySender,
+                chatId = chatId,
+                debugInfo = debugInfo,
+                onDismiss = { showDebug = false }
+            )
+        }
+
+    } // fine Box
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun LinkStatCard(
+    stat: LinkStat,
+    showTotal: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stat.displayName ?: stat.jid.substringBefore("@"),
+                    style = MaterialTheme.typography.titleMedium
                 )
+                Text(
+                    "${stat.uniqueDomains} media · ${stat.jid}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Icon(
+                    Icons.Outlined.Link,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "${stat.totalLinks}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun TooltipWithBreakdown(
+    title: String,
+    total: Int,
+    stats: List<Pair<String, Int>>,
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(onClick = onDismiss)
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Totale: $total link",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Dettaglio:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (stats.isEmpty()) {
+                    Text(
+                        "Caricamento...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    stats.forEach { (name, count) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(name, style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "$count",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Tap per chiudere",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun DebugPanel(
+    linkStats: List<LinkStat>,
+    linkStatsBySender: List<LinkStat>,
+    chatId: Long?,
+    debugInfo: String,
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.95f))
+            .padding(16.dp)
+    ) {
+        SelectionContainer {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("DEBUG INFO", style = MaterialTheme.typography.titleMedium, color = Color.Green)
+                    Text(
+                        "✕ CHIUDI",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.Red,
+                        modifier = Modifier
+                            .clickable(onClick = onDismiss)
+                            .padding(8.dp)
+                    )
+                }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("chatId: $chatId", style = MaterialTheme.typography.bodySmall, color = Color.Yellow)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "=== linkStats (${linkStats.size}) ===",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.Cyan
+            )
+            if (linkStats.isEmpty()) {
+                Text("EMPTY", style = MaterialTheme.typography.bodySmall, color = Color.Red)
+            } else {
+                linkStats.take(5).forEach { stat ->
+                    Text(
+                        "${stat.jid} -> ${stat.totalLinks}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White
+                    )
+                }
+                if (linkStats.size > 5) {
+                    Text(
+                        "... e altri ${linkStats.size - 5}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                "=== linkStatsBySender (${linkStatsBySender.size}) ===",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.Cyan
+            )
+            if (linkStatsBySender.isEmpty()) {
+                Text("EMPTY", style = MaterialTheme.typography.bodySmall, color = Color.Red)
+            } else {
+                linkStatsBySender.forEach { stat ->
+                    Text(
+                        "${stat.displayName ?: stat.jid} -> ${stat.totalLinks}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                "=== DEBUG INFO ===",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.Cyan
+            )
+            Text(
+                debugInfo.ifEmpty { "(empty - tap a card to load breakdown)" },
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Yellow
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                "Testo selezionabile - long press per copiare",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
             }
         }
     }

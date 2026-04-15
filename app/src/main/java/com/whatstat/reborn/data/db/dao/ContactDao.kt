@@ -57,6 +57,9 @@ class ContactDao @Inject constructor(
         if (jids.isEmpty()) return emptyMap()
         val result = mutableMapOf<String, String>()
         
+        // Debug: log input jids
+        android.util.Log.d("WhatStat", "resolveContactNames INPUT: $jids")
+        
         // Try wa_contacts first
         jids.chunked(50).forEach { batch ->
             val placeholders = batch.joinToString(",") { "?" }
@@ -75,6 +78,45 @@ class ContactDao @Inject constructor(
                 }
             } catch (_: Exception) {
                 // wa_contacts not available, fall through to jid table
+            }
+        }
+        
+        android.util.Log.d("WhatStat", "resolveContactNames after wa_contacts: $result")
+        
+        // Resolve @lid JIDs via jid_map → jid → wa_contacts
+        val unresolvedLid = jids.filter { it !in result && it.endsWith("@lid") }
+        if (unresolvedLid.isNotEmpty()) {
+            val lidToReal = resolveLidToRealJid(unresolvedLid)
+            android.util.Log.d("WhatStat", "resolveContactNames @lid map: $lidToReal")
+            
+            // For each @lid, use the name already resolved for the real JID, or resolve it
+            val needResolve = lidToReal.values.filter { it !in result }
+            if (needResolve.isNotEmpty()) {
+                val realPlaceholders = needResolve.joinToString(",") { "?" }
+                try {
+                    val waCursor = database.getWaDb().rawQuery(
+                        """SELECT jid, COALESCE(display_name, given_name, number) AS name 
+                           FROM wa_contacts WHERE jid IN ($realPlaceholders)""",
+                        needResolve.toTypedArray()
+                    )
+                    waCursor.use {
+                        while (it.moveToNext()) {
+                            val jid = it.getString(0) ?: continue
+                            val name = it.getString(1) ?: continue
+                            result[jid] = name
+                        }
+                    }
+                } catch (_: Exception) { }
+            }
+            
+            // Map @lid → name (from resolved real JID or phone fallback)
+            lidToReal.forEach { (lidJid, realJid) ->
+                val name = result[realJid]
+                if (name != null) {
+                    result[lidJid] = name
+                } else {
+                    result[lidJid] = realJid.substringBefore("@")
+                }
             }
         }
         
@@ -102,11 +144,42 @@ class ContactDao @Inject constructor(
             unresolved.forEach { jid ->
                 val phone = jid.substringBefore("@")
                 if (phone.length >= 6) {
-                    result[jid] = phone
+                    result[jid] = "📱$phone"
                 }
             }
         }
         
+        android.util.Log.d("WhatStat", "resolveContactNames RESULT: $result")
         return result
+    }
+
+    /**
+     * Mappa @lid JID ai corrispondenti @s.whatsapp.net JID usando la tabella jid_map.
+     * @return Map<lidJid, realJid> es. "137705358913673@lid" → "393204277608@s.whatsapp.net"
+     */
+    fun resolveLidToRealJid(lidJids: List<String>): Map<String, String> {
+        if (lidJids.isEmpty()) return emptyMap()
+        val lidToReal = mutableMapOf<String, String>()
+        try {
+            val placeholders = lidJids.joinToString(",") { "?" }
+            val cursor = database.getMsgDb().rawQuery(
+                """SELECT lid_jid.raw_string AS lid_raw, real_jid.raw_string AS real_raw
+                   FROM jid lid_jid
+                   INNER JOIN jid_map ON jid_map.lid_row_id = lid_jid._id
+                   INNER JOIN jid real_jid ON real_jid._id = jid_map.jid_row_id
+                   WHERE lid_jid.raw_string IN ($placeholders)""",
+                lidJids.toTypedArray()
+            )
+            cursor.use {
+                while (it.moveToNext()) {
+                    val lidRaw = it.getString(0) ?: continue
+                    val realRaw = it.getString(1) ?: continue
+                    lidToReal[lidRaw] = realRaw
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("WhatStat", "Error resolving @lid JIDs", e)
+        }
+        return lidToReal
     }
 }

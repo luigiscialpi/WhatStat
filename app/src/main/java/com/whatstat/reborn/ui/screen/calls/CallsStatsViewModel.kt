@@ -24,7 +24,7 @@ class CallsStatsViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _selectedTimeRange = MutableStateFlow(TimeRange.LAST_YEAR)
+    private val _selectedTimeRange = MutableStateFlow(TimeRange.ALL_TIME)
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
 
     private val _customDateRange = MutableStateFlow<DateRange?>(null)

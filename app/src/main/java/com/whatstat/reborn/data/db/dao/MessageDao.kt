@@ -405,15 +405,12 @@ class MessageDao @Inject constructor(
     /**
      * Ricerca una parola e restituisce il conteggio OCCORRENZE per chat.
      * Gruppa per chat per mostrare in quali conversazioni appare la parola.
-     * Usa JOIN con chat e jid per ottenere nomi dei contatti.
      */
     fun searchWordFrequency(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.WordSearchResult> {
         val searchWord = word.lowercase()
         
+        val conditions = mutableListOf("m.text_data IS NOT NULL")
         val args = mutableListOf<String>()
-        args.add("%$searchWord%")
-        
-        val conditions = mutableListOf<String>("m.text_data IS NOT NULL AND LOWER(m.text_data) LIKE ?")
         
         if (chatId != null) {
             conditions.add("m.chat_row_id = ?")
@@ -428,26 +425,32 @@ class MessageDao @Inject constructor(
             args.add(endTime.toString())
         }
         
+        // Query: cerca nel text_data e gruppa per MITTENTE
         val query = """
             SELECT
-                j.raw_string AS jid,
-                COALESCE(j.user, j.raw_string) AS display_name,
-                SUM(
-                    (LENGTH(LOWER(COALESCE(m.text_data, ''))) - LENGTH(REPLACE(LOWER(COALESCE(m.text_data, '')), ?, ''))
-                ) / LENGTH(?) AS count
+                COALESCE(j.raw_string, 'me@s.whatsapp.net') AS jid,
+                COALESCE(j.user, 'Me') AS display_name,
+                COUNT(*) AS count
             FROM message m
-            INNER JOIN chat c ON m.chat_row_id = c._id
-            INNER JOIN jid j ON c.jid_row_id = j._id
+            LEFT JOIN jid j ON m.sender_jid_row_id = j._id
             WHERE ${conditions.joinToString(" AND ")}
-            GROUP BY j.raw_string
-            HAVING count > 0
+              AND LOWER(m.text_data) LIKE LOWER(?)
+            GROUP BY COALESCE(j.raw_string, 'me@s.whatsapp.net')
             ORDER BY count DESC
             LIMIT 50
         """.trimIndent()
         
-        val finalArgs = listOf(searchWord, searchWord) + args
+val searchArg = "%$searchWord%"
+        val finalArgs = args + listOf(searchArg)
+        
+        // Debug: show what's being passed
+        android.util.Log.d("WhatStat", "searchWordFrequency: chatId=$chatId, word=$searchWord, finalArgs=$finalArgs")
+        
         val cursor = database.getMsgDb().rawQuery(query, finalArgs.toTypedArray())
-        return cursor.use { parseWordSearchResults(it) }
+        return cursor.use { cur ->
+            android.util.Log.d("WhatStat", "Cursor count: ${cur.count}")
+            parseWordSearchResults(cur)
+        }
     }
 
     /**
@@ -546,6 +549,55 @@ class MessageDao @Inject constructor(
             HAVING total_links > 0 OR media_count > 0
             ORDER BY (total_links + media_count) DESC
             LIMIT 50
+        """.trimIndent()
+        
+        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
+        return cursor.use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) {
+                    add(LinkStat(
+                        jid = cursor.getString(0) ?: "",
+                        displayName = cursor.getString(1),
+                        totalLinks = cursor.getInt(2),
+                        uniqueDomains = cursor.getInt(3)
+                    ))
+                }
+            }
+        }
+    }
+
+    /**
+     * Estrazione link per sender in una specifica chat.
+     * Per chat singole: ritorna Me vs Altro.
+     * Per gruppi: ritorna tutti i partecipanti con i rispettivi link.
+     */
+    fun getLinkStatsBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> {
+        val conditions = mutableListOf("m.chat_row_id = ?", "m.message_type = 0")
+        val args = mutableListOf(chatId.toString())
+        
+        if (startTime != null) {
+            conditions.add("m.timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            conditions.add("m.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        
+        // Query semplice - la risoluzione nomi avviene nel Repository
+        val query = """
+            SELECT
+                CASE WHEN m.from_me = 1 THEN 'me@s.whatsapp.net' ELSE COALESCE(sender_jid.raw_string, 'other@s.whatsapp.net') END AS sender_jid,
+                CASE WHEN m.from_me = 1 THEN 'Me' ELSE sender_jid.user END AS sender_name,
+                SUM(CASE WHEN m.text_data LIKE 'http%' OR m.text_data LIKE 'https%' THEN 1 ELSE 0 END) AS total_links,
+                COUNT(DISTINCT CASE WHEN mm.message_row_id IS NOT NULL THEN m._id ELSE NULL END) AS media_count
+            FROM message m
+            LEFT JOIN jid sender_jid ON m.sender_jid_row_id = sender_jid._id
+            LEFT JOIN message_media mm ON m._id = mm.message_row_id
+            WHERE ${conditions.joinToString(" AND ")}
+            GROUP BY m.from_me, sender_jid.raw_string
+            HAVING total_links > 0 OR media_count > 0
+            ORDER BY (total_links + media_count) DESC
         """.trimIndent()
         
         val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
@@ -697,5 +749,16 @@ class MessageDao @Inject constructor(
             .sortedByDescending { it.value }
             .take(limit)
             .map { WordFrequency(it.key, it.value) }
+    }
+
+    /**
+     * Trova il chat_id dato un JID della chat.
+     */
+    fun getChatIdByJid(jid: String): Long? {
+        val cursor = database.getMsgDb().rawQuery(
+            "SELECT c._id FROM chat c INNER JOIN jid j ON c.jid_row_id = j._id WHERE j.raw_string = ? LIMIT 1",
+            arrayOf(jid)
+        )
+        return cursor.use { if (it.moveToFirst()) it.getLong(0) else null }
     }
 }

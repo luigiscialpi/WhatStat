@@ -1,5 +1,7 @@
 package com.whatstat.reborn.ui.screen.wordsearch
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,13 +13,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -33,8 +38,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.reborn.data.db.model.TimeRange
@@ -51,6 +60,9 @@ fun WordSearchScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val debugInfo by viewModel.debugInfo.collectAsState()
+
+    var showDebug by remember { mutableStateOf(false) }
 
     LaunchedEffect(chatId) {
         chatId?.let { viewModel.setChatId(it) }
@@ -77,8 +89,16 @@ fun WordSearchScreen(
             Text(
                 "Radar Parole",
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.weight(1f)
             )
+            IconButton(onClick = { showDebug = !showDebug }) {
+                Icon(
+                    Icons.Outlined.BugReport,
+                    contentDescription = "Debug",
+                    tint = if (showDebug) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
+                )
+            }
         }
 
         // Filter Chips
@@ -196,6 +216,124 @@ fun WordSearchScreen(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+    }
+
+    // ── DEBUG PANEL ───────────────────────────────
+    if (showDebug) {
+        WordSearchDebugPanel(
+            results = results,
+            searchQuery = searchQuery,
+            chatId = chatId,
+            debugInfo = debugInfo,
+            onDismiss = { showDebug = false }
+        )
+    }
+}
+
+@Composable
+private fun WordSearchDebugPanel(
+    results: List<com.whatstat.reborn.data.db.model.WordSearchResult>,
+    searchQuery: String,
+    chatId: Long?,
+    debugInfo: String,
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.95f))
+            .padding(16.dp)
+    ) {
+        SelectionContainer {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "DEBUG - WORD SEARCH",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.Green
+                    )
+                    Text(
+                        "✕ CHIUDI",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.Red,
+                        modifier = Modifier
+                            .clickable(onClick = onDismiss)
+                            .padding(8.dp)
+                    )
+                }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                "searchQuery: $searchQuery",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Yellow
+            )
+            Text(
+                "chatId: $chatId",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Yellow
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                "DEBUG INFO:",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.Cyan
+            )
+            Text(
+                debugInfo.ifEmpty { "(empty - search to see info)" },
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Yellow
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                "=== RESULTS (${results.size}) ===",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.Cyan
+            )
+            
+            if (results.isEmpty()) {
+                Text("EMPTY - La query non ha trovato risultati", style = MaterialTheme.typography.bodySmall, color = Color.Red)
+            } else {
+                results.forEach { result ->
+                    Text(
+                        "${result.jid} -> ${result.count}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                "Check la query SQL nel DAO",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                "Testo selezionabile - long press per copiare",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
             }
         }
     }
