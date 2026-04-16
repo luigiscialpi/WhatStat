@@ -282,7 +282,8 @@ app/src/main/
 │           ├── InteractiveChart.kt
 │           ├── LoadingSection.kt
 │           ├── StatCard.kt
-│           └── WordCloudView.kt
+│           ├── WordCloudView.kt
+│           └── EmojiCloudView.kt
 │
 └── res/
     ├── values/
@@ -1358,7 +1359,8 @@ data class GlobalStats(
     val weeklyDistribution: List<DayCount> = emptyList(),
     val dayOfMonthDistribution: List<DayOfMonthCount> = emptyList(),
     val monthOfYearDistribution: List<MonthOfYearCount> = emptyList(),
-    val yearTrendDistribution: List<YearTrendCount> = emptyList()
+    val yearTrendDistribution: List<YearTrendCount> = emptyList(),
+    val topEmojis: List<EmojiStat> = emptyList()
 )
 
 // domain/model/ChatStats.kt
@@ -1388,6 +1390,7 @@ data class ChatStats(
     val yearTrendDistribution: List<YearTrendCount> = emptyList(),
     val monthlyTrend: List<MonthlyCount>,
     val topWords: List<WordFrequency>,
+    val topEmojis: List<EmojiStat> = emptyList(),
     val senderBreakdown: List<SenderStat> = emptyList(),
     val conversationStarterBreakdown: List<SenderStat> = emptyList()
 )
@@ -1399,6 +1402,7 @@ data class MonthOfYearCount(val month: Int, val count: Int)
 data class YearTrendCount(val year: Int, val count: Int)
 data class MonthlyCount(val month: String, val count: Int)
 data class WordFrequency(val word: String, val frequency: Int)
+data class EmojiStat(val emoji: String, val count: Int)
 data class SenderStat(val jid: String, val displayName: String, val count: Int)
 
 data class MediaTypeStat(
@@ -2258,6 +2262,17 @@ class AnalyticsRepositoryTest {
 - [ ] Modalità "time capsule" (analisi di un anno fa)
 - [ ] Supporto crypt15 (con inserimento manuale chiave 64 hex)
 - [ ] Backup automatico delle statistiche (non dei messaggi)
+
+### v1.5 — Emoji Analytics ✅ IMPLEMENTATO
+- [x] **Emoji Cloud** — Visualizzazione cloud interattiva delle emoji più usate
+- [x] **Taglia dinamica** — La dimensione dell'emoji riflette la sua frequenza
+- [x] **Supporto filtri temporali** — Emoji filtrate per periodo selezionato
+- [x] **Modalità aggregata e per-persona** — Switcher "Tutti" / "Per Persona"
+- [x] **Selettore limite** — Limiti configurabili (3, 5, 10, 20, 30, 50)
+- [x] **Dashboard globale** — Sezione "Emoji più usate" nella panoramica
+- [x] **Dettaglio chat** — Sezione dedicata con filtri per mittente
+- [x] **Tooltip** — Click su emoji per vedere il conteggio esatto
+- [x] **Parsing avanzato** — Supporto per skin tone, ZWJ, bandiere, keycap
 
 ### Considerazioni per crypt15 (future)
 
