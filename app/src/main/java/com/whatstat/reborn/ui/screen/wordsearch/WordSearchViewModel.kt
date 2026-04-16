@@ -29,9 +29,6 @@ class WordSearchViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _debugInfo = MutableStateFlow("")
-    val debugInfo: StateFlow<String> = _debugInfo.asStateFlow()
-
     private val _selectedTimeRange = MutableStateFlow(TimeRange.ALL_TIME)
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
 
@@ -99,26 +96,20 @@ class WordSearchViewModel @Inject constructor(
                 } else {
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
-                _debugInfo.value = "DEBUG: search('$query', chatId=${_chatId.value}, startTime=$startTime, endTime=$endTime)"
-                
                 // Try direct query first
                 try {
                     val directResults = analyticsRepository.searchWordDirect(query, _chatId.value, startTime, endTime)
-                    _debugInfo.value += "\n    -> Direct DAO results: ${directResults.size}"
                     if (directResults.isNotEmpty()) {
-                        _debugInfo.value += "\n    -> Result[0]: jid=${directResults[0].jid}, count=${directResults[0].count}"
                         _results.value = directResults
                     }
                 } catch (e2: Exception) {
-                    _debugInfo.value += "\n    -> Direct error: ${e2.message}"
+                    // Ignored
                 }
                 
                 // Then try via repository
                 val searchResults = analyticsRepository.searchWord(query, _chatId.value, startTime, endTime)
-                _debugInfo.value += "\n    -> Repository results: ${searchResults.size}"
                 _results.value = searchResults
             } catch (e: Exception) {
-                _debugInfo.value = "ERROR: ${e.message}\n${e.stackTraceToString()}"
                 _results.value = emptyList()
             } finally {
                 _isLoading.value = false

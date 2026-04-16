@@ -22,7 +22,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -61,9 +60,6 @@ fun WordSearchScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
-    val debugInfo by viewModel.debugInfo.collectAsState()
-
-    var showDebug by remember { mutableStateOf(false) }
 
     LaunchedEffect(chatId) {
         chatId?.let { viewModel.setChatId(it) }
@@ -93,13 +89,6 @@ fun WordSearchScreen(
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.weight(1f)
             )
-            IconButton(onClick = { showDebug = !showDebug }) {
-                Icon(
-                    Icons.Outlined.BugReport,
-                    contentDescription = "Debug",
-                    tint = if (showDebug) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
-                )
-            }
         }
 
         // Filter Chips
@@ -213,125 +202,6 @@ fun WordSearchScreen(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-        }
-    }
-
-    // ── DEBUG PANEL ───────────────────────────────
-    if (showDebug) {
-        WordSearchDebugPanel(
-            results = results,
-            searchQuery = searchQuery,
-            chatId = chatId,
-            debugInfo = debugInfo,
-            onDismiss = { showDebug = false }
-        )
-    }
-}
-
-@Composable
-private fun WordSearchDebugPanel(
-    results: List<com.whatstat.reborn.data.db.model.WordSearchResult>,
-    searchQuery: String,
-    chatId: Long?,
-    debugInfo: String,
-    onDismiss: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.95f))
-            .statusBarsPadding()
-            .padding(16.dp)
-    ) {
-        SelectionContainer {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "DEBUG - WORD SEARCH",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.Green
-                    )
-                    Text(
-                        "✕ CHIUDI",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.Red,
-                        modifier = Modifier
-                            .clickable(onClick = onDismiss)
-                            .padding(8.dp)
-                    )
-                }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                "searchQuery: $searchQuery",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Yellow
-            )
-            Text(
-                "chatId: $chatId",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Yellow
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                "DEBUG INFO:",
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.Cyan
-            )
-            Text(
-                debugInfo.ifEmpty { "(empty - search to see info)" },
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Yellow
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                "=== RESULTS (${results.size}) ===",
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.Cyan
-            )
-            
-            if (results.isEmpty()) {
-                Text("EMPTY - La query non ha trovato risultati", style = MaterialTheme.typography.bodySmall, color = Color.Red)
-            } else {
-                results.forEach { result ->
-                    Text(
-                        "${result.jid} -> ${result.count}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                "Check la query SQL nel DAO",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                "Testo selezionabile - long press per copiare",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
             }
         }
     }

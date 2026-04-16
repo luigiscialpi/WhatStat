@@ -24,7 +24,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.PhotoLibrary
@@ -74,7 +73,6 @@ fun MediaStatsScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
-    val debugInfo by viewModel.debugInfo.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val topDomains by viewModel.topDomains.collectAsState()
     val contactDomainStats by viewModel.contactDomainStats.collectAsState()
@@ -83,7 +81,6 @@ fun MediaStatsScreen(
     val progressDomains by viewModel.loadingProgressDomains.collectAsState()
 
     val sheetState = rememberModalBottomSheetState()
-    var showDebug by remember { mutableStateOf(false) }
 
     LaunchedEffect(chatId) {
         viewModel.initialize(chatId)
@@ -127,14 +124,6 @@ fun MediaStatsScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.weight(1f)
                 )
-                IconButton(onClick = { showDebug = !showDebug }) {
-                    Icon(
-                        Icons.Outlined.BugReport,
-                        contentDescription = "Debug",
-                        tint = if (showDebug) MaterialTheme.colorScheme.primary
-                               else MaterialTheme.colorScheme.onBackground
-                    )
-                }
             }
 
             // ── FILTER CHIPS ─────────────────────────────
@@ -323,16 +312,6 @@ fun MediaStatsScreen(
             }
         }
 
-        // ── DEBUG PANEL overlay ───────────────────────
-        if (showDebug) {
-            DebugPanel(
-                linkStats = linkStats,
-                linkStatsBySender = linkStatsBySender,
-                chatId = chatId,
-                debugInfo = debugInfo,
-                onDismiss = { showDebug = false }
-            )
-        }
 
     } // fine Box
 }
@@ -440,109 +419,6 @@ private fun LinkStatCardContent(stat: LinkStat, onLinksClick: () -> Unit) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun DebugPanel(
-    linkStats: List<LinkStat>,
-    linkStatsBySender: List<LinkStat>,
-    chatId: Long?,
-    debugInfo: String,
-    onDismiss: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.95f))
-            .statusBarsPadding()
-            .padding(16.dp)
-    ) {
-        SelectionContainer {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("DEBUG INFO", style = MaterialTheme.typography.titleMedium, color = Color.Green)
-                    Text(
-                        "✕ CHIUDI",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.Red,
-                        modifier = Modifier
-                            .clickable(onClick = onDismiss)
-                            .padding(8.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("chatId: $chatId", style = MaterialTheme.typography.bodySmall, color = Color.Yellow)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "=== linkStats (${linkStats.size}) ===",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.Cyan
-                )
-                if (linkStats.isEmpty()) {
-                    Text("EMPTY", style = MaterialTheme.typography.bodySmall, color = Color.Red)
-                } else {
-                    linkStats.take(5).forEach { stat ->
-                        Text(
-                            "${stat.jid} -> ${stat.totalLinks}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White
-                        )
-                    }
-                    if (linkStats.size > 5) {
-                        Text(
-                            "... e altri ${linkStats.size - 5}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "=== linkStatsBySender (${linkStatsBySender.size}) ===",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.Cyan
-                )
-                if (linkStatsBySender.isEmpty()) {
-                    Text("EMPTY", style = MaterialTheme.typography.bodySmall, color = Color.Red)
-                } else {
-                    linkStatsBySender.forEach { stat ->
-                        Text(
-                            "${stat.displayName ?: stat.jid} -> ${stat.totalLinks}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "=== DEBUG INFO ===",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.Cyan
-                )
-                Text(
-                    debugInfo.ifEmpty { "(empty - tap a card to load breakdown)" },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Yellow
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "Testo selezionabile - long press per copiare",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-            }
-        }
-    }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 

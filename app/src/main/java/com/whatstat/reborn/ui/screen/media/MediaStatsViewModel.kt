@@ -43,9 +43,6 @@ class MediaStatsViewModel @Inject constructor(
     private val _selectedChatJid = MutableStateFlow<String?>(null)
     val selectedChatJid: StateFlow<String?> = _selectedChatJid.asStateFlow()
 
-    private val _debugInfo = MutableStateFlow("")
-    val debugInfo: StateFlow<String> = _debugInfo.asStateFlow()
-
     private val _topDomains = MutableStateFlow<List<DomainStat>>(emptyList())
     val topDomains: StateFlow<List<DomainStat>> = _topDomains.asStateFlow()
 
@@ -169,11 +166,9 @@ class MediaStatsViewModel @Inject constructor(
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
                 val result = analyticsRepository.getLinkStatsBySender(chatId, startTime, endTime)
-                _debugInfo.value = "DEBUG Resolve:\n" + result.map { "${it.jid} -> ${it.displayName}" }.joinToString("\n")
                 _linkStatsBySender.value = result
             } catch (e: Exception) {
                 _linkStatsBySender.value = emptyList()
-                _debugInfo.value = "Error: ${e.message}"
             }
         }
     }
