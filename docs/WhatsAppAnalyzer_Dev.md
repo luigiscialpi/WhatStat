@@ -2256,11 +2256,17 @@ class AnalyticsRepositoryTest {
 - [x] Icona launcher adattiva (adaptive icon) per Android 8+
 - [x] Rimosso pannello debug dalle screen analitiche
 
-### v1.4 — Feature avanzate + Performance
+### v1.4 — Cache intelligente + UX ✅ IMPLEMENTATO
+- [x] **Rilevamento cambio DB** — Hash SHA-256 del file crypt14 confrontato ad ogni avvio
+- [x] **Cache completa con kotlinx.serialization** — Serializzazione di tutti i campi (distribuzioni, parole, emoji, sender breakdown)
+- [x] **Cache Quick Stats (Dashboard)** — GlobalStats con distribuzioni cachati per ALL_TIME, istantanei alla riapertura
+- [x] **Cache Slow Stats globali** — Parole + emoji globali cachati dopo la prima analisi, mostrati automaticamente alla riapertura
+- [x] **Cache Slow Stats per chat** — SlowChatStats (parole, emoji, sender breakdown, starters, response time) cachati per ogni chatId
+- [x] **Invalidazione automatica** — Se hash DB cambia → clearCache() → ricalcola tutto
+- [x] **Cache solo ALL_TIME** — Filtri temporali ricalcolano sempre dal DB (dati indicizzati, <1s)
+- [x] **Analisi Lessicale opt-in** — Bottone "Avvia analisi" con icona ℹ️ e avviso durata, al posto del caricamento automatico
+- [x] **Auto-restore dalla cache** — Se la cache contiene risultati slow, li mostra senza bottone alla riapertura
 - [ ] Confronto tra periodi temporali
-- [ ] **Rilevamento automatico aggiornamenti WhatsApp** — Hash del file crypt14 per detect cambio DB
-- [ ] **Cache intelligente con invalidazione** — Cache statistiche con rilevamento cambio DB
-- [ ] **Aggiornamento incrementale** — Se stesso utente, calcola solo nuovi messaggi (timestamp > baseline) e merge con cache
 - [ ] Supporto WhatsApp Business
 - [ ] Modalità "time capsule" (analisi di un anno fa)
 - [ ] Supporto crypt15 (con inserimento manuale chiave 64 hex)
