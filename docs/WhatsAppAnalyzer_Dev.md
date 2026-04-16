@@ -237,11 +237,8 @@ app/src/main/
 │   ├── domain/
 │   │   ├── model/
 │   │   │   ├── ChatStats.kt
-│   │   │   ├── ContactStats.kt
 │   │   │   ├── GlobalStats.kt
-│   │   │   ├── HourlyActivity.kt
-│   │   │   ├── WordFrequency.kt
-│   │   │   └── MediaStats.kt
+│   │   │   └── AppError.kt
 │   │   │
 │   │   └── usecase/
 │   │       ├── ExtractDatabaseUseCase.kt
@@ -278,17 +275,26 @@ app/src/main/
 │       │
 │       └── component/
 │           ├── StatCard.kt
+│           ├── ActivityCard.kt
+│           ├── ChartTooltip.kt
+│           ├── DateRangePicker.kt
 │           ├── HourlyHeatmap.kt
-│           ├── WordCloudView.kt
-│           ├── BarChartCard.kt
-│           └── TimelineChart.kt
+│           ├── InteractiveChart.kt
+│           ├── LoadingSection.kt
+│           ├── StatCard.kt
+│           └── WordCloudView.kt
 │
 └── res/
     ├── values/
     │   ├── strings.xml
     │   └── themes.xml
-    └── drawable/
-        └── ic_launcher.xml
+    ├── drawable/
+    │   ├── ic_launcher.xml
+    │   ├── ic_launcher_background.xml
+    │   └── ic_launcher_foreground.xml
+    └── mipmap-anydpi-v26/
+        ├── ic_launcher.xml
+        └── ic_launcher_round.xml
 ```
 
 ---
@@ -1877,12 +1883,28 @@ fun DashboardScreen(
         }
     }
 }
-```
+}
 
 ### Componenti UI riutilizzabili
 
 ```kotlin
 // ui/component/StatCard.kt
+@Composable
+fun StatCard(...)
+// ui/component/HourlyHeatmap.kt
+@Composable
+fun HourlyHeatmap(...)
+// ui/component/LoadingSection.kt - Progress tracking per calcoli analitici
+@Composable
+fun LoadingSection(
+    isLoading: Boolean,
+    progress: Float? = null,  // nullable per loading indeterminato
+    label: String = "Caricamento..."
+)
+// ui/component/ActivityCard.kt - Card con tabs per metriche di attività
+@Composable
+fun ActivityCard(...)
+```
 @Composable
 fun StatCard(
     modifier: Modifier = Modifier,
@@ -2223,8 +2245,11 @@ class AnalyticsRepositoryTest {
 - [x] InteractiveBarChart con supporto scrolling orizzontale
 - [x] Layout migliorato per le card di riepilogo chiamate con divisore verticale
 - [x] Filtri temporali opzionali per tutte le query analitiche
-
-### v1.4 — Feature avanzate
+- [x] Estrazione domini e statistiche per link condivisi
+- [x] Progress tracking per calcoli analitici con LoadingSection
+- [x] Tooltip informativo per "Chi inizia le conversazioni"
+- [x] Icona launcher adattiva (adaptive icon) per Android 8+
+- [x] Rimosso pannello debug dalle screen analitiche
 
 ### v1.4 — Feature avanzate
 - [ ] Confronto tra periodi temporali
