@@ -3,6 +3,7 @@ package com.whatstat.reborn.ui.screen.media
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.whatstat.reborn.data.cache.CacheManager
 import com.whatstat.reborn.data.db.model.DateRange
 import com.whatstat.reborn.data.db.model.DomainStat
 import com.whatstat.reborn.data.db.model.LinkStat
@@ -21,6 +22,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MediaStatsViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
+    private val cacheManager: CacheManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -117,6 +119,7 @@ class MediaStatsViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                val isAllTime = _selectedTimeRange.value == TimeRange.ALL_TIME
                 val (startTime, endTime) = if (_selectedTimeRange.value == TimeRange.CUSTOM) {
                     _customDateRange.value?.let {
                         analyticsRepository.getDateRangeBounds(it)
@@ -125,6 +128,20 @@ class MediaStatsViewModel @Inject constructor(
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
                 val cid = _chatId.value
+
+                // Prova cache per ALL_TIME
+                if (isAllTime) {
+                    val cached = if (cid != null) cacheManager.getChatMediaStats(cid)
+                                 else cacheManager.getGlobalMediaStats()
+                    if (cached != null) {
+                        _linkStats.value = cached.first.map { it.copy(avatarPath = getAvatarPath(it.jid)) }
+                        _topDomains.value = cached.second
+                        _isLoading.value = false
+                        _loadingProgress.value = null
+                        return@launch
+                    }
+                }
+
                 if (cid != null) {
                     // Per una chat specifica: mostra direttamente lo split per mittente
                     _linkStats.value = analyticsRepository.getLinkStatsBySender(cid, startTime, endTime)
@@ -143,6 +160,13 @@ class MediaStatsViewModel @Inject constructor(
                     endTime = endTime,
                     onProgress = { progress -> _loadingProgress.value = progress }
                 )
+
+                // Salva in cache per ALL_TIME
+                if (isAllTime) {
+                    val statsToCache = _linkStats.value.map { it.copy(avatarPath = null) }
+                    if (cid != null) cacheManager.saveChatMediaStats(cid, statsToCache, _topDomains.value)
+                    else cacheManager.saveGlobalMediaStats(statsToCache, _topDomains.value)
+                }
                 
             } catch (e: Exception) {
                 _linkStats.value = emptyList()

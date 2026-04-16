@@ -94,6 +94,12 @@ private data class CachedQuickChatStats(
 @Serializable private data class CachedWordFrequency(val word: String, val frequency: Int)
 @Serializable private data class CachedEmojiStat(val emoji: String, val count: Int)
 @Serializable private data class CachedSenderStat(val jid: String, val displayName: String, val count: Int)
+@Serializable private data class CachedLinkStat(val jid: String, val displayName: String?, val totalLinks: Int, val mediaCount: Int)
+@Serializable private data class CachedDomainStat(val domain: String, val count: Int)
+@Serializable private data class CachedMediaPageStats(
+    val linkStats: List<CachedLinkStat> = emptyList(),
+    val topDomains: List<CachedDomainStat> = emptyList()
+)
 
 // ── Conversioni domain ↔ cache ───────────────────────────────────
 
@@ -340,6 +346,52 @@ class CacheManager @Inject constructor(
         dataStore.edit { prefs ->
             prefs[key] = cacheJson.encodeToString(stats.toQuickCached())
         }
+    }
+
+    // ── Media & Link Stats (global) ───────────────────────────────
+
+    suspend fun getGlobalMediaStats(): Pair<List<LinkStat>, List<DomainStat>>? {
+        val key = stringPreferencesKey("media_global_v1")
+        val json = dataStore.data.first()[key] ?: return null
+        return try {
+            val cached = cacheJson.decodeFromString<CachedMediaPageStats>(json)
+            Pair(
+                cached.linkStats.map { LinkStat(it.jid, it.displayName, it.totalLinks, it.mediaCount) },
+                cached.topDomains.map { DomainStat(it.domain, it.count) }
+            )
+        } catch (e: Exception) { null }
+    }
+
+    suspend fun saveGlobalMediaStats(linkStats: List<LinkStat>, topDomains: List<DomainStat>) {
+        val key = stringPreferencesKey("media_global_v1")
+        val cached = CachedMediaPageStats(
+            linkStats = linkStats.map { CachedLinkStat(it.jid, it.displayName, it.totalLinks, it.mediaCount) },
+            topDomains = topDomains.map { CachedDomainStat(it.domain, it.count) }
+        )
+        dataStore.edit { prefs -> prefs[key] = cacheJson.encodeToString(cached) }
+    }
+
+    // ── Media & Link Stats (per chat) ────────────────────────────
+
+    suspend fun getChatMediaStats(chatId: Long): Pair<List<LinkStat>, List<DomainStat>>? {
+        val key = stringPreferencesKey("media_chat_${chatId}_v1")
+        val json = dataStore.data.first()[key] ?: return null
+        return try {
+            val cached = cacheJson.decodeFromString<CachedMediaPageStats>(json)
+            Pair(
+                cached.linkStats.map { LinkStat(it.jid, it.displayName, it.totalLinks, it.mediaCount) },
+                cached.topDomains.map { DomainStat(it.domain, it.count) }
+            )
+        } catch (e: Exception) { null }
+    }
+
+    suspend fun saveChatMediaStats(chatId: Long, linkStats: List<LinkStat>, topDomains: List<DomainStat>) {
+        val key = stringPreferencesKey("media_chat_${chatId}_v1")
+        val cached = CachedMediaPageStats(
+            linkStats = linkStats.map { CachedLinkStat(it.jid, it.displayName, it.totalLinks, it.mediaCount) },
+            topDomains = topDomains.map { CachedDomainStat(it.domain, it.count) }
+        )
+        dataStore.edit { prefs -> prefs[key] = cacheJson.encodeToString(cached) }
     }
 
     // ── Invalidazione ────────────────────────────────────────────
