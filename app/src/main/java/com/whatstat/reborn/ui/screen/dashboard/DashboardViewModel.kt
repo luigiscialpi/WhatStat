@@ -44,7 +44,7 @@ class DashboardViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _isLoadingSlow = MutableStateFlow(true)
+    private val _isLoadingSlow = MutableStateFlow(false)
     val isLoadingSlow: StateFlow<Boolean> = _isLoadingSlow.asStateFlow()
 
     private val _loadingProgress = MutableStateFlow<Int?>(null)
@@ -62,6 +62,9 @@ class DashboardViewModel @Inject constructor(
     private val _customDateRange = MutableStateFlow<DateRange?>(null)
     val customDateRange: StateFlow<DateRange?> = _customDateRange.asStateFlow()
 
+    private val _slowStatsRequested = MutableStateFlow(false)
+    val slowStatsRequested: StateFlow<Boolean> = _slowStatsRequested.asStateFlow()
+
     init {
         loadStats()
     }
@@ -69,17 +72,10 @@ class DashboardViewModel @Inject constructor(
     private fun loadStats() {
         viewModelScope.launch {
             _isLoading.value = true
-            _isLoadingSlow.value = true
+            _isLoadingSlow.value = false
+            _slowStatsRequested.value = false
             _error.value = null
             try {
-                val (startTime, endTime) = if (_selectedTimeRange.value == TimeRange.CUSTOM) {
-                    _customDateRange.value?.let {
-                        analyticsRepository.getDateRangeBounds(it)
-                    } ?: (null to null)
-                } else {
-                    analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
-                }
-                
                 _loadingProgress.value = 0
                 val quickStats = analyticsRepository.getQuickGlobalStats(
                     timeRange = _selectedTimeRange.value,
@@ -95,33 +91,67 @@ class DashboardViewModel @Inject constructor(
                     _monthOfYearData.value = quickStats.monthOfYearDistribution
                     _yearTrendData.value = quickStats.yearTrendDistribution
                 }
-                
+
                 _isLoading.value = false
                 _loadingProgress.value = null
-                
-                _isLoadingSlow.value = true
-                _loadingProgressSlow.value = 0
-                try {
-                    val slowStats = analyticsRepository.getSlowGlobalStats(
-                        startTime = startTime,
-                        endTime = endTime,
-                        onProgress = { progress -> _loadingProgressSlow.value = progress }
-                    )
-                    _globalStats.value = _globalStats.value?.copy(
-                            topWords = slowStats.topWords,
-                            topEmojis = slowStats.topEmojis
-                        )
-                } catch (e: Exception) {
-                    android.util.Log.w("WhatStat", "Slow stats failed: ${e.message}")
-                } finally {
-                    _isLoadingSlow.value = false
-                    _loadingProgressSlow.value = null
+
+                // Prova a caricare slow stats dalla cache (senza bloccare la UI)
+                if (_selectedTimeRange.value == TimeRange.ALL_TIME) {
+                    tryLoadSlowStatsFromCache()
                 }
             } catch (e: Exception) {
                 _error.value = "Errore: ${e.message}"
                 _isLoading.value = false
-                _isLoadingSlow.value = false
                 _loadingProgress.value = null
+            }
+        }
+    }
+
+    private fun tryLoadSlowStatsFromCache() {
+        viewModelScope.launch {
+            try {
+                val slowStats = analyticsRepository.getSlowGlobalStats(
+                    startTime = null,
+                    endTime = null,
+                    onProgress = {}
+                )
+                if (slowStats.topWords.isNotEmpty() || slowStats.topEmojis.isNotEmpty()) {
+                    _globalStats.value = _globalStats.value?.copy(
+                        topWords = slowStats.topWords,
+                        topEmojis = slowStats.topEmojis
+                    )
+                    _slowStatsRequested.value = true
+                }
+            } catch (_: Exception) { }
+        }
+    }
+
+    fun loadSlowStats() {
+        _slowStatsRequested.value = true
+        viewModelScope.launch {
+            _isLoadingSlow.value = true
+            _loadingProgressSlow.value = 0
+            try {
+                val (startTime, endTime) = if (_selectedTimeRange.value == TimeRange.CUSTOM) {
+                    _customDateRange.value?.let {
+                        analyticsRepository.getDateRangeBounds(it)
+                    } ?: (null to null)
+                } else {
+                    analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
+                }
+                val slowStats = analyticsRepository.getSlowGlobalStats(
+                    startTime = startTime,
+                    endTime = endTime,
+                    onProgress = { progress -> _loadingProgressSlow.value = progress }
+                )
+                _globalStats.value = _globalStats.value?.copy(
+                    topWords = slowStats.topWords,
+                    topEmojis = slowStats.topEmojis
+                )
+            } catch (e: Exception) {
+                android.util.Log.w("WhatStat", "Slow stats failed: ${e.message}")
+            } finally {
+                _isLoadingSlow.value = false
                 _loadingProgressSlow.value = null
             }
         }

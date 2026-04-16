@@ -40,11 +40,12 @@ class AnalyticsRepository @Inject constructor(
         forceRefresh: Boolean = false,
         onProgress: (Int) -> Unit = {}
     ): GlobalStats = withContext(Dispatchers.IO) {
-        // Prova a usare la cache se non è un force refresh
-        if (!forceRefresh) {
-            val cached = cacheManager.getGlobalStatsFlow().first()
+        // Cache solo per ALL_TIME (il caso più comune)
+        if (!forceRefresh && timeRange == TimeRange.ALL_TIME) {
+            val cached = cacheManager.getGlobalStats()
             if (cached != null) {
-                android.util.Log.d("WhatStat", "Using cached GlobalStats")
+                android.util.Log.d("WhatStat", "Quick GlobalStats from cache")
+                onProgress(100)
                 return@withContext cached
             }
         }
@@ -121,20 +122,38 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 topEmojis = emptyList()
             )
             
-            // Salva in cache
-            cacheManager.saveGlobalStats(stats)
+            // Salva in cache solo per ALL_TIME
+            if (timeRange == TimeRange.ALL_TIME) {
+                cacheManager.saveGlobalStats(stats)
+            }
             stats
         }
     }
 
     /**
      * Carica le statistiche "lente" (parole + emoji) in un'unica query.
+     * Usa la cache se disponibile (solo per ALL_TIME, cioè startTime/endTime == null).
      */
     suspend fun getSlowGlobalStats(
         startTime: Long? = null,
         endTime: Long? = null,
         onProgress: (Int) -> Unit = {}
     ): GlobalStats = withContext(Dispatchers.IO) {
+        // Cache solo se nessun filtro temporale
+        if (startTime == null && endTime == null) {
+            val cached = cacheManager.getGlobalSlowStats()
+            if (cached != null) {
+                android.util.Log.d("WhatStat", "Slow GlobalStats from cache")
+                onProgress(100)
+                return@withContext GlobalStats(
+                    totalMessages = 0, totalChats = 0, totalContacts = 0, totalMediaFiles = 0,
+                    oldestMessageDate = 0, mostActiveChat = "", mostActiveHour = 0, mostActiveDayOfWeek = 0,
+                    averageMessagesPerDay = 0f, longestStreak = 0,
+                    topWords = cached.first, topEmojis = cached.second
+                )
+            }
+        }
+
         onProgress(0)
         val (topWords, topEmojis) = try {
             messageDao.getGlobalWordsAndEmojis(startTime, endTime, 30, 30)
@@ -143,6 +162,12 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             Pair(emptyList(), emptyList())
         }
         onProgress(100)
+
+        // Salva in cache solo se nessun filtro temporale
+        if (startTime == null && endTime == null) {
+            cacheManager.saveGlobalSlowStats(topWords, topEmojis)
+        }
+
         GlobalStats(
             totalMessages = 0, totalChats = 0, totalContacts = 0, totalMediaFiles = 0,
             oldestMessageDate = 0, mostActiveChat = "", mostActiveHour = 0, mostActiveDayOfWeek = 0,
@@ -235,6 +260,16 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         endTime: Long? = null,
         onProgress: (Int) -> Unit = {}
     ): SlowChatStats = withContext(Dispatchers.IO) {
+        // Cache solo se nessun filtro temporale
+        if (startTime == null && endTime == null) {
+            val cached = cacheManager.getChatSlowStats(chatId)
+            if (cached != null) {
+                android.util.Log.d("WhatStat", "Slow ChatStats #$chatId from cache")
+                onProgress(100)
+                return@withContext cached
+            }
+        }
+
         val basicInfo = chatDao.getChatBasicInfo(chatId)
 
         coroutineScope {
@@ -295,7 +330,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             }.sortedByDescending { it.count }
 
             onProgress(100)
-            SlowChatStats(
+            val result = SlowChatStats(
                 topWords                 = topWords,
                 topEmojis                = topEmojis,
                 senderBreakdown          = aggregatedSenders,
@@ -305,6 +340,13 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 theyStartedConversations = starters.startedByThem,
                 longestMessage           = longest
             )
+
+            // Salva in cache solo se nessun filtro temporale
+            if (startTime == null && endTime == null) {
+                cacheManager.saveChatSlowStats(chatId, result)
+            }
+
+            result
         }
     }
 

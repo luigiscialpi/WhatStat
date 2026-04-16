@@ -112,9 +112,13 @@ class WhatsAppRepository @Inject constructor(
             try {
                 database.open(outputDb, files.waDbFile)
                 
-                // Aggiorna la cache con il nuovo hash del DB
+                // Verifica se il DB è cambiato → invalida la cache
                 val dbHash = cacheManager.calculateFileHash(files.crypt14File.absolutePath)
                 if (dbHash != null) {
+                    if (cacheManager.isDbChanged(dbHash)) {
+                        android.util.Log.d("WhatStat", "DB changed, clearing cache")
+                        cacheManager.clearCache()
+                    }
                     cacheManager.saveDbHash(dbHash, files.crypt14File.absolutePath)
                 }
             } catch (e: Exception) {
@@ -197,6 +201,17 @@ class WhatsAppRepository @Inject constructor(
             // Step 4: Apri il database per le query (waDbFile opzionale)
             try {
                 database.open(outputDb, waDbFile)
+
+                // Verifica se il DB è cambiato → invalida la cache
+                val hashSource = if (crypt14File.exists()) crypt14File else outputDb
+                val dbHash = cacheManager.calculateFileHash(hashSource.absolutePath)
+                if (dbHash != null) {
+                    if (cacheManager.isDbChanged(dbHash)) {
+                        android.util.Log.d("WhatStat", "DB changed (manual), clearing cache")
+                        cacheManager.clearCache()
+                    }
+                    cacheManager.saveDbHash(dbHash, hashSource.absolutePath)
+                }
             } catch (e: Exception) {
                 _setupState.update { it.copy(contactsStatus = GlobalStepStatus.ERROR) }
                 throw AppErrorException(

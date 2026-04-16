@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.People
@@ -85,6 +87,8 @@ fun DashboardScreen(
     val error by viewModel.error.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+
+    val slowStatsRequested by viewModel.slowStatsRequested.collectAsState()
 
     var tooltipTitle by remember { mutableStateOf("") }
     var tooltipValue by remember { mutableStateOf("") }
@@ -259,51 +263,102 @@ fun DashboardScreen(
                     )
                 }
 
-                // ── Top Words ────────────────────────────────────────────
+                // ── Analisi Lessicale (opt-in) ───────────────────────
                 item {
-                    stats?.let { s ->
+                    if (!slowStatsRequested) {
                         SectionCard(
-                            title = "Parole più usate",
-                            subtitle = "Le parole più frequenti in assoluto"
+                            title = "Analisi Lessicale",
+                            subtitle = "Parole ed emoji più frequenti"
                         ) {
-                            when {
-                                isLoadingSlow && s.topWords.isEmpty() -> {
-                                    LoadingSection(progress = progressSlow)
-                                }
-                                s.topWords.isEmpty() -> {
-                                    Text("Nessuna parola trovata", style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
-                                }
-                                else -> {
-                                    InteractiveWordCloud(words = s.topWords.take(20), onWordClick = { word, count ->
-                                        tooltipTitle = word; tooltipValue = "%,d volte".format(count); showTooltip = true
-                                    })
-                                }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "L'analisi potrebbe richiedere diversi secondi",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
+                            Button(
+                                onClick = { viewModel.loadSlowStats() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text("Avvia analisi")
+                            }
+                        }
+                    } else if (isLoadingSlow) {
+                        SectionCard(
+                            title = "Analisi Lessicale",
+                            subtitle = "Elaborazione in corso..."
+                        ) {
+                            LoadingSection(progress = progressSlow)
                         }
                     }
                 }
 
-                // ── Top Emojis ───────────────────────────────────────────
-                item {
-                    stats?.let { s ->
+                if (slowStatsRequested && !isLoadingSlow) {
+                    // ── Top Words (dopo analisi) ─────────────────────
+                    item {
+                        SectionCard(
+                            title = "Parole più usate",
+                            subtitle = "Le parole più frequenti in assoluto"
+                        ) {
+                            if (s.topWords.isEmpty()) {
+                                Text(
+                                    "Nessuna parola trovata",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(vertical = 24.dp)
+                                )
+                            } else {
+                                InteractiveWordCloud(
+                                    words = s.topWords.take(20),
+                                    onWordClick = { word, count ->
+                                        tooltipTitle = word
+                                        tooltipValue = "%,d volte".format(count)
+                                        showTooltip = true
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    // ── Top Emojis (dopo analisi) ────────────────────
+                    item {
                         SectionCard(
                             title = "Emoji più usate",
                             subtitle = "Le emoji più frequenti in assoluto"
                         ) {
-                            when {
-                                isLoadingSlow && s.topEmojis.isEmpty() -> {
-                                    LoadingSection(progress = progressSlow)
-                                }
-                                s.topEmojis.isEmpty() -> {
-                                    Text("Nessuna emoji trovata", style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
-                                }
-                                else -> {
-                                    InteractiveEmojiCloud(emojis = s.topEmojis.take(20), onEmojiClick = { emoji, count ->
-                                        tooltipTitle = emoji; tooltipValue = "%,d volte".format(count); showTooltip = true
-                                    })
-                                }
+                            if (s.topEmojis.isEmpty()) {
+                                Text(
+                                    "Nessuna emoji trovata",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(vertical = 24.dp)
+                                )
+                            } else {
+                                InteractiveEmojiCloud(
+                                    emojis = s.topEmojis.take(20),
+                                    onEmojiClick = { emoji, count ->
+                                        tooltipTitle = emoji
+                                        tooltipValue = "%,d volte".format(count)
+                                        showTooltip = true
+                                    }
+                                )
                             }
                         }
                     }
