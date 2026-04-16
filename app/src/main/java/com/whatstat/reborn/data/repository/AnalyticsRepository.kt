@@ -49,6 +49,8 @@ class AnalyticsRepository @Inject constructor(
             val dYearTrend     = async { messageDao.getGlobalYearTrendDistribution(startTime, endTime) }
             val dStreak        = async { calculateLongestStreak(startTime) }
             val dOldestTs      = async { if (startTime != null) startTime else messageDao.getOldestTimestamp() }
+            val dMediaCount    = async { messageDao.getMediaCount(startTime, endTime) }
+            val dMostActiveChat = async { chatDao.getMostActiveChat(startTime, endTime) }
 
             val totalMessages = dTotalMessages.await()
             val hourly = dHourly.await()
@@ -63,14 +65,14 @@ class AnalyticsRepository @Inject constructor(
                 0f
             }
 
-            val mostActiveChatJid = chatDao.getMostActiveChat()
+            val mostActiveChatJid = dMostActiveChat.await()
             val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
 
             GlobalStats(
                 totalMessages       = totalMessages,
                 totalChats          = dTotalChats.await(),
                 totalContacts       = contactDao.getContactCount(),
-                totalMediaFiles     = messageDao.getMediaCount(),
+                totalMediaFiles     = dMediaCount.await(),
                 oldestMessageDate   = oldestTs,
                 mostActiveChat      = mostActiveChatName,
                 mostActiveHour      = hourly.maxByOrNull { it.count }?.hour ?: 0,
@@ -101,7 +103,7 @@ class AnalyticsRepository @Inject constructor(
             val dMonthOfYear = async { messageDao.getMonthOfYearDistribution(chatId, startTime, endTime) }
             val dYearTrend  = async { messageDao.getYearTrendDistribution(chatId, startTime, endTime) }
             val dMonthly    = async { messageDao.getMonthlyTrend(chatId) }
-            val dMediaStats = async { messageDao.getMediaStats(chatId) }
+            val dMediaStats = async { messageDao.getMediaStats(chatId, startTime, endTime) }
             val dFirstTs    = async { messageDao.getFirstMessageTimestamp(chatId) }
             val dLastTs     = async { messageDao.getLastMessageTimestamp(chatId) }
             val dAvgLen     = async { messageDao.getAverageMessageLength(chatId) }

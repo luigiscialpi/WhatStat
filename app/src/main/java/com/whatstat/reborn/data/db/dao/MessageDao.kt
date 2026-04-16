@@ -382,8 +382,8 @@ class MessageDao @Inject constructor(
     }
 
     /** Statistiche sui media per tipo MIME. */
-    fun getMediaStats(chatId: Long): List<MediaTypeStat> {
-        val query = """
+    fun getMediaStats(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<MediaTypeStat> {
+        val queryBuilder = StringBuilder("""
             SELECT
                 COALESCE(mm.mime_type, 'unknown') AS mime_type,
                 COUNT(*) AS count,
@@ -391,11 +391,21 @@ class MessageDao @Inject constructor(
             FROM message m
             JOIN message_media mm ON m._id = mm.message_row_id
             WHERE m.chat_row_id = ?
-            GROUP BY mm.mime_type
-            ORDER BY count DESC
-        """.trimIndent()
+        """.trimIndent())
+        val args = mutableListOf(chatId.toString())
+        
+        if (startTime != null) {
+            queryBuilder.append(" AND m.timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND m.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        
+        queryBuilder.append(" GROUP BY mm.mime_type ORDER BY count DESC")
 
-        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseMediaStats(it) }
     }
 
@@ -538,11 +548,25 @@ class MessageDao @Inject constructor(
         }
     }
 
-    /** Conta i file media totali. */
-    fun getMediaCount(): Int {
-        val cursor = database.getMsgDb().rawQuery(
-            "SELECT COUNT(*) FROM message_media", null
-        )
+    /** Conta i file media filtrati per data. */
+    fun getMediaCount(startTime: Long? = null, endTime: Long? = null): Int {
+        val queryBuilder = StringBuilder("""
+            SELECT COUNT(*) 
+            FROM message m
+            JOIN message_media mm ON m._id = mm.message_row_id
+            WHERE 1=1
+        """.trimIndent())
+        val args = mutableListOf<String>()
+        if (startTime != null) {
+            queryBuilder.append(" AND m.timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND m.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { if (it.moveToFirst()) it.getInt(0) else 0 }
     }
 
