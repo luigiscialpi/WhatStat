@@ -1360,6 +1360,7 @@ data class GlobalStats(
     val dayOfMonthDistribution: List<DayOfMonthCount> = emptyList(),
     val monthOfYearDistribution: List<MonthOfYearCount> = emptyList(),
     val yearTrendDistribution: List<YearTrendCount> = emptyList(),
+    val topWords: List<WordFrequency> = emptyList(),
     val topEmojis: List<EmojiStat> = emptyList()
 )
 
@@ -2263,7 +2264,7 @@ class AnalyticsRepositoryTest {
 - [ ] Supporto crypt15 (con inserimento manuale chiave 64 hex)
 - [ ] Backup automatico delle statistiche (non dei messaggi)
 
-### v1.5 — Emoji Analytics ✅ IMPLEMENTATO
+### v1.5 — Emoji & Word Analytics + Performance ✅ IMPLEMENTATO
 - [x] **Emoji Cloud** — Visualizzazione cloud interattiva delle emoji più usate
 - [x] **Taglia dinamica** — La dimensione dell'emoji riflette la sua frequenza
 - [x] **Supporto filtri temporali** — Emoji filtrate per periodo selezionato
@@ -2273,6 +2274,9 @@ class AnalyticsRepositoryTest {
 - [x] **Dettaglio chat** — Sezione dedicata con filtri per mittente
 - [x] **Tooltip** — Click su emoji per vedere il conteggio esatto
 - [x] **Parsing avanzato** — Supporto per skin tone, ZWJ, bandiere, keycap
+- [x] **Parole più usate globale** — Word cloud nella Dashboard
+- [x] **Query unificate** — Una sola SELECT per parole+emoji (ottimizzazione 2x)
+- [x] **Lazy loading** — Statistiche lente caricate in background con progress indicator
 
 ### Considerazioni per crypt15 (future)
 
