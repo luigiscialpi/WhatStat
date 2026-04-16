@@ -57,6 +57,9 @@ class MediaStatsViewModel @Inject constructor(
     private val _selectedChatJid = MutableStateFlow<String?>(null)
     val selectedChatJid: StateFlow<String?> = _selectedChatJid.asStateFlow()
 
+    // ChatId del gruppo selezionato nel breakdown (dalla vista globale)
+    private val _breakdownChatId = MutableStateFlow<Long?>(null)
+
     private val _topDomains = MutableStateFlow<List<DomainStat>>(emptyList())
     val topDomains: StateFlow<List<DomainStat>> = _topDomains.asStateFlow()
 
@@ -84,6 +87,7 @@ class MediaStatsViewModel @Inject constructor(
 
     fun clearSelection() {
         _selectedChatJid.value = null
+        _breakdownChatId.value = null
         _linkStatsBySender.value = emptyList()
         _contactDomainStats.value = null
     }
@@ -187,6 +191,8 @@ class MediaStatsViewModel @Inject constructor(
                 } else {
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
+                // Salva il chatId del gruppo selezionato per il breakdown
+                _breakdownChatId.value = analyticsRepository.getChatIdByJid(jid)
                 _linkStatsBySender.value = analyticsRepository.getLinkStatsByJid(jid, startTime, endTime)
                     .map { it.copy(avatarPath = getAvatarPath(it.jid)) }
             } catch (e: Exception) {
@@ -228,8 +234,9 @@ class MediaStatsViewModel @Inject constructor(
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
                 _loadingProgressDomains.value = 0
+                val effectiveChatId = _chatId.value ?: _breakdownChatId.value
                 val domains = analyticsRepository.getTopDomains(
-                    chatId = _chatId.value,
+                    chatId = effectiveChatId,
                     jid = jid,
                     startTime = startTime,
                     endTime = endTime,

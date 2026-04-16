@@ -530,6 +530,13 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
     }
 
     /**
+     * Trova il chat_id dato il JID della chat.
+     */
+    suspend fun getChatIdByJid(jid: String): Long? = withContext(Dispatchers.IO) {
+        messageDao.getChatIdByJid(jid)
+    }
+
+    /**
      * Statistiche link per sender dato un JID della chat.
      * Trova prima il chat_id dal JID, poi carica i dettagli per sender.
      */
