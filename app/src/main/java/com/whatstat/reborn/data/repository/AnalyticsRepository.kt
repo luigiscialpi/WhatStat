@@ -489,8 +489,11 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         val contactNames = contactDao.resolveContactNames(jids)
         
         linkStats.map { stat ->
-            val displayName = if (stat.jid == "me@s.whatsapp.net") "Tu"
-                else contactNames[stat.jid] ?: stat.jid.substringBefore("@")
+            val displayName = when (stat.jid) {
+                "me@s.whatsapp.net" -> "Tu"
+                "status@broadcast" -> "WhatsApp Stories"
+                else -> contactNames[stat.jid] ?: stat.jid.substringBefore("@")
+            }
             stat.copy(displayName = displayName)
         }
     }

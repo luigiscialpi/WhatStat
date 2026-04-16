@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -384,25 +385,32 @@ private fun LinkStatCardContent(stat: LinkStat, onLinksClick: () -> Unit) {
                     contentScale = ContentScale.Crop
                 )
             } else {
+                val isStories = stat.jid == "status@broadcast"
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .background(
+                            if (isStories) MaterialTheme.colorScheme.tertiaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Outlined.Person,
+                        if (isStories) Icons.Outlined.Visibility else Icons.Outlined.Person,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (isStories) MaterialTheme.colorScheme.onTertiaryContainer
+                               else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
             Spacer(Modifier.width(10.dp))
+            val isStories = stat.jid == "status@broadcast"
             Text(
                 stat.displayName ?: stat.jid.substringBefore("@"),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = if (isStories) androidx.compose.ui.text.font.FontWeight.Bold else null
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
