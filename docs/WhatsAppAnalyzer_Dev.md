@@ -2256,9 +2256,11 @@ class AnalyticsRepositoryTest {
 - [x] Icona launcher adattiva (adaptive icon) per Android 8+
 - [x] Rimosso pannello debug dalle screen analitiche
 
-### v1.4 — Feature avanzate
+### v1.4 — Feature avanzate + Performance
 - [ ] Confronto tra periodi temporali
-- [ ] Rilevamento automatico aggiornamenti WhatsApp (cambio schema db)
+- [ ] **Rilevamento automatico aggiornamenti WhatsApp** — Hash del file crypt14 per detect cambio DB
+- [ ] **Cache intelligente con invalidazione** — Cache statistiche con rilevamento cambio DB
+- [ ] **Aggiornamento incrementale** — Se stesso utente, calcola solo nuovi messaggi (timestamp > baseline) e merge con cache
 - [ ] Supporto WhatsApp Business
 - [ ] Modalità "time capsule" (analisi di un anno fa)
 - [ ] Supporto crypt15 (con inserimento manuale chiave 64 hex)

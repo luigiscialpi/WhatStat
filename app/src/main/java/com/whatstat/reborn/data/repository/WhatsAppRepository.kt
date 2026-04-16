@@ -8,6 +8,7 @@ import com.whatstat.reborn.data.root.FileExtractor
 import com.whatstat.reborn.data.root.RootManager
 import com.whatstat.reborn.data.root.RootStatus
 import com.whatstat.reborn.domain.model.AppError
+import com.whatstat.reborn.data.cache.CacheManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,7 @@ class WhatsAppRepository @Inject constructor(
     private val fileExtractor: FileExtractor,
     private val decryptor: Crypt14Decryptor,
     private val database: WhatsAppDatabase,
+    private val cacheManager: CacheManager,
     @ApplicationContext private val context: Context
 ) {
     private val _setupState = MutableStateFlow(RepositorySetupState())
@@ -109,6 +111,12 @@ class WhatsAppRepository @Inject constructor(
             // Step 4: Apri il database per le query
             try {
                 database.open(outputDb, files.waDbFile)
+                
+                // Aggiorna la cache con il nuovo hash del DB
+                val dbHash = cacheManager.calculateFileHash(files.crypt14File.absolutePath)
+                if (dbHash != null) {
+                    cacheManager.saveDbHash(dbHash, files.crypt14File.absolutePath)
+                }
             } catch (e: Exception) {
                 _setupState.update { it.copy(contactsStatus = GlobalStepStatus.ERROR) }
                 throw AppErrorException(
@@ -215,11 +223,19 @@ class WhatsAppRepository @Inject constructor(
     suspend fun tryRestoreSession(): Boolean = withContext(Dispatchers.IO) {
         val outputDb = File(context.filesDir, "msgstore.db")
         val waDbFile = File(context.filesDir, FileExtractor.WA_DB_DEST)
+        val crypt14Path = FileExtractor.CRYPT14_PATH
 
         if (outputDb.exists() && outputDb.length() > 0) {
             try {
                 database.open(outputDb, waDbFile)
                 if (database.isOpen()) {
+                    // Verifica se il DB è cambiato rispetto all'ultima sessione
+                    val currentHash = cacheManager.calculateFileHash(crypt14Path)
+                    if (currentHash != null && cacheManager.isDbChanged(currentHash)) {
+                        // DB cambiato - invalida cache
+                        cacheManager.clearCache()
+                    }
+                    
                     _setupState.update { it.copy(
                         isComplete = true,
                         rootStatus = GlobalStepStatus.SUCCESS,

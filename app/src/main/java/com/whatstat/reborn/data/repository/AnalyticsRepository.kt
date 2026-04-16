@@ -4,12 +4,14 @@ import com.whatstat.reborn.data.db.model.*
 import com.whatstat.reborn.data.db.dao.MessageDao
 import com.whatstat.reborn.data.db.dao.ChatDao
 import com.whatstat.reborn.data.db.dao.ContactDao
+import com.whatstat.reborn.data.cache.CacheManager
 import com.whatstat.reborn.domain.model.ChatStats
 import com.whatstat.reborn.domain.model.GlobalStats
 import com.whatstat.reborn.domain.model.SlowChatStats
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.net.URI
 import java.util.regex.Pattern
@@ -24,7 +26,8 @@ import javax.inject.Singleton
 class AnalyticsRepository @Inject constructor(
     private val messageDao: MessageDao,
     private val chatDao: ChatDao,
-    private val contactDao: ContactDao
+    private val contactDao: ContactDao,
+    private val cacheManager: CacheManager
 ) {
 
     /**
@@ -34,8 +37,18 @@ class AnalyticsRepository @Inject constructor(
     suspend fun getQuickGlobalStats(
         timeRange: TimeRange = TimeRange.CUSTOM,
         customRange: DateRange? = null,
+        forceRefresh: Boolean = false,
         onProgress: (Int) -> Unit = {}
     ): GlobalStats = withContext(Dispatchers.IO) {
+        // Prova a usare la cache se non è un force refresh
+        if (!forceRefresh) {
+            val cached = cacheManager.getGlobalStatsFlow().first()
+            if (cached != null) {
+                android.util.Log.d("WhatStat", "Using cached GlobalStats")
+                return@withContext cached
+            }
+        }
+
         val (startTime, endTime) = if (timeRange == TimeRange.CUSTOM && customRange != null) {
             getDateRangeBounds(customRange)
         } else {
@@ -86,9 +99,9 @@ class AnalyticsRepository @Inject constructor(
                 0f
             }
 
-            val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
+val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
 
-            GlobalStats(
+            val stats = GlobalStats(
                 totalMessages       = totalMessages,
                 totalChats          = totalChats,
                 totalContacts       = contactDao.getContactCount(),
@@ -102,11 +115,15 @@ class AnalyticsRepository @Inject constructor(
                 hourlyDistribution  = hourly,
                 weeklyDistribution  = weekly,
                 dayOfMonthDistribution = dayOfMonth,
-monthOfYearDistribution = monthOfYear,
+                monthOfYearDistribution = monthOfYear,
                 yearTrendDistribution = yearTrend,
                 topWords = emptyList(),
                 topEmojis = emptyList()
             )
+            
+            // Salva in cache
+            cacheManager.saveGlobalStats(stats)
+            stats
         }
     }
 

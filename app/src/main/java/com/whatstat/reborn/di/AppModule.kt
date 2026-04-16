@@ -1,6 +1,7 @@
 package com.whatstat.reborn.di
 
 import android.content.Context
+import com.whatstat.reborn.data.cache.CacheManager
 import com.whatstat.reborn.data.crypto.Crypt14Decryptor
 import com.whatstat.reborn.data.crypto.KeyReader
 import com.whatstat.reborn.data.db.WhatsAppDatabase
@@ -51,6 +52,7 @@ object AppModule {
     fun provideAnalyticsRepository(
         messageDao: MessageDao,
         chatDao: ChatDao,
-        contactDao: ContactDao
-    ): AnalyticsRepository = AnalyticsRepository(messageDao, chatDao, contactDao)
+        contactDao: ContactDao,
+        cacheManager: CacheManager
+    ): AnalyticsRepository = AnalyticsRepository(messageDao, chatDao, contactDao, cacheManager)
 }
