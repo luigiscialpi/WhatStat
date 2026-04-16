@@ -475,78 +475,92 @@ class MessageDao @Inject constructor(
 
     private fun countEmojis(texts: List<String>, limit: Int): List<EmojiStat> {
         val freq = mutableMapOf<String, Int>()
-        texts.forEach { text ->
-            extractEmojis(text).forEach { emoji ->
-                freq[emoji] = (freq[emoji] ?: 0) + 1
+        try {
+            texts.forEach { text ->
+                extractEmojis(text).forEach { emoji ->
+                    freq[emoji] = (freq[emoji] ?: 0) + 1
+                }
             }
+        } catch (e: Exception) {
+            android.util.Log.w("WhatStat", "Error counting emojis: ${e.message}")
         }
         return freq.entries.sortedByDescending { it.value }.take(limit).map { EmojiStat(it.key, it.value) }
     }
 
     private fun extractEmojis(text: String): List<String> {
+        if (text.isEmpty()) return emptyList()
         val emojis = mutableListOf<String>()
         var i = 0
-        while (i < text.length) {
-            val codePoint = text.codePointAt(i)
-            val isKeycapBase = codePoint in 0x30..0x39 || codePoint == 0x23 || codePoint == 0x2A
-            
-            if (isEmoji(codePoint) || isKeycapBase) {
-                val emojiChar = String(Character.toChars(codePoint))
-                val nextIndex = i + Character.charCount(codePoint)
-                
-                if (nextIndex < text.length) {
-                    var j = nextIndex
-                    val combined = StringBuilder(emojiChar)
-                    var hasValidModifier = false
-                    
-                    while (j < text.length) {
-                        val nextCodePoint = text.codePointAt(j)
-                        if (nextCodePoint == 0xFE0F.toInt()) {
-                            combined.appendCodePoint(nextCodePoint)
-                            j += Character.charCount(nextCodePoint)
-                            hasValidModifier = true
-                        } else if (nextCodePoint == 0x200D.toInt()) {
-                            combined.appendCodePoint(nextCodePoint)
-                            j += Character.charCount(nextCodePoint)
-                            if (j < text.length && isEmoji(text.codePointAt(j))) {
-                                combined.appendCodePoint(text.codePointAt(j))
-                                j += Character.charCount(text.codePointAt(j))
+        try {
+            while (i < text.length) {
+                val codePoint = text.codePointAt(i)
+                val isKeycapBase = codePoint in 0x30..0x39 || codePoint == 0x23 || codePoint == 0x2A
+
+                if (isEmoji(codePoint) || isKeycapBase) {
+                    val emojiChar = String(Character.toChars(codePoint))
+                    val nextIndex = i + Character.charCount(codePoint)
+
+                    if (nextIndex < text.length) {
+                        var j = nextIndex
+                        val combined = StringBuilder(emojiChar)
+                        var hasValidModifier = false
+
+                        while (j < text.length) {
+                            val nextCodePoint = text.codePointAt(j)
+                            if (nextCodePoint == 0xFE0F.toInt()) {
+                                combined.appendCodePoint(nextCodePoint)
+                                j += Character.charCount(nextCodePoint)
                                 hasValidModifier = true
+                            } else if (nextCodePoint == 0x200D.toInt()) {
+                                combined.appendCodePoint(nextCodePoint)
+                                j += Character.charCount(nextCodePoint)
+                                if (j < text.length && isEmoji(text.codePointAt(j))) {
+                                    combined.appendCodePoint(text.codePointAt(j))
+                                    j += Character.charCount(text.codePointAt(j))
+                                    hasValidModifier = true
+                                }
+                            } else if (isSkinToneModifier(nextCodePoint)) {
+                                combined.appendCodePoint(nextCodePoint)
+                                j += Character.charCount(nextCodePoint)
+                                hasValidModifier = true
+                            } else if (isRegionalIndicator(nextCodePoint)) {
+                                val nextPos = j + Character.charCount(nextCodePoint)
+                                if (nextPos < text.length && isRegionalIndicator(text.codePointAt(nextPos))) {
+                                    combined.appendCodePoint(nextCodePoint)
+                                    combined.appendCodePoint(text.codePointAt(nextPos))
+                                    j = nextPos + Character.charCount(text.codePointAt(nextPos))
+                                    hasValidModifier = true
+                                } else {
+                                    break
+                                }
+                            } else {
+                                break
                             }
-                        } else if (isSkinToneModifier(nextCodePoint)) {
-                            combined.appendCodePoint(nextCodePoint)
-                            j += Character.charCount(nextCodePoint)
-                            hasValidModifier = true
-                        } else if (isRegionalIndicator(nextCodePoint) && j + 1 < text.length && isRegionalIndicator(text.codePointAt(j + Character.charCount(nextCodePoint)))) {
-                            combined.appendCodePoint(nextCodePoint)
-                            combined.appendCodePoint(text.codePointAt(j + Character.charCount(nextCodePoint)))
-                            j += Character.charCount(nextCodePoint) + Character.charCount(text.codePointAt(j))
-                            hasValidModifier = true
-                        } else {
-                            break
                         }
+
+                        if (isKeycapBase && !hasValidModifier) {
+                            i += Character.charCount(codePoint)
+                            continue
+                        }
+                        emojis.add(combined.toString())
+                        i = j
+                        continue
                     }
-                    
-                    if (isKeycapBase && !hasValidModifier) {
+
+                    if (isKeycapBase) {
                         i += Character.charCount(codePoint)
                         continue
                     }
-                    emojis.add(combined.toString())
-                    i = j
-                    continue
-                }
-                
-                if (isKeycapBase) {
+                    emojis.add(emojiChar)
+                    i = nextIndex
+                } else {
                     i += Character.charCount(codePoint)
-                    continue
                 }
-                emojis.add(emojiChar)
-                i = nextIndex
-            } else {
-                i += Character.charCount(codePoint)
             }
+            return emojis
+        } catch (e: Exception) {
+            return emptyList()
         }
-        return emojis
     }
 
     private fun isEmoji(codePoint: Int): Boolean = when (codePoint) {
