@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TextFields
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -266,7 +267,14 @@ fun ChatDetailScreen(
 
                         // ── Conversation Starters ────────────────────────────
                         item {
-                            SectionCard(title = "Chi inizia le conversazioni") {
+                            SectionCard(
+                                title = "Chi inizia le conversazioni",
+                                onInfoClick = {
+                                    tooltipTitle = "Inizio Conversazione"
+                                    tooltipValue = "Una nuova conversazione viene contata quando un messaggio viene inviato dopo almeno 3 ore di silenzio."
+                                    showTooltip = true
+                                }
+                            ) {
                                 if (s.conversationStarterBreakdown.isNotEmpty()) {
                                     val breakdownTotal = s.conversationStarterBreakdown.sumOf { it.count }.coerceAtLeast(1)
                                     MessagePieChart(
@@ -497,6 +505,7 @@ fun ChatDetailScreen(
 private fun SectionCard(
     title: String,
     trailingContent: (@Composable () -> Unit)? = null,
+    onInfoClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     Card(
@@ -512,11 +521,26 @@ private fun SectionCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (onInfoClick != null) {
+                        IconButton(
+                            onClick = onInfoClick,
+                            modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                        ) {
+                            Icon(
+                                Icons.Outlined.Info,
+                                contentDescription = "Informazioni",
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
                 trailingContent?.invoke()
             }
             Spacer(Modifier.height(16.dp))
