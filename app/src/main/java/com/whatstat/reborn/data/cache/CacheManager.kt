@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.whatstat.reborn.data.db.model.*
+import com.whatstat.reborn.domain.model.ChatStats
 import com.whatstat.reborn.domain.model.GlobalStats
 import com.whatstat.reborn.domain.model.SlowChatStats
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -61,11 +62,35 @@ private data class CachedSlowChatStats(
     val longestMessage: String = ""
 )
 
+@Serializable
+private data class CachedQuickChatStats(
+    val contactName: String,
+    val jid: String,
+    val isGroup: Boolean,
+    val totalMessages: Int,
+    val sentByMe: Int,
+    val receivedFromThem: Int,
+    val sentRatio: Float,
+    val firstMessageDate: Long,
+    val lastMessageDate: Long,
+    val averageMessageLength: Float,
+    val mediaCount: Int,
+    val audioCount: Int,
+    val videoCount: Int,
+    val hourlyDistribution: List<CachedHourlyCount> = emptyList(),
+    val weeklyDistribution: List<CachedDayCount> = emptyList(),
+    val dayOfMonthDistribution: List<CachedDayOfMonthCount> = emptyList(),
+    val monthOfYearDistribution: List<CachedMonthOfYearCount> = emptyList(),
+    val yearTrendDistribution: List<CachedYearTrendCount> = emptyList(),
+    val monthlyTrend: List<CachedMonthlyCount> = emptyList()
+)
+
 @Serializable private data class CachedHourlyCount(val hour: Int, val count: Int)
 @Serializable private data class CachedDayCount(val dayOfWeek: Int, val count: Int)
 @Serializable private data class CachedDayOfMonthCount(val day: Int, val count: Int)
 @Serializable private data class CachedMonthOfYearCount(val month: Int, val count: Int)
 @Serializable private data class CachedYearTrendCount(val year: Int, val count: Int)
+@Serializable private data class CachedMonthlyCount(val month: String, val count: Int)
 @Serializable private data class CachedWordFrequency(val word: String, val frequency: Int)
 @Serializable private data class CachedEmojiStat(val emoji: String, val count: Int)
 @Serializable private data class CachedSenderStat(val jid: String, val displayName: String, val count: Int)
@@ -132,6 +157,58 @@ private fun CachedSlowChatStats.toDomain() = SlowChatStats(
     iStartedConversations = iStartedConversations,
     theyStartedConversations = theyStartedConversations,
     longestMessage = longestMessage
+)
+
+private fun ChatStats.toQuickCached() = CachedQuickChatStats(
+    contactName = contactName,
+    jid = jid,
+    isGroup = isGroup,
+    totalMessages = totalMessages,
+    sentByMe = sentByMe,
+    receivedFromThem = receivedFromThem,
+    sentRatio = sentRatio,
+    firstMessageDate = firstMessageDate,
+    lastMessageDate = lastMessageDate,
+    averageMessageLength = averageMessageLength,
+    mediaCount = mediaCount,
+    audioCount = audioCount,
+    videoCount = videoCount,
+    hourlyDistribution = hourlyDistribution.map { CachedHourlyCount(it.hour, it.count) },
+    weeklyDistribution = weeklyDistribution.map { CachedDayCount(it.dayOfWeek, it.count) },
+    dayOfMonthDistribution = dayOfMonthDistribution.map { CachedDayOfMonthCount(it.day, it.count) },
+    monthOfYearDistribution = monthOfYearDistribution.map { CachedMonthOfYearCount(it.month, it.count) },
+    yearTrendDistribution = yearTrendDistribution.map { CachedYearTrendCount(it.year, it.count) },
+    monthlyTrend = monthlyTrend.map { CachedMonthlyCount(it.month, it.count) }
+)
+
+private fun CachedQuickChatStats.toDomain(chatId: Long) = ChatStats(
+    chatId = chatId,
+    contactName = contactName,
+    jid = jid,
+    isGroup = isGroup,
+    totalMessages = totalMessages,
+    sentByMe = sentByMe,
+    receivedFromThem = receivedFromThem,
+    sentRatio = sentRatio,
+    firstMessageDate = firstMessageDate,
+    lastMessageDate = lastMessageDate,
+    averageResponseTimeMs = 0L,
+    iStartedConversations = 0,
+    theyStartedConversations = 0,
+    longestMessage = "",
+    averageMessageLength = averageMessageLength,
+    mediaCount = mediaCount,
+    audioCount = audioCount,
+    videoCount = videoCount,
+    hourlyDistribution = hourlyDistribution.map { HourlyCount(it.hour, it.count) },
+    weeklyDistribution = weeklyDistribution.map { DayCount(it.dayOfWeek, it.count) },
+    dayOfMonthDistribution = dayOfMonthDistribution.map { DayOfMonthCount(it.day, it.count) },
+    monthOfYearDistribution = monthOfYearDistribution.map { MonthOfYearCount(it.month, it.count) },
+    yearTrendDistribution = yearTrendDistribution.map { YearTrendCount(it.year, it.count) },
+    monthlyTrend = monthlyTrend.map { MonthlyCount(it.month, it.count) },
+    topWords = emptyList(),
+    senderBreakdown = emptyList(),
+    conversationStarterBreakdown = emptyList()
 )
 
 // ── CacheManager ─────────────────────────────────────────────────
@@ -243,6 +320,25 @@ class CacheManager @Inject constructor(
         val key = stringPreferencesKey("chat_slow_${chatId}_v2")
         dataStore.edit { prefs ->
             prefs[key] = cacheJson.encodeToString(stats.toCached())
+        }
+    }
+
+    // ── Chat Quick Stats (per chat) ──────────────────────────────
+
+    suspend fun getChatQuickStats(chatId: Long): ChatStats? {
+        val key = stringPreferencesKey("chat_quick_${chatId}_v2")
+        val json = dataStore.data.first()[key] ?: return null
+        return try {
+            cacheJson.decodeFromString<CachedQuickChatStats>(json).toDomain(chatId)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun saveChatQuickStats(chatId: Long, stats: ChatStats) {
+        val key = stringPreferencesKey("chat_quick_${chatId}_v2")
+        dataStore.edit { prefs ->
+            prefs[key] = cacheJson.encodeToString(stats.toQuickCached())
         }
     }
 

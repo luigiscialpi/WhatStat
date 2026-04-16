@@ -185,6 +185,15 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         endTime: Long? = null,
         onProgress: (Int) -> Unit = {}
     ): ChatStats = withContext(Dispatchers.IO) {
+        // Cache solo per ALL_TIME
+        if (startTime == null && endTime == null) {
+            val cached = cacheManager.getChatQuickStats(chatId)
+            if (cached != null) {
+                android.util.Log.d("WhatStat", "Quick ChatStats #$chatId from cache")
+                return@withContext cached
+            }
+        }
+
         val basicInfo = chatDao.getChatBasicInfo(chatId)
 
         coroutineScope {
@@ -218,7 +227,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             
             val total = msgCount.total.coerceAtLeast(1)
 
-            ChatStats(
+            val result = ChatStats(
                 chatId                   = chatId,
                 contactName              = displayName,
                 jid                      = basicInfo.jid,
@@ -247,6 +256,11 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 senderBreakdown          = emptyList(),
                 conversationStarterBreakdown = emptyList()
             )
+            // Salva in cache solo per ALL_TIME
+            if (startTime == null && endTime == null) {
+                cacheManager.saveChatQuickStats(chatId, result)
+            }
+            result
         }
     }
 
