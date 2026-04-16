@@ -2266,6 +2266,7 @@ class AnalyticsRepositoryTest {
 - [x] **Cache solo ALL_TIME** — Filtri temporali ricalcolano sempre dal DB (dati indicizzati, <1s)
 - [x] **Analisi Lessicale opt-in** — Bottone "Avvia analisi" con icona ℹ️ e avviso durata, al posto del caricamento automatico
 - [x] **Auto-restore dalla cache** — Se la cache contiene risultati slow, li mostra senza bottone alla riapertura
+- [x] **Cache Quick Stats per chat** — Distribuzioni orarie/settimanali/mensili e conteggi base cachati per chatId (ALL_TIME); apertura istantanea alla riapertura della chat
 - [ ] Confronto tra periodi temporali
 - [ ] Supporto WhatsApp Business
 - [ ] Modalità "time capsule" (analisi di un anno fa)
@@ -2285,6 +2286,17 @@ class AnalyticsRepositoryTest {
 - [x] **Parole più usate globale** — Word cloud nella Dashboard
 - [x] **Query unificate** — Una sola SELECT per parole+emoji (ottimizzazione 2x)
 - [x] **Lazy loading** — Statistiche lente caricate in background con progress indicator
+
+### v1.6 — Avatar e UI ✅ IMPLEMENTATO
+- [x] **Estrazione avatar** — Copia root di `/data/.../com.whatsapp/files/Avatars/*.j` nella directory privata dell'app, rinominati in `.jpg`
+- [x] **Ricerca dinamica userId** — `extractAvatarDir()` itera su tutti i profili in `/data/user/` (supporta XSpace/profili multipli)
+- [x] **Avatar in lista chat** — Immagine circolare con fallback icona Person/Group
+- [x] **Avatar in dettaglio chat** — Header con avatar cliccabile + tap sul nome per zoom
+- [x] **Avatar zoom a schermo intero** — Overlay nero con immagine fullscreen, tap per chiudere
+- [x] **Avatar in Log Chiamate** — Immagine circolare per ogni contatto nella card di dettaglio
+- [x] **Avatar in Media & Link** — Immagine circolare nella card di ogni mittente
+- [x] **Avatar nel bottom sheet domini** — Header con avatar + nome nell'analisi link per contatto
+- [x] **Coil** — Libreria `coil-compose:2.7.0` per caricamento immagini da `File`
 
 ### Considerazioni per crypt15 (future)
 
