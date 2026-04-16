@@ -45,6 +45,11 @@ class FileExtractor @Inject constructor(
         
         // Per import manuale (db già decifrato)
         const val DB_DECRYPTED_DEST = "msgstore.db"
+        
+        // Percorsi avatar WhatsApp
+        const val AVATAR_DIR_PATH = "/data/data/com.whatsapp/files/Avatars"
+        const val AVATAR_DIR_PATH_ALT = "/data/user/0/com.whatsapp/files/Avatars"
+        const val AVATAR_DIR_DEST = "avatars"
     }
 
     /**
@@ -64,6 +69,9 @@ class FileExtractor @Inject constructor(
             val waDbDest = File(workDir, WA_DB_DEST)
             copyWithUserId(waDbInfo.first, waDbInfo.second, waDbDest)
 
+            // Estrai avatar directory
+            extractAvatarDir()
+
             ExtractedFiles(
                 keyFile     = keyDest,
                 crypt14File = crypt14Dest,
@@ -71,6 +79,54 @@ class FileExtractor @Inject constructor(
             )
         }
     }
+    
+    /**
+     * Estrae la directory degli avatar nella directory privata dell'app.
+     * Itera su tutti gli userId in /data/user (stessa strategia di findWaDbFile).
+     */
+    private suspend fun extractAvatarDir(): File? = withContext(Dispatchers.IO) {
+        val avatarDestDir = File(workDir, AVATAR_DIR_DEST)
+        if (avatarDestDir.exists() && (avatarDestDir.listFiles()?.isNotEmpty() == true)) {
+            return@withContext avatarDestDir
+        }
+
+        val dataUser = SuFile("/data/user")
+        dataUser.listFiles()?.forEach { userDir ->
+            val sourceDir = SuFile(userDir, "com.whatsapp/files/Avatars")
+            android.util.Log.d("WhatStat", "Controllo avatar: ${sourceDir.absolutePath} exists=${sourceDir.exists()}")
+            if (sourceDir.exists() && sourceDir.isDirectory) {
+                avatarDestDir.mkdirs()
+                val files = sourceDir.listFiles()
+                var count = 0
+                files?.forEach { file ->
+                    if (file.isFile && file.name.endsWith(".j")) {
+                        // I file .j sono JPEG con estensione troncata, li rinominiamo in .jpg
+                        val destName = file.name.removeSuffix(".j") + ".jpg"
+                        val destFile = File(avatarDestDir, destName)
+                        try {
+                            SuFileInputStream.open(file).use { input ->
+                                FileOutputStream(destFile).use { output ->
+                                    input.copyTo(output)
+                                }
+                            }
+                            count++
+                        } catch (e: Exception) {
+                            android.util.Log.w("WhatStat", "copyTo failed for ${file.name}: ${e.message}")
+                        }
+                    }
+                }
+                android.util.Log.d("WhatStat", "Avatars extracted: $count file(s) → ${avatarDestDir.absolutePath}")
+                return@withContext avatarDestDir
+            }
+        }
+        android.util.Log.w("WhatStat", "Avatars directory non trovata in nessun profilo utente")
+        null
+    }
+
+    /**
+     * Ritorna la directory degli avatar.
+     */
+    fun getAvatarDir(): File = File(workDir, AVATAR_DIR_DEST)
 
     /**
      * Trova l'userId di WhatsApp e il percorso del file key.

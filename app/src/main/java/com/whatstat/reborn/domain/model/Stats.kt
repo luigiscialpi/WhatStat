@@ -64,7 +64,8 @@ data class ChatStats(
     val topWords: List<WordFrequency>,
     val topEmojis: List<EmojiStat> = emptyList(),
     val senderBreakdown: List<SenderStat> = emptyList(),
-    val conversationStarterBreakdown: List<SenderStat> = emptyList()
+    val conversationStarterBreakdown: List<SenderStat> = emptyList(),
+    val avatarPath: String? = null
 )
 
 /**

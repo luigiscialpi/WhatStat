@@ -108,7 +108,8 @@ data class ChatListItem(
     val displayName: String,
     val isGroup: Boolean,
     val totalMessages: Int,
-    val lastMessageTimestamp: Long
+    val lastMessageTimestamp: Long,
+    val avatarPath: String? = null
 )
 
 /** Statistiche chiamate per contatto */
@@ -120,7 +121,8 @@ data class CallStat(
     val missedCalls: Int,
     val totalDurationSec: Long,
     val audioDurationSec: Long = 0L,
-    val videoDurationSec: Long = 0L
+    val videoDurationSec: Long = 0L,
+    val avatarPath: String? = null
 )
 
 /** Statistiche link e media per contatto */
@@ -128,7 +130,8 @@ data class LinkStat(
     val jid: String,
     val displayName: String?,
     val totalLinks: Int,
-    val mediaCount: Int
+    val mediaCount: Int,
+    val avatarPath: String? = null
 )
 
 /** Risultato ricerca parole */

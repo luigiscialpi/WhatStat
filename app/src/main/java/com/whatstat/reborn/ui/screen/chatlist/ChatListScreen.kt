@@ -42,10 +42,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.graphics.vector.ImageVector
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 
 @Composable
 fun ChatListScreen(
@@ -148,6 +154,7 @@ fun ChatListScreen(
                             name = chat.displayName,
                             messageCount = chat.totalMessages,
                             isGroup = chat.isGroup,
+                            avatarPath = chat.avatarPath,
                             onClick = { onChatSelected(chat.chatId) }
                         )
                     }
@@ -165,6 +172,7 @@ private fun ChatListItem(
     name: String,
     messageCount: Int,
     isGroup: Boolean,
+    avatarPath: String?,
     onClick: () -> Unit
 ) {
     Card(
@@ -204,13 +212,35 @@ private fun ChatListItem(
 
             Spacer(Modifier.width(14.dp))
 
-            // Avatar icon
-            Icon(
-                if (isGroup) Icons.Outlined.Group else Icons.Outlined.Person,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // Avatar image or icon fallback
+            if (avatarPath != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(java.io.File(avatarPath))
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        if (isGroup) Icons.Outlined.Group else Icons.Outlined.Person,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
             Spacer(Modifier.width(10.dp))
 

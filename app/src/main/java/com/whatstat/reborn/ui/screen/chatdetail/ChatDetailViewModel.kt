@@ -1,13 +1,16 @@
 package com.whatstat.reborn.ui.screen.chatdetail
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.whatstat.reborn.data.db.model.DateRange
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.repository.AnalyticsRepository
+import com.whatstat.reborn.data.root.FileExtractor
 import com.whatstat.reborn.domain.model.ChatStats
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,11 +19,13 @@ import kotlinx.coroutines.launch
 import com.whatstat.reborn.data.db.model.WordFrequency
 import com.whatstat.reborn.data.db.model.SenderStat
 import com.whatstat.reborn.data.db.model.EmojiStat
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class ChatDetailViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
+    @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -28,6 +33,16 @@ class ChatDetailViewModel @Inject constructor(
     enum class EmojiViewMode { AGGREGATED, INDIVIDUAL }
 
     private val chatId: Long = savedStateHandle["chatId"] ?: -1L
+
+    private val avatarDir: File by lazy {
+        File(context.filesDir, FileExtractor.AVATAR_DIR_DEST)
+    }
+
+    private fun getAvatarPath(jid: String): String? {
+        if (!avatarDir.exists()) return null
+        val avatarFile = File(avatarDir, jid + ".jpg")
+        return if (avatarFile.exists()) avatarFile.absolutePath else null
+    }
 
     private val _chatStats = MutableStateFlow<ChatStats?>(null)
     val chatStats: StateFlow<ChatStats?> = _chatStats.asStateFlow()
@@ -100,7 +115,8 @@ class ChatDetailViewModel @Inject constructor(
                     onProgress = { progress -> _loadingProgress.value = progress }
                 )
 
-                _chatStats.value = quickStats
+                val avatarPath = getAvatarPath(quickStats.jid)
+                _chatStats.value = quickStats.copy(avatarPath = avatarPath)
                 _isLoading.value = false
                 _loadingProgress.value = null
 
@@ -123,7 +139,8 @@ class ChatDetailViewModel @Inject constructor(
                         averageResponseTimeMs = slowStats.averageResponseTimeMs,
                         iStartedConversations = slowStats.iStartedConversations,
                         theyStartedConversations = slowStats.theyStartedConversations,
-                        longestMessage = slowStats.longestMessage
+                        longestMessage = slowStats.longestMessage,
+                        avatarPath = avatarPath
                     )
                 } catch (e: Exception) {
                     android.util.Log.w("WhatStat", "Slow stats failed: ${e.message}")

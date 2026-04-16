@@ -1,5 +1,6 @@
 package com.whatstat.reborn.ui.screen.media
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.whatstat.reborn.data.db.model.DateRange
@@ -7,20 +8,31 @@ import com.whatstat.reborn.data.db.model.DomainStat
 import com.whatstat.reborn.data.db.model.LinkStat
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.repository.AnalyticsRepository
+import com.whatstat.reborn.data.root.FileExtractor
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class MediaStatsViewModel @Inject constructor(
-    private val analyticsRepository: AnalyticsRepository
+    private val analyticsRepository: AnalyticsRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _linkStats = MutableStateFlow<List<LinkStat>>(emptyList())
     val linkStats: StateFlow<List<LinkStat>> = _linkStats.asStateFlow()
+
+    private val avatarDir: File by lazy { File(context.filesDir, FileExtractor.AVATAR_DIR_DEST) }
+    private fun getAvatarPath(jid: String): String? {
+        if (!avatarDir.exists()) return null
+        val f = File(avatarDir, "$jid.jpg")
+        return if (f.exists()) f.absolutePath else null
+    }
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -46,8 +58,9 @@ class MediaStatsViewModel @Inject constructor(
     private val _topDomains = MutableStateFlow<List<DomainStat>>(emptyList())
     val topDomains: StateFlow<List<DomainStat>> = _topDomains.asStateFlow()
 
-    private val _contactDomainStats = MutableStateFlow<Pair<String, List<DomainStat>>?>(null)
-    val contactDomainStats: StateFlow<Pair<String, List<DomainStat>>?> = _contactDomainStats.asStateFlow()
+    // Triple: (displayName, avatarPath, domains)
+    private val _contactDomainStats = MutableStateFlow<Triple<String, String?, List<DomainStat>>?>(null)
+    val contactDomainStats: StateFlow<Triple<String, String?, List<DomainStat>>?> = _contactDomainStats.asStateFlow()
 
     private val _isDomainLoading = MutableStateFlow(false)
     val isDomainLoading: StateFlow<Boolean> = _isDomainLoading.asStateFlow()
@@ -115,8 +128,10 @@ class MediaStatsViewModel @Inject constructor(
                 if (cid != null) {
                     // Per una chat specifica: mostra direttamente lo split per mittente
                     _linkStats.value = analyticsRepository.getLinkStatsBySender(cid, startTime, endTime)
+                        .map { it.copy(avatarPath = getAvatarPath(it.jid)) }
                 } else {
                     _linkStats.value = analyticsRepository.getLinkStats(null, startTime, endTime)
+                        .map { it.copy(avatarPath = getAvatarPath(it.jid)) }
                 }
                 
                 _loadingProgress.value = 0
@@ -149,6 +164,7 @@ class MediaStatsViewModel @Inject constructor(
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
                 _linkStatsBySender.value = analyticsRepository.getLinkStatsByJid(jid, startTime, endTime)
+                    .map { it.copy(avatarPath = getAvatarPath(it.jid)) }
             } catch (e: Exception) {
                 _linkStatsBySender.value = emptyList()
             }
@@ -166,7 +182,7 @@ class MediaStatsViewModel @Inject constructor(
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
                 val result = analyticsRepository.getLinkStatsBySender(chatId, startTime, endTime)
-                _linkStatsBySender.value = result
+                _linkStatsBySender.value = result.map { it.copy(avatarPath = getAvatarPath(it.jid)) }
             } catch (e: Exception) {
                 _linkStatsBySender.value = emptyList()
             }
@@ -176,7 +192,9 @@ class MediaStatsViewModel @Inject constructor(
     fun loadDomainStatsForContact(jid: String, displayName: String?) {
         viewModelScope.launch {
             _isDomainLoading.value = true
-            _contactDomainStats.value = (displayName ?: jid.substringBefore("@")) to emptyList()
+            val name = displayName ?: jid.substringBefore("@")
+            val avatarPath = getAvatarPath(jid)
+            _contactDomainStats.value = Triple(name, avatarPath, emptyList())
             try {
                 val (startTime, endTime) = if (_selectedTimeRange.value == TimeRange.CUSTOM) {
                     _customDateRange.value?.let {
@@ -193,7 +211,7 @@ class MediaStatsViewModel @Inject constructor(
                     endTime = endTime,
                     onProgress = { progress -> _loadingProgressDomains.value = progress }
                 )
-                _contactDomainStats.value = (displayName ?: jid.substringBefore("@")) to domains
+                _contactDomainStats.value = Triple(name, avatarPath, domains)
             } catch (e: Exception) {
                 // Error handling
             } finally {

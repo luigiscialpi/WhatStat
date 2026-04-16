@@ -1,11 +1,14 @@
 package com.whatstat.reborn.ui.screen.chatlist
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.whatstat.reborn.data.db.dao.ChatDao
 import com.whatstat.reborn.data.db.dao.ContactDao
 import com.whatstat.reborn.data.db.model.ChatListItem
+import com.whatstat.reborn.data.root.FileExtractor
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -14,12 +17,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class ChatListViewModel @Inject constructor(
     private val chatDao: ChatDao,
-    private val contactDao: ContactDao
+    private val contactDao: ContactDao,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _allChats = MutableStateFlow<List<ChatListItem>>(emptyList())
@@ -28,6 +33,18 @@ class ChatListViewModel @Inject constructor(
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    /** Directory dove sono salvati gli avatar. */
+    private val avatarDir: File by lazy {
+        File(context.filesDir, FileExtractor.AVATAR_DIR_DEST)
+    }
+
+    /** Estrae il percorso dell'avatar per un JID. */
+    private fun getAvatarPath(jid: String): String? {
+        if (!avatarDir.exists()) return null
+        val avatarFile = File(avatarDir, jid + ".jpg")
+        return if (avatarFile.exists()) avatarFile.absolutePath else null
+    }
 
     /** Lista filtrata per la search bar. */
     val filteredChats: StateFlow<List<ChatListItem>> = combine(
@@ -57,13 +74,16 @@ class ChatListViewModel @Inject constructor(
 
                 val enrichedChats = chats.map { chat ->
                     val resolvedName = contactNames[chat.jid]
-                    if (resolvedName != null && !chat.isGroup) {
-                        chat.copy(displayName = resolvedName)
-                    } else if (resolvedName != null && chat.displayName.contains("@")) {
-                        chat.copy(displayName = resolvedName)
-                    } else {
-                        chat
+                    val displayName = when {
+                        resolvedName != null && !chat.isGroup -> resolvedName
+                        resolvedName != null && chat.displayName.contains("@") -> resolvedName
+                        else -> chat.displayName
                     }
+                    val avatarPath = getAvatarPath(chat.jid)
+                    chat.copy(
+                        displayName = displayName,
+                        avatarPath = avatarPath
+                    )
                 }
 
                 _allChats.value = enrichedChats
