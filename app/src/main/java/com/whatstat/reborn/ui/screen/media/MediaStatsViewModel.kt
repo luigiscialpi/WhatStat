@@ -3,6 +3,7 @@ package com.whatstat.reborn.ui.screen.media
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.whatstat.reborn.data.db.model.DateRange
+import com.whatstat.reborn.data.db.model.DomainStat
 import com.whatstat.reborn.data.db.model.LinkStat
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.repository.AnalyticsRepository
@@ -45,6 +46,15 @@ class MediaStatsViewModel @Inject constructor(
     private val _debugInfo = MutableStateFlow("")
     val debugInfo: StateFlow<String> = _debugInfo.asStateFlow()
 
+    private val _topDomains = MutableStateFlow<List<DomainStat>>(emptyList())
+    val topDomains: StateFlow<List<DomainStat>> = _topDomains.asStateFlow()
+
+    private val _contactDomainStats = MutableStateFlow<Pair<String, List<DomainStat>>?>(null)
+    val contactDomainStats: StateFlow<Pair<String, List<DomainStat>>?> = _contactDomainStats.asStateFlow()
+
+    private val _isDomainLoading = MutableStateFlow(false)
+    val isDomainLoading: StateFlow<Boolean> = _isDomainLoading.asStateFlow()
+
     fun setChatId(id: Long) {
         _chatId.value = id
         loadStats()
@@ -57,6 +67,7 @@ class MediaStatsViewModel @Inject constructor(
     fun clearSelection() {
         _selectedChatJid.value = null
         _linkStatsBySender.value = emptyList()
+        _contactDomainStats.value = null
     }
 
     fun setSearchQuery(query: String) {
@@ -104,6 +115,10 @@ class MediaStatsViewModel @Inject constructor(
                 } else {
                     _linkStats.value = analyticsRepository.getLinkStats(null, startTime, endTime)
                 }
+                
+                // Carica anche i domini top globali/chat
+                _topDomains.value = analyticsRepository.getTopDomains(cid, null, startTime, endTime)
+                
             } catch (e: Exception) {
                 _linkStats.value = emptyList()
             } finally {
@@ -147,5 +162,31 @@ class MediaStatsViewModel @Inject constructor(
                 _debugInfo.value = "Error: ${e.message}"
             }
         }
+    }
+
+    fun loadDomainStatsForContact(jid: String, displayName: String?) {
+        viewModelScope.launch {
+            _isDomainLoading.value = true
+            _contactDomainStats.value = (displayName ?: jid.substringBefore("@")) to emptyList()
+            try {
+                val (startTime, endTime) = if (_selectedTimeRange.value == TimeRange.CUSTOM) {
+                    _customDateRange.value?.let {
+                        analyticsRepository.getDateRangeBounds(it)
+                    } ?: (null to null)
+                } else {
+                    analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
+                }
+                val domains = analyticsRepository.getTopDomains(null, jid, startTime, endTime)
+                _contactDomainStats.value = (displayName ?: jid.substringBefore("@")) to domains
+            } catch (e: Exception) {
+                // Error handling
+            } finally {
+                _isDomainLoading.value = false
+            }
+        }
+    }
+
+    fun dismissContactDomains() {
+        _contactDomainStats.value = null
     }
 }

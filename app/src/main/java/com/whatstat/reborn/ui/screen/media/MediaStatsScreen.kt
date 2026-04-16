@@ -32,14 +32,18 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,10 +56,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.whatstat.reborn.data.db.model.DomainStat
 import com.whatstat.reborn.data.db.model.LinkStat
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MediaStatsScreen(
     chatId: Long? = null,
@@ -69,11 +75,11 @@ fun MediaStatsScreen(
     val customDateRange by viewModel.customDateRange.collectAsState()
     val debugInfo by viewModel.debugInfo.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val topDomains by viewModel.topDomains.collectAsState()
+    val contactDomainStats by viewModel.contactDomainStats.collectAsState()
+    val isDomainLoading by viewModel.isDomainLoading.collectAsState()
 
-    var showTooltip by remember { mutableStateOf(false) }
-    var tooltipTitle by remember { mutableStateOf("") }
-    var tooltipStats by remember { mutableStateOf<List<Pair<String, Int>>>(emptyList()) }
-    var tooltipTotal by remember { mutableStateOf(0) }
+    val sheetState = rememberModalBottomSheetState()
     var showDebug by remember { mutableStateOf(false) }
 
     LaunchedEffect(chatId) {
@@ -81,8 +87,6 @@ fun MediaStatsScreen(
     }
 
     val isChatDetail = chatId != null
-    // Per chat detail, linkStats contiene già lo split per mittente
-    // Per vista globale, mostra linkStats (per chat) e linkStatsBySender (dopo click)
     val allDisplayStats = if (isChatDetail) linkStats else linkStatsBySender.ifEmpty { linkStats }
     val displayStats = remember(allDisplayStats, searchQuery) {
         if (searchQuery.isBlank()) allDisplayStats
@@ -157,7 +161,7 @@ fun MediaStatsScreen(
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
-            // ── SEARCH BAR (solo se ci sono risultati) ──
+            // ── SEARCH BAR ───────────────────────────────
             if (!isLoading && allDisplayStats.isNotEmpty()) {
                 OutlinedTextField(
                     value = searchQuery,
@@ -211,20 +215,13 @@ fun MediaStatsScreen(
                 }
 
                 else -> {
-                    /* 
-                    Text(
-                        if (isChatDetail) "Media & Link per persona" else "Re dei Link",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                    */
-
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
+                        // Torna indietro (solo breakdown attivo)
                         if (isShowingBreakdown) {
-                            // Show back button row (solo vista globale)
                             item {
                                 Card(
                                     onClick = { viewModel.clearSelection() },
@@ -250,21 +247,84 @@ fun MediaStatsScreen(
                                 }
                             }
                         }
+
+                        // Top domains
+                        if (topDomains.isNotEmpty() && !isShowingBreakdown) {
+                            item {
+                                Text(
+                                    "Domini più condivisi",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(bottom = 16.dp)
+                                ) {
+                                    items(topDomains.take(8)) { domain ->
+                                        DomainChip(domain)
+                                    }
+                                }
+                            }
+                        }
+
+                        item {
+                            Text(
+                                when {
+                                    isShowingBreakdown -> "Dettaglio per contatto"
+                                    isChatDetail -> "Classifica link per persona"
+                                    else -> "Re dei Link"
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+
                         items(displayStats) { stat ->
                             LinkStatCard(
                                 stat = stat,
                                 showTotal = true,
-                                onClick = if (isChatDetail) null else {{
-                                    viewModel.loadLinkStatsBySenderForJid(stat.jid)
-                                }}
+                                onClick = if (isChatDetail) null else {
+                                    { viewModel.loadLinkStatsBySenderForJid(stat.jid) }
+                                },
+                                onLinksClick = {
+                                    viewModel.loadDomainStatsForContact(stat.jid, stat.displayName)
+                                }
                             )
                         }
-                        // Bottom spacer
+
                         item { Spacer(Modifier.height(48.dp)) }
                     }
                 }
             }
         } // fine Column
+
+        // ── DOMAIN ANALYSIS BOTTOM SHEET ──────────────
+        if (contactDomainStats != null) {
+            ModalBottomSheet(
+                onDismissRequest = { viewModel.dismissContactDomains() },
+                sheetState = sheetState,
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp,
+                dragHandle = {
+                    Box(
+                        modifier = Modifier
+                            .padding(vertical = 12.dp)
+                            .width(32.dp)
+                            .height(4.dp)
+                            .background(
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                RoundedCornerShape(2.dp)
+                            )
+                    )
+                }
+            ) {
+                DomainBreakdownSheet(
+                    contactName = contactDomainStats?.first ?: "",
+                    domains = contactDomainStats?.second ?: emptyList(),
+                    isLoading = isDomainLoading
+                )
+            }
+        }
 
         // ── DEBUG PANEL overlay ───────────────────────
         if (showDebug) {
@@ -286,35 +346,34 @@ fun MediaStatsScreen(
 private fun LinkStatCard(
     stat: LinkStat,
     showTotal: Boolean,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    onLinksClick: () -> Unit
 ) {
-    val cardModifier = Modifier.fillMaxWidth()
+    val cardColors = CardDefaults.cardColors(
+        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    )
     if (onClick != null) {
         Card(
             onClick = onClick,
-            modifier = cardModifier,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ),
+            modifier = Modifier.fillMaxWidth(),
+            colors = cardColors,
             shape = RoundedCornerShape(12.dp)
         ) {
-            LinkStatCardContent(stat)
+            LinkStatCardContent(stat, onLinksClick)
         }
     } else {
         Card(
-            modifier = cardModifier,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ),
+            modifier = Modifier.fillMaxWidth(),
+            colors = cardColors,
             shape = RoundedCornerShape(12.dp)
         ) {
-            LinkStatCardContent(stat)
+            LinkStatCardContent(stat, onLinksClick)
         }
     }
 }
 
 @Composable
-private fun LinkStatCardContent(stat: LinkStat) {
+private fun LinkStatCardContent(stat: LinkStat, onLinksClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -353,7 +412,14 @@ private fun LinkStatCardContent(stat: LinkStat) {
             }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.width(56.dp)
+                modifier = Modifier
+                    .width(64.dp)
+                    .clickable { onLinksClick() }
+                    .background(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(vertical = 4.dp)
             ) {
                 Icon(
                     Icons.Outlined.Link,
@@ -371,80 +437,6 @@ private fun LinkStatCardContent(stat: LinkStat) {
                     "link",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun TooltipWithBreakdown(
-    title: String,
-    total: Int,
-    stats: List<Pair<String, Int>>,
-    onDismiss: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clickable(onClick = onDismiss)
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Totale: $total link",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Dettaglio:",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (stats.isEmpty()) {
-                    Text(
-                        "Caricamento...",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    stats.forEach { (name, count) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(name, style = MaterialTheme.typography.bodySmall)
-                            Text(
-                                "$count",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Tap per chiudere",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
             }
         }
@@ -489,67 +481,182 @@ private fun DebugPanel(
                             .padding(8.dp)
                     )
                 }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("chatId: $chatId", style = MaterialTheme.typography.bodySmall, color = Color.Yellow)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "=== linkStats (${linkStats.size}) ===",
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.Cyan
-            )
-            if (linkStats.isEmpty()) {
-                Text("EMPTY", style = MaterialTheme.typography.bodySmall, color = Color.Red)
-            } else {
-                linkStats.take(5).forEach { stat ->
-                    Text(
-                        "${stat.jid} -> ${stat.totalLinks}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White
-                    )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("chatId: $chatId", style = MaterialTheme.typography.bodySmall, color = Color.Yellow)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "=== linkStats (${linkStats.size}) ===",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Cyan
+                )
+                if (linkStats.isEmpty()) {
+                    Text("EMPTY", style = MaterialTheme.typography.bodySmall, color = Color.Red)
+                } else {
+                    linkStats.take(5).forEach { stat ->
+                        Text(
+                            "${stat.jid} -> ${stat.totalLinks}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White
+                        )
+                    }
+                    if (linkStats.size > 5) {
+                        Text(
+                            "... e altri ${linkStats.size - 5}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
                 }
-                if (linkStats.size > 5) {
-                    Text(
-                        "... e altri ${linkStats.size - 5}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "=== linkStatsBySender (${linkStatsBySender.size}) ===",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Cyan
+                )
+                if (linkStatsBySender.isEmpty()) {
+                    Text("EMPTY", style = MaterialTheme.typography.bodySmall, color = Color.Red)
+                } else {
+                    linkStatsBySender.forEach { stat ->
+                        Text(
+                            "${stat.displayName ?: stat.jid} -> ${stat.totalLinks}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White
+                        )
+                    }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "=== DEBUG INFO ===",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.Cyan
+                )
+                Text(
+                    debugInfo.ifEmpty { "(empty - tap a card to load breakdown)" },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Yellow
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Testo selezionabile - long press per copiare",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "=== linkStatsBySender (${linkStatsBySender.size}) ===",
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.Cyan
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun DomainChip(stat: DomainStat) {
+    Box(
+        modifier = Modifier
+            .background(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                RoundedCornerShape(16.dp)
             )
-            if (linkStatsBySender.isEmpty()) {
-                Text("EMPTY", style = MaterialTheme.typography.bodySmall, color = Color.Red)
-            } else {
-                linkStatsBySender.forEach { stat ->
-                    Text(
-                        "${stat.displayName ?: stat.jid} -> ${stat.totalLinks}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "=== DEBUG INFO ===",
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.Cyan
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                RoundedCornerShape(16.dp)
             )
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                debugInfo.ifEmpty { "(empty - tap a card to load breakdown)" },
+                stat.domain,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Yellow
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.width(6.dp))
             Text(
-                "Testo selezionabile - long press per copiare",
+                "${stat.count}",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                color = MaterialTheme.colorScheme.primary
             )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun DomainBreakdownSheet(
+    contactName: String,
+    domains: List<DomainStat>,
+    isLoading: Boolean
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 32.dp)
+    ) {
+        Text(
+            "Analisi Link",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            contactName,
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(Modifier.height(24.dp))
+        when {
+            isLoading && domains.isEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            domains.isEmpty() -> {
+                Text(
+                    "Nessuna statistica di dominio disponibile.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            else -> {
+                val maxCount = domains.maxOf { it.count }.coerceAtLeast(1)
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    domains.take(10).forEach { stat ->
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    stat.domain,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    "${stat.count}",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                progress = { stat.count.toFloat() / maxCount },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                            )
+                        }
+                    }
+                }
             }
         }
     }

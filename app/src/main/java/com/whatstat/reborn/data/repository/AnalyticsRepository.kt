@@ -1,12 +1,9 @@
 package com.whatstat.reborn.data.repository
 
+import com.whatstat.reborn.data.db.model.*
+import com.whatstat.reborn.data.db.dao.MessageDao
 import com.whatstat.reborn.data.db.dao.ChatDao
 import com.whatstat.reborn.data.db.dao.ContactDao
-import com.whatstat.reborn.data.db.dao.MessageDao
-import com.whatstat.reborn.data.db.model.DateRange
-import com.whatstat.reborn.data.db.model.DayCount
-import com.whatstat.reborn.data.db.model.HourlyCount
-import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.domain.model.ChatStats
 import com.whatstat.reborn.domain.model.GlobalStats
 import com.whatstat.reborn.domain.model.SlowChatStats
@@ -14,6 +11,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import java.net.URI
+import java.util.regex.Pattern
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -282,7 +281,7 @@ class AnalyticsRepository @Inject constructor(
     /**
      * Ricerca frequenza parola - versione diretta senza risoluzione nomi
      */
-    suspend fun searchWordDirect(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.WordSearchResult> = withContext(Dispatchers.IO) {
+    suspend fun searchWordDirect(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<WordSearchResult> = withContext(Dispatchers.IO) {
         val results = messageDao.searchWordFrequency(word, chatId, startTime, endTime)
         results
     }
@@ -290,7 +289,7 @@ class AnalyticsRepository @Inject constructor(
     /**
      * Ricerca frequenza parola con filtro temporale e opzionalmente per chat.
      */
-    suspend fun searchWord(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.WordSearchResult> = withContext(Dispatchers.IO) {
+    suspend fun searchWord(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<WordSearchResult> = withContext(Dispatchers.IO) {
         val results = messageDao.searchWordFrequency(word, chatId, startTime, endTime)
         if (results.isEmpty()) return@withContext emptyList()
         
@@ -301,7 +300,7 @@ class AnalyticsRepository @Inject constructor(
         val lidJids = jids.filter { it.endsWith("@lid") }
         val lidToReal = if (lidJids.isNotEmpty()) contactDao.resolveLidToRealJid(lidJids) else emptyMap()
         
-        val aggregated = mutableMapOf<String, com.whatstat.reborn.data.db.model.WordSearchResult>()
+        val aggregated = mutableMapOf<String, WordSearchResult>()
         results.forEach { result ->
             val canonicalJid = lidToReal[result.jid] ?: result.jid
             val displayName = if (canonicalJid == "me@s.whatsapp.net") "Tu"
@@ -319,7 +318,7 @@ class AnalyticsRepository @Inject constructor(
     /**
      * Statistiche chiamate globali o per chat con filtro temporale.
      */
-    suspend fun getCallStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.CallStat> = withContext(Dispatchers.IO) {
+    suspend fun getCallStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<CallStat> = withContext(Dispatchers.IO) {
         val callStats = messageDao.getCallStats(chatId, startTime, endTime)
         if (callStats.isEmpty()) return@withContext emptyList()
         
@@ -336,7 +335,7 @@ class AnalyticsRepository @Inject constructor(
     /**
      * Statistiche link globali o per chat con filtro temporale.
      */
-    suspend fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> = withContext(Dispatchers.IO) {
+    suspend fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<LinkStat> = withContext(Dispatchers.IO) {
         val linkStats = messageDao.getLinkStats(chatId, startTime, endTime)
         if (linkStats.isEmpty()) return@withContext emptyList()
         
@@ -355,7 +354,7 @@ class AnalyticsRepository @Inject constructor(
      * Per chat singole: Tu vs Altro.
      * Per gruppi: tutti i partecipanti.
      */
-    suspend fun getLinkStatsBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> = withContext(Dispatchers.IO) {
+    suspend fun getLinkStatsBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<LinkStat> = withContext(Dispatchers.IO) {
         val linkStats = messageDao.getLinkStatsBySender(chatId, startTime, endTime)
         if (linkStats.isEmpty()) return@withContext emptyList()
         
@@ -366,7 +365,7 @@ class AnalyticsRepository @Inject constructor(
         val lidJids = jids.filter { it.endsWith("@lid") }
         val lidToReal = if (lidJids.isNotEmpty()) contactDao.resolveLidToRealJid(lidJids) else emptyMap()
         
-        val aggregated = mutableMapOf<String, com.whatstat.reborn.data.db.model.LinkStat>()
+        val aggregated = mutableMapOf<String, LinkStat>()
         linkStats.forEach { stat ->
             val canonicalJid = lidToReal[stat.jid] ?: stat.jid
             val displayName = if (canonicalJid == "me@s.whatsapp.net") "Tu"
@@ -388,8 +387,47 @@ class AnalyticsRepository @Inject constructor(
      * Statistiche link per sender dato un JID della chat.
      * Trova prima il chat_id dal JID, poi carica i dettagli per sender.
      */
-    suspend fun getLinkStatsByJid(jid: String, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> = withContext(Dispatchers.IO) {
+    suspend fun getLinkStatsByJid(jid: String, startTime: Long? = null, endTime: Long? = null): List<LinkStat> = withContext(Dispatchers.IO) {
         val chatId = messageDao.getChatIdByJid(jid) ?: return@withContext emptyList()
         getLinkStatsBySender(chatId, startTime, endTime)
+    }
+
+    /**
+     * Recupera i domini più frequenti dai link condivisi.
+     */
+    suspend fun getTopDomains(
+        chatId: Long? = null,
+        jid: String? = null,
+        startTime: Long? = null,
+        endTime: Long? = null
+    ): List<DomainStat> = withContext(Dispatchers.IO) {
+        val texts = messageDao.getLinkTexts(chatId, jid, startTime, endTime)
+        val domainCounts = mutableMapOf<String, Int>()
+        
+        // Regex per estrarre URL
+        val urlPattern = Pattern.compile(
+            "https?://[\\w-.]+(?:\\.[\\w-.]+)+[\\w-./?%&=]*",
+            Pattern.CASE_INSENSITIVE
+        )
+        
+        texts.forEach { text ->
+            val matcher = urlPattern.matcher(text)
+            while (matcher.find()) {
+                val url = matcher.group()
+                try {
+                    val uri = URI(url)
+                    val host = uri.host?.lowercase() ?: continue
+                    // Normalizzazione: rimuove www.
+                    val domain = if (host.startsWith("www.")) host.substring(4) else host
+                    domainCounts[domain] = domainCounts.getOrDefault(domain, 0) + 1
+                } catch (e: Exception) {
+                    // Ignora URL malformati
+                }
+            }
+        }
+        
+        domainCounts.map { DomainStat(it.key, it.value) }
+            .sortedByDescending { it.count }
+            .take(20)
     }
 }

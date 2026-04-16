@@ -1305,6 +1305,34 @@ class MessageDao @Inject constructor(
 
 ## 7. Livello 4 — Analytics Engine
 
+### Modelli di dati (QueryModels.kt)
+
+```kotlin
+// data/db/model/QueryModels.kt
+
+/** Range temporale per i filtri - definito in QueryModels.kt */
+enum class TimeRange(val label: String, val millisBack: Long?) {
+    ALL_TIME("Tutto", null),
+    TODAY("Oggi", 0L),
+    YESTERDAY("Ieri", 86400000L),
+    LAST_7_DAYS("7 giorni", 604800000L),
+    LAST_30_DAYS("30 giorni", 2592000000L),
+    LAST_YEAR("Anno", 31536000000L),
+    CUSTOM("Personalizzato", null)
+}
+
+/** Range temporale custom - definito in QueryModels.kt */
+data class DateRange(
+    val startTime: Long?,
+    val endTime: Long?
+) {
+    companion object {
+        val ALL = DateRange(null, null)
+        val TODAY = DateRange(System.currentTimeMillis() - 86400000L, System.currentTimeMillis())
+    }
+}
+```
+
 ### Modelli di dominio
 
 ```kotlin
@@ -1360,12 +1388,12 @@ data class ChatStats(
 
 data class HourlyCount(val hour: Int, val count: Int)
 data class DayCount(val dayOfWeek: Int, val count: Int)
-data class DayOfMonthCount(val dayOfMonth: Int, val count: Int)
-data class MonthOfYearCount(val monthOfYear: Int, val count: Int)
+data class DayOfMonthCount(val day: Int, val count: Int)
+data class MonthOfYearCount(val month: Int, val count: Int)
 data class YearTrendCount(val year: Int, val count: Int)
 data class MonthlyCount(val month: String, val count: Int)
 data class WordFrequency(val word: String, val frequency: Int)
-data class SenderStat(val sender: String, val count: Int)
+data class SenderStat(val jid: String, val displayName: String, val count: Int)
 
 data class MediaTypeStat(
     val mimeType: String,
@@ -1398,7 +1426,7 @@ class AnalyticsRepository @Inject constructor(
      * Supporta filtro temporale opzionale.
      */
     suspend fun getGlobalStats(
-        timeRange: TimeRange = TimeRange.CUSTOM,
+        timeRange: TimeRange = TimeRange.ALL_TIME,
         customRange: DateRange? = null
     ): GlobalStats = withContext(Dispatchers.IO) {
         val (startTime, endTime) = if (timeRange == TimeRange.CUSTOM && customRange != null) {
@@ -1457,7 +1485,7 @@ class AnalyticsRepository @Inject constructor(
         }
     }
 
-    suspend fun getChatStats(chatId: Long, timeRange: TimeRange = TimeRange.CUSTOM, customRange: DateRange? = null): ChatStats = withContext(Dispatchers.IO) {
+    suspend fun getChatStats(chatId: Long, timeRange: TimeRange = TimeRange.ALL_TIME, customRange: DateRange? = null): ChatStats = withContext(Dispatchers.IO) {
         val (startTime, endTime) = if (timeRange == TimeRange.CUSTOM && customRange != null) {
             getDateRangeBounds(customRange)
         } else {
@@ -1563,65 +1591,14 @@ class AnalyticsRepository @Inject constructor(
 }
 
 /**
- * Range temporale predefinito per le query analitiche.
+ * Le classi TimeRange e DateRange sono definite in data/db/model/QueryModels.kt.
+ * Vedi la sezione "Modelli di dati" in questo documento per i dettagli.
+ * 
+ * TimeRange usa valori: ALL_TIME, TODAY, YESTERDAY, LAST_7_DAYS, LAST_30_DAYS, LAST_YEAR, CUSTOM
+ * DateRange ha campi: startTime: Long?, endTime: Long?
  */
-enum class TimeRange {
-    TODAY, YESTERDAY, LAST_7_DAYS, LAST_30_DAYS, THIS_YEAR, CUSTOM
-}
 
-/**
- * Range temporale custom specificato dall'utente.
- */
-data class DateRange(
-    val startTimestamp: Long,
-    val endTimestamp: Long
-)
-
-/**
- * Helper per calcolare i bounds temporali.
- */
-private fun getTimeRangeBounds(range: TimeRange, customRange: DateRange?): Pair<Long?, Long?> {
-    val now = System.currentTimeMillis()
-    val calendar = Calendar.getInstance()
-    
-    return when (range) {
-        TimeRange.TODAY -> {
-            calendar.set(Calendar.HOUR_OF_DAY, 0)
-            calendar.set(Calendar.MINUTE, 0)
-            calendar.set(Calendar.SECOND, 0)
-            calendar.set(Calendar.MILLISECOND, 0)
-            Pair(calendar.timeInMillis, now)
-        }
-        TimeRange.YESTERDAY -> {
-            calendar.add(Calendar.DAY_OF_YEAR, -1)
-            calendar.set(Calendar.HOUR_OF_DAY, 0)
-            calendar.set(Calendar.MINUTE, 0)
-            val start = calendar.timeInMillis
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
-            calendar.set(Calendar.HOUR_OF_DAY, 0)
-            Pair(start, calendar.timeInMillis)
-        }
-        TimeRange.LAST_7_DAYS -> {
-            calendar.add(Calendar.DAY_OF_YEAR, -7)
-            Pair(calendar.timeInMillis, now)
-        }
-        TimeRange.LAST_30_DAYS -> {
-            calendar.add(Calendar.DAY_OF_YEAR, -30)
-            Pair(calendar.timeInMillis, now)
-        }
-        TimeRange.THIS_YEAR -> {
-            calendar.set(Calendar.DAY_OF_YEAR, 1)
-            calendar.set(Calendar.HOUR_OF_DAY, 0)
-            calendar.set(Calendar.MINUTE, 0)
-            Pair(calendar.timeInMillis, now)
-        }
-        TimeRange.CUSTOM -> customRange?.let { Pair(it.startTimestamp, it.endTimestamp) } ?: Pair(null, null)
-    }
-}
-
-private fun getDateRangeBounds(range: DateRange): Pair<Long?, Long?> {
-    return Pair(range.startTimestamp, range.endTimestamp)
-}
+---
 ```
 
 ---

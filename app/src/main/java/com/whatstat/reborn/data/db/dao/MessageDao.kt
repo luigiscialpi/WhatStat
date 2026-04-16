@@ -1144,4 +1144,48 @@ class MessageDao @Inject constructor(
         )
         return cursor.use { if (it.moveToFirst()) it.getLong(0) else null }
     }
+
+    /**
+     * Recupera i testi di tutti i messaggi che contengono potenzialmente link.
+     * Serve per l'estrazione granulare dei domini in Kotlin.
+     */
+    fun getLinkTexts(chatId: Long? = null, jid: String? = null, startTime: Long? = null, endTime: Long? = null): List<String> {
+        val queryBuilder = StringBuilder("""
+            SELECT text_data 
+            FROM message m
+        """.trimIndent())
+        
+        val conditions = mutableListOf<String>("text_data IS NOT NULL", "(text_data LIKE '%http://%' OR text_data LIKE '%https://%')")
+        val args = mutableListOf<String>()
+
+        if (chatId != null) {
+            conditions.add("m.chat_row_id = ?")
+            args.add(chatId.toString())
+        } else if (jid != null) {
+            queryBuilder.append(" INNER JOIN chat c ON m.chat_row_id = c._id")
+            queryBuilder.append(" INNER JOIN jid j ON c.jid_row_id = j._id")
+            conditions.add("j.raw_string = ?")
+            args.add(jid)
+        }
+
+        if (startTime != null) {
+            conditions.add("m.timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            conditions.add("m.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+
+        queryBuilder.append(" WHERE ${conditions.joinToString(" AND ")}")
+
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
+        return cursor.use { 
+            buildList {
+                while (it.moveToNext()) {
+                    it.getString(0)?.let { add(it) }
+                }
+            }
+        }
+    }
 }

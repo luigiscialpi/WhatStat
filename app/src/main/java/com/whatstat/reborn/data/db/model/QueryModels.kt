@@ -144,3 +144,9 @@ data class SenderStat(
     val displayName: String,
     val count: Int
 )
+
+/** Statistiche frequenza domini link */
+data class DomainStat(
+    val domain: String,
+    val count: Int
+)
