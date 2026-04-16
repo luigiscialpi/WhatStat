@@ -1314,12 +1314,17 @@ data class GlobalStats(
     val totalChats: Int,
     val totalContacts: Int,
     val totalMediaFiles: Int,
-    val oldestMessageDate: Long,    // Unix timestamp ms
+    val oldestMessageDate: Long,       // Unix timestamp ms
     val mostActiveChat: String,
-    val mostActiveHour: Int,        // 0-23
-    val mostActiveDayOfWeek: Int,   // 0=domenica
+    val mostActiveHour: Int,           // 0–23
+    val mostActiveDayOfWeek: Int,      // 0=domenica
     val averageMessagesPerDay: Float,
-    val longestStreak: Int          // giorni consecutivi con almeno un messaggio
+    val longestStreak: Int,            // giorni consecutivi con almeno un messaggio
+    val hourlyDistribution: List<HourlyCount> = emptyList(),
+    val weeklyDistribution: List<DayCount> = emptyList(),
+    val dayOfMonthDistribution: List<DayOfMonthCount> = emptyList(),
+    val monthOfYearDistribution: List<MonthOfYearCount> = emptyList(),
+    val yearTrendDistribution: List<YearTrendCount> = emptyList()
 )
 
 // domain/model/ChatStats.kt
@@ -1331,8 +1336,8 @@ data class ChatStats(
     val totalMessages: Int,
     val sentByMe: Int,
     val receivedFromThem: Int,
-    val sentRatio: Float,           // percentuale messaggi inviati
-    val firstMessageDate: Long,
+    val sentRatio: Float,              // percentuale messaggi inviati (0.0–1.0)
+    val firstMessageDate: Long,        // Unix timestamp ms
     val lastMessageDate: Long,
     val averageResponseTimeMs: Long,
     val iStartedConversations: Int,
@@ -1342,16 +1347,25 @@ data class ChatStats(
     val mediaCount: Int,
     val audioCount: Int,
     val videoCount: Int,
-    val hourlyDistribution: List<HourlyCount>,   // 24 elementi
-    val weeklyDistribution: List<DayCount>,       // 7 elementi
+    val hourlyDistribution: List<HourlyCount>,           // 24 elementi
+    val weeklyDistribution: List<DayCount>,             // 7 elementi
+    val dayOfMonthDistribution: List<DayOfMonthCount> = emptyList(),
+    val monthOfYearDistribution: List<MonthOfYearCount> = emptyList(),
+    val yearTrendDistribution: List<YearTrendCount> = emptyList(),
     val monthlyTrend: List<MonthlyCount>,
-    val topWords: List<WordFrequency>
+    val topWords: List<WordFrequency>,
+    val senderBreakdown: List<SenderStat> = emptyList(),
+    val conversationStarterBreakdown: List<SenderStat> = emptyList()
 )
 
 data class HourlyCount(val hour: Int, val count: Int)
 data class DayCount(val dayOfWeek: Int, val count: Int)
+data class DayOfMonthCount(val dayOfMonth: Int, val count: Int)
+data class MonthOfYearCount(val monthOfYear: Int, val count: Int)
+data class YearTrendCount(val year: Int, val count: Int)
 data class MonthlyCount(val month: String, val count: Int)
 data class WordFrequency(val word: String, val frequency: Int)
+data class SenderStat(val sender: String, val count: Int)
 
 data class MediaTypeStat(
     val mimeType: String,
@@ -1368,96 +1382,168 @@ data class ConversationStarterStats(
 ### AnalyticsRepository.kt
 
 ```kotlin
+/**
+ * Repository per il calcolo delle statistiche.
+ * Aggrega i dati dai vari DAO e calcola metriche derivate.
+ * Supporta filtri temporali opzionali.
+ */
 class AnalyticsRepository @Inject constructor(
     private val messageDao: MessageDao,
     private val chatDao: ChatDao,
     private val contactDao: ContactDao
 ) {
 
-    suspend fun getGlobalStats(): GlobalStats = withContext(Dispatchers.IO) {
-        val totalMessages = messageDao.getTotalMessageCount()
-        val totalChats    = chatDao.getChatCount()
-        val hourly        = messageDao.getGlobalHourlyDistribution()
-        val weekly        = messageDao.getGlobalWeeklyDistribution()
-        val streak        = calculateLongestStreak()
+    /**
+     * Calcola le statistiche globali aggregate su tutte le chat.
+     * Supporta filtro temporale opzionale.
+     */
+    suspend fun getGlobalStats(
+        timeRange: TimeRange = TimeRange.CUSTOM,
+        customRange: DateRange? = null
+    ): GlobalStats = withContext(Dispatchers.IO) {
+        val (startTime, endTime) = if (timeRange == TimeRange.CUSTOM && customRange != null) {
+            getDateRangeBounds(customRange)
+        } else {
+            getTimeRangeBounds(timeRange, customRange)
+        }
+        
+        // Query parallele per massime prestazioni
+        coroutineScope {
+            val dTotalMessages = async { messageDao.getTotalMessageCount(startTime, endTime) }
+            val dTotalChats    = async { chatDao.getChatCount() }
+            val dHourly        = async { messageDao.getGlobalHourlyDistribution(startTime, endTime) }
+            val dWeekly        = async { messageDao.getGlobalWeeklyDistribution(startTime, endTime) }
+            val dDayOfMonth    = async { messageDao.getGlobalDayOfMonthDistribution(startTime, endTime) }
+            val dMonthOfYear   = async { messageDao.getGlobalMonthOfYearDistribution(startTime, endTime) }
+            val dYearTrend     = async { messageDao.getGlobalYearTrendDistribution(startTime, endTime) }
+            val dStreak        = async { calculateLongestStreak(startTime) }
+            val dOldestTs      = async { if (startTime != null) startTime else messageDao.getOldestTimestamp() }
+            val dMediaCount    = async { messageDao.getMediaCount(startTime, endTime) }
+            val dMostActiveChat = async { chatDao.getMostActiveChat(startTime, endTime) }
 
-        GlobalStats(
-            totalMessages        = totalMessages,
-            totalChats           = totalChats,
-            totalContacts        = contactDao.getContactCount(),
-            totalMediaFiles      = messageDao.getMediaCount(),
-            oldestMessageDate    = messageDao.getOldestTimestamp(),
-            mostActiveChat       = chatDao.getMostActiveChat(),
-            mostActiveHour       = hourly.maxByOrNull { it.count }?.hour ?: 0,
-            mostActiveDayOfWeek  = weekly.maxByOrNull { it.count }?.dayOfWeek ?: 0,
-            averageMessagesPerDay = calculateAvgPerDay(totalMessages),
-            longestStreak        = streak
-        )
+            val totalMessages = dTotalMessages.await()
+            val hourly = dHourly.await()
+            val weekly = dWeekly.await()
+            val oldestTs = dOldestTs.await()
+
+            val avgPerDay = if (oldestTs > 0) {
+                val daysSinceFirst = ((System.currentTimeMillis() - oldestTs) / 86400000f)
+                    .coerceAtLeast(1f)
+                totalMessages / daysSinceFirst
+            } else {
+                0f
+            }
+
+            val mostActiveChatJid = dMostActiveChat.await()
+            val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
+
+            GlobalStats(
+                totalMessages       = totalMessages,
+                totalChats          = dTotalChats.await(),
+                totalContacts       = contactDao.getContactCount(),
+                totalMediaFiles     = dMediaCount.await(),
+                oldestMessageDate   = oldestTs,
+                mostActiveChat      = mostActiveChatName,
+                mostActiveHour      = hourly.maxByOrNull { it.count }?.hour ?: 0,
+                mostActiveDayOfWeek = weekly.maxByOrNull { it.count }?.dayOfWeek ?: 0,
+                averageMessagesPerDay = avgPerDay,
+                longestStreak       = dStreak.await(),
+                hourlyDistribution  = hourly,
+                weeklyDistribution  = weekly,
+                dayOfMonthDistribution = dDayOfMonth.await(),
+                monthOfYearDistribution = dMonthOfYear.await(),
+                yearTrendDistribution = dYearTrend.await()
+            )
+        }
     }
 
-    suspend fun getChatStats(chatId: Long): ChatStats = withContext(Dispatchers.IO) {
-        val basicInfo       = chatDao.getChatBasicInfo(chatId)
-        val msgCount        = messageDao.getMessageCountForChat(chatId)
-        val hourly          = messageDao.getHourlyDistribution(chatId)
-        val weekly          = messageDao.getDayOfWeekDistribution(chatId)
-        val monthly         = messageDao.getMonthlyTrend(chatId)
-        val topWords        = messageDao.getTopWords(chatId)
-        val mediaStats      = messageDao.getMediaStats(chatId)
-        val starters        = messageDao.getConversationStarters(chatId)
-        val avgResponseTime = calculateAverageResponseTime(chatId)
+    suspend fun getChatStats(chatId: Long, timeRange: TimeRange = TimeRange.CUSTOM, customRange: DateRange? = null): ChatStats = withContext(Dispatchers.IO) {
+        val (startTime, endTime) = if (timeRange == TimeRange.CUSTOM && customRange != null) {
+            getDateRangeBounds(customRange)
+        } else {
+            getTimeRangeBounds(timeRange, customRange)
+        }
+        
+        coroutineScope {
+            val basicInfo       = async { chatDao.getChatBasicInfo(chatId) }
+            val msgCount        = async { messageDao.getMessageCountForChat(chatId, startTime, endTime) }
+            val hourly          = async { messageDao.getHourlyDistribution(chatId, startTime, endTime) }
+            val weekly          = async { messageDao.getDayOfWeekDistribution(chatId, startTime, endTime) }
+            val dayOfMonth      = async { messageDao.getDayOfMonthDistribution(chatId, startTime, endTime) }
+            val monthOfYear     = async { messageDao.getMonthOfYearDistribution(chatId, startTime, endTime) }
+            val yearTrend       = async { messageDao.getYearTrendDistribution(chatId, startTime, endTime) }
+            val monthly         = async { messageDao.getMonthlyTrend(chatId, startTime, endTime) }
+            val topWords        = async { messageDao.getTopWords(chatId, startTime, endTime) }
+            val mediaStats      = async { messageDao.getMediaStats(chatId, startTime, endTime) }
+            val starters        = async { messageDao.getConversationStarters(chatId, startTime, endTime) }
+            val avgResponseTime = async { calculateAverageResponseTime(chatId, startTime, endTime) }
+            val senderBreakdown = async { messageDao.getSenderBreakdown(chatId, startTime, endTime) }
+            val starterBreakdown = async { messageDao.getConversationStarterBreakdown(chatId, startTime, endTime) }
 
-        ChatStats(
-            chatId                   = chatId,
-            contactName              = basicInfo.name,
-            jid                      = basicInfo.jid,
-            isGroup                  = basicInfo.jid.contains("@g.us"),
-            totalMessages            = msgCount.total,
-            sentByMe                 = msgCount.sent,
-            receivedFromThem         = msgCount.received,
-            sentRatio                = msgCount.sent.toFloat() / msgCount.total,
-            firstMessageDate         = messageDao.getFirstMessageTimestamp(chatId),
-            lastMessageDate          = messageDao.getLastMessageTimestamp(chatId),
-            averageResponseTimeMs    = avgResponseTime,
-            iStartedConversations    = starters.startedByMe,
-            theyStartedConversations = starters.startedByThem,
-            longestMessage           = messageDao.getLongestMessage(chatId),
-            averageMessageLength     = messageDao.getAverageMessageLength(chatId),
-            mediaCount               = mediaStats.sumOf { it.count },
-            audioCount               = mediaStats.filter { it.mimeType.startsWith("audio") }.sumOf { it.count },
-            videoCount               = mediaStats.filter { it.mimeType.startsWith("video") }.sumOf { it.count },
-            hourlyDistribution       = hourly,
-            weeklyDistribution       = weekly,
-            monthlyTrend             = monthly,
-            topWords                 = topWords
-        )
+            val b = basicInfo.await()
+            val m = msgCount.await()
+
+            ChatStats(
+                chatId                   = chatId,
+                contactName              = b.name,
+                jid                      = b.jid,
+                isGroup                  = b.jid.contains("@g.us"),
+                totalMessages            = m.total,
+                sentByMe                 = m.sent,
+                receivedFromThem         = m.received,
+                sentRatio                = if (m.total > 0) m.sent.toFloat() / m.total else 0f,
+                firstMessageDate         = messageDao.getFirstMessageTimestamp(chatId, startTime),
+                lastMessageDate          = messageDao.getLastMessageTimestamp(chatId, endTime),
+                averageResponseTimeMs    = avgResponseTime.await(),
+                iStartedConversations    = starters.await().startedByMe,
+                theyStartedConversations = starters.await().startedByThem,
+                longestMessage           = messageDao.getLongestMessage(chatId, startTime, endTime),
+                averageMessageLength     = messageDao.getAverageMessageLength(chatId, startTime, endTime),
+                mediaCount               = mediaStats.await().sumOf { it.count },
+                audioCount               = mediaStats.await().filter { it.mimeType.startsWith("audio") }.sumOf { it.count },
+                videoCount               = mediaStats.await().filter { it.mimeType.startsWith("video") }.sumOf { it.count },
+                hourlyDistribution       = hourly.await(),
+                weeklyDistribution       = weekly.await(),
+                dayOfMonthDistribution   = dayOfMonth.await(),
+                monthOfYearDistribution  = monthOfYear.await(),
+                yearTrendDistribution    = yearTrend.await(),
+                monthlyTrend             = monthly.await(),
+                topWords                 = topWords.await(),
+                senderBreakdown          = senderBreakdown.await(),
+                conversationStarterBreakdown = starterBreakdown.await()
+            )
+        }
     }
 
     /**
      * Calcola il tempo medio di risposta in millisecondi.
      * Considera solo i cambi di mittente consecutivi (io → loro, loro → io).
      */
-    private suspend fun calculateAverageResponseTime(chatId: Long): Long =
-        withContext(Dispatchers.IO) {
-            val query = """
-                SELECT AVG(response_time) FROM (
-                    SELECT
-                        timestamp - LAG(timestamp) OVER (ORDER BY timestamp) AS response_time,
-                        from_me,
-                        LAG(from_me) OVER (ORDER BY timestamp) AS prev_from_me
-                    FROM message
-                    WHERE chat_row_id = ? AND message_type = 0
-                )
-                WHERE prev_from_me IS NOT NULL AND from_me != prev_from_me
-                  AND response_time < 86400000   -- ignora risposte dopo 24h
-            """.trimIndent()
+    private suspend fun calculateAverageResponseTime(
+        chatId: Long,
+        startTime: Long?,
+        endTime: Long?
+    ): Long = withContext(Dispatchers.IO) {
+        val query = """
+            SELECT AVG(response_time) FROM (
+                SELECT
+                    timestamp - LAG(timestamp) OVER (ORDER BY timestamp) AS response_time,
+                    from_me,
+                    LAG(from_me) OVER (ORDER BY timestamp) AS prev_from_me
+                FROM message
+                WHERE chat_row_id = ? AND message_type = 0
+                ${startTime?.let { "AND timestamp >= $it" } ?: ""}
+                ${endTime?.let { "AND timestamp <= $it" } ?: ""}
+            )
+            WHERE prev_from_me IS NOT NULL AND from_me != prev_from_me
+              AND response_time < 86400000   -- ignora risposte dopo 24h
+        """.trimIndent()
 
-            // Esegui tramite MessageDao (qui semplificato)
-            0L // placeholder
-        }
+        messageDao.executeAvgResponseTime(query, arrayOf(chatId.toString()))
+    }
 
-    private suspend fun calculateLongestStreak(): Int = withContext(Dispatchers.IO) {
-        // Recupera tutte le date con almeno un messaggio
-        val dates = messageDao.getActiveDates()
+    private suspend fun calculateLongestStreak(startTime: Long?): Int = withContext(Dispatchers.IO) {
+        val dates = messageDao.getActiveDates(startTime)
         if (dates.isEmpty()) return@withContext 0
 
         var maxStreak = 1
@@ -1474,11 +1560,67 @@ class AnalyticsRepository @Inject constructor(
         }
         maxStreak
     }
+}
 
-    private fun calculateAvgPerDay(totalMessages: Int): Float {
-        // Semplificazione: calcola su base 365 giorni
-        return totalMessages / 365f
+/**
+ * Range temporale predefinito per le query analitiche.
+ */
+enum class TimeRange {
+    TODAY, YESTERDAY, LAST_7_DAYS, LAST_30_DAYS, THIS_YEAR, CUSTOM
+}
+
+/**
+ * Range temporale custom specificato dall'utente.
+ */
+data class DateRange(
+    val startTimestamp: Long,
+    val endTimestamp: Long
+)
+
+/**
+ * Helper per calcolare i bounds temporali.
+ */
+private fun getTimeRangeBounds(range: TimeRange, customRange: DateRange?): Pair<Long?, Long?> {
+    val now = System.currentTimeMillis()
+    val calendar = Calendar.getInstance()
+    
+    return when (range) {
+        TimeRange.TODAY -> {
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            Pair(calendar.timeInMillis, now)
+        }
+        TimeRange.YESTERDAY -> {
+            calendar.add(Calendar.DAY_OF_YEAR, -1)
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            val start = calendar.timeInMillis
+            calendar.add(Calendar.DAY_OF_YEAR, 1)
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            Pair(start, calendar.timeInMillis)
+        }
+        TimeRange.LAST_7_DAYS -> {
+            calendar.add(Calendar.DAY_OF_YEAR, -7)
+            Pair(calendar.timeInMillis, now)
+        }
+        TimeRange.LAST_30_DAYS -> {
+            calendar.add(Calendar.DAY_OF_YEAR, -30)
+            Pair(calendar.timeInMillis, now)
+        }
+        TimeRange.THIS_YEAR -> {
+            calendar.set(Calendar.DAY_OF_YEAR, 1)
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            Pair(calendar.timeInMillis, now)
+        }
+        TimeRange.CUSTOM -> customRange?.let { Pair(it.startTimestamp, it.endTimestamp) } ?: Pair(null, null)
     }
+}
+
+private fun getDateRangeBounds(range: DateRange): Pair<Long?, Long?> {
+    return Pair(range.startTimestamp, range.endTimestamp)
 }
 ```
 
@@ -2098,13 +2240,14 @@ class AnalyticsRepositoryTest {
 - [x] Search bar nascosta quando non ci sono risultati
 - [x] Icona app ridisegnata (bolla chat verde + barre statistiche bianche)
 
-### v1.3 — UX migliorata
-- [ ] Widget homescreen con stat del giorno
-- [ ] Export statistiche in PDF
-- [ ] Tema chiaro/scuro automatico
-- [ ] Animazioni nelle transizioni
-- [ ] Onboarding guidato
-- [ ] Rilevamento "ghosting" (messaggi senza risposta)
+### v1.3 — UX migliorata ✅ IMPLEMENTATO
+- [x] Metriche di attività complete (distribuzione giornaliera, mensile, annuale)
+- [x] UI a schede (tabs) per visualizzare diverse metriche di attività
+- [x] InteractiveBarChart con supporto scrolling orizzontale
+- [x] Layout migliorato per le card di riepilogo chiamate con divisore verticale
+- [x] Filtri temporali opzionali per tutte le query analitiche
+
+### v1.4 — Feature avanzate
 
 ### v1.4 — Feature avanzate
 - [ ] Confronto tra periodi temporali
