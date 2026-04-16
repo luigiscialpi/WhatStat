@@ -39,42 +39,51 @@ class AnalyticsRepository @Inject constructor(
             getTimeRangeBounds(timeRange, customRange)
         }
         
-        val totalMessages = messageDao.getTotalMessageCount(startTime, endTime)
-        val totalChats    = chatDao.getChatCount()
-        val hourly        = messageDao.getGlobalHourlyDistribution(startTime, endTime)
-        val weekly        = messageDao.getGlobalWeeklyDistribution(startTime, endTime)
-        val streak        = calculateLongestStreak(startTime)
-        val oldestTs      = if (startTime != null) startTime else messageDao.getOldestTimestamp()
+        coroutineScope {
+            val dTotalMessages = async { messageDao.getTotalMessageCount(startTime, endTime) }
+            val dTotalChats    = async { chatDao.getChatCount() }
+            val dHourly        = async { messageDao.getGlobalHourlyDistribution(startTime, endTime) }
+            val dWeekly        = async { messageDao.getGlobalWeeklyDistribution(startTime, endTime) }
+            val dDayOfMonth    = async { messageDao.getGlobalDayOfMonthDistribution(startTime, endTime) }
+            val dMonthOfYear   = async { messageDao.getGlobalMonthOfYearDistribution(startTime, endTime) }
+            val dYearTrend     = async { messageDao.getGlobalYearTrendDistribution(startTime, endTime) }
+            val dStreak        = async { calculateLongestStreak(startTime) }
+            val dOldestTs      = async { if (startTime != null) startTime else messageDao.getOldestTimestamp() }
 
-        val avgPerDay = if (oldestTs > 0) {
-            val daysSinceFirst = ((System.currentTimeMillis() - oldestTs) / 86400000f)
-                .coerceAtLeast(1f)
-            totalMessages / daysSinceFirst
-        } else {
-            0f
+            val totalMessages = dTotalMessages.await()
+            val hourly = dHourly.await()
+            val weekly = dWeekly.await()
+            val oldestTs = dOldestTs.await()
+
+            val avgPerDay = if (oldestTs > 0) {
+                val daysSinceFirst = ((System.currentTimeMillis() - oldestTs) / 86400000f)
+                    .coerceAtLeast(1f)
+                totalMessages / daysSinceFirst
+            } else {
+                0f
+            }
+
+            val mostActiveChatJid = chatDao.getMostActiveChat()
+            val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
+
+            GlobalStats(
+                totalMessages       = totalMessages,
+                totalChats          = dTotalChats.await(),
+                totalContacts       = contactDao.getContactCount(),
+                totalMediaFiles     = messageDao.getMediaCount(),
+                oldestMessageDate   = oldestTs,
+                mostActiveChat      = mostActiveChatName,
+                mostActiveHour      = hourly.maxByOrNull { it.count }?.hour ?: 0,
+                mostActiveDayOfWeek = weekly.maxByOrNull { it.count }?.dayOfWeek ?: 0,
+                averageMessagesPerDay = avgPerDay,
+                longestStreak       = dStreak.await(),
+                hourlyDistribution  = hourly,
+                weeklyDistribution  = weekly,
+                dayOfMonthDistribution = dDayOfMonth.await(),
+                monthOfYearDistribution = dMonthOfYear.await(),
+                yearTrendDistribution = dYearTrend.await()
+            )
         }
-
-        val mostActiveChatJid = chatDao.getMostActiveChat()
-        val mostActiveChatName = if (mostActiveChatJid.contains("@g.us")) {
-            // Per gruppi, il subject è già nel JID? No, è un JID tipo 123@g.us
-            // Risolvi il nome via wa_contacts o chatDao
-            contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
-        } else {
-            contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
-        }
-
-        GlobalStats(
-            totalMessages       = totalMessages,
-            totalChats          = totalChats,
-            totalContacts       = contactDao.getContactCount(),
-            totalMediaFiles     = messageDao.getMediaCount(),
-            oldestMessageDate   = oldestTs,
-            mostActiveChat      = mostActiveChatName,
-            mostActiveHour      = hourly.maxByOrNull { it.count }?.hour ?: 0,
-            mostActiveDayOfWeek = weekly.maxByOrNull { it.count }?.dayOfWeek ?: 0,
-            averageMessagesPerDay = avgPerDay,
-            longestStreak       = streak
-        )
     }
 
     /**
@@ -88,6 +97,9 @@ class AnalyticsRepository @Inject constructor(
             val dMsgCount   = async { messageDao.getMessageCountForChat(chatId, startTime, endTime) }
             val dHourly     = async { messageDao.getHourlyDistribution(chatId, startTime, endTime) }
             val dWeekly     = async { messageDao.getDayOfWeekDistribution(chatId, startTime, endTime) }
+            val dDayOfMonth = async { messageDao.getDayOfMonthDistribution(chatId, startTime, endTime) }
+            val dMonthOfYear = async { messageDao.getMonthOfYearDistribution(chatId, startTime, endTime) }
+            val dYearTrend  = async { messageDao.getYearTrendDistribution(chatId, startTime, endTime) }
             val dMonthly    = async { messageDao.getMonthlyTrend(chatId) }
             val dMediaStats = async { messageDao.getMediaStats(chatId) }
             val dFirstTs    = async { messageDao.getFirstMessageTimestamp(chatId) }
@@ -125,6 +137,9 @@ class AnalyticsRepository @Inject constructor(
                 videoCount               = mediaStats.filter { it.mimeType.startsWith("video") }.sumOf { it.count },
                 hourlyDistribution       = dHourly.await(),
                 weeklyDistribution       = dWeekly.await(),
+                dayOfMonthDistribution   = dDayOfMonth.await(),
+                monthOfYearDistribution  = dMonthOfYear.await(),
+                yearTrendDistribution    = dYearTrend.await(),
                 monthlyTrend             = dMonthly.await(),
                 topWords                 = emptyList(),
                 senderBreakdown          = emptyList(),

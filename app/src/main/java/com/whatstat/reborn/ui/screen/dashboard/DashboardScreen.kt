@@ -54,9 +54,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
-import com.whatstat.reborn.ui.component.HourlyHeatmap
 import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
-import com.whatstat.reborn.ui.component.InteractiveDailyBarChart
+import com.whatstat.reborn.ui.component.ActivityRecapCard
 import com.whatstat.reborn.ui.component.ChartTooltip
 import com.whatstat.reborn.ui.component.StatCard
 
@@ -72,6 +71,9 @@ fun DashboardScreen(
     val stats by viewModel.globalStats.collectAsState()
     val hourlyData by viewModel.hourlyData.collectAsState()
     val weeklyData by viewModel.weeklyData.collectAsState()
+    val dailyData by viewModel.dayOfMonthData.collectAsState()
+    val monthlyData by viewModel.monthOfYearData.collectAsState()
+    val yearlyData by viewModel.yearTrendData.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
@@ -252,73 +254,20 @@ fun DashboardScreen(
                     }
                 }
 
-                // ── Heatmap oraria ───────────────────────────────────
+                // ── Activity Recap Card (Tabbed) ──────────────────────────
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(Modifier.padding(20.dp)) {
-                            Text(
-                                "Quando sei più attivo",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "Distribuzione oraria dei messaggi",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.height(16.dp))
-                            InteractiveHourlyHeatmap(
-                                hourlyData = hourlyData,
-                                onHourClick = { hour, count ->
-                                    tooltipTitle = "Ore $hour:00 - $hour:59"
-                                    tooltipValue = "%,d messaggi".format(count)
-                                    showTooltip = true
-                                }
-                            )
+                    ActivityRecapCard(
+                        hourlyData = hourlyData,
+                        weeklyData = weeklyData,
+                        dailyData = dailyData,
+                        monthlyData = monthlyData,
+                        yearlyData = yearlyData,
+                        onPointClick = { title, value ->
+                            tooltipTitle = title
+                            tooltipValue = value
+                            showTooltip = true
                         }
-                    }
-                }
-
-                // ── Heatmap settimanale ─────────────────────────────────
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(Modifier.padding(20.dp)) {
-                            Text(
-                                "Attività settimanale",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "Distribuzione dei messaggi per giorno della settimana",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.height(16.dp))
-                            InteractiveDailyBarChart(
-                                data = weeklyData,
-                                onDayClick = { day, count ->
-                                    val dayNames = listOf("Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab")
-                                    tooltipTitle = dayNames.getOrElse(day) { "Giorno $day" }
-                                    tooltipValue = "%,d messaggi".format(count)
-                                    showTooltip = true
-                                }
-                            )
-                        }
-                    }
+                    )
                 }
 
                 // ── Action Grid (2x2) ────────────────────────────────

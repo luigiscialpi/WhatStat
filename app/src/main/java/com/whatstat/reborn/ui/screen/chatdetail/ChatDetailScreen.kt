@@ -57,9 +57,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.reborn.data.db.model.TimeRange
+import com.whatstat.reborn.ui.component.ActivityRecapCard
 import com.whatstat.reborn.ui.component.ChartTooltip
 import com.whatstat.reborn.ui.component.DateRangePicker
-import com.whatstat.reborn.ui.component.InteractiveDailyBarChart
 import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
 import com.whatstat.reborn.ui.component.StatCard
 import com.whatstat.reborn.ui.component.WordCloudView
@@ -283,36 +283,20 @@ fun ChatDetailScreen(
                             }
                         }
 
-                        // ── Hourly Heatmap ───────────────────────────────────
+                        // ── Activity Recap Card (Tabbed) ──────────────────────────
                         item {
-                            SectionCard(title = "Attività oraria") {
-                                InteractiveHourlyHeatmap(
-                                    hourlyData = s.hourlyDistribution,
-                                    onHourClick = { hour, count ->
-                                        tooltipTitle = "Ore $hour:00 - $hour:59"
-                                        tooltipValue = "%,d messaggi".format(count)
-                                        showTooltip = true
-                                    }
-                                )
-                            }
-                        }
-
-                        // ── Weekly Distribution ──────────────────────────────
-                        item {
-                            SectionCard(title = "Attività settimanale") {
-                                InteractiveDailyBarChart(
-                                    data = s.weeklyDistribution,
-                                    onDayClick = { day, count ->
-                                        val dayNames = listOf(
-                                            "Domenica", "Lunedì", "Martedì",
-                                            "Mercoledì", "Giovedì", "Venerdì", "Sabato"
-                                        )
-                                        tooltipTitle = dayNames.getOrElse(day) { "Giorno $day" }
-                                        tooltipValue = "%,d messaggi".format(count)
-                                        showTooltip = true
-                                    }
-                                )
-                            }
+                            ActivityRecapCard(
+                                hourlyData = s.hourlyDistribution,
+                                weeklyData = s.weeklyDistribution,
+                                dailyData = s.dayOfMonthDistribution,
+                                monthlyData = s.monthOfYearDistribution,
+                                yearlyData = s.yearTrendDistribution,
+                                onPointClick = { title, value ->
+                                    tooltipTitle = title
+                                    tooltipValue = value
+                                    showTooltip = true
+                                }
+                            )
                         }
 
                         // ── Top Words ────────────────────────────────────────

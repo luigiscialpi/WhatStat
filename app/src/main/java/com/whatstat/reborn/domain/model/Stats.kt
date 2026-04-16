@@ -1,8 +1,11 @@
 package com.whatstat.reborn.domain.model
 
 import com.whatstat.reborn.data.db.model.DayCount
+import com.whatstat.reborn.data.db.model.DayOfMonthCount
 import com.whatstat.reborn.data.db.model.HourlyCount
+import com.whatstat.reborn.data.db.model.MonthOfYearCount
 import com.whatstat.reborn.data.db.model.MonthlyCount
+import com.whatstat.reborn.data.db.model.YearTrendCount
 import com.whatstat.reborn.data.db.model.SenderStat
 import com.whatstat.reborn.data.db.model.WordFrequency
 
@@ -19,7 +22,12 @@ data class GlobalStats(
     val mostActiveHour: Int,           // 0–23
     val mostActiveDayOfWeek: Int,      // 0=domenica
     val averageMessagesPerDay: Float,
-    val longestStreak: Int             // giorni consecutivi con almeno un messaggio
+    val longestStreak: Int,             // giorni consecutivi con almeno un messaggio
+    val hourlyDistribution: List<HourlyCount> = emptyList(),
+    val weeklyDistribution: List<DayCount> = emptyList(),
+    val dayOfMonthDistribution: List<DayOfMonthCount> = emptyList(),
+    val monthOfYearDistribution: List<MonthOfYearCount> = emptyList(),
+    val yearTrendDistribution: List<YearTrendCount> = emptyList()
 )
 
 /**
@@ -46,6 +54,9 @@ data class ChatStats(
     val videoCount: Int,
     val hourlyDistribution: List<HourlyCount>,   // 24 elementi
     val weeklyDistribution: List<DayCount>,       // 7 elementi
+    val dayOfMonthDistribution: List<DayOfMonthCount> = emptyList(),
+    val monthOfYearDistribution: List<MonthOfYearCount> = emptyList(),
+    val yearTrendDistribution: List<YearTrendCount> = emptyList(),
     val monthlyTrend: List<MonthlyCount>,
     val topWords: List<WordFrequency>,
     val senderBreakdown: List<SenderStat> = emptyList(),

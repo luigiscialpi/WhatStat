@@ -49,9 +49,27 @@ data class DayCount(
     val count: Int
 )
 
-/** Conteggio mensile (formato "YYYY-MM") */
+/** Conteggio mensile (formato "YYYY-MM") - usato per i trend storici */
 data class MonthlyCount(
     val month: String,
+    val count: Int
+)
+
+/** Conteggio per giorno del mese (1-31) */
+data class DayOfMonthCount(
+    val day: Int,
+    val count: Int
+)
+
+/** Conteggio per mese dell'anno (1-12) */
+data class MonthOfYearCount(
+    val month: Int,
+    val count: Int
+)
+
+/** Conteggio per anno solare */
+data class YearTrendCount(
+    val year: Int,
     val count: Int
 )
 

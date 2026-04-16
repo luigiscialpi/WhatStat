@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.whatstat.reborn.data.db.model.DateRange
 import com.whatstat.reborn.data.db.model.DayCount
+import com.whatstat.reborn.data.db.model.DayOfMonthCount
 import com.whatstat.reborn.data.db.model.HourlyCount
+import com.whatstat.reborn.data.db.model.MonthOfYearCount
 import com.whatstat.reborn.data.db.model.TimeRange
+import com.whatstat.reborn.data.db.model.YearTrendCount
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.domain.model.GlobalStats
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,6 +31,15 @@ class DashboardViewModel @Inject constructor(
 
     private val _weeklyData = MutableStateFlow<List<DayCount>>(emptyList())
     val weeklyData: StateFlow<List<DayCount>> = _weeklyData.asStateFlow()
+
+    private val _dayOfMonthData = MutableStateFlow<List<DayOfMonthCount>>(emptyList())
+    val dayOfMonthData: StateFlow<List<DayOfMonthCount>> = _dayOfMonthData.asStateFlow()
+
+    private val _monthOfYearData = MutableStateFlow<List<MonthOfYearCount>>(emptyList())
+    val monthOfYearData: StateFlow<List<MonthOfYearCount>> = _monthOfYearData.asStateFlow()
+
+    private val _yearTrendData = MutableStateFlow<List<YearTrendCount>>(emptyList())
+    val yearTrendData: StateFlow<List<YearTrendCount>> = _yearTrendData.asStateFlow()
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -61,11 +73,13 @@ class DashboardViewModel @Inject constructor(
                 val stats = analyticsRepository.getGlobalStats(_selectedTimeRange.value, _customDateRange.value)
                 _globalStats.value = stats
 
-                val hourly = analyticsRepository.getGlobalHourlyDistribution(startTime, endTime)
-                _hourlyData.value = hourly
-
-                val weekly = analyticsRepository.getGlobalWeeklyDistribution(startTime, endTime)
-                _weeklyData.value = weekly
+                if (stats != null) {
+                    _hourlyData.value = stats.hourlyDistribution
+                    _weeklyData.value = stats.weeklyDistribution
+                    _dayOfMonthData.value = stats.dayOfMonthDistribution
+                    _monthOfYearData.value = stats.monthOfYearDistribution
+                    _yearTrendData.value = stats.yearTrendDistribution
+                }
             } catch (e: Exception) {
                 _error.value = "Errore: ${e.message}"
             } finally {
