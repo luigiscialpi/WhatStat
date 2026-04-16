@@ -3,6 +3,7 @@ package com.whatstat.reborn.ui.screen.calls
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Assessment
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Search
@@ -37,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -253,28 +256,53 @@ private fun CallSummaryCard(totals: CallStat) {
 
             // Contatori
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.Call, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text("${totals.totalCalls}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Outlined.Assessment,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "${totals.totalCalls}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                     Text("Totali", style = MaterialTheme.typography.bodySmall)
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.Call, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text("$audioCalls", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("Audio", style = MaterialTheme.typography.bodySmall)
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.Videocam, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
-                    Text("${totals.videoCalls}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("Video", style = MaterialTheme.typography.bodySmall)
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.AutoMirrored.Outlined.PhoneMissed, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Text("${totals.missedCalls}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("Perse", style = MaterialTheme.typography.bodySmall)
+
+                VerticalDivider(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    thickness = 2.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                )
+
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Outlined.Call, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text("$audioCalls", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Audio", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Outlined.Videocam, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                        Text("${totals.videoCalls}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Video", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.AutoMirrored.Outlined.PhoneMissed, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Text("${totals.missedCalls}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Perse", style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
 
