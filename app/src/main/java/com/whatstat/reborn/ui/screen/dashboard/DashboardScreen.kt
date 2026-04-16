@@ -61,6 +61,7 @@ import com.whatstat.reborn.ui.component.ActivityRecapCard
 import com.whatstat.reborn.ui.component.ChartTooltip
 import com.whatstat.reborn.ui.component.StatCard
 import com.whatstat.reborn.ui.component.InteractiveEmojiCloud
+import com.whatstat.reborn.ui.component.InteractiveWordCloud
 
 @Composable
 fun DashboardScreen(
@@ -256,6 +257,31 @@ fun DashboardScreen(
                             showTooltip = true
                         }
                     )
+                }
+
+                // ── Top Words ────────────────────────────────────────────
+                item {
+                    stats?.let { s ->
+                        SectionCard(
+                            title = "Parole più usate",
+                            subtitle = "Le parole più frequenti in assoluto"
+                        ) {
+                            when {
+                                isLoadingSlow && s.topWords.isEmpty() -> {
+                                    LoadingSection(progress = progressSlow)
+                                }
+                                s.topWords.isEmpty() -> {
+                                    Text("Nessuna parola trovata", style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                }
+                                else -> {
+                                    InteractiveWordCloud(words = s.topWords.take(20), onWordClick = { word, count ->
+                                        tooltipTitle = word; tooltipValue = "%,d volte".format(count); showTooltip = true
+                                    })
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // ── Top Emojis ───────────────────────────────────────────

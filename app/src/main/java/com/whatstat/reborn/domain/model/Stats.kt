@@ -29,6 +29,7 @@ data class GlobalStats(
     val dayOfMonthDistribution: List<DayOfMonthCount> = emptyList(),
     val monthOfYearDistribution: List<MonthOfYearCount> = emptyList(),
     val yearTrendDistribution: List<YearTrendCount> = emptyList(),
+    val topWords: List<WordFrequency> = emptyList(),
     val topEmojis: List<EmojiStat> = emptyList()
 )
 

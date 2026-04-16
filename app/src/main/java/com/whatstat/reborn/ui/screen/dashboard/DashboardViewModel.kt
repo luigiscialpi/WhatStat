@@ -107,7 +107,10 @@ class DashboardViewModel @Inject constructor(
                         endTime = endTime,
                         onProgress = { progress -> _loadingProgressSlow.value = progress }
                     )
-                    _globalStats.value = _globalStats.value?.copy(topEmojis = slowStats.topEmojis)
+                    _globalStats.value = _globalStats.value?.copy(
+                            topWords = slowStats.topWords,
+                            topEmojis = slowStats.topEmojis
+                        )
                 } catch (e: Exception) {
                     android.util.Log.w("WhatStat", "Slow stats failed: ${e.message}")
                 } finally {

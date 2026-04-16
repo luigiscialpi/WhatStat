@@ -159,6 +159,42 @@ class MessageDao @Inject constructor(
         return countEmojis(texts, limit)
     }
 
+    /**
+     * Estrae parole e emoji in un'unica query.
+     * Risparmio: una sola SELECT invece di due.
+     */
+    fun getGlobalWordsAndEmojis(
+        startTime: Long? = null,
+        endTime: Long? = null,
+        wordsLimit: Int = 30,
+        emojisLimit: Int = 30
+    ): Pair<List<WordFrequency>, List<EmojiStat>> {
+        val queryBuilder = StringBuilder("""
+            SELECT text_data FROM message WHERE message_type = 0 AND text_data IS NOT NULL
+        """.trimIndent())
+        val args = mutableListOf<String>()
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
+        val texts = cursor.use {
+            buildList {
+                while (it.moveToNext()) {
+                    val text = it.getString(0)
+                    if (!text.isNullOrBlank()) add(text)
+                }
+            }
+        }
+        val words = countWords(texts, wordsLimit)
+        val emojis = countEmojis(texts, emojisLimit)
+        return words to emojis
+    }
+
     /** Distribuzione per giorno del mese (1-31) globale. */
     fun getGlobalDayOfMonthDistribution(startTime: Long? = null, endTime: Long? = null): List<DayOfMonthCount> {
         val queryBuilder = StringBuilder("""
@@ -471,6 +507,67 @@ class MessageDao @Inject constructor(
             }
         }
         return countEmojis(texts, limit)
+    }
+
+    /**
+     * Estrae parole e emoji per una chat in un'unica query.
+     */
+    fun getWordsAndEmojis(
+        chatId: Long,
+        jid: String? = null,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        wordsLimit: Int = 30,
+        emojisLimit: Int = 30
+    ): Pair<List<WordFrequency>, List<EmojiStat>> {
+        val conditions = mutableListOf<String>()
+        val args = mutableListOf<String>()
+        
+        conditions.add("chat_row_id = ? AND text_data IS NOT NULL AND message_type = 0")
+        args.add(chatId.toString())
+        
+        if (jid != null) {
+            if (jid == "me@s.whatsapp.net") {
+                conditions.add("from_me = 1")
+            } else {
+                conditions.add("""
+                    (
+                        (sender_jid_row_id = (SELECT _id FROM jid WHERE raw_string = ?))
+                        OR 
+                        (from_me = 0 AND 0 = (SELECT sender_jid_row_id FROM message m2 WHERE m2._id = m._id))
+                    )
+                """.trimIndent())
+                args.add(jid)
+            }
+        }
+        
+        if (startTime != null) {
+            conditions.add("timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            conditions.add("m.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        
+        val query = """
+            SELECT text_data
+            FROM message m
+            WHERE ${conditions.joinToString(" AND ")}
+        """.trimIndent()
+
+        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
+        val texts = cursor.use {
+            buildList {
+                while (it.moveToNext()) {
+                    val text = it.getString(0)
+                    if (!text.isNullOrBlank()) add(text)
+                }
+            }
+        }
+        val words = countWords(texts, wordsLimit)
+        val emojis = countEmojis(texts, emojisLimit)
+        return words to emojis
     }
 
     private fun countEmojis(texts: List<String>, limit: Int): List<EmojiStat> {

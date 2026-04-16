@@ -102,15 +102,16 @@ class AnalyticsRepository @Inject constructor(
                 hourlyDistribution  = hourly,
                 weeklyDistribution  = weekly,
                 dayOfMonthDistribution = dayOfMonth,
-                monthOfYearDistribution = monthOfYear,
+monthOfYearDistribution = monthOfYear,
                 yearTrendDistribution = yearTrend,
-                topEmojis          = emptyList()
+                topWords = emptyList(),
+                topEmojis = emptyList()
             )
-}
+        }
     }
 
     /**
-     * Carica solo le statistiche "lente" (emoji).
+     * Carica le statistiche "lente" (parole + emoji) in un'unica query.
      */
     suspend fun getSlowGlobalStats(
         startTime: Long? = null,
@@ -118,17 +119,17 @@ class AnalyticsRepository @Inject constructor(
         onProgress: (Int) -> Unit = {}
     ): GlobalStats = withContext(Dispatchers.IO) {
         onProgress(0)
-        val topEmojis = try {
-            messageDao.getGlobalTopEmojis(startTime, endTime, 30)
+        val (topWords, topEmojis) = try {
+            messageDao.getGlobalWordsAndEmojis(startTime, endTime, 30, 30)
         } catch (e: Exception) {
-            android.util.Log.w("WhatStat", "getGlobalTopEmojis failed: ${e.message}")
-            emptyList()
+            android.util.Log.w("WhatStat", "getGlobalWordsAndEmojis failed: ${e.message}")
+            Pair(emptyList(), emptyList())
         }
         onProgress(100)
         GlobalStats(
             totalMessages = 0, totalChats = 0, totalContacts = 0, totalMediaFiles = 0,
             oldestMessageDate = 0, mostActiveChat = "", mostActiveHour = 0, mostActiveDayOfWeek = 0,
-            averageMessagesPerDay = 0f, longestStreak = 0, topEmojis = topEmojis
+            averageMessagesPerDay = 0f, longestStreak = 0, topWords = topWords, topEmojis = topEmojis
         )
     }
 
@@ -220,8 +221,7 @@ class AnalyticsRepository @Inject constructor(
         val basicInfo = chatDao.getChatBasicInfo(chatId)
 
         coroutineScope {
-            val dTopWords   = async { messageDao.getTopWords(chatId = chatId, startTime = startTime, endTime = endTime) }
-            val dTopEmojis  = async { messageDao.getTopEmojis(chatId = chatId, startTime = startTime, endTime = endTime) }
+            val dWordsAndEmojis = async { messageDao.getWordsAndEmojis(chatId = chatId, startTime = startTime, endTime = endTime) }
             val dStarters   = async { messageDao.getConversationStarters(chatId) }
             val dAvgResp    = async { messageDao.getAverageResponseTime(chatId) }
             val dSenders    = async { messageDao.getMessageCountBySender(chatId, startTime, endTime) }
@@ -235,8 +235,7 @@ class AnalyticsRepository @Inject constructor(
             onProgress(50)
             val rawStarters = dStartersBySender.await()
             onProgress(65)
-            val topWords = dTopWords.await()
-            val topEmojis = dTopEmojis.await()
+            val (topWords, topEmojis) = dWordsAndEmojis.await()
             onProgress(95)
             val avgResp = dAvgResp.await()
             val longest = dLongest.await()
