@@ -60,6 +60,7 @@ import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
 import com.whatstat.reborn.ui.component.ActivityRecapCard
 import com.whatstat.reborn.ui.component.ChartTooltip
 import com.whatstat.reborn.ui.component.StatCard
+import com.whatstat.reborn.ui.component.InteractiveEmojiCloud
 
 @Composable
 fun DashboardScreen(
@@ -255,6 +256,25 @@ fun DashboardScreen(
                     )
                 }
 
+                // ── Top Emojis ───────────────────────────────────────────
+                item {
+                    stats?.let { s ->
+                        SectionCard(
+                            title = "Emoji più usate",
+                            subtitle = "Le emoji più frequenti in assoluto"
+                        ) {
+                            if (s.topEmojis.isEmpty()) {
+                                Text("Nessuna emoji trovata", style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                            } else {
+                                InteractiveEmojiCloud(emojis = s.topEmojis.take(20), onEmojiClick = { emoji, count ->
+                                    tooltipTitle = emoji; tooltipValue = "%,d volte".format(count); showTooltip = true
+                                })
+                            }
+                        }
+                    }
+                }
+
                 // ── Action Grid (2x2) ────────────────────────────────
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -351,6 +371,39 @@ private fun ActionCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1
             )
+        }
+    }
+}
+
+@Composable
+private fun SectionCard(
+    title: String,
+    subtitle: String? = null,
+    trailingContent: (@Composable () -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                    if (subtitle != null) {
+                        Text(subtitle, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
+                if (trailingContent != null) { trailingContent() }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            content()
         }
     }
 }

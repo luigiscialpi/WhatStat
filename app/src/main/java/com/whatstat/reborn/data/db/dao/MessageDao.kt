@@ -134,6 +134,31 @@ class MessageDao @Inject constructor(
         return cursor.use { parseHourlyCount(it) }
     }
 
+    fun getGlobalTopEmojis(startTime: Long? = null, endTime: Long? = null, limit: Int = 30): List<EmojiStat> {
+        val queryBuilder = StringBuilder("""
+            SELECT text_data FROM message WHERE message_type = 0 AND text_data IS NOT NULL
+        """.trimIndent())
+        val args = mutableListOf<String>()
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
+        val texts = cursor.use {
+            buildList {
+                while (it.moveToNext()) {
+                    val text = it.getString(0)
+                    if (!text.isNullOrBlank()) add(text)
+                }
+            }
+        }
+        return countEmojis(texts, limit)
+    }
+
     /** Distribuzione per giorno del mese (1-31) globale. */
     fun getGlobalDayOfMonthDistribution(startTime: Long? = null, endTime: Long? = null): List<DayOfMonthCount> {
         val queryBuilder = StringBuilder("""
@@ -398,6 +423,141 @@ class MessageDao @Inject constructor(
         }
         return countWords(texts, limit)
     }
+
+    fun getTopEmojis(chatId: Long, jid: String? = null, startTime: Long? = null, endTime: Long? = null, limit: Int = 50): List<EmojiStat> {
+        val conditions = mutableListOf<String>()
+        val args = mutableListOf<String>()
+        
+        conditions.add("chat_row_id = ? AND text_data IS NOT NULL AND message_type = 0")
+        args.add(chatId.toString())
+        
+        if (jid != null) {
+            if (jid == "me@s.whatsapp.net") {
+                conditions.add("from_me = 1")
+            } else {
+                conditions.add("""
+                    (
+                        (sender_jid_row_id = (SELECT _id FROM jid WHERE raw_string = ?))
+                        OR 
+                        (from_me = 0 AND 0 = (SELECT sender_jid_row_id FROM message m2 WHERE m2._id = m._id))
+                    )
+                """.trimIndent())
+                args.add(jid)
+            }
+        }
+        
+        if (startTime != null) {
+            conditions.add("timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            conditions.add("m.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+        
+        val query = """
+            SELECT text_data
+            FROM message m
+            WHERE ${conditions.joinToString(" AND ")}
+        """.trimIndent()
+
+        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
+        val texts = cursor.use {
+            buildList {
+                while (it.moveToNext()) {
+                    val text = it.getString(0)
+                    if (!text.isNullOrBlank()) add(text)
+                }
+            }
+        }
+        return countEmojis(texts, limit)
+    }
+
+    private fun countEmojis(texts: List<String>, limit: Int): List<EmojiStat> {
+        val freq = mutableMapOf<String, Int>()
+        texts.forEach { text ->
+            extractEmojis(text).forEach { emoji ->
+                freq[emoji] = (freq[emoji] ?: 0) + 1
+            }
+        }
+        return freq.entries.sortedByDescending { it.value }.take(limit).map { EmojiStat(it.key, it.value) }
+    }
+
+    private fun extractEmojis(text: String): List<String> {
+        val emojis = mutableListOf<String>()
+        var i = 0
+        while (i < text.length) {
+            val codePoint = text.codePointAt(i)
+            val isKeycapBase = codePoint in 0x30..0x39 || codePoint == 0x23 || codePoint == 0x2A
+            
+            if (isEmoji(codePoint) || isKeycapBase) {
+                val emojiChar = String(Character.toChars(codePoint))
+                val nextIndex = i + Character.charCount(codePoint)
+                
+                if (nextIndex < text.length) {
+                    var j = nextIndex
+                    val combined = StringBuilder(emojiChar)
+                    var hasValidModifier = false
+                    
+                    while (j < text.length) {
+                        val nextCodePoint = text.codePointAt(j)
+                        if (nextCodePoint == 0xFE0F.toInt()) {
+                            combined.appendCodePoint(nextCodePoint)
+                            j += Character.charCount(nextCodePoint)
+                            hasValidModifier = true
+                        } else if (nextCodePoint == 0x200D.toInt()) {
+                            combined.appendCodePoint(nextCodePoint)
+                            j += Character.charCount(nextCodePoint)
+                            if (j < text.length && isEmoji(text.codePointAt(j))) {
+                                combined.appendCodePoint(text.codePointAt(j))
+                                j += Character.charCount(text.codePointAt(j))
+                                hasValidModifier = true
+                            }
+                        } else if (isSkinToneModifier(nextCodePoint)) {
+                            combined.appendCodePoint(nextCodePoint)
+                            j += Character.charCount(nextCodePoint)
+                            hasValidModifier = true
+                        } else if (isRegionalIndicator(nextCodePoint) && j + 1 < text.length && isRegionalIndicator(text.codePointAt(j + Character.charCount(nextCodePoint)))) {
+                            combined.appendCodePoint(nextCodePoint)
+                            combined.appendCodePoint(text.codePointAt(j + Character.charCount(nextCodePoint)))
+                            j += Character.charCount(nextCodePoint) + Character.charCount(text.codePointAt(j))
+                            hasValidModifier = true
+                        } else {
+                            break
+                        }
+                    }
+                    
+                    if (isKeycapBase && !hasValidModifier) {
+                        i += Character.charCount(codePoint)
+                        continue
+                    }
+                    emojis.add(combined.toString())
+                    i = j
+                    continue
+                }
+                
+                if (isKeycapBase) {
+                    i += Character.charCount(codePoint)
+                    continue
+                }
+                emojis.add(emojiChar)
+                i = nextIndex
+            } else {
+                i += Character.charCount(codePoint)
+            }
+        }
+        return emojis
+    }
+
+    private fun isEmoji(codePoint: Int): Boolean = when (codePoint) {
+        in 0x1F600..0x1F64F, in 0x1F300..0x1F5FF, in 0x1F680..0x1F6FF, in 0x1F1E0..0x1F1FF,
+        in 0x2700..0x27BF, in 0x2600..0x26FF, in 0x1F0A0..0x1F0FF, in 0x1F900..0x1F9FF, in 0x1FA00..0x1FAFF -> true
+        else -> false
+    }
+
+    private fun isSkinToneModifier(codePoint: Int): Boolean = codePoint in 0x1F3FB..0x1F3FF
+
+    private fun isRegionalIndicator(codePoint: Int): Boolean = codePoint in 0x1F1E6..0x1F1FF
 
     /** Statistiche sui media per tipo MIME. */
     fun getMediaStats(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<MediaTypeStat> {

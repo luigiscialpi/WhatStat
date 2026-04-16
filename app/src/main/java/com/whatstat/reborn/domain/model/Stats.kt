@@ -2,6 +2,7 @@ package com.whatstat.reborn.domain.model
 
 import com.whatstat.reborn.data.db.model.DayCount
 import com.whatstat.reborn.data.db.model.DayOfMonthCount
+import com.whatstat.reborn.data.db.model.EmojiStat
 import com.whatstat.reborn.data.db.model.HourlyCount
 import com.whatstat.reborn.data.db.model.MonthOfYearCount
 import com.whatstat.reborn.data.db.model.MonthlyCount
@@ -27,7 +28,8 @@ data class GlobalStats(
     val weeklyDistribution: List<DayCount> = emptyList(),
     val dayOfMonthDistribution: List<DayOfMonthCount> = emptyList(),
     val monthOfYearDistribution: List<MonthOfYearCount> = emptyList(),
-    val yearTrendDistribution: List<YearTrendCount> = emptyList()
+    val yearTrendDistribution: List<YearTrendCount> = emptyList(),
+    val topEmojis: List<EmojiStat> = emptyList()
 )
 
 /**
@@ -59,6 +61,7 @@ data class ChatStats(
     val yearTrendDistribution: List<YearTrendCount> = emptyList(),
     val monthlyTrend: List<MonthlyCount>,
     val topWords: List<WordFrequency>,
+    val topEmojis: List<EmojiStat> = emptyList(),
     val senderBreakdown: List<SenderStat> = emptyList(),
     val conversationStarterBreakdown: List<SenderStat> = emptyList()
 )
@@ -68,6 +71,7 @@ data class ChatStats(
  */
 data class SlowChatStats(
     val topWords: List<WordFrequency>,
+    val topEmojis: List<EmojiStat> = emptyList(),
     val senderBreakdown: List<SenderStat>,
     val conversationStarterBreakdown: List<SenderStat>,
     val averageResponseTimeMs: Long,

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.whatstat.reborn.data.db.model.WordFrequency
 import com.whatstat.reborn.data.db.model.SenderStat
+import com.whatstat.reborn.data.db.model.EmojiStat
 import javax.inject.Inject
 
 @HiltViewModel
@@ -24,6 +25,7 @@ class ChatDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     enum class WordViewMode { AGGREGATED, INDIVIDUAL }
+    enum class EmojiViewMode { AGGREGATED, INDIVIDUAL }
 
     private val chatId: Long = savedStateHandle["chatId"] ?: -1L
 
@@ -66,6 +68,17 @@ class ChatDetailViewModel @Inject constructor(
     private val _isSenderWordsLoading = MutableStateFlow(false)
     val isSenderWordsLoading: StateFlow<Boolean> = _isSenderWordsLoading.asStateFlow()
 
+    private val _emojiViewMode = MutableStateFlow(EmojiViewMode.AGGREGATED)
+    val emojiViewMode: StateFlow<EmojiViewMode> = _emojiViewMode.asStateFlow()
+    private val _selectedSenderForEmojis = MutableStateFlow<SenderStat?>(null)
+    val selectedSenderForEmojis: StateFlow<SenderStat?> = _selectedSenderForEmojis.asStateFlow()
+    private val _topEmojiLimit = MutableStateFlow(30)
+    val topEmojiLimit: StateFlow<Int> = _topEmojiLimit.asStateFlow()
+    private val _senderTopEmojis = MutableStateFlow<List<EmojiStat>>(emptyList())
+    val senderTopEmojis: StateFlow<List<EmojiStat>> = _senderTopEmojis.asStateFlow()
+    private val _isSenderEmojisLoading = MutableStateFlow(false)
+    val isSenderEmojisLoading: StateFlow<Boolean> = _isSenderEmojisLoading.asStateFlow()
+
     init {
         if (chatId != -1L) loadChatStats()
     }
@@ -104,6 +117,7 @@ class ChatDetailViewModel @Inject constructor(
 
                     _chatStats.value = quickStats.copy(
                         topWords = slowStats.topWords,
+                        topEmojis = slowStats.topEmojis,
                         senderBreakdown = slowStats.senderBreakdown,
                         conversationStarterBreakdown = slowStats.conversationStarterBreakdown,
                         averageResponseTimeMs = slowStats.averageResponseTimeMs,
@@ -197,6 +211,45 @@ class ChatDetailViewModel @Inject constructor(
             } ?: (null to null)
         } else {
             analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
+        }
+    }
+
+    fun setEmojiViewMode(mode: EmojiViewMode) {
+        _emojiViewMode.value = mode
+        if (mode == EmojiViewMode.INDIVIDUAL) {
+            _topEmojiLimit.value = 5
+            if (_selectedSenderForEmojis.value == null) {
+                _selectedSenderForEmojis.value = SenderStat("me@s.whatsapp.net", "Tu", 0)
+            }
+        } else {
+            _topEmojiLimit.value = 30
+        }
+        loadSenderTopEmojis()
+    }
+
+    fun setSelectedSenderForEmojis(sender: SenderStat?) {
+        _selectedSenderForEmojis.value = sender
+        loadSenderTopEmojis()
+    }
+
+    fun setTopEmojiLimit(limit: Int) {
+        _topEmojiLimit.value = limit
+        loadSenderTopEmojis()
+    }
+
+    private fun loadSenderTopEmojis() {
+        if (_emojiViewMode.value == EmojiViewMode.AGGREGATED) return
+        val sender = _selectedSenderForEmojis.value ?: return
+        viewModelScope.launch {
+            _isSenderEmojisLoading.value = true
+            try {
+                val (startTime, endTime) = getTimeBounds()
+                _senderTopEmojis.value = analyticsRepository.getTopEmojisBySender(chatId, sender.jid, startTime, endTime, _topEmojiLimit.value.toInt())
+            } catch (e: Exception) {
+                _senderTopEmojis.value = emptyList()
+            } finally {
+                _isSenderEmojisLoading.value = false
+            }
         }
     }
 }

@@ -68,6 +68,7 @@ import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
 import com.whatstat.reborn.ui.component.StatCard
 import com.whatstat.reborn.ui.component.WordCloudView
 import com.whatstat.reborn.ui.component.InteractiveWordCloud
+import com.whatstat.reborn.ui.component.InteractiveEmojiCloud
 import com.whatstat.reborn.ui.component.LoadingSection
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -97,6 +98,11 @@ fun ChatDetailScreen(
     val topWordsLimit by viewModel.topWordsLimit.collectAsState()
     val senderTopWords by viewModel.senderTopWords.collectAsState()
     val isSenderWordsLoading by viewModel.isSenderWordsLoading.collectAsState()
+    val emojiViewMode by viewModel.emojiViewMode.collectAsState()
+    val selectedSenderEmojis by viewModel.selectedSenderForEmojis.collectAsState()
+    val topEmojiLimit by viewModel.topEmojiLimit.collectAsState()
+    val senderTopEmojis by viewModel.senderTopEmojis.collectAsState()
+    val isSenderEmojisLoading by viewModel.isSenderEmojisLoading.collectAsState()
 
     var tooltipTitle by remember { mutableStateOf("") }
     var tooltipValue by remember { mutableStateOf("") }
@@ -438,6 +444,80 @@ fun ChatDetailScreen(
                                                 showTooltip = true
                                             }
                                         )
+                                    }
+                                }
+                            }
+                        }
+
+                        // ── Top Emojis ───────────────────────────────────────
+                        item {
+                            stats?.let { s ->
+                                SectionCard(
+                                    title = "Emoji più usate",
+                                    trailingContent = {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            listOf(3, 5, 10, 20, 30, 50).forEach { limit ->
+                                                Box(
+                                                    modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(
+                                                        if (topEmojiLimit == limit) MaterialTheme.colorScheme.primary
+                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                    ).clickable { viewModel.setTopEmojiLimit(limit) }.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(limit.toString(), style = MaterialTheme.typography.labelMedium,
+                                                        color = if (topEmojiLimit == limit) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                                }
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(8.dp))
+                                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)).padding(4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        listOf(ChatDetailViewModel.EmojiViewMode.AGGREGATED to "Tutti", ChatDetailViewModel.EmojiViewMode.INDIVIDUAL to "Per Persona").forEach { (mode, label) ->
+                                            Box(
+                                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).background(
+                                                    if (emojiViewMode == mode) MaterialTheme.colorScheme.primary else Color.Transparent
+                                                ).clickable { viewModel.setEmojiViewMode(mode) }.padding(vertical = 6.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(label, style = MaterialTheme.typography.labelLarge,
+                                                    color = if (emojiViewMode == mode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
+                                    }
+                                    if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL) {
+                                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 16.dp)) {
+                                            items(s.senderBreakdown) { sender ->
+                                                FilterChip(
+                                                    selected = selectedSenderEmojis?.jid == sender.jid,
+                                                    onClick = { viewModel.setSelectedSenderForEmojis(sender) },
+                                                    label = { Text(sender.displayName) },
+                                                    colors = FilterChipDefaults.filterChipColors(
+                                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                    val currentEmojis = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED) s.topEmojis.take(topEmojiLimit.toInt()) else senderTopEmojis
+                                    when {
+                                        (emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL && isSenderEmojisLoading) ||
+                                        (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED && isLoadingSlow && currentEmojis.isEmpty()) -> {
+                                            LoadingSection(progress = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED) progressSlow else null)
+                                        }
+                                        currentEmojis.isEmpty() -> {
+                                            Text(if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED) "Nessuna emoji trovata" else "Questo contatto non ha usato emoji",
+                                                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                        }
+                                        else -> {
+                                            InteractiveEmojiCloud(emojis = currentEmojis, onEmojiClick = { emoji, count ->
+                                                tooltipTitle = emoji; tooltipValue = "%,d volte".format(count); showTooltip = true
+                                            })
+                                        }
                                     }
                                 }
                             }
