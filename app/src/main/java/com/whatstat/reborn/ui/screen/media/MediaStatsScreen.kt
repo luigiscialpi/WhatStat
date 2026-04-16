@@ -60,6 +60,7 @@ import com.whatstat.reborn.data.db.model.DomainStat
 import com.whatstat.reborn.data.db.model.LinkStat
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
+import com.whatstat.reborn.ui.component.LoadingSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +79,8 @@ fun MediaStatsScreen(
     val topDomains by viewModel.topDomains.collectAsState()
     val contactDomainStats by viewModel.contactDomainStats.collectAsState()
     val isDomainLoading by viewModel.isDomainLoading.collectAsState()
+    val progress by viewModel.loadingProgress.collectAsState()
+    val progressDomains by viewModel.loadingProgressDomains.collectAsState()
 
     val sheetState = rememberModalBottomSheetState()
     var showDebug by remember { mutableStateOf(false) }
@@ -189,14 +192,7 @@ fun MediaStatsScreen(
             // ── LOADING / EMPTY / LIST ───────────────────
             when {
                 isLoading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                    LoadingSection(progress = progress)
                 }
 
                 displayStats.isEmpty() -> {
@@ -321,7 +317,8 @@ fun MediaStatsScreen(
                 DomainBreakdownSheet(
                     contactName = contactDomainStats?.first ?: "",
                     domains = contactDomainStats?.second ?: emptyList(),
-                    isLoading = isDomainLoading
+                    isLoading = isDomainLoading,
+                    progress = progressDomains
                 )
             }
         }
@@ -586,7 +583,8 @@ private fun DomainChip(stat: DomainStat) {
 private fun DomainBreakdownSheet(
     contactName: String,
     domains: List<DomainStat>,
-    isLoading: Boolean
+    isLoading: Boolean,
+    progress: Int? = null
 ) {
     Column(
         modifier = Modifier
@@ -607,14 +605,7 @@ private fun DomainBreakdownSheet(
         Spacer(Modifier.height(24.dp))
         when {
             isLoading && domains.isEmpty() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                LoadingSection(progress = progress)
             }
             domains.isEmpty() -> {
                 Text(

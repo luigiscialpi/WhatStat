@@ -11,7 +11,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.whatstat.reborn.data.db.model.WordFrequency
+import com.whatstat.reborn.data.db.model.SenderStat
 import javax.inject.Inject
 
 @HiltViewModel
@@ -19,6 +22,8 @@ class ChatDetailViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    enum class WordViewMode { AGGREGATED, INDIVIDUAL }
 
     private val chatId: Long = savedStateHandle["chatId"] ?: -1L
 
@@ -31,6 +36,12 @@ class ChatDetailViewModel @Inject constructor(
     private val _isLoadingSlow = MutableStateFlow(true)
     val isLoadingSlow: StateFlow<Boolean> = _isLoadingSlow.asStateFlow()
 
+    private val _loadingProgress = MutableStateFlow<Int?>(null)
+    val loadingProgress: StateFlow<Int?> = _loadingProgress.asStateFlow()
+
+    private val _loadingProgressSlow = MutableStateFlow<Int?>(null)
+    val loadingProgressSlow: StateFlow<Int?> = _loadingProgressSlow.asStateFlow()
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
@@ -39,6 +50,21 @@ class ChatDetailViewModel @Inject constructor(
     
     private val _customDateRange = MutableStateFlow<DateRange?>(null)
     val customDateRange: StateFlow<DateRange?> = _customDateRange.asStateFlow()
+
+    private val _wordViewMode = MutableStateFlow(WordViewMode.AGGREGATED)
+    val wordViewMode: StateFlow<WordViewMode> = _wordViewMode.asStateFlow()
+
+    private val _selectedSenderForWords = MutableStateFlow<SenderStat?>(null)
+    val selectedSenderForWords: StateFlow<SenderStat?> = _selectedSenderForWords.asStateFlow()
+
+    private val _topWordsLimit = MutableStateFlow(30) // Default 30 per "Tutti"
+    val topWordsLimit: StateFlow<Int> = _topWordsLimit.asStateFlow()
+
+    private val _senderTopWords = MutableStateFlow<List<WordFrequency>>(emptyList())
+    val senderTopWords: StateFlow<List<WordFrequency>> = _senderTopWords.asStateFlow()
+
+    private val _isSenderWordsLoading = MutableStateFlow(false)
+    val isSenderWordsLoading: StateFlow<Boolean> = _isSenderWordsLoading.asStateFlow()
 
     init {
         if (chatId != -1L) loadChatStats()
@@ -49,42 +75,55 @@ class ChatDetailViewModel @Inject constructor(
             _isLoading.value = true
             _isLoadingSlow.value = true
             _error.value = null
-            try {
-                val (startTime, endTime) = if (_selectedTimeRange.value == TimeRange.CUSTOM) {
-                    _customDateRange.value?.let {
-                        analyticsRepository.getDateRangeBounds(it)
-                    } ?: (null to null)
-                } else {
-                    analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
-                }
 
-                // Fase 1: statistiche veloci — la UI appare subito
-                val quickStats = analyticsRepository.getQuickChatStats(chatId, startTime, endTime)
+            try {
+                val (startTime, endTime) = getTimeBounds()
+
+                _loadingProgress.value = 0
+                val quickStats = analyticsRepository.getQuickChatStats(
+                    chatId = chatId,
+                    startTime = startTime,
+                    endTime = endTime,
+                    onProgress = { progress -> _loadingProgress.value = progress }
+                )
+
                 _chatStats.value = quickStats
                 _isLoading.value = false
+                _loadingProgress.value = null
 
-                // Fase 2: statistiche lente — aggiornano la UI progressivamente
+                _isLoadingSlow.value = true
+                _loadingProgressSlow.value = 0
+
                 try {
-                    val slowStats = analyticsRepository.getSlowChatStats(chatId, startTime, endTime)
+                    val slowStats = analyticsRepository.getSlowChatStats(
+                        chatId = chatId,
+                        startTime = startTime,
+                        endTime = endTime,
+                        onProgress = { progress -> _loadingProgressSlow.value = progress }
+                    )
+
                     _chatStats.value = quickStats.copy(
-                        topWords                 = slowStats.topWords,
-                        senderBreakdown          = slowStats.senderBreakdown,
+                        topWords = slowStats.topWords,
+                        senderBreakdown = slowStats.senderBreakdown,
                         conversationStarterBreakdown = slowStats.conversationStarterBreakdown,
-                        averageResponseTimeMs    = slowStats.averageResponseTimeMs,
-                        iStartedConversations    = slowStats.iStartedConversations,
+                        averageResponseTimeMs = slowStats.averageResponseTimeMs,
+                        iStartedConversations = slowStats.iStartedConversations,
                         theyStartedConversations = slowStats.theyStartedConversations,
-                        longestMessage           = slowStats.longestMessage
+                        longestMessage = slowStats.longestMessage
                     )
                 } catch (e: Exception) {
-                    // Le stat veloci restano visibili anche se le lente falliscono
                     android.util.Log.w("WhatStat", "Slow stats failed: ${e.message}")
                 } finally {
                     _isLoadingSlow.value = false
+                    _loadingProgressSlow.value = null
                 }
+
             } catch (e: Exception) {
                 _error.value = e.message ?: "Errore nel caricamento delle statistiche"
                 _isLoading.value = false
                 _isLoadingSlow.value = false
+                _loadingProgress.value = null
+                _loadingProgressSlow.value = null
             }
         }
     }
@@ -100,5 +139,64 @@ class ChatDetailViewModel @Inject constructor(
             _selectedTimeRange.value = TimeRange.CUSTOM
         }
         loadChatStats()
+    }
+
+    fun setWordViewMode(mode: WordViewMode) {
+        _wordViewMode.value = mode
+        if (mode == WordViewMode.INDIVIDUAL) {
+            _topWordsLimit.value = 5 // Default per individuale
+            if (_selectedSenderForWords.value == null) {
+                _selectedSenderForWords.value = SenderStat("me@s.whatsapp.net", "Tu", 0)
+            }
+        } else {
+            _topWordsLimit.value = 30 // Default per tutti
+        }
+        loadSenderTopWords()
+    }
+
+    fun setSelectedSenderForWords(sender: SenderStat?) {
+        _selectedSenderForWords.value = sender
+        loadSenderTopWords()
+    }
+
+    fun setTopWordsLimit(limit: Int) {
+        _topWordsLimit.value = limit
+        loadSenderTopWords()
+    }
+
+    private fun loadSenderTopWords() {
+        if (_wordViewMode.value == WordViewMode.AGGREGATED) return
+        
+        val sender = _selectedSenderForWords.value ?: return
+        val limit = _topWordsLimit.value.toInt()
+
+        viewModelScope.launch {
+            _isSenderWordsLoading.value = true
+            try {
+                val (startTime, endTime) = getTimeBounds()
+                val words = analyticsRepository.getTopWordsBySender(
+                    chatId = chatId,
+                    jid = sender.jid,
+                    startTime = startTime,
+                    endTime = endTime,
+                    limit = limit
+                )
+                _senderTopWords.value = words
+            } catch (e: Exception) {
+                _senderTopWords.value = emptyList()
+            } finally {
+                _isSenderWordsLoading.value = false
+            }
+        }
+    }
+
+    private fun getTimeBounds(): Pair<Long?, Long?> {
+        return if (_selectedTimeRange.value == TimeRange.CUSTOM) {
+            _customDateRange.value?.let {
+                analyticsRepository.getDateRangeBounds(it)
+            } ?: (null to null)
+        } else {
+            analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
+        }
     }
 }

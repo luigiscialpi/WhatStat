@@ -50,8 +50,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
@@ -75,6 +77,7 @@ fun DashboardScreen(
     val monthlyData by viewModel.monthOfYearData.collectAsState()
     val yearlyData by viewModel.yearTrendData.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val progress by viewModel.loadingProgress.collectAsState()
     val error by viewModel.error.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
@@ -150,27 +153,9 @@ fun DashboardScreen(
 
             if (isLoading) {
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(Modifier.height(16.dp))
-                            Text(
-                                "Caricamento statistiche...",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
+                    LoadingSection(progress = progress)
                 }
-            }
-
-            error?.let { err ->
+            } else if (error != null) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -185,7 +170,7 @@ fun DashboardScreen(
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
                             Text(
-                                err,
+                                error ?: "",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )

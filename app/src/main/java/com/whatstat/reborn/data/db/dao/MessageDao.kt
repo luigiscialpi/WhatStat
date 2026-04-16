@@ -347,25 +347,43 @@ class MessageDao @Inject constructor(
      * Parole più frequenti in una chat (esclude stop words italiane e inglesi).
      * Supporta filtro temporale opzionale.
      */
-    fun getTopWords(chatId: Long, startTime: Long? = null, endTime: Long? = null, limit: Int = 50): List<WordFrequency> {
+    fun getTopWords(chatId: Long, jid: String? = null, startTime: Long? = null, endTime: Long? = null, limit: Int = 50): List<WordFrequency> {
         val conditions = mutableListOf<String>()
         val args = mutableListOf<String>()
         
         conditions.add("chat_row_id = ? AND text_data IS NOT NULL AND message_type = 0")
         args.add(chatId.toString())
         
+        if (jid != null) {
+            if (jid == "me@s.whatsapp.net") {
+                conditions.add("from_me = 1")
+            } else {
+                // In chat 1-a-1, sender_jid_row_id potrebbe essere 0, 
+                // quindi controlliamo sia sender_jid_row_id che from_me = 0 
+                // (se il JID fornito è quello del contatto della chat).
+                conditions.add("""
+                    (
+                        (sender_jid_row_id = (SELECT _id FROM jid WHERE raw_string = ?))
+                        OR 
+                        (from_me = 0 AND 0 = (SELECT sender_jid_row_id FROM message m2 WHERE m2._id = m._id))
+                    )
+                """.trimIndent())
+                args.add(jid)
+            }
+        }
+        
         if (startTime != null) {
             conditions.add("timestamp >= ?")
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            conditions.add("timestamp <= ?")
+            conditions.add("m.timestamp <= ?")
             args.add(endTime.toString())
         }
         
         val query = """
             SELECT text_data
-            FROM message
+            FROM message m
             WHERE ${conditions.joinToString(" AND ")}
         """.trimIndent()
 

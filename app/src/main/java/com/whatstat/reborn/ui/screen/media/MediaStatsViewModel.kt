@@ -55,6 +55,12 @@ class MediaStatsViewModel @Inject constructor(
     private val _isDomainLoading = MutableStateFlow(false)
     val isDomainLoading: StateFlow<Boolean> = _isDomainLoading.asStateFlow()
 
+    private val _loadingProgress = MutableStateFlow<Int?>(null)
+    val loadingProgress: StateFlow<Int?> = _loadingProgress.asStateFlow()
+
+    private val _loadingProgressDomains = MutableStateFlow<Int?>(null)
+    val loadingProgressDomains: StateFlow<Int?> = _loadingProgressDomains.asStateFlow()
+
     fun setChatId(id: Long) {
         _chatId.value = id
         loadStats()
@@ -116,13 +122,21 @@ class MediaStatsViewModel @Inject constructor(
                     _linkStats.value = analyticsRepository.getLinkStats(null, startTime, endTime)
                 }
                 
+                _loadingProgress.value = 0
                 // Carica anche i domini top globali/chat
-                _topDomains.value = analyticsRepository.getTopDomains(cid, null, startTime, endTime)
+                _topDomains.value = analyticsRepository.getTopDomains(
+                    chatId = cid,
+                    jid = null,
+                    startTime = startTime,
+                    endTime = endTime,
+                    onProgress = { progress -> _loadingProgress.value = progress }
+                )
                 
             } catch (e: Exception) {
                 _linkStats.value = emptyList()
             } finally {
                 _isLoading.value = false
+                _loadingProgress.value = null
             }
         }
     }
@@ -176,12 +190,20 @@ class MediaStatsViewModel @Inject constructor(
                 } else {
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
-                val domains = analyticsRepository.getTopDomains(null, jid, startTime, endTime)
+                _loadingProgressDomains.value = 0
+                val domains = analyticsRepository.getTopDomains(
+                    chatId = null,
+                    jid = jid,
+                    startTime = startTime,
+                    endTime = endTime,
+                    onProgress = { progress -> _loadingProgressDomains.value = progress }
+                )
                 _contactDomainStats.value = (displayName ?: jid.substringBefore("@")) to domains
             } catch (e: Exception) {
                 // Error handling
             } finally {
                 _isDomainLoading.value = false
+                _loadingProgressDomains.value = null
             }
         }
     }

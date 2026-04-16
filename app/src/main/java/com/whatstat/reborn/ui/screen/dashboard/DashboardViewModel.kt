@@ -44,6 +44,9 @@ class DashboardViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _loadingProgress = MutableStateFlow<Int?>(null)
+    val loadingProgress: StateFlow<Int?> = _loadingProgress.asStateFlow()
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
@@ -70,7 +73,12 @@ class DashboardViewModel @Inject constructor(
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
                 
-                val stats = analyticsRepository.getGlobalStats(_selectedTimeRange.value, _customDateRange.value)
+                _loadingProgress.value = 0
+                val stats = analyticsRepository.getGlobalStats(
+                    timeRange = _selectedTimeRange.value,
+                    customRange = _customDateRange.value,
+                    onProgress = { progress -> _loadingProgress.value = progress }
+                )
                 _globalStats.value = stats
 
                 if (stats != null) {
@@ -84,6 +92,7 @@ class DashboardViewModel @Inject constructor(
                 _error.value = "Errore: ${e.message}"
             } finally {
                 _isLoading.value = false
+                _loadingProgress.value = null
             }
         }
     }

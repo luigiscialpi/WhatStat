@@ -31,7 +31,11 @@ class AnalyticsRepository @Inject constructor(
      * Calcola le statistiche globali aggregate su tutte le chat.
      * Supporta filtro temporale opzionale.
      */
-    suspend fun getGlobalStats(timeRange: TimeRange = TimeRange.CUSTOM, customRange: DateRange? = null): GlobalStats = withContext(Dispatchers.IO) {
+    suspend fun getGlobalStats(
+        timeRange: TimeRange = TimeRange.CUSTOM,
+        customRange: DateRange? = null,
+        onProgress: (Int) -> Unit = {}
+    ): GlobalStats = withContext(Dispatchers.IO) {
         val (startTime, endTime) = if (timeRange == TimeRange.CUSTOM && customRange != null) {
             getDateRangeBounds(customRange)
         } else {
@@ -51,11 +55,29 @@ class AnalyticsRepository @Inject constructor(
             val dMediaCount    = async { messageDao.getMediaCount(startTime, endTime) }
             val dMostActiveChat = async { chatDao.getMostActiveChat(startTime, endTime) }
 
+            onProgress(10)
             val totalMessages = dTotalMessages.await()
+            onProgress(20)
+            val totalChats = dTotalChats.await()
+            onProgress(30)
             val hourly = dHourly.await()
+            onProgress(40)
             val weekly = dWeekly.await()
+            onProgress(50)
+            val dayOfMonth = dDayOfMonth.await()
+            onProgress(60)
+            val monthOfYear = dMonthOfYear.await()
+            onProgress(70)
+            val yearTrend = dYearTrend.await()
+            onProgress(80)
+            val streak = dStreak.await()
+            onProgress(90)
             val oldestTs = dOldestTs.await()
-
+            onProgress(95)
+            val mediaCount = dMediaCount.await()
+            val mostActiveChatJid = dMostActiveChat.await()
+            onProgress(100)
+            
             val avgPerDay = if (oldestTs > 0) {
                 val daysSinceFirst = ((System.currentTimeMillis() - oldestTs) / 86400000f)
                     .coerceAtLeast(1f)
@@ -64,25 +86,24 @@ class AnalyticsRepository @Inject constructor(
                 0f
             }
 
-            val mostActiveChatJid = dMostActiveChat.await()
             val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
 
             GlobalStats(
                 totalMessages       = totalMessages,
-                totalChats          = dTotalChats.await(),
+                totalChats          = totalChats,
                 totalContacts       = contactDao.getContactCount(),
-                totalMediaFiles     = dMediaCount.await(),
+                totalMediaFiles     = mediaCount,
                 oldestMessageDate   = oldestTs,
                 mostActiveChat      = mostActiveChatName,
                 mostActiveHour      = hourly.maxByOrNull { it.count }?.hour ?: 0,
                 mostActiveDayOfWeek = weekly.maxByOrNull { it.count }?.dayOfWeek ?: 0,
                 averageMessagesPerDay = avgPerDay,
-                longestStreak       = dStreak.await(),
+                longestStreak       = streak,
                 hourlyDistribution  = hourly,
                 weeklyDistribution  = weekly,
-                dayOfMonthDistribution = dDayOfMonth.await(),
-                monthOfYearDistribution = dMonthOfYear.await(),
-                yearTrendDistribution = dYearTrend.await()
+                dayOfMonthDistribution = dayOfMonth,
+                monthOfYearDistribution = monthOfYear,
+                yearTrendDistribution = yearTrend
             )
         }
     }
@@ -91,7 +112,12 @@ class AnalyticsRepository @Inject constructor(
      * Calcola le statistiche veloci per una singola chat (conteggi, date, distribuzioni).
      * Ritorna in <1s grazie agli indici.
      */
-    suspend fun getQuickChatStats(chatId: Long, startTime: Long? = null, endTime: Long? = null): ChatStats = withContext(Dispatchers.IO) {
+    suspend fun getQuickChatStats(
+        chatId: Long,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        onProgress: (Int) -> Unit = {}
+    ): ChatStats = withContext(Dispatchers.IO) {
         val basicInfo = chatDao.getChatBasicInfo(chatId)
 
         coroutineScope {
@@ -113,9 +139,17 @@ class AnalyticsRepository @Inject constructor(
                 contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")
             }
 
+            onProgress(15)
             val msgCount = dMsgCount.await()
-            val total = msgCount.total.coerceAtLeast(1)
+            onProgress(40)
             val mediaStats = dMediaStats.await()
+            onProgress(60)
+            val hourly = dHourly.await()
+            onProgress(75)
+            val weekly = dWeekly.await()
+            onProgress(90)
+            
+            val total = msgCount.total.coerceAtLeast(1)
 
             ChatStats(
                 chatId                   = chatId,
@@ -136,8 +170,8 @@ class AnalyticsRepository @Inject constructor(
                 mediaCount               = mediaStats.sumOf { it.count },
                 audioCount               = mediaStats.filter { it.mimeType.startsWith("audio") }.sumOf { it.count },
                 videoCount               = mediaStats.filter { it.mimeType.startsWith("video") }.sumOf { it.count },
-                hourlyDistribution       = dHourly.await(),
-                weeklyDistribution       = dWeekly.await(),
+                hourlyDistribution       = hourly,
+                weeklyDistribution       = weekly,
                 dayOfMonthDistribution   = dDayOfMonth.await(),
                 monthOfYearDistribution  = dMonthOfYear.await(),
                 yearTrendDistribution    = dYearTrend.await(),
@@ -153,21 +187,34 @@ class AnalyticsRepository @Inject constructor(
      * Calcola le statistiche lente (top words, sender breakdown, starters, response time).
      * Ritorna un partial update da mergiare con i dati quick.
      */
-    suspend fun getSlowChatStats(chatId: Long, startTime: Long? = null, endTime: Long? = null): SlowChatStats = withContext(Dispatchers.IO) {
+    suspend fun getSlowChatStats(
+        chatId: Long,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        onProgress: (Int) -> Unit = {}
+    ): SlowChatStats = withContext(Dispatchers.IO) {
         val basicInfo = chatDao.getChatBasicInfo(chatId)
 
         coroutineScope {
-            val dTopWords   = async { messageDao.getTopWords(chatId, startTime, endTime) }
+            val dTopWords   = async { messageDao.getTopWords(chatId = chatId, startTime = startTime, endTime = endTime) }
             val dStarters   = async { messageDao.getConversationStarters(chatId) }
             val dAvgResp    = async { messageDao.getAverageResponseTime(chatId) }
             val dSenders    = async { messageDao.getMessageCountBySender(chatId, startTime, endTime) }
             val dStartersBySender = async { messageDao.getConversationStartersBySender(chatId, startTime, endTime) }
             val dLongest    = async { messageDao.getLongestMessage(chatId) }
 
+            onProgress(20)
             val starters = dStarters.await()
-
-            // Risoluzione nomi per sender breakdown
+            onProgress(45)
             val rawSenders = dSenders.await()
+            onProgress(60)
+            val rawStarters = dStartersBySender.await()
+            onProgress(90)
+            val topWords = dTopWords.await()
+            onProgress(95)
+            val avgResp = dAvgResp.await()
+            val longest = dLongest.await()
+            onProgress(100)
             val senderJids = rawSenders.map { it.jid }
             val contactNames = contactDao.resolveContactNames(senderJids)
             val aggregatedSenders = rawSenders.map { stat ->
@@ -187,7 +234,6 @@ class AnalyticsRepository @Inject constructor(
             }.sortedByDescending { it.count }
 
             // Risoluzione nomi per conversation starters
-            val rawStarters = dStartersBySender.await()
             val starterJids = rawStarters.map { it.jid }
             val starterNames = contactDao.resolveContactNames(starterJids)
             val aggregatedStarters = rawStarters.map { stat ->
@@ -206,14 +252,15 @@ class AnalyticsRepository @Inject constructor(
                 )
             }.sortedByDescending { it.count }
 
+            onProgress(100)
             SlowChatStats(
-                topWords                 = dTopWords.await(),
+                topWords                 = topWords,
                 senderBreakdown          = aggregatedSenders,
                 conversationStarterBreakdown = aggregatedStarters,
-                averageResponseTimeMs    = dAvgResp.await(),
+                averageResponseTimeMs    = avgResp,
                 iStartedConversations    = starters.startedByMe,
                 theyStartedConversations = starters.startedByThem,
-                longestMessage           = dLongest.await()
+                longestMessage           = longest
             )
         }
     }
@@ -399,10 +446,12 @@ class AnalyticsRepository @Inject constructor(
         chatId: Long? = null,
         jid: String? = null,
         startTime: Long? = null,
-        endTime: Long? = null
+        endTime: Long? = null,
+        onProgress: (Int) -> Unit = {}
     ): List<DomainStat> = withContext(Dispatchers.IO) {
         val texts = messageDao.getLinkTexts(chatId, jid, startTime, endTime)
         val domainCounts = mutableMapOf<String, Int>()
+        val total = texts.size.coerceAtLeast(1)
         
         // Regex per estrarre URL
         val urlPattern = Pattern.compile(
@@ -410,7 +459,10 @@ class AnalyticsRepository @Inject constructor(
             Pattern.CASE_INSENSITIVE
         )
         
-        texts.forEach { text ->
+        texts.forEachIndexed { index, text ->
+            if (index % 100 == 0) { // Aggiorna ogni 100 messaggi per performance
+                onProgress((index.toFloat() / total * 100).toInt())
+            }
             val matcher = urlPattern.matcher(text)
             while (matcher.find()) {
                 val url = matcher.group()
@@ -429,5 +481,18 @@ class AnalyticsRepository @Inject constructor(
         domainCounts.map { DomainStat(it.key, it.value) }
             .sortedByDescending { it.count }
             .take(20)
+    }
+
+    /**
+     * Ritorna le parole più usate per un mittente specifico.
+     */
+    suspend fun getTopWordsBySender(
+        chatId: Long,
+        jid: String?,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        limit: Int = 5
+    ): List<WordFrequency> = withContext(Dispatchers.IO) {
+        messageDao.getTopWords(chatId, jid, startTime, endTime, limit)
     }
 }

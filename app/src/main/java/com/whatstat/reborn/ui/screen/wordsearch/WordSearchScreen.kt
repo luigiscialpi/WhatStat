@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
+import com.whatstat.reborn.ui.component.LoadingSection
 
 @Composable
 fun WordSearchScreen(
@@ -143,14 +144,7 @@ fun WordSearchScreen(
         Spacer(Modifier.height(16.dp))
 
         if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            LoadingSection()
         } else if (results.isNotEmpty()) {
             Text(
                 "Top mittenti",

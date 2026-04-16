@@ -54,6 +54,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.reborn.data.db.model.CallStat
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
+import com.whatstat.reborn.ui.component.LoadingSection
 
 private fun formatDuration(seconds: Long): String {
     val hours = seconds / 3600
@@ -155,14 +156,7 @@ fun CallsStatsScreen(
         }
 
         if (isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            LoadingSection()
         } else if (callStats.isEmpty()) {
             Box(
                 modifier = Modifier

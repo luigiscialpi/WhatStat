@@ -42,6 +42,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -60,10 +62,12 @@ import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.ActivityRecapCard
 import com.whatstat.reborn.ui.component.ChartTooltip
 import com.whatstat.reborn.ui.component.DateRangePicker
+import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
 import com.whatstat.reborn.ui.component.StatCard
 import com.whatstat.reborn.ui.component.WordCloudView
 import com.whatstat.reborn.ui.component.InteractiveWordCloud
+import com.whatstat.reborn.ui.component.LoadingSection
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -83,8 +87,15 @@ fun ChatDetailScreen(
     val stats by viewModel.chatStats.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isLoadingSlow by viewModel.isLoadingSlow.collectAsState()
+    val progress by viewModel.loadingProgress.collectAsState()
+    val progressSlow by viewModel.loadingProgressSlow.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val wordViewMode by viewModel.wordViewMode.collectAsState()
+    val selectedSenderWords by viewModel.selectedSenderForWords.collectAsState()
+    val topWordsLimit by viewModel.topWordsLimit.collectAsState()
+    val senderTopWords by viewModel.senderTopWords.collectAsState()
+    val isSenderWordsLoading by viewModel.isSenderWordsLoading.collectAsState()
 
     var tooltipTitle by remember { mutableStateOf("") }
     var tooltipValue by remember { mutableStateOf("") }
@@ -163,12 +174,10 @@ fun ChatDetailScreen(
             )
 
             if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+                LoadingSection(
+                    progress = progress,
+                    modifier = Modifier.fillMaxSize()
+                )
             } else {
                 stats?.let { s ->
                     LazyColumn(
@@ -202,7 +211,7 @@ fun ChatDetailScreen(
                                         totalMessages = s.totalMessages
                                     )
                                 } else if (isLoadingSlow) {
-                                    LoadingSection()
+                                    LoadingSection(progress = progressSlow)
                                 } else {
                                     val otherName = if (!s.isGroup) s.contactName else "Loro"
                                     MessagePieChart(
@@ -266,7 +275,7 @@ fun ChatDetailScreen(
                                         centerLabel = "conversazioni"
                                     )
                                 } else if (isLoadingSlow) {
-                                    LoadingSection()
+                                    LoadingSection(progress = progressSlow)
                                 } else {
                                     val starterTotal = (s.iStartedConversations + s.theyStartedConversations)
                                         .coerceAtLeast(1)
@@ -301,24 +310,127 @@ fun ChatDetailScreen(
 
                         // ── Top Words ────────────────────────────────────────
                         item {
-                            SectionCard(title = "Parole più usate") {
-                                if (s.topWords.isNotEmpty()) {
-                                    InteractiveWordCloud(
-                                        words = s.topWords.take(30),
-                                        onWordClick = { word, count ->
-                                            tooltipTitle = word
-                                            tooltipValue = "%,d volte".format(count)
-                                            showTooltip = true
+                            SectionCard(
+                                title = "Parole più usate",
+                                trailingContent = {
+                                    // Selettore limite (chips 5, 10, 20, 30)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        listOf(5, 10, 20, 30).forEach { limit ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(
+                                                        if (topWordsLimit == limit) MaterialTheme.colorScheme.primary
+                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                    )
+                                                    .clickable { viewModel.setTopWordsLimit(limit) }
+                                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    limit.toString(),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = if (topWordsLimit == limit) MaterialTheme.colorScheme.onPrimary
+                                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
                                         }
+                                    }
+                                }
+                            ) {
+                                // Switcher Tutti / Per Persona
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 12.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                        .padding(4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    val modes = listOf(
+                                        ChatDetailViewModel.WordViewMode.AGGREGATED to "Tutti",
+                                        ChatDetailViewModel.WordViewMode.INDIVIDUAL to "Per Persona"
                                     )
-                                } else if (isLoadingSlow) {
-                                    LoadingSection()
+                                    modes.forEach { (mode, label) ->
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(
+                                                    if (wordViewMode == mode) MaterialTheme.colorScheme.primary
+                                                    else Color.Transparent
+                                                )
+                                                .clickable { viewModel.setWordViewMode(mode) }
+                                                .padding(vertical = 6.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                label,
+                                                style = MaterialTheme.typography.labelLarge,
+                                                color = if (wordViewMode == mode) MaterialTheme.colorScheme.onPrimary
+                                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Selettore partecipanti (solo se indiviuale)
+                                if (wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL) {
+                                    LazyRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(bottom = 16.dp)
+                                    ) {
+                                        // Aggiungiamo 'me' esplicitamente se non c'è già? 
+                                        // In realtà senderBreakdown include tutti.
+                                        items(s.senderBreakdown) { sender ->
+                                            FilterChip(
+                                                selected = selectedSenderWords?.jid == sender.jid,
+                                                onClick = { viewModel.setSelectedSenderForWords(sender) },
+                                                label = { Text(sender.displayName) },
+                                                colors = FilterChipDefaults.filterChipColors(
+                                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Visualizzazione Word Cloud
+                                val currentWords = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED) {
+                                    s.topWords.take(topWordsLimit.toInt())
                                 } else {
-                                    Text(
-                                        "Nessuna parola trovata",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    senderTopWords
+                                }
+
+                                when {
+                                    (wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL && isSenderWordsLoading) ||
+                                    (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED && isLoadingSlow && currentWords.isEmpty()) -> {
+                                        LoadingSection(progress = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED) progressSlow else null)
+                                    }
+                                    currentWords.isEmpty() -> {
+                                        Text(
+                                            if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED) "Nessuna parola trovata"
+                                            else "Questo contatto non ha ancora scritto nulla con questi filtri",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(vertical = 24.dp)
+                                        )
+                                    }
+                                    else -> {
+                                        InteractiveWordCloud(
+                                            words = currentWords,
+                                            onWordClick = { word, count ->
+                                                tooltipTitle = word
+                                                tooltipValue = "%,d volte".format(count)
+                                                showTooltip = true
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -384,6 +496,7 @@ fun ChatDetailScreen(
 @Composable
 private fun SectionCard(
     title: String,
+    trailingContent: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     Card(
@@ -394,11 +507,18 @@ private fun SectionCard(
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(Modifier.padding(20.dp)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                trailingContent?.invoke()
+            }
             Spacer(Modifier.height(16.dp))
             content()
         }
@@ -459,30 +579,6 @@ private fun formatDuration(ms: Long): String {
         hours > 0 -> "${hours}h ${minutes}m"
         minutes > 0 -> "${minutes} min"
         else -> "<1 min"
-    }
-}
-
-// ── Loading placeholder per sezioni lente ────────────────────────────────────
-
-@Composable
-private fun LoadingSection() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(20.dp),
-            strokeWidth = 2.dp
-        )
-        Spacer(Modifier.width(12.dp))
-        Text(
-            "Calcolo in corso…",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
