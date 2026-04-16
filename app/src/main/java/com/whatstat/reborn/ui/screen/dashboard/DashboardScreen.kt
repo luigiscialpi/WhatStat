@@ -79,6 +79,8 @@ fun DashboardScreen(
     val yearlyData by viewModel.yearTrendData.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val progress by viewModel.loadingProgress.collectAsState()
+    val isLoadingSlow by viewModel.isLoadingSlow.collectAsState()
+    val progressSlow by viewModel.loadingProgressSlow.collectAsState()
     val error by viewModel.error.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
@@ -263,13 +265,19 @@ fun DashboardScreen(
                             title = "Emoji più usate",
                             subtitle = "Le emoji più frequenti in assoluto"
                         ) {
-                            if (s.topEmojis.isEmpty()) {
-                                Text("Nessuna emoji trovata", style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
-                            } else {
-                                InteractiveEmojiCloud(emojis = s.topEmojis.take(20), onEmojiClick = { emoji, count ->
-                                    tooltipTitle = emoji; tooltipValue = "%,d volte".format(count); showTooltip = true
-                                })
+                            when {
+                                isLoadingSlow && s.topEmojis.isEmpty() -> {
+                                    LoadingSection(progress = progressSlow)
+                                }
+                                s.topEmojis.isEmpty() -> {
+                                    Text("Nessuna emoji trovata", style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                }
+                                else -> {
+                                    InteractiveEmojiCloud(emojis = s.topEmojis.take(20), onEmojiClick = { emoji, count ->
+                                        tooltipTitle = emoji; tooltipValue = "%,d volte".format(count); showTooltip = true
+                                    })
+                                }
                             }
                         }
                     }

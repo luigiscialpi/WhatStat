@@ -44,8 +44,14 @@ class DashboardViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _isLoadingSlow = MutableStateFlow(true)
+    val isLoadingSlow: StateFlow<Boolean> = _isLoadingSlow.asStateFlow()
+
     private val _loadingProgress = MutableStateFlow<Int?>(null)
     val loadingProgress: StateFlow<Int?> = _loadingProgress.asStateFlow()
+
+    private val _loadingProgressSlow = MutableStateFlow<Int?>(null)
+    val loadingProgressSlow: StateFlow<Int?> = _loadingProgressSlow.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -63,6 +69,7 @@ class DashboardViewModel @Inject constructor(
     private fun loadStats() {
         viewModelScope.launch {
             _isLoading.value = true
+            _isLoadingSlow.value = true
             _error.value = null
             try {
                 val (startTime, endTime) = if (_selectedTimeRange.value == TimeRange.CUSTOM) {
@@ -74,25 +81,45 @@ class DashboardViewModel @Inject constructor(
                 }
                 
                 _loadingProgress.value = 0
-                val stats = analyticsRepository.getGlobalStats(
+                val quickStats = analyticsRepository.getQuickGlobalStats(
                     timeRange = _selectedTimeRange.value,
                     customRange = _customDateRange.value,
                     onProgress = { progress -> _loadingProgress.value = progress }
                 )
-                _globalStats.value = stats
+                _globalStats.value = quickStats
 
-                if (stats != null) {
-                    _hourlyData.value = stats.hourlyDistribution
-                    _weeklyData.value = stats.weeklyDistribution
-                    _dayOfMonthData.value = stats.dayOfMonthDistribution
-                    _monthOfYearData.value = stats.monthOfYearDistribution
-                    _yearTrendData.value = stats.yearTrendDistribution
+                if (quickStats != null) {
+                    _hourlyData.value = quickStats.hourlyDistribution
+                    _weeklyData.value = quickStats.weeklyDistribution
+                    _dayOfMonthData.value = quickStats.dayOfMonthDistribution
+                    _monthOfYearData.value = quickStats.monthOfYearDistribution
+                    _yearTrendData.value = quickStats.yearTrendDistribution
+                }
+                
+                _isLoading.value = false
+                _loadingProgress.value = null
+                
+                _isLoadingSlow.value = true
+                _loadingProgressSlow.value = 0
+                try {
+                    val slowStats = analyticsRepository.getSlowGlobalStats(
+                        startTime = startTime,
+                        endTime = endTime,
+                        onProgress = { progress -> _loadingProgressSlow.value = progress }
+                    )
+                    _globalStats.value = _globalStats.value?.copy(topEmojis = slowStats.topEmojis)
+                } catch (e: Exception) {
+                    android.util.Log.w("WhatStat", "Slow stats failed: ${e.message}")
+                } finally {
+                    _isLoadingSlow.value = false
+                    _loadingProgressSlow.value = null
                 }
             } catch (e: Exception) {
                 _error.value = "Errore: ${e.message}"
-            } finally {
                 _isLoading.value = false
+                _isLoadingSlow.value = false
                 _loadingProgress.value = null
+                _loadingProgressSlow.value = null
             }
         }
     }

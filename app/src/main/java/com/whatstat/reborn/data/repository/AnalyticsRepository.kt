@@ -31,7 +31,7 @@ class AnalyticsRepository @Inject constructor(
      * Calcola le statistiche globali aggregate su tutte le chat.
      * Supporta filtro temporale opzionale.
      */
-    suspend fun getGlobalStats(
+    suspend fun getQuickGlobalStats(
         timeRange: TimeRange = TimeRange.CUSTOM,
         customRange: DateRange? = null,
         onProgress: (Int) -> Unit = {}
@@ -54,7 +54,6 @@ class AnalyticsRepository @Inject constructor(
             val dOldestTs      = async { if (startTime != null) startTime else messageDao.getOldestTimestamp() }
             val dMediaCount    = async { messageDao.getMediaCount(startTime, endTime) }
             val dMostActiveChat = async { chatDao.getMostActiveChat(startTime, endTime) }
-            val dTopEmojis      = async { messageDao.getGlobalTopEmojis(startTime, endTime) }
 
             onProgress(10)
             val totalMessages = dTotalMessages.await()
@@ -77,7 +76,6 @@ class AnalyticsRepository @Inject constructor(
             onProgress(95)
             val mediaCount = dMediaCount.await()
             val mostActiveChatJid = dMostActiveChat.await()
-            val topEmojis = dTopEmojis.await()
             onProgress(100)
             
             val avgPerDay = if (oldestTs > 0) {
@@ -106,9 +104,32 @@ class AnalyticsRepository @Inject constructor(
                 dayOfMonthDistribution = dayOfMonth,
                 monthOfYearDistribution = monthOfYear,
                 yearTrendDistribution = yearTrend,
-                topEmojis          = topEmojis
+                topEmojis          = emptyList()
             )
+}
+    }
+
+    /**
+     * Carica solo le statistiche "lente" (emoji).
+     */
+    suspend fun getSlowGlobalStats(
+        startTime: Long? = null,
+        endTime: Long? = null,
+        onProgress: (Int) -> Unit = {}
+    ): GlobalStats = withContext(Dispatchers.IO) {
+        onProgress(0)
+        val topEmojis = try {
+            messageDao.getGlobalTopEmojis(startTime, endTime, 30)
+        } catch (e: Exception) {
+            android.util.Log.w("WhatStat", "getGlobalTopEmojis failed: ${e.message}")
+            emptyList()
         }
+        onProgress(100)
+        GlobalStats(
+            totalMessages = 0, totalChats = 0, totalContacts = 0, totalMediaFiles = 0,
+            oldestMessageDate = 0, mostActiveChat = "", mostActiveHour = 0, mostActiveDayOfWeek = 0,
+            averageMessagesPerDay = 0f, longestStreak = 0, topEmojis = topEmojis
+        )
     }
 
     /**
