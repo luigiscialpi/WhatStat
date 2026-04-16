@@ -32,6 +32,10 @@ class MediaStatsViewModel @Inject constructor(
     private val avatarDir: File by lazy { File(context.filesDir, FileExtractor.AVATAR_DIR_DEST) }
     private fun getAvatarPath(jid: String): String? {
         if (!avatarDir.exists()) return null
+        if (jid == "me@s.whatsapp.net") {
+            val me = File(avatarDir, "me.jpg")
+            return if (me.exists()) me.absolutePath else null
+        }
         val f = File(avatarDir, "$jid.jpg")
         return if (f.exists()) f.absolutePath else null
     }

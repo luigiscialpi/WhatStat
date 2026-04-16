@@ -116,6 +116,21 @@ class FileExtractor @Inject constructor(
                     }
                 }
                 android.util.Log.d("WhatStat", "Avatars extracted: $count file(s) → ${avatarDestDir.absolutePath}")
+                // Copia anche me.jpg (foto profilo dell'utente corrente)
+                val meFile = SuFile(userDir, "com.whatsapp/files/me.jpg")
+                if (meFile.exists() && meFile.isFile) {
+                    val meDest = File(avatarDestDir, "me.jpg")
+                    try {
+                        SuFileInputStream.open(meFile).use { input ->
+                            FileOutputStream(meDest).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        android.util.Log.d("WhatStat", "me.jpg extracted")
+                    } catch (e: Exception) {
+                        android.util.Log.w("WhatStat", "me.jpg copy failed: ${e.message}")
+                    }
+                }
                 return@withContext avatarDestDir
             }
         }

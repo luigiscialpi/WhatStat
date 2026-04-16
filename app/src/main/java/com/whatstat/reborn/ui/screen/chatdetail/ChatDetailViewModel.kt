@@ -40,6 +40,10 @@ class ChatDetailViewModel @Inject constructor(
 
     private fun getAvatarPath(jid: String): String? {
         if (!avatarDir.exists()) return null
+        if (jid == "me@s.whatsapp.net") {
+            val me = File(avatarDir, "me.jpg")
+            return if (me.exists()) me.absolutePath else null
+        }
         val avatarFile = File(avatarDir, jid + ".jpg")
         return if (avatarFile.exists()) avatarFile.absolutePath else null
     }
