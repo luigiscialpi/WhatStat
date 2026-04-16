@@ -1447,7 +1447,25 @@ class MessageDao @Inject constructor(
         val conditions = mutableListOf<String>("text_data IS NOT NULL", "(text_data LIKE '%http://%' OR text_data LIKE '%https://%')")
         val args = mutableListOf<String>()
 
-        if (chatId != null) {
+        if (chatId != null && jid != null) {
+            // Filtro per sender dentro una chat specifica
+            queryBuilder.append(" LEFT JOIN jid sender_jid ON m.sender_jid_row_id = sender_jid._id AND m.sender_jid_row_id > 0")
+            queryBuilder.append(" LEFT JOIN jid_map jm ON jm.lid_row_id = sender_jid._id")
+            queryBuilder.append(" LEFT JOIN jid real_jid ON real_jid._id = jm.jid_row_id")
+            queryBuilder.append(" LEFT JOIN chat c ON m.chat_row_id = c._id")
+            queryBuilder.append(" LEFT JOIN jid chat_jid ON c.jid_row_id = chat_jid._id")
+            conditions.add("m.chat_row_id = ?")
+            args.add(chatId.toString())
+            if (jid == "me@s.whatsapp.net") {
+                conditions.add("m.from_me = 1")
+            } else {
+                conditions.add("m.from_me = 0")
+                conditions.add("(sender_jid.raw_string = ? OR real_jid.raw_string = ? OR chat_jid.raw_string = ?)")
+                args.add(jid)
+                args.add(jid)
+                args.add(jid)
+            }
+        } else if (chatId != null) {
             conditions.add("m.chat_row_id = ?")
             args.add(chatId.toString())
         } else if (jid != null) {

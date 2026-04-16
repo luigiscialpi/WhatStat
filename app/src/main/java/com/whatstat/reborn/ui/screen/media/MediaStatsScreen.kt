@@ -276,7 +276,7 @@ fun MediaStatsScreen(
                             LinkStatCard(
                                 stat = stat,
                                 showTotal = true,
-                                onClick = if (isChatDetail) null else {
+                                onClick = if (isChatDetail || isShowingBreakdown) null else {
                                     { viewModel.loadLinkStatsBySenderForJid(stat.jid) }
                                 },
                                 onLinksClick = {

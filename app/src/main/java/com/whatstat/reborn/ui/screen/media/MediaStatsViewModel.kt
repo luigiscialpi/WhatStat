@@ -205,7 +205,7 @@ class MediaStatsViewModel @Inject constructor(
                 }
                 _loadingProgressDomains.value = 0
                 val domains = analyticsRepository.getTopDomains(
-                    chatId = null,
+                    chatId = _chatId.value,
                     jid = jid,
                     startTime = startTime,
                     endTime = endTime,
