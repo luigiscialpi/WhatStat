@@ -156,7 +156,8 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
 
         onProgress(0)
         val (topWords, topEmojis) = try {
-            messageDao.getGlobalWordsAndEmojis(startTime, endTime, 30, 30)
+            // Pre-carica 50 voci per supportare qualsiasi limite selezionato in UI
+            messageDao.getGlobalWordsAndEmojis(startTime, endTime, 50, 50)
         } catch (e: Exception) {
             android.util.Log.w("WhatStat", "getGlobalWordsAndEmojis failed: ${e.message}")
             Pair(emptyList(), emptyList())
@@ -287,7 +288,9 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         val basicInfo = chatDao.getChatBasicInfo(chatId)
 
         coroutineScope {
-            val dWordsAndEmojis = async { messageDao.getWordsAndEmojis(chatId = chatId, startTime = startTime, endTime = endTime) }
+            // Pre-carica un pool ampio (50) cosi' il .take(N) in UI funziona
+            // per qualsiasi limite selezionato (3, 5, 10, 20, 30, 50) senza query extra.
+            val dWordsAndEmojis = async { messageDao.getWordsAndEmojis(chatId = chatId, startTime = startTime, endTime = endTime, wordsLimit = 50, emojisLimit = 50) }
             val dStarters   = async { messageDao.getConversationStarters(chatId) }
             val dAvgResp    = async { messageDao.getAverageResponseTime(chatId) }
             val dSenders    = async { messageDao.getMessageCountBySender(chatId, startTime, endTime) }

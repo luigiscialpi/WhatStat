@@ -229,7 +229,8 @@ class CacheManager @Inject constructor(
         private val KEY_DB_HASH = stringPreferencesKey("db_file_hash")
         private val KEY_LAST_UPDATE = longPreferencesKey("last_cache_update")
         private val KEY_GLOBAL_STATS = stringPreferencesKey("global_stats_v2")
-        private val KEY_GLOBAL_SLOW = stringPreferencesKey("global_slow_v2")
+        // v3: bump per rigenerare la cache con pool da 50 words/emoji
+        private val KEY_GLOBAL_SLOW = stringPreferencesKey("global_slow_v3")
     }
 
     // ── Hash DB ──────────────────────────────────────────────────
@@ -313,7 +314,8 @@ class CacheManager @Inject constructor(
     // ── Chat Slow Stats (per chat) ───────────────────────────────
 
     suspend fun getChatSlowStats(chatId: Long): SlowChatStats? {
-        val key = stringPreferencesKey("chat_slow_${chatId}_v2")
+        // v3: chiave aggiornata per forzare ricalcolo con pool da 50 emoji/parole
+        val key = stringPreferencesKey("chat_slow_${chatId}_v3")
         val json = dataStore.data.first()[key] ?: return null
         return try {
             cacheJson.decodeFromString<CachedSlowChatStats>(json).toDomain()
@@ -323,7 +325,7 @@ class CacheManager @Inject constructor(
     }
 
     suspend fun saveChatSlowStats(chatId: Long, stats: SlowChatStats) {
-        val key = stringPreferencesKey("chat_slow_${chatId}_v2")
+        val key = stringPreferencesKey("chat_slow_${chatId}_v3")
         dataStore.edit { prefs ->
             prefs[key] = cacheJson.encodeToString(stats.toCached())
         }

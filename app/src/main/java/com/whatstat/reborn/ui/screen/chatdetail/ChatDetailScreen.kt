@@ -367,12 +367,12 @@ fun ChatDetailScreen(
                             SectionCard(
                                 title = "Parole più usate",
                                 trailingContent = {
-                                    // Selettore limite (chips 5, 10, 20, 30)
+                                    // Selettore limite (chips 5, 10, 20, 30, 50)
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
-                                        listOf(5, 10, 20, 30).forEach { limit ->
+                                        listOf(5, 10, 20, 30, 50).forEach { limit ->
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(6.dp))
