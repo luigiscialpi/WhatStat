@@ -413,7 +413,10 @@ private fun LinkStatCardContent(stat: LinkStat, onLinksClick: () -> Unit) {
                 fontWeight = if (isStories) androidx.compose.ui.text.font.FontWeight.Bold else null
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.width(56.dp)
