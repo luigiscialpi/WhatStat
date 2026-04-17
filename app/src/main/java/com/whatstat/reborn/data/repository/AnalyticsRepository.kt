@@ -291,6 +291,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             // Pre-carica un pool ampio (50) cosi' il .take(N) in UI funziona
             // per qualsiasi limite selezionato (3, 5, 10, 20, 30, 50) senza query extra.
             val dWordsAndEmojis = async { messageDao.getWordsAndEmojis(chatId = chatId, startTime = startTime, endTime = endTime, wordsLimit = 50, emojisLimit = 50) }
+            val dStickers   = async { messageDao.getTopStickers(chatId, null, startTime, endTime, 50) }
             val dStarters   = async { messageDao.getConversationStarters(chatId) }
             val dAvgResp    = async { messageDao.getAverageResponseTime(chatId) }
             val dSenders    = async { messageDao.getMessageCountBySender(chatId, startTime, endTime) }
@@ -305,6 +306,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             val rawStarters = dStartersBySender.await()
             onProgress(65)
             val (topWords, topEmojis) = dWordsAndEmojis.await()
+            val topStickers = dStickers.await()
             onProgress(95)
             val avgResp = dAvgResp.await()
             val longest = dLongest.await()
@@ -350,6 +352,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             val result = SlowChatStats(
                 topWords                 = topWords,
                 topEmojis                = topEmojis,
+                topStickers              = topStickers,
                 senderBreakdown          = aggregatedSenders,
                 conversationStarterBreakdown = aggregatedStarters,
                 averageResponseTimeMs    = avgResp,
@@ -616,5 +619,30 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         limit: Int = 5
     ): List<EmojiStat> = withContext(Dispatchers.IO) {
         messageDao.getTopEmojis(chatId, jid, startTime, endTime, limit)
+    }
+
+    /**
+     * Ritorna gli sticker più usati in una chat (aggregati per tutti i mittenti).
+     */
+    suspend fun getTopStickers(
+        chatId: Long,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        limit: Int = 10
+    ): List<StickerStat> = withContext(Dispatchers.IO) {
+        messageDao.getTopStickers(chatId, null, startTime, endTime, limit)
+    }
+
+    /**
+     * Ritorna gli sticker più usati per un mittente specifico.
+     */
+    suspend fun getTopStickersBySender(
+        chatId: Long,
+        jid: String?,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        limit: Int = 10
+    ): List<StickerStat> = withContext(Dispatchers.IO) {
+        messageDao.getTopStickers(chatId, jid, startTime, endTime, limit)
     }
 }

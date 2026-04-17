@@ -8,6 +8,7 @@ import com.whatstat.reborn.data.db.model.MonthOfYearCount
 import com.whatstat.reborn.data.db.model.MonthlyCount
 import com.whatstat.reborn.data.db.model.YearTrendCount
 import com.whatstat.reborn.data.db.model.SenderStat
+import com.whatstat.reborn.data.db.model.StickerStat
 import com.whatstat.reborn.data.db.model.WordFrequency
 
 /**
@@ -74,6 +75,7 @@ data class ChatStats(
 data class SlowChatStats(
     val topWords: List<WordFrequency>,
     val topEmojis: List<EmojiStat> = emptyList(),
+    val topStickers: List<StickerStat> = emptyList(),
     val senderBreakdown: List<SenderStat>,
     val conversationStarterBreakdown: List<SenderStat>,
     val averageResponseTimeMs: Long,

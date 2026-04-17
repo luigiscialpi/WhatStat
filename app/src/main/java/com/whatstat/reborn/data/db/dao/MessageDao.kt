@@ -1495,4 +1495,73 @@ class MessageDao @Inject constructor(
             }
         }
     }
+
+    /**
+     * Ritorna gli sticker più usati in una chat.
+     * Filtro: message_type = 20 (sticker).
+     * Supporta filtro per mittente e range temporale.
+     */
+    fun getTopStickers(
+        chatId: Long,
+        jid: String? = null,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        limit: Int = 10
+    ): List<StickerStat> {
+        val conditions = mutableListOf("m.chat_row_id = ?", "m.message_type = 20")
+        val args = mutableListOf(chatId.toString())
+
+        if (jid != null) {
+            if (jid == "me@s.whatsapp.net") {
+                conditions.add("m.from_me = 1")
+            } else {
+                conditions.add("""
+                    (
+                        (m.sender_jid_row_id = (SELECT _id FROM jid WHERE raw_string = ?))
+                        OR 
+                        (m.from_me = 0 AND 0 = (SELECT sender_jid_row_id FROM message m2 WHERE m2._id = m._id))
+                    )
+                """.trimIndent())
+                args.add(jid)
+            }
+        }
+
+        if (startTime != null) {
+            conditions.add("m.timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            conditions.add("m.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+
+        val query = """
+            SELECT
+                mm.file_path,
+                COUNT(*) AS cnt
+            FROM message m
+            JOIN message_media mm ON m._id = mm.message_row_id
+            WHERE ${conditions.joinToString(" AND ")}
+            GROUP BY mm.file_path
+            ORDER BY cnt DESC
+            LIMIT ?
+        """.trimIndent()
+
+        args.add(limit.toString())
+
+        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
+        return cursor.use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) {
+                    val filePath = cursor.getString(0) ?: ""
+                    val fileName = filePath.substringAfterLast("/")
+                    add(StickerStat(
+                        filePath = filePath,
+                        fileName = fileName,
+                        count = cursor.getInt(1)
+                    ))
+                }
+            }
+        }
+    }
 }

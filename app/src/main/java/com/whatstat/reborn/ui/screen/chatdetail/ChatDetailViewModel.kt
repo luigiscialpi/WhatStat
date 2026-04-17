@@ -98,6 +98,22 @@ class ChatDetailViewModel @Inject constructor(
     private val _isSenderEmojisLoading = MutableStateFlow(false)
     val isSenderEmojisLoading: StateFlow<Boolean> = _isSenderEmojisLoading.asStateFlow()
 
+    enum class StickerViewMode { AGGREGATED, INDIVIDUAL }
+    private val _stickerViewMode = MutableStateFlow(StickerViewMode.AGGREGATED)
+    val stickerViewMode: StateFlow<StickerViewMode> = _stickerViewMode.asStateFlow()
+    private val _selectedSenderForStickers = MutableStateFlow<SenderStat?>(null)
+    val selectedSenderForStickers: StateFlow<SenderStat?> = _selectedSenderForStickers.asStateFlow()
+    private val _topStickerLimit = MutableStateFlow(10)
+    val topStickerLimit: StateFlow<Int> = _topStickerLimit.asStateFlow()
+    private val _topStickers = MutableStateFlow<List<com.whatstat.reborn.data.db.model.StickerStat>>(emptyList())
+    val topStickers: StateFlow<List<com.whatstat.reborn.data.db.model.StickerStat>> = _topStickers.asStateFlow()
+    private val _senderTopStickers = MutableStateFlow<List<com.whatstat.reborn.data.db.model.StickerStat>>(emptyList())
+    val senderTopStickers: StateFlow<List<com.whatstat.reborn.data.db.model.StickerStat>> = _senderTopStickers.asStateFlow()
+    private val _isStickerLoading = MutableStateFlow(false)
+    val isStickerLoading: StateFlow<Boolean> = _isStickerLoading.asStateFlow()
+    // Pool di 50 sticker caricato con slow stats — evita query DB per cambi di limite in modalità AGGREGATED
+    private var stickerPool: List<com.whatstat.reborn.data.db.model.StickerStat> = emptyList()
+
     init {
         if (chatId != -1L) loadChatStats()
     }
@@ -146,6 +162,9 @@ class ChatDetailViewModel @Inject constructor(
                         longestMessage = slowStats.longestMessage,
                         avatarPath = avatarPath
                     )
+                    // Popola gli sticker AGGREGATED dal pool slow stats (stesso pattern di parole/emoji)
+                    stickerPool = slowStats.topStickers
+                    _topStickers.value = stickerPool.take(_topStickerLimit.value)
                 } catch (e: Exception) {
                     android.util.Log.w("WhatStat", "Slow stats failed: ${e.message}")
                 } finally {
@@ -270,6 +289,52 @@ class ChatDetailViewModel @Inject constructor(
                 _senderTopEmojis.value = emptyList()
             } finally {
                 _isSenderEmojisLoading.value = false
+            }
+        }
+    }
+
+    fun setStickerViewMode(mode: StickerViewMode) {
+        _stickerViewMode.value = mode
+        if (mode == StickerViewMode.INDIVIDUAL) {
+            _topStickerLimit.value = 5
+            if (_selectedSenderForStickers.value == null) {
+                _selectedSenderForStickers.value = SenderStat("me@s.whatsapp.net", "Tu", 0)
+            }
+        } else {
+            _topStickerLimit.value = 10
+        }
+        loadTopStickers()
+    }
+
+    fun setSelectedSenderForStickers(sender: SenderStat?) {
+        _selectedSenderForStickers.value = sender
+        loadTopStickers()
+    }
+
+    fun setTopStickerLimit(limit: Int) {
+        _topStickerLimit.value = limit
+        loadTopStickers()
+    }
+
+    private fun loadTopStickers() {
+        if (_stickerViewMode.value == StickerViewMode.AGGREGATED) {
+            // Nessuna query DB: usa il pool già caricato dai slow stats
+            _topStickers.value = stickerPool.take(_topStickerLimit.value)
+            return
+        }
+        viewModelScope.launch {
+            _isStickerLoading.value = true
+            try {
+                val (startTime, endTime) = getTimeBounds()
+                val sender = _selectedSenderForStickers.value ?: return@launch
+                val stickers = analyticsRepository.getTopStickersBySender(chatId, sender.jid, startTime, endTime, _topStickerLimit.value)
+                _topStickers.value = stickers
+                _senderTopStickers.value = stickers
+            } catch (e: Exception) {
+                _topStickers.value = emptyList()
+                _senderTopStickers.value = emptyList()
+            } finally {
+                _isStickerLoading.value = false
             }
         }
     }

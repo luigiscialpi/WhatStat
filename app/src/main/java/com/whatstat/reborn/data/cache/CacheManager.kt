@@ -54,6 +54,7 @@ private data class CachedGlobalStats(
 private data class CachedSlowChatStats(
     val topWords: List<CachedWordFrequency> = emptyList(),
     val topEmojis: List<CachedEmojiStat> = emptyList(),
+    val topStickers: List<CachedStickerStat> = emptyList(),
     val senderBreakdown: List<CachedSenderStat> = emptyList(),
     val conversationStarterBreakdown: List<CachedSenderStat> = emptyList(),
     val averageResponseTimeMs: Long = 0L,
@@ -100,6 +101,7 @@ private data class CachedQuickChatStats(
     val linkStats: List<CachedLinkStat> = emptyList(),
     val topDomains: List<CachedDomainStat> = emptyList()
 )
+@Serializable private data class CachedStickerStat(val filePath: String, val fileName: String, val count: Int)
 
 // ── Conversioni domain ↔ cache ───────────────────────────────────
 
@@ -146,6 +148,7 @@ private fun CachedGlobalStats.toDomain() = GlobalStats(
 private fun SlowChatStats.toCached() = CachedSlowChatStats(
     topWords = topWords.map { CachedWordFrequency(it.word, it.frequency) },
     topEmojis = topEmojis.map { CachedEmojiStat(it.emoji, it.count) },
+    topStickers = topStickers.map { CachedStickerStat(it.filePath, it.fileName, it.count) },
     senderBreakdown = senderBreakdown.map { CachedSenderStat(it.jid, it.displayName, it.count) },
     conversationStarterBreakdown = conversationStarterBreakdown.map { CachedSenderStat(it.jid, it.displayName, it.count) },
     averageResponseTimeMs = averageResponseTimeMs,
@@ -157,6 +160,7 @@ private fun SlowChatStats.toCached() = CachedSlowChatStats(
 private fun CachedSlowChatStats.toDomain() = SlowChatStats(
     topWords = topWords.map { WordFrequency(it.word, it.frequency) },
     topEmojis = topEmojis.map { EmojiStat(it.emoji, it.count) },
+    topStickers = topStickers.map { StickerStat(it.filePath, it.fileName, it.count) },
     senderBreakdown = senderBreakdown.map { SenderStat(it.jid, it.displayName, it.count) },
     conversationStarterBreakdown = conversationStarterBreakdown.map { SenderStat(it.jid, it.displayName, it.count) },
     averageResponseTimeMs = averageResponseTimeMs,
@@ -393,6 +397,23 @@ class CacheManager @Inject constructor(
             linkStats = linkStats.map { CachedLinkStat(it.jid, it.displayName, it.totalLinks, it.mediaCount) },
             topDomains = topDomains.map { CachedDomainStat(it.domain, it.count) }
         )
+        dataStore.edit { prefs -> prefs[key] = cacheJson.encodeToString(cached) }
+    }
+
+    // ── Sticker Stats (per chat) ────────────────────────────────────
+
+    suspend fun getChatStickerStats(chatId: Long): List<StickerStat>? {
+        val key = stringPreferencesKey("sticker_chat_${chatId}_v1")
+        val json = dataStore.data.first()[key] ?: return null
+        return try {
+            val cached = cacheJson.decodeFromString<List<CachedStickerStat>>(json)
+            cached.map { StickerStat(it.filePath, it.fileName, it.count) }
+        } catch (e: Exception) { null }
+    }
+
+    suspend fun saveChatStickerStats(chatId: Long, stickers: List<StickerStat>) {
+        val key = stringPreferencesKey("sticker_chat_${chatId}_v1")
+        val cached = stickers.map { CachedStickerStat(it.filePath, it.fileName, it.count) }
         dataStore.edit { prefs -> prefs[key] = cacheJson.encodeToString(cached) }
     }
 

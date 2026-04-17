@@ -76,6 +76,7 @@ import com.whatstat.reborn.ui.component.WordCloudView
 import com.whatstat.reborn.ui.component.InteractiveWordCloud
 import com.whatstat.reborn.ui.component.InteractiveEmojiCloud
 import com.whatstat.reborn.ui.component.LoadingSection
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -109,6 +110,11 @@ fun ChatDetailScreen(
     val topEmojiLimit by viewModel.topEmojiLimit.collectAsState()
     val senderTopEmojis by viewModel.senderTopEmojis.collectAsState()
     val isSenderEmojisLoading by viewModel.isSenderEmojisLoading.collectAsState()
+    val stickerViewMode by viewModel.stickerViewMode.collectAsState()
+    val selectedSenderStickers by viewModel.selectedSenderForStickers.collectAsState()
+    val topStickerLimit by viewModel.topStickerLimit.collectAsState()
+    val senderTopStickers by viewModel.senderTopStickers.collectAsState()
+    val isStickerLoading by viewModel.isStickerLoading.collectAsState()
 
     var tooltipTitle by remember { mutableStateOf("") }
     var tooltipValue by remember { mutableStateOf("") }
@@ -563,6 +569,84 @@ fun ChatDetailScreen(
                             }
                         }
 
+                        // ── Top Stickers ─────────────────────────────────────
+                        item {
+                            val topStickers by viewModel.topStickers.collectAsState()
+                            SectionCard(
+                                title = "Sticker più usati",
+                                trailingContent = {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        listOf(5, 10, 20, 30, 50).forEach { limit ->
+                                            Box(
+                                                modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(
+                                                    if (topStickerLimit == limit) MaterialTheme.colorScheme.primary
+                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                ).clickable { viewModel.setTopStickerLimit(limit) }.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(limit.toString(), style = MaterialTheme.typography.labelMedium,
+                                                    color = if (topStickerLimit == limit) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
+                                    }
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)).padding(4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    listOf(ChatDetailViewModel.StickerViewMode.AGGREGATED to "Tutti", ChatDetailViewModel.StickerViewMode.INDIVIDUAL to "Per Persona").forEach { (mode, label) ->
+                                        Box(
+                                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).background(
+                                                if (stickerViewMode == mode) MaterialTheme.colorScheme.primary else Color.Transparent
+                                            ).clickable { viewModel.setStickerViewMode(mode) }.padding(vertical = 6.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(label, style = MaterialTheme.typography.labelLarge,
+                                                color = if (stickerViewMode == mode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                                if (stickerViewMode == ChatDetailViewModel.StickerViewMode.INDIVIDUAL) {
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 16.dp)) {
+                                        stats?.senderBreakdown?.let { senders ->
+                                            items(senders) { sender ->
+                                                FilterChip(
+                                                    selected = selectedSenderStickers?.jid == sender.jid,
+                                                    onClick = { viewModel.setSelectedSenderForStickers(sender) },
+                                                    label = { Text(sender.displayName) },
+                                                    colors = FilterChipDefaults.filterChipColors(
+                                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                val currentStickers = if (stickerViewMode == ChatDetailViewModel.StickerViewMode.AGGREGATED) topStickers.take(topStickerLimit) else senderTopStickers
+                                when {
+                                    isStickerLoading -> {
+                                        LoadingSection()
+                                    }
+                                    currentStickers.isEmpty() -> {
+                                        Text("Nessuno sticker trovato", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                    }
+                                    else -> {
+                                        LazyRow(
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                            contentPadding = PaddingValues(vertical = 8.dp)
+                                        ) {
+                                            items(currentStickers) { sticker ->
+                                                StickerItem(fileName = sticker.fileName, count = sticker.count)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         // ── Action Grid (2x2) ────────────────────────────────
                         item {
                             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -889,5 +973,51 @@ private fun MessagePieChart(
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
+    }
+}
+
+@Composable
+private fun StickerItem(fileName: String, count: Int) {
+    val context = LocalContext.current
+    val stickerPaths = listOf(
+        "/sdcard/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Stickers",
+        "/sdcard/WhatsApp/Media/WhatsApp Stickers"
+    )
+    val stickerFile = remember(fileName) {
+        stickerPaths.map { File(it, fileName) }.firstOrNull { it.exists() }
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(72.dp)
+    ) {
+        Box(
+            modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            if (stickerFile != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context).data(stickerFile)
+                        .crossfade(true).build(),
+                    contentDescription = fileName,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                Icon(
+                    Icons.Outlined.PhotoLibrary,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "(%d)".format(count),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

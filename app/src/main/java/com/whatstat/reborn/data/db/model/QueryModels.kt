@@ -153,3 +153,10 @@ data class DomainStat(
     val domain: String,
     val count: Int
 )
+
+/** Statistiche per singolo sticker */
+data class StickerStat(
+    val filePath: String, // "Media/WhatsApp Stickers/STK-20240406-WA0029.webp"
+    val fileName: String, // "STK-20240406-WA0029.webp"
+    val count: Int
+)
