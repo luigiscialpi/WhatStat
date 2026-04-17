@@ -48,10 +48,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -62,6 +67,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -115,6 +121,7 @@ fun ChatDetailScreen(
     val topStickerLimit by viewModel.topStickerLimit.collectAsState()
     val senderTopStickers by viewModel.senderTopStickers.collectAsState()
     val isStickerLoading by viewModel.isStickerLoading.collectAsState()
+    val topStickers by viewModel.topStickers.collectAsState()
 
     var tooltipTitle by remember { mutableStateOf("") }
     var tooltipValue by remember { mutableStateOf("") }
@@ -368,32 +375,49 @@ fun ChatDetailScreen(
                             )
                         }
 
-                        // ── Top Words ────────────────────────────────────────
+                        // ── Analisi Testi (Parole / Emoji / Sticker) ──────
                         item {
+                            val tabs = listOf("Parole", "Emoji", "Sticker")
+                            var selectedTab by remember { mutableIntStateOf(0) }
+
                             SectionCard(
-                                title = "Parole più usate",
+                                title = "Analisi testi",
                                 trailingContent = {
-                                    // Selettore limite (chips 5, 10, 20, 30, 50)
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
-                                        listOf(5, 10, 20, 30, 50).forEach { limit ->
+                                        val limits = when (selectedTab) {
+                                            0 -> listOf(5, 10, 20, 30, 50)
+                                            1 -> listOf(3, 5, 10, 20, 30, 50)
+                                            else -> listOf(5, 10, 20, 30, 50)
+                                        }
+                                        val currentLimit = when (selectedTab) {
+                                            0 -> topWordsLimit
+                                            1 -> topEmojiLimit
+                                            else -> topStickerLimit
+                                        }
+                                        val onLimitChange: (Int) -> Unit = when (selectedTab) {
+                                            0 -> { l -> viewModel.setTopWordsLimit(l) }
+                                            1 -> { l -> viewModel.setTopEmojiLimit(l) }
+                                            else -> { l -> viewModel.setTopStickerLimit(l) }
+                                        }
+                                        limits.forEach { limit ->
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(6.dp))
                                                     .background(
-                                                        if (topWordsLimit == limit) MaterialTheme.colorScheme.primary
+                                                        if (currentLimit == limit) MaterialTheme.colorScheme.primary
                                                         else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                                     )
-                                                    .clickable { viewModel.setTopWordsLimit(limit) }
+                                                    .clickable { onLimitChange(limit) }
                                                     .padding(horizontal = 8.dp, vertical = 2.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text(
                                                     limit.toString(),
                                                     style = MaterialTheme.typography.labelMedium,
-                                                    color = if (topWordsLimit == limit) MaterialTheme.colorScheme.onPrimary
+                                                    color = if (currentLimit == limit) MaterialTheme.colorScheme.onPrimary
                                                             else MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
@@ -401,7 +425,53 @@ fun ChatDetailScreen(
                                     }
                                 }
                             ) {
-                                // Switcher Tutti / Per Persona
+                                ScrollableTabRow(
+                                    selectedTabIndex = selectedTab,
+                                    containerColor = Color.Transparent,
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                    edgePadding = 0.dp,
+                                    divider = {},
+                                    modifier = Modifier.padding(bottom = 12.dp),
+                                    indicator = { tabPositions ->
+                                        if (selectedTab < tabPositions.size) {
+                                            TabRowDefaults.SecondaryIndicator(
+                                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                ) {
+                                    tabs.forEachIndexed { index, title ->
+                                        Tab(
+                                            selected = selectedTab == index,
+                                            onClick = { selectedTab = index },
+                                            text = { Text(title, fontSize = 12.sp) }
+                                        )
+                                    }
+                                }
+
+                                val currentViewModeIsIndividual = when (selectedTab) {
+                                    0 -> wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL
+                                    1 -> emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL
+                                    else -> stickerViewMode == ChatDetailViewModel.StickerViewMode.INDIVIDUAL
+                                }
+                                val onSwitchMode: (Boolean) -> Unit = { toIndividual ->
+                                    when (selectedTab) {
+                                        0 -> viewModel.setWordViewMode(
+                                            if (toIndividual) ChatDetailViewModel.WordViewMode.INDIVIDUAL
+                                            else ChatDetailViewModel.WordViewMode.AGGREGATED
+                                        )
+                                        1 -> viewModel.setEmojiViewMode(
+                                            if (toIndividual) ChatDetailViewModel.EmojiViewMode.INDIVIDUAL
+                                            else ChatDetailViewModel.EmojiViewMode.AGGREGATED
+                                        )
+                                        else -> viewModel.setStickerViewMode(
+                                            if (toIndividual) ChatDetailViewModel.StickerViewMode.INDIVIDUAL
+                                            else ChatDetailViewModel.StickerViewMode.AGGREGATED
+                                        )
+                                    }
+                                }
+
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -411,241 +481,123 @@ fun ChatDetailScreen(
                                         .padding(4.dp),
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    val modes = listOf(
-                                        ChatDetailViewModel.WordViewMode.AGGREGATED to "Tutti",
-                                        ChatDetailViewModel.WordViewMode.INDIVIDUAL to "Per Persona"
-                                    )
-                                    modes.forEach { (mode, label) ->
+                                    listOf(false to "Tutti", true to "Per Persona").forEach { (isIndividual, label) ->
                                         Box(
                                             modifier = Modifier
                                                 .weight(1f)
                                                 .clip(RoundedCornerShape(6.dp))
                                                 .background(
-                                                    if (wordViewMode == mode) MaterialTheme.colorScheme.primary
+                                                    if (currentViewModeIsIndividual == isIndividual) MaterialTheme.colorScheme.primary
                                                     else Color.Transparent
                                                 )
-                                                .clickable { viewModel.setWordViewMode(mode) }
+                                                .clickable { onSwitchMode(isIndividual) }
                                                 .padding(vertical = 6.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
                                                 label,
                                                 style = MaterialTheme.typography.labelLarge,
-                                                color = if (wordViewMode == mode) MaterialTheme.colorScheme.onPrimary
+                                                color = if (currentViewModeIsIndividual == isIndividual) MaterialTheme.colorScheme.onPrimary
                                                         else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
                                 }
 
-                                // Selettore partecipanti (solo se indiviuale)
-                                if (wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL) {
-                                    LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.padding(bottom = 16.dp)
-                                    ) {
-                                        // Aggiungiamo 'me' esplicitamente se non c'è già? 
-                                        // In realtà senderBreakdown include tutti.
-                                        items(s.senderBreakdown) { sender ->
-                                            FilterChip(
-                                                selected = selectedSenderWords?.jid == sender.jid,
-                                                onClick = { viewModel.setSelectedSenderForWords(sender) },
-                                                label = { Text(sender.displayName) },
-                                                colors = FilterChipDefaults.filterChipColors(
-                                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-
-                                // Visualizzazione Word Cloud
-                                val currentWords = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED) {
-                                    s.topWords.take(topWordsLimit.toInt())
-                                } else {
-                                    senderTopWords
-                                }
-
-                                when {
-                                    (wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL && isSenderWordsLoading) ||
-                                    (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED && isLoadingSlow && currentWords.isEmpty()) -> {
-                                        LoadingSection(progress = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED) progressSlow else null)
-                                    }
-                                    currentWords.isEmpty() -> {
-                                        Text(
-                                            if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED) "Nessuna parola trovata"
-                                            else "Questo contatto non ha ancora scritto nulla con questi filtri",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(vertical = 24.dp)
-                                        )
-                                    }
-                                    else -> {
-                                        InteractiveWordCloud(
-                                            words = currentWords,
-                                            onWordClick = { word, count ->
-                                                tooltipTitle = word
-                                                tooltipValue = "%,d volte".format(count)
-                                                showTooltip = true
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // ── Top Emojis ───────────────────────────────────────
-                        item {
-                            stats?.let { s ->
-                                SectionCard(
-                                    title = "Emoji più usate",
-                                    trailingContent = {
-                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            listOf(3, 5, 10, 20, 30, 50).forEach { limit ->
-                                                Box(
-                                                    modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(
-                                                        if (topEmojiLimit == limit) MaterialTheme.colorScheme.primary
-                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                                    ).clickable { viewModel.setTopEmojiLimit(limit) }.padding(horizontal = 8.dp, vertical = 2.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(limit.toString(), style = MaterialTheme.typography.labelMedium,
-                                                        color = if (topEmojiLimit == limit) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
-                                                }
-                                            }
-                                        }
-                                    }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(8.dp))
-                                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)).padding(4.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        listOf(ChatDetailViewModel.EmojiViewMode.AGGREGATED to "Tutti", ChatDetailViewModel.EmojiViewMode.INDIVIDUAL to "Per Persona").forEach { (mode, label) ->
-                                            Box(
-                                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).background(
-                                                    if (emojiViewMode == mode) MaterialTheme.colorScheme.primary else Color.Transparent
-                                                ).clickable { viewModel.setEmojiViewMode(mode) }.padding(vertical = 6.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(label, style = MaterialTheme.typography.labelLarge,
-                                                    color = if (emojiViewMode == mode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
-                                            }
-                                        }
-                                    }
-                                    if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL) {
-                                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 16.dp)) {
-                                            items(s.senderBreakdown) { sender ->
-                                                FilterChip(
-                                                    selected = selectedSenderEmojis?.jid == sender.jid,
-                                                    onClick = { viewModel.setSelectedSenderForEmojis(sender) },
-                                                    label = { Text(sender.displayName) },
-                                                    colors = FilterChipDefaults.filterChipColors(
-                                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                                    )
-                                                )
-                                            }
-                                        }
-                                    }
-                                    val currentEmojis = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED) s.topEmojis.take(topEmojiLimit.toInt()) else senderTopEmojis
-                                    when {
-                                        (emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL && isSenderEmojisLoading) ||
-                                        (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED && isLoadingSlow && currentEmojis.isEmpty()) -> {
-                                            LoadingSection(progress = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED) progressSlow else null)
-                                        }
-                                        currentEmojis.isEmpty() -> {
-                                            Text(if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED) "Nessuna emoji trovata" else "Questo contatto non ha usato emoji",
-                                                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
-                                        }
-                                        else -> {
-                                            InteractiveEmojiCloud(emojis = currentEmojis, onEmojiClick = { emoji, count ->
-                                                tooltipTitle = emoji; tooltipValue = "%,d volte".format(count); showTooltip = true
-                                            })
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // ── Top Stickers ─────────────────────────────────────
-                        item {
-                            val topStickers by viewModel.topStickers.collectAsState()
-                            SectionCard(
-                                title = "Sticker più usati",
-                                trailingContent = {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        listOf(5, 10, 20, 30, 50).forEach { limit ->
-                                            Box(
-                                                modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(
-                                                    if (topStickerLimit == limit) MaterialTheme.colorScheme.primary
-                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                                ).clickable { viewModel.setTopStickerLimit(limit) }.padding(horizontal = 8.dp, vertical = 2.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(limit.toString(), style = MaterialTheme.typography.labelMedium,
-                                                    color = if (topStickerLimit == limit) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
-                                            }
-                                        }
-                                    }
-                                }
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)).padding(4.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    listOf(ChatDetailViewModel.StickerViewMode.AGGREGATED to "Tutti", ChatDetailViewModel.StickerViewMode.INDIVIDUAL to "Per Persona").forEach { (mode, label) ->
-                                        Box(
-                                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).background(
-                                                if (stickerViewMode == mode) MaterialTheme.colorScheme.primary else Color.Transparent
-                                            ).clickable { viewModel.setStickerViewMode(mode) }.padding(vertical = 6.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(label, style = MaterialTheme.typography.labelLarge,
-                                                color = if (stickerViewMode == mode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
-                                    }
-                                }
-                                if (stickerViewMode == ChatDetailViewModel.StickerViewMode.INDIVIDUAL) {
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 16.dp)) {
-                                        stats?.senderBreakdown?.let { senders ->
-                                            items(senders) { sender ->
-                                                FilterChip(
-                                                    selected = selectedSenderStickers?.jid == sender.jid,
-                                                    onClick = { viewModel.setSelectedSenderForStickers(sender) },
-                                                    label = { Text(sender.displayName) },
-                                                    colors = FilterChipDefaults.filterChipColors(
-                                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                                    )
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                                val currentStickers = if (stickerViewMode == ChatDetailViewModel.StickerViewMode.AGGREGATED) topStickers.take(topStickerLimit) else senderTopStickers
-                                when {
-                                    isStickerLoading -> {
-                                        LoadingSection()
-                                    }
-                                    currentStickers.isEmpty() -> {
-                                        Text("Nessuno sticker trovato", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
-                                    }
-                                    else -> {
+                                if (currentViewModeIsIndividual) {
+                                    stats?.let { s ->
                                         LazyRow(
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                            contentPadding = PaddingValues(vertical = 8.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.padding(bottom = 16.dp)
                                         ) {
-                                            items(currentStickers) { sticker ->
-                                                StickerItem(fileName = sticker.fileName, count = sticker.count)
+                                            items(s.senderBreakdown) { sender ->
+                                                val isSelected = when (selectedTab) {
+                                                    0 -> selectedSenderWords?.jid == sender.jid
+                                                    1 -> selectedSenderEmojis?.jid == sender.jid
+                                                    else -> selectedSenderStickers?.jid == sender.jid
+                                                }
+                                                val onSelect: () -> Unit = when (selectedTab) {
+                                                    0 -> { { viewModel.setSelectedSenderForWords(sender) } }
+                                                    1 -> { { viewModel.setSelectedSenderForEmojis(sender) } }
+                                                    else -> { { viewModel.setSelectedSenderForStickers(sender) } }
+                                                }
+                                                FilterChip(
+                                                    selected = isSelected,
+                                                    onClick = onSelect,
+                                                    label = { Text(sender.displayName) },
+                                                    colors = FilterChipDefaults.filterChipColors(
+                                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                stats?.let { s ->
+                                    when (selectedTab) {
+                                        0 -> {
+                                            val currentWords = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED)
+                                                s.topWords.take(topWordsLimit.toInt()) else senderTopWords
+                                            when {
+                                                (wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL && isSenderWordsLoading) ||
+                                                (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED && isLoadingSlow && currentWords.isEmpty()) ->
+                                                    LoadingSection(progress = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED) progressSlow else null)
+                                                currentWords.isEmpty() ->
+                                                    Text("Nessuna parola trovata", style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                                else ->
+                                                    InteractiveWordCloud(words = currentWords, onWordClick = { word, count ->
+                                                        tooltipTitle = word
+                                                        tooltipValue = "%,d volte".format(count)
+                                                        showTooltip = true
+                                                    })
+                                            }
+                                        }
+                                        1 -> {
+                                            val currentEmojis = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED)
+                                                s.topEmojis.take(topEmojiLimit.toInt()) else senderTopEmojis
+                                            when {
+                                                (emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL && isSenderEmojisLoading) ||
+                                                (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED && isLoadingSlow && currentEmojis.isEmpty()) ->
+                                                    LoadingSection(progress = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED) progressSlow else null)
+                                                currentEmojis.isEmpty() ->
+                                                    Text("Nessuna emoji trovata", style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                                else ->
+                                                    InteractiveEmojiCloud(emojis = currentEmojis, onEmojiClick = { emoji, count ->
+                                                        tooltipTitle = emoji
+                                                        tooltipValue = "%,d volte".format(count)
+                                                        showTooltip = true
+                                                    })
+                                            }
+                                        }
+                                        2 -> {
+                                            val currentStickers = if (stickerViewMode == ChatDetailViewModel.StickerViewMode.AGGREGATED)
+                                                topStickers.take(topStickerLimit) else senderTopStickers
+                                            when {
+                                                isStickerLoading ->
+                                                    LoadingSection()
+                                                currentStickers.isEmpty() ->
+                                                    Text("Nessuno sticker trovato", style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                                else ->
+                                                    LazyRow(
+                                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                                        contentPadding = PaddingValues(vertical = 8.dp)
+                                                    ) {
+                                                        items(currentStickers) { sticker ->
+                                                            StickerItem(fileName = sticker.fileName, count = sticker.count)
+                                                        }
+                                                    }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
+
 
                         // ── Action Grid (2x2) ────────────────────────────────
                         item {

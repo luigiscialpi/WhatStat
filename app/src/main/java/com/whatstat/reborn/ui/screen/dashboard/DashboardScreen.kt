@@ -46,19 +46,25 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -318,78 +324,96 @@ fun DashboardScreen(
                 }
 
                 if (slowStatsRequested && !isLoadingSlow) {
-                    // ── Top Words (dopo analisi) ─────────────────────
+                    // ── Analisi Testi (Parole / Emoji / Sticker) ──────
                     item {
-                        SectionCard(
-                            title = "Parole più usate",
-                            subtitle = "Le parole più frequenti in assoluto"
-                        ) {
-                            if (s.topWords.isEmpty()) {
-                                Text(
-                                    "Nessuna parola trovata",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(vertical = 24.dp)
-                                )
-                            } else {
-                                InteractiveWordCloud(
-                                    words = s.topWords.take(20),
-                                    onWordClick = { word, count ->
-                                        tooltipTitle = word
-                                        tooltipValue = "%,d volte".format(count)
-                                        showTooltip = true
-                                    }
-                                )
-                            }
-                        }
-                    }
+                        val tabs = listOf("Parole", "Emoji", "Sticker")
+                        var selectedTab by remember { mutableIntStateOf(0) }
 
-                    // ── Top Emojis (dopo analisi) ────────────────────
-                    item {
                         SectionCard(
-                            title = "Emoji più usate",
-                            subtitle = "Le emoji più frequenti in assoluto"
+                            title = "Analisi testi",
+                            subtitle = "Parole, emoji e sticker più frequenti"
                         ) {
-                            if (s.topEmojis.isEmpty()) {
-                                Text(
-                                    "Nessuna emoji trovata",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(vertical = 24.dp)
-                                )
-                            } else {
-                                InteractiveEmojiCloud(
-                                    emojis = s.topEmojis.take(20),
-                                    onEmojiClick = { emoji, count ->
-                                        tooltipTitle = emoji
-                                        tooltipValue = "%,d volte".format(count)
-                                        showTooltip = true
+                            ScrollableTabRow(
+                                selectedTabIndex = selectedTab,
+                                containerColor = Color.Transparent,
+                                contentColor = MaterialTheme.colorScheme.primary,
+                                edgePadding = 0.dp,
+                                divider = {},
+                                modifier = Modifier.padding(bottom = 12.dp),
+                                indicator = { tabPositions ->
+                                    if (selectedTab < tabPositions.size) {
+                                        TabRowDefaults.SecondaryIndicator(
+                                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
                                     }
-                                )
+                                }
+                            ) {
+                                tabs.forEachIndexed { index, title ->
+                                    Tab(
+                                        selected = selectedTab == index,
+                                        onClick = { selectedTab = index },
+                                        text = { Text(title, fontSize = 12.sp) }
+                                    )
+                                }
                             }
-                        }
-                    }
 
-                    // ── Top Stickers (dopo analisi) ───────────────────
-                    item {
-                        SectionCard(
-                            title = "Sticker più usati",
-                            subtitle = "Gli sticker più inviati in assoluto"
-                        ) {
-                            if (s.topStickers.isEmpty()) {
-                                Text(
-                                    "Nessuno sticker trovato",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(vertical = 24.dp)
-                                )
-                            } else {
-                                LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    contentPadding = PaddingValues(vertical = 8.dp)
-                                ) {
-                                    items(s.topStickers.take(20)) { sticker ->
-                                        DashboardStickerItem(fileName = sticker.fileName, count = sticker.count)
+                            when (selectedTab) {
+                                0 -> {
+                                    if (s.topWords.isEmpty()) {
+                                        Text(
+                                            "Nessuna parola trovata",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(vertical = 24.dp)
+                                        )
+                                    } else {
+                                        InteractiveWordCloud(
+                                            words = s.topWords.take(20),
+                                            onWordClick = { word, count ->
+                                                tooltipTitle = word
+                                                tooltipValue = "%,d volte".format(count)
+                                                showTooltip = true
+                                            }
+                                        )
+                                    }
+                                }
+                                1 -> {
+                                    if (s.topEmojis.isEmpty()) {
+                                        Text(
+                                            "Nessuna emoji trovata",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(vertical = 24.dp)
+                                        )
+                                    } else {
+                                        InteractiveEmojiCloud(
+                                            emojis = s.topEmojis.take(20),
+                                            onEmojiClick = { emoji, count ->
+                                                tooltipTitle = emoji
+                                                tooltipValue = "%,d volte".format(count)
+                                                showTooltip = true
+                                            }
+                                        )
+                                    }
+                                }
+                                2 -> {
+                                    if (s.topStickers.isEmpty()) {
+                                        Text(
+                                            "Nessuno sticker trovato",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(vertical = 24.dp)
+                                        )
+                                    } else {
+                                        LazyRow(
+                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                            contentPadding = PaddingValues(vertical = 8.dp)
+                                        ) {
+                                            items(s.topStickers.take(20)) { sticker ->
+                                                DashboardStickerItem(fileName = sticker.fileName, count = sticker.count)
+                                            }
+                                        }
                                     }
                                 }
                             }
