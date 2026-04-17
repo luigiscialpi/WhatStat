@@ -433,8 +433,35 @@ class FileExtractor @Inject constructor(
 data class ExtractedFiles(
     val keyFile: File,
     val crypt14File: File,
-    val waDbFile: File
+    val waDbFile: File,
+    val meJpgFile: File? = null
 )
+
+/**
+ * Estrae l'avatar dell'utente corrente (me.jpg) dalla directory WhatsApp.
+ * Il file viene rinominato da .j a .jpg e copiato nella directory privata dell'app.
+ * Il JID speciale "me@s.whatsapp.net" viene usato per identificare l'utente corrente.
+ */
+suspend fun extractMeAvatar(context: Context, rootManager: RootManager): File? = withContext(Dispatchers.IO) {
+    val workDir = context.filesDir
+    val avatarDir = File(workDir, "avatars")
+    if (!avatarDir.exists()) avatarDir.mkdirs()
+
+    // Cerca in tutte le directory user (supporta XSpace/profili multipli)
+    val userDirs = listOf("0", "10", "11", "12") // userId comuni
+    for (userId in userDirs) {
+        val sourcePattern = "/data/user/$userId/com.whatsapp/files/Avatars/me.j"
+        val result = rootManager.execute("ls '$sourcePattern' 2>/dev/null")
+        if (result.success && result.output.isNotEmpty()) {
+            val destFile = File(avatarDir, "me.jpg")
+            val copyResult = rootManager.execute("cp '$sourcePattern' '${destFile.absolutePath}'")
+            if (copyResult.success && destFile.exists()) {
+                return@withContext destFile
+            }
+        }
+    }
+    null
+}
 ```
 
 ---
@@ -2268,6 +2295,7 @@ class AnalyticsRepositoryTest {
 - [x] **Auto-restore dalla cache** — Se la cache contiene risultati slow, li mostra senza bottone alla riapertura
 - [x] **Cache Quick Stats per chat** — Distribuzioni orarie/settimanali/mensili e conteggi base cachati per chatId (ALL_TIME); apertura istantanea alla riapertura della chat
 - [ ] Confronto tra periodi temporali
+- [ ] **Sticker più usati** — Statistiche sticker (file, count, animated/Lottie) dalla tabella message_media
 - [ ] Supporto WhatsApp Business
 - [ ] Modalità "time capsule" (analisi di un anno fa)
 - [ ] Supporto crypt15 (con inserimento manuale chiave 64 hex)
@@ -2286,6 +2314,8 @@ class AnalyticsRepositoryTest {
 - [x] **Parole più usate globale** — Word cloud nella Dashboard
 - [x] **Query unificate** — Una sola SELECT per parole+emoji (ottimizzazione 2x)
 - [x] **Lazy loading** — Statistiche lente caricate in background con progress indicator
+- [x] **Pool dati esteso** — Pre-caricamento di 50 parole e emoji (invece di 10) per mostrare fino a 50 elementi senza query aggiuntive; chiavi cache incrementate a v3 per rigenerare i dati con la nuova dimensione del pool
+- [ ] **Sticker più usati** — Sezione analoga a "Parole più usate" ed "Emoji più usate" con visualizzazione thumbnail sticker e conteggio utilizzi
 
 ### v1.6 — Avatar e UI ✅ IMPLEMENTATO
 - [x] **Estrazione avatar** — Copia root di `/data/.../com.whatsapp/files/Avatars/*.j` nella directory privata dell'app, rinominati in `.jpg`
@@ -2297,6 +2327,7 @@ class AnalyticsRepositoryTest {
 - [x] **Avatar in Media & Link** — Immagine circolare nella card di ogni mittente
 - [x] **Avatar nel bottom sheet domini** — Header con avatar + nome nell'analisi link per contatto
 - [x] **Coil** — Libreria `coil-compose:2.7.0` per caricamento immagini da `File`
+- [x] **Profilo utente corrente** — Estrazione di `me.jpg` dalla directory Avatars WhatsApp e mapping del JID speciale `me@s.whatsapp.net` per visualizzare l'avatar dell'utente in tutte le schermate
 
 ### Considerazioni per crypt15 (future)
 
