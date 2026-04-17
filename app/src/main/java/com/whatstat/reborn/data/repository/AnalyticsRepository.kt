@@ -149,7 +149,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                     totalMessages = 0, totalChats = 0, totalContacts = 0, totalMediaFiles = 0,
                     oldestMessageDate = 0, mostActiveChat = "", mostActiveHour = 0, mostActiveDayOfWeek = 0,
                     averageMessagesPerDay = 0f, longestStreak = 0,
-                    topWords = cached.first, topEmojis = cached.second
+                    topWords = cached.first, topEmojis = cached.second, topStickers = cached.third
                 )
             }
         }
@@ -162,17 +162,24 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             android.util.Log.w("WhatStat", "getGlobalWordsAndEmojis failed: ${e.message}")
             Pair(emptyList(), emptyList())
         }
+        val topStickers = try {
+            messageDao.getTopStickers(chatId = -1L, jid = null, startTime = startTime, endTime = endTime, limit = 50, globalQuery = true)
+        } catch (e: Exception) {
+            android.util.Log.w("WhatStat", "getGlobalTopStickers failed: ${e.message}")
+            emptyList()
+        }
         onProgress(100)
 
         // Salva in cache solo se nessun filtro temporale
         if (startTime == null && endTime == null) {
-            cacheManager.saveGlobalSlowStats(topWords, topEmojis)
+            cacheManager.saveGlobalSlowStats(topWords, topEmojis, topStickers)
         }
 
         GlobalStats(
             totalMessages = 0, totalChats = 0, totalContacts = 0, totalMediaFiles = 0,
             oldestMessageDate = 0, mostActiveChat = "", mostActiveHour = 0, mostActiveDayOfWeek = 0,
-            averageMessagesPerDay = 0f, longestStreak = 0, topWords = topWords, topEmojis = topEmojis
+            averageMessagesPerDay = 0f, longestStreak = 0, topWords = topWords, topEmojis = topEmojis,
+            topStickers = topStickers
         )
     }
 

@@ -115,10 +115,11 @@ class DashboardViewModel @Inject constructor(
                     endTime = null,
                     onProgress = {}
                 )
-                if (slowStats.topWords.isNotEmpty() || slowStats.topEmojis.isNotEmpty()) {
+                if (slowStats.topWords.isNotEmpty() || slowStats.topEmojis.isNotEmpty() || slowStats.topStickers.isNotEmpty()) {
                     _globalStats.value = _globalStats.value?.copy(
                         topWords = slowStats.topWords,
-                        topEmojis = slowStats.topEmojis
+                        topEmojis = slowStats.topEmojis,
+                        topStickers = slowStats.topStickers
                     )
                     _slowStatsRequested.value = true
                 }
@@ -146,7 +147,8 @@ class DashboardViewModel @Inject constructor(
                 )
                 _globalStats.value = _globalStats.value?.copy(
                     topWords = slowStats.topWords,
-                    topEmojis = slowStats.topEmojis
+                    topEmojis = slowStats.topEmojis,
+                    topStickers = slowStats.topStickers
                 )
             } catch (e: Exception) {
                 android.util.Log.w("WhatStat", "Slow stats failed: ${e.message}")

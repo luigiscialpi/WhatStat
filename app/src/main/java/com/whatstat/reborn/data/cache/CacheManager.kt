@@ -234,7 +234,7 @@ class CacheManager @Inject constructor(
         private val KEY_LAST_UPDATE = longPreferencesKey("last_cache_update")
         private val KEY_GLOBAL_STATS = stringPreferencesKey("global_stats_v2")
         // v3: bump per rigenerare la cache con pool da 50 words/emoji
-        private val KEY_GLOBAL_SLOW = stringPreferencesKey("global_slow_v3")
+        private val KEY_GLOBAL_SLOW = stringPreferencesKey("global_slow_v4")
     }
 
     // ── Hash DB ──────────────────────────────────────────────────
@@ -292,23 +292,25 @@ class CacheManager @Inject constructor(
 
     // ── Global Slow Stats (words + emoji) ────────────────────────
 
-    suspend fun getGlobalSlowStats(): Pair<List<WordFrequency>, List<EmojiStat>>? {
+    suspend fun getGlobalSlowStats(): Triple<List<WordFrequency>, List<EmojiStat>, List<StickerStat>>? {
         val json = dataStore.data.first()[KEY_GLOBAL_SLOW] ?: return null
         return try {
             val cached = cacheJson.decodeFromString<CachedSlowChatStats>(json)
-            Pair(
+            Triple(
                 cached.topWords.map { WordFrequency(it.word, it.frequency) },
-                cached.topEmojis.map { EmojiStat(it.emoji, it.count) }
+                cached.topEmojis.map { EmojiStat(it.emoji, it.count) },
+                cached.topStickers.map { StickerStat(it.filePath, it.fileName, it.count) }
             )
         } catch (e: Exception) {
             null
         }
     }
 
-    suspend fun saveGlobalSlowStats(topWords: List<WordFrequency>, topEmojis: List<EmojiStat>) {
+    suspend fun saveGlobalSlowStats(topWords: List<WordFrequency>, topEmojis: List<EmojiStat>, topStickers: List<StickerStat>) {
         val cached = CachedSlowChatStats(
             topWords = topWords.map { CachedWordFrequency(it.word, it.frequency) },
-            topEmojis = topEmojis.map { CachedEmojiStat(it.emoji, it.count) }
+            topEmojis = topEmojis.map { CachedEmojiStat(it.emoji, it.count) },
+            topStickers = topStickers.map { CachedStickerStat(it.filePath, it.fileName, it.count) }
         )
         dataStore.edit { prefs ->
             prefs[KEY_GLOBAL_SLOW] = cacheJson.encodeToString(cached)

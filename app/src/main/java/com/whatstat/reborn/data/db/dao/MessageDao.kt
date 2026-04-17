@@ -1506,10 +1506,16 @@ class MessageDao @Inject constructor(
         jid: String? = null,
         startTime: Long? = null,
         endTime: Long? = null,
-        limit: Int = 10
+        limit: Int = 10,
+        globalQuery: Boolean = false
     ): List<StickerStat> {
-        val conditions = mutableListOf("m.chat_row_id = ?", "m.message_type = 20")
-        val args = mutableListOf(chatId.toString())
+        val conditions = mutableListOf("m.message_type = 20")
+        val args = mutableListOf<String>()
+
+        if (!globalQuery) {
+            conditions.add(0, "m.chat_row_id = ?")
+            args.add(0, chatId.toString())
+        }
 
         if (jid != null) {
             if (jid == "me@s.whatsapp.net") {
