@@ -81,6 +81,7 @@ import com.whatstat.reborn.ui.component.StatCard
 import com.whatstat.reborn.ui.component.WordCloudView
 import com.whatstat.reborn.ui.component.InteractiveWordCloud
 import com.whatstat.reborn.ui.component.InteractiveEmojiCloud
+import com.whatstat.reborn.ui.component.InteractiveStickerCloud
 import com.whatstat.reborn.ui.component.LoadingSection
 import java.io.File
 import java.text.SimpleDateFormat
@@ -548,11 +549,7 @@ fun ChatDetailScreen(
                                                     Text("Nessuna parola trovata", style = MaterialTheme.typography.bodyMedium,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
                                                 else ->
-                                                    InteractiveWordCloud(words = currentWords, onWordClick = { word, count ->
-                                                        tooltipTitle = word
-                                                        tooltipValue = "%,d volte".format(count)
-                                                        showTooltip = true
-                                                    })
+                                                    InteractiveWordCloud(words = currentWords)
                                             }
                                         }
                                         1 -> {
@@ -566,14 +563,27 @@ fun ChatDetailScreen(
                                                     Text("Nessuna emoji trovata", style = MaterialTheme.typography.bodyMedium,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
                                                 else ->
-                                                    InteractiveEmojiCloud(emojis = currentEmojis, onEmojiClick = { emoji, count ->
-                                                        tooltipTitle = emoji
-                                                        tooltipValue = "%,d volte".format(count)
-                                                        showTooltip = true
-                                                    })
+                                                    InteractiveEmojiCloud(emojis = currentEmojis)
                                             }
                                         }
                                         2 -> {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(bottom = 8.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Outlined.Info,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                                Spacer(Modifier.width(4.dp))
+                                                Text(
+                                                    "Sticker simili possono comparire più volte perché WhatsApp li salva come file separati.",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
                                             val currentStickers = if (stickerViewMode == ChatDetailViewModel.StickerViewMode.AGGREGATED)
                                                 topStickers.take(topStickerLimit) else senderTopStickers
                                             when {
@@ -583,14 +593,7 @@ fun ChatDetailScreen(
                                                     Text("Nessuno sticker trovato", style = MaterialTheme.typography.bodyMedium,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
                                                 else ->
-                                                    LazyRow(
-                                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                                        contentPadding = PaddingValues(vertical = 8.dp)
-                                                    ) {
-                                                        items(currentStickers) { sticker ->
-                                                            StickerItem(fileName = sticker.fileName, count = sticker.count)
-                                                        }
-                                                    }
+                                                    InteractiveStickerCloud(stickers = currentStickers)
                                             }
                                         }
                                     }

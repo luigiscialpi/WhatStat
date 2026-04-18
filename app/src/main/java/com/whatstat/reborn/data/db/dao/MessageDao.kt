@@ -575,13 +575,27 @@ class MessageDao @Inject constructor(
         try {
             texts.forEach { text ->
                 extractEmojis(text).forEach { emoji ->
-                    freq[emoji] = (freq[emoji] ?: 0) + 1
+                    val base = stripSkinTone(emoji)
+                    freq[base] = (freq[base] ?: 0) + 1
                 }
             }
         } catch (e: Exception) {
             android.util.Log.w("WhatStat", "Error counting emojis: ${e.message}")
         }
         return freq.entries.sortedByDescending { it.value }.take(limit).map { EmojiStat(it.key, it.value) }
+    }
+
+    private fun stripSkinTone(emoji: String): String {
+        val sb = StringBuilder()
+        var i = 0
+        while (i < emoji.length) {
+            val cp = emoji.codePointAt(i)
+            if (!isSkinToneModifier(cp)) {
+                sb.appendCodePoint(cp)
+            }
+            i += Character.charCount(cp)
+        }
+        return sb.toString()
     }
 
     private fun extractEmojis(text: String): List<String> {
@@ -1543,12 +1557,13 @@ class MessageDao @Inject constructor(
 
         val query = """
             SELECT
-                mm.file_path,
+                MIN(mm.file_path) AS file_path,
                 COUNT(*) AS cnt
             FROM message m
             JOIN message_media mm ON m._id = mm.message_row_id
             WHERE ${conditions.joinToString(" AND ")}
-            GROUP BY mm.file_path
+              AND mm.file_hash IS NOT NULL AND mm.file_hash != ''
+            GROUP BY mm.file_hash
             ORDER BY cnt DESC
             LIMIT ?
         """.trimIndent()

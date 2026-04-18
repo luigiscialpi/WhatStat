@@ -148,10 +148,17 @@ data class SenderStat(
     val count: Int
 )
 
+/** Frequenza di un singolo URL */
+data class UrlFrequency(
+    val url: String,
+    val count: Int
+)
+
 /** Statistiche frequenza domini link */
 data class DomainStat(
     val domain: String,
-    val count: Int
+    val count: Int,
+    val topUrls: List<UrlFrequency> = emptyList()
 )
 
 /** Statistiche per singolo sticker */

@@ -76,6 +76,7 @@ import com.whatstat.reborn.ui.component.ActivityRecapCard
 import com.whatstat.reborn.ui.component.ChartTooltip
 import com.whatstat.reborn.ui.component.StatCard
 import com.whatstat.reborn.ui.component.InteractiveEmojiCloud
+import com.whatstat.reborn.ui.component.InteractiveStickerCloud
 import com.whatstat.reborn.ui.component.InteractiveWordCloud
 
 @Composable
@@ -369,12 +370,7 @@ fun DashboardScreen(
                                         )
                                     } else {
                                         InteractiveWordCloud(
-                                            words = s.topWords.take(20),
-                                            onWordClick = { word, count ->
-                                                tooltipTitle = word
-                                                tooltipValue = "%,d volte".format(count)
-                                                showTooltip = true
-                                            }
+                                            words = s.topWords.take(20)
                                         )
                                     }
                                 }
@@ -388,16 +384,28 @@ fun DashboardScreen(
                                         )
                                     } else {
                                         InteractiveEmojiCloud(
-                                            emojis = s.topEmojis.take(20),
-                                            onEmojiClick = { emoji, count ->
-                                                tooltipTitle = emoji
-                                                tooltipValue = "%,d volte".format(count)
-                                                showTooltip = true
-                                            }
+                                            emojis = s.topEmojis.take(20)
                                         )
                                     }
                                 }
                                 2 -> {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Outlined.Info,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            "Sticker simili possono comparire più volte perché WhatsApp li salva come file separati.",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                     if (s.topStickers.isEmpty()) {
                                         Text(
                                             "Nessuno sticker trovato",
@@ -406,14 +414,9 @@ fun DashboardScreen(
                                             modifier = Modifier.padding(vertical = 24.dp)
                                         )
                                     } else {
-                                        LazyRow(
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                            contentPadding = PaddingValues(vertical = 8.dp)
-                                        ) {
-                                            items(s.topStickers.take(20)) { sticker ->
-                                                DashboardStickerItem(fileName = sticker.fileName, count = sticker.count)
-                                            }
-                                        }
+                                        InteractiveStickerCloud(
+                                            stickers = s.topStickers.take(20)
+                                        )
                                     }
                                 }
                             }

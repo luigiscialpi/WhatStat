@@ -573,6 +573,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
     ): List<DomainStat> = withContext(Dispatchers.IO) {
         val texts = messageDao.getLinkTexts(chatId, jid, startTime, endTime)
         val domainCounts = mutableMapOf<String, Int>()
+        val domainUrls = mutableMapOf<String, MutableMap<String, Int>>()
         val total = texts.size.coerceAtLeast(1)
         
         // Regex per estrarre URL
@@ -582,7 +583,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         )
         
         texts.forEachIndexed { index, text ->
-            if (index % 100 == 0) { // Aggiorna ogni 100 messaggi per performance
+            if (index % 100 == 0) {
                 onProgress((index.toFloat() / total * 100).toInt())
             }
             val matcher = urlPattern.matcher(text)
@@ -591,16 +592,23 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 try {
                     val uri = URI(url)
                     val host = uri.host?.lowercase() ?: continue
-                    // Normalizzazione: rimuove www.
                     val domain = if (host.startsWith("www.")) host.substring(4) else host
                     domainCounts[domain] = domainCounts.getOrDefault(domain, 0) + 1
+                    val urlCounts = domainUrls.getOrPut(domain) { mutableMapOf() }
+                    urlCounts[url] = urlCounts.getOrDefault(url, 0) + 1
                 } catch (e: Exception) {
                     // Ignora URL malformati
                 }
             }
         }
         
-        domainCounts.map { DomainStat(it.key, it.value) }
+        domainCounts.map { (domain, count) ->
+            val topUrls = domainUrls[domain]
+                ?.map { (url, cnt) -> UrlFrequency(url, cnt) }
+                ?.sortedByDescending { it.count }
+                ?: emptyList()
+            DomainStat(domain, count, topUrls)
+        }
             .sortedByDescending { it.count }
             .take(20)
     }

@@ -1,5 +1,6 @@
 package com.whatstat.reborn.ui.screen.media
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,6 +30,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Search
@@ -52,6 +57,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -60,6 +66,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
@@ -516,6 +525,9 @@ private fun DomainBreakdownSheet(
     isLoading: Boolean,
     progress: Int? = null
 ) {
+    var expandedDomain by remember { mutableIntStateOf(-1) }
+    val uriHandler = LocalUriHandler.current
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -565,26 +577,58 @@ private fun DomainBreakdownSheet(
             }
             else -> {
                 val maxCount = domains.maxOf { it.count }.coerceAtLeast(1)
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    domains.take(10).forEach { stat ->
-                        Column(modifier = Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    domains.take(10).forEachIndexed { index, stat ->
+                        val isExpanded = expandedDomain == index
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isExpanded) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    else Color.Transparent
+                                )
+                                .animateContentSize()
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            // Riga dominio (cliccabile)
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        expandedDomain = if (isExpanded) -1 else index
+                                    }
+                                    .padding(vertical = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    stat.domain,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        stat.domain,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (stat.topUrls.isNotEmpty()) {
+                                        Icon(
+                                            if (isExpanded) Icons.Outlined.KeyboardArrowUp
+                                            else Icons.Outlined.KeyboardArrowDown,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                                 Text(
                                     "${stat.count}",
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             }
-                            Spacer(Modifier.height(4.dp))
+
+                            // Barra progresso
                             LinearProgressIndicator(
                                 progress = { stat.count.toFloat() / maxCount },
                                 modifier = Modifier
@@ -594,6 +638,59 @@ private fun DomainBreakdownSheet(
                                 trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                 strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                             )
+
+                            // Lista URL espandibile
+                            if (isExpanded && stat.topUrls.isNotEmpty()) {
+                                Spacer(Modifier.height(8.dp))
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 240.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    items(stat.topUrls) { urlFreq ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .clickable {
+                                                    try {
+                                                        uriHandler.openUri(urlFreq.url)
+                                                    } catch (_: Exception) {}
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                urlFreq.url,
+                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                    textDecoration = TextDecoration.Underline
+                                                ),
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.weight(1f),
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    "(${urlFreq.count})",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                                Spacer(Modifier.width(4.dp))
+                                                Icon(
+                                                    Icons.Outlined.OpenInNew,
+                                                    contentDescription = "Apri",
+                                                    modifier = Modifier.size(14.dp),
+                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
