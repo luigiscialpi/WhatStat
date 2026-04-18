@@ -285,6 +285,39 @@ class FileExtractor @Inject constructor(
     }
 
     /**
+     * Calcola l'hash SHA-256 del file crypt14 sorgente sul dispositivo.
+     * Usa SuFileInputStream per accedere ai percorsi che richiedono root.
+     * @return hash hex string, oppure null se il file non è trovato/leggibile
+     */
+    fun calculateSourceCrypt14Hash(): String? {
+        val paths = listOf(
+            "/sdcard/WhatsApp/Databases/msgstore.db.crypt14",
+            "/sdcard/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14",
+            "/storage/emulated/0/WhatsApp/Databases/msgstore.db.crypt14"
+        )
+        for (path in paths) {
+            val f = SuFile(path)
+            if (f.exists()) {
+                return try {
+                    val digest = java.security.MessageDigest.getInstance("SHA-256")
+                    SuFileInputStream.open(f).use { fis ->
+                        val buffer = ByteArray(8192)
+                        var read: Int
+                        while (fis.read(buffer).also { read = it } != -1) {
+                            digest.update(buffer, 0, read)
+                        }
+                    }
+                    digest.digest().joinToString("") { "%02x".format(it) }
+                } catch (e: Exception) {
+                    android.util.Log.w("WhatStat", "Failed to hash source crypt14 at $path: ${e.message}")
+                    null
+                }
+            }
+        }
+        return null
+    }
+
+    /**
      * Verifica la versione del formato di cifratura leggendo l'header del file.
      */
     suspend fun detectCryptVersion(file: File): Int = withContext(Dispatchers.IO) {

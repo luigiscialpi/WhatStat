@@ -238,17 +238,30 @@ class WhatsAppRepository @Inject constructor(
     suspend fun tryRestoreSession(): Boolean = withContext(Dispatchers.IO) {
         val outputDb = File(context.filesDir, "msgstore.db")
         val waDbFile = File(context.filesDir, FileExtractor.WA_DB_DEST)
-        val crypt14Path = FileExtractor.CRYPT14_PATH
 
         if (outputDb.exists() && outputDb.length() > 0) {
             try {
                 database.open(outputDb, waDbFile)
                 if (database.isOpen()) {
-                    // Verifica se il DB è cambiato rispetto all'ultima sessione
-                    val currentHash = cacheManager.calculateFileHash(crypt14Path)
+                    // Calcola hash del file crypt14 SORGENTE sul dispositivo (via root/SuFileInputStream)
+                    // Non la copia locale che è ferma all'ultimo setup
+                    val currentHash = fileExtractor.calculateSourceCrypt14Hash()
+
+                    android.util.Log.d("WhatStat", "tryRestoreSession: sourceHash=$currentHash")
+
                     if (currentHash != null && cacheManager.isDbChanged(currentHash)) {
-                        // DB cambiato - invalida cache
+                        // DB sorgente cambiato - invalida cache e rigetta la sessione
+                        android.util.Log.d("WhatStat", "DB changed, invalidating session")
                         cacheManager.clearCache()
+                        database.close()
+                        outputDb.delete()
+                        
+                        _setupState.update { it.copy(
+                            isLoading = false,
+                            isComplete = false,
+                            error = "Nuovo backup di WhatsApp rilevato rispetto a quello attuale. Esegui nuovamente il setup."
+                        ) }
+                        return@withContext false
                     }
                     
                     _setupState.update { it.copy(
