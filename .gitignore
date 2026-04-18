@@ -24,3 +24,5 @@ wa.db
 # Other repositories
 /WhatStat.apk_Decompiler.com
 /wa-crypt-tools
+# Added by code-review-graph
+.code-review-graph/
