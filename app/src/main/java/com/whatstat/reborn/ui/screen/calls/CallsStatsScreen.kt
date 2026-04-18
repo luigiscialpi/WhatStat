@@ -426,27 +426,55 @@ private fun CallDetailCard(stat: CallStat) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(IntrinsicSize.Min)
                     .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.Call, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text("${stat.totalCalls}", style = MaterialTheme.typography.titleMedium)
+                Column(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Outlined.Assessment,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "${stat.totalCalls}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                     Text("Totali", style = MaterialTheme.typography.bodySmall)
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.Videocam, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
-                    Text("${stat.videoCalls}", style = MaterialTheme.typography.titleMedium)
-                    Text("Video", style = MaterialTheme.typography.bodySmall)
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.AutoMirrored.Outlined.PhoneMissed, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Text("${stat.missedCalls}", style = MaterialTheme.typography.titleMedium)
-                    Text("Perse", style = MaterialTheme.typography.bodySmall)
+
+                VerticalDivider(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    thickness = 2.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                )
+
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Outlined.Call, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text("$audioCalls", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Audio", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Outlined.Videocam, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                        Text("${stat.videoCalls}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Video", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.AutoMirrored.Outlined.PhoneMissed, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Text("${stat.missedCalls}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Perse", style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
 
-            // Durate split
             Spacer(Modifier.height(8.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
             Spacer(Modifier.height(6.dp))
@@ -456,16 +484,30 @@ private fun CallDetailCard(stat: CallStat) {
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 4.dp))
+                    Text(formatDuration(stat.totalDurationSec), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                }
+
+                VerticalDivider(
+                    modifier = Modifier.height(24.dp),
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                )
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.Call, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 4.dp))
                     Text(formatDuration(stat.audioDurationSec), style = MaterialTheme.typography.bodySmall)
                 }
+
+                VerticalDivider(
+                    modifier = Modifier.height(24.dp),
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                )
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.Videocam, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(end = 4.dp))
                     Text(formatDuration(stat.videoDurationSec), style = MaterialTheme.typography.bodySmall)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 4.dp))
-                    Text(formatDuration(stat.totalDurationSec), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
