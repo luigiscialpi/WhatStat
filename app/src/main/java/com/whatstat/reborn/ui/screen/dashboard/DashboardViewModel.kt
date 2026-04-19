@@ -67,6 +67,9 @@ class DashboardViewModel @Inject constructor(
     private val _slowStatsRequested = MutableStateFlow(false)
     val slowStatsRequested: StateFlow<Boolean> = _slowStatsRequested.asStateFlow()
 
+    private val _selectedLimit = MutableStateFlow(30)
+    val selectedLimit: StateFlow<Int> = _selectedLimit.asStateFlow()
+
     private var loadJob: Job? = null
 
     init {
@@ -177,6 +180,10 @@ class DashboardViewModel @Inject constructor(
                 _loadingProgressSlow.value = null
             }
         }
+    }
+
+    fun setSelectedLimit(limit: Int) {
+        _selectedLimit.value = limit
     }
 
     fun setTimeRange(range: TimeRange) {

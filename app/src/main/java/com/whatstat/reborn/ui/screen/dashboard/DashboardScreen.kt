@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -103,6 +104,7 @@ fun DashboardScreen(
     val error by viewModel.error.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val selectedLimit by viewModel.selectedLimit.collectAsState()
 
     val slowStatsRequested by viewModel.slowStatsRequested.collectAsState()
 
@@ -337,7 +339,34 @@ fun DashboardScreen(
 
                         SectionCard(
                             title = "Analisi testi",
-                            subtitle = "Parole, emoji e sticker più frequenti"
+                            subtitle = "Parole, emoji e sticker più frequenti",
+                            trailingContent = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    listOf(10, 20, 30, 50).forEach { limit ->
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(
+                                                    if (selectedLimit == limit) MaterialTheme.colorScheme.primary
+                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                )
+                                                .clickable { viewModel.setSelectedLimit(limit) }
+                                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                limit.toString(),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = if (selectedLimit == limit) MaterialTheme.colorScheme.onPrimary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         ) {
                             ScrollableTabRow(
                                 selectedTabIndex = selectedTab,
@@ -375,7 +404,7 @@ fun DashboardScreen(
                                         )
                                     } else {
                                         InteractiveWordCloud(
-                                            words = s.topWords.take(20)
+                                            words = s.topWords.take(selectedLimit)
                                         )
                                     }
                                 }
@@ -389,7 +418,7 @@ fun DashboardScreen(
                                         )
                                     } else {
                                         InteractiveEmojiCloud(
-                                            emojis = s.topEmojis.take(20),
+                                            emojis = s.topEmojis.take(selectedLimit),
                                             onEmojiClick = { emoji, count ->
                                                 previewEmoji = emoji
                                                 previewEmojiCount = count
@@ -424,7 +453,7 @@ fun DashboardScreen(
                                         )
                                     } else {
                                         InteractiveStickerCloud(
-                                            stickers = s.topStickers.take(20),
+                                            stickers = s.topStickers.take(selectedLimit),
                                             onStickerClick = { fileName, count ->
                                                 previewSticker = fileName
                                                 previewStickerCount = count
