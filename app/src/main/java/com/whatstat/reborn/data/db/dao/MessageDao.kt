@@ -1470,10 +1470,11 @@ class MessageDao @Inject constructor(
     /**
      * Recupera i testi di tutti i messaggi che contengono potenzialmente link.
      * Serve per l'estrazione granulare dei domini in Kotlin.
+     * Ritorna coppie (text, timestamp) per calcolare ultima condivisione di ogni URL.
      */
-    fun getLinkTexts(chatId: Long? = null, jid: String? = null, startTime: Long? = null, endTime: Long? = null): List<String> {
+    fun getLinkTexts(chatId: Long? = null, jid: String? = null, startTime: Long? = null, endTime: Long? = null): List<Pair<String, Long>> {
         val queryBuilder = StringBuilder("""
-            SELECT text_data 
+            SELECT text_data, m.timestamp
             FROM message m
         """.trimIndent())
         
@@ -1523,7 +1524,9 @@ class MessageDao @Inject constructor(
         return cursor.use { 
             buildList {
                 while (it.moveToNext()) {
-                    it.getString(0)?.let { add(it) }
+                    val text = it.getString(0)
+                    val timestamp = it.getLong(1)
+                    if (text != null) add(Pair(text, timestamp))
                 }
             }
         }

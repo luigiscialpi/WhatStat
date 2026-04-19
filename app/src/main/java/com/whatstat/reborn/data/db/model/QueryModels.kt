@@ -152,7 +152,8 @@ data class SenderStat(
 /** Frequenza di un singolo URL */
 data class UrlFrequency(
     val url: String,
-    val count: Int
+    val count: Int,
+    val lastTimestamp: Long? = null
 )
 
 /** Statistiche frequenza domini link */

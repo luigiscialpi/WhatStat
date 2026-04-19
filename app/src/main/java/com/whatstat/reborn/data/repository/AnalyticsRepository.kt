@@ -567,6 +567,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         val texts = messageDao.getLinkTexts(chatId, jid, startTime, endTime)
         val domainCounts = mutableMapOf<String, Int>()
         val domainUrls = mutableMapOf<String, MutableMap<String, Int>>()
+        val urlLastTimestamp = mutableMapOf<String, Long>()
         val total = texts.size.coerceAtLeast(1)
         
         // Regex per estrarre URL
@@ -575,7 +576,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             Pattern.CASE_INSENSITIVE
         )
         
-        texts.forEachIndexed { index, text ->
+        texts.forEachIndexed { index, (text, timestamp) ->
             if (index % 100 == 0) {
                 onProgress((index.toFloat() / total * 100).toInt())
             }
@@ -589,6 +590,11 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                     domainCounts[domain] = domainCounts.getOrDefault(domain, 0) + 1
                     val urlCounts = domainUrls.getOrPut(domain) { mutableMapOf() }
                     urlCounts[url] = urlCounts.getOrDefault(url, 0) + 1
+                    // Track last timestamp for this URL
+                    val currentLast = urlLastTimestamp[url] ?: 0L
+                    if (timestamp > currentLast) {
+                        urlLastTimestamp[url] = timestamp
+                    }
                 } catch (e: Exception) {
                     // Ignora URL malformati
                 }
@@ -597,8 +603,8 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         
         domainCounts.map { (domain, count) ->
             val topUrls = domainUrls[domain]
-                ?.map { (url, cnt) -> UrlFrequency(url, cnt) }
-                ?.sortedByDescending { it.count }
+                ?.map { (url, cnt) -> UrlFrequency(url, cnt, urlLastTimestamp[url]) }
+                ?.sortedWith(compareByDescending<UrlFrequency> { it.count }.thenByDescending { it.lastTimestamp ?: 0 })
                 ?: emptyList()
             DomainStat(domain, count, topUrls)
         }

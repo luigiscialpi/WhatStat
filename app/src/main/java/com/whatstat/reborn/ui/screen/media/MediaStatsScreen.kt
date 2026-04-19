@@ -56,8 +56,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,18 +67,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstat.reborn.data.db.model.DomainStat
 import com.whatstat.reborn.data.db.model.LinkStat
 import com.whatstat.reborn.data.db.model.TimeRange
-import com.whatstat.reborn.ui.component.DateRangePicker
+import com.whatstat.reborn.data.db.model.UrlFrequency
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
+import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -646,6 +653,7 @@ private fun DomainBreakdownSheet(
                             // Lista URL espandibile
                             if (isExpanded && stat.topUrls.isNotEmpty()) {
                                 Spacer(Modifier.height(8.dp))
+                                val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.ITALIAN) }
                                 LazyColumn(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -678,17 +686,17 @@ private fun DomainBreakdownSheet(
                                             )
                                             Spacer(Modifier.width(8.dp))
                                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Spacer(Modifier.width(4.dp))
                                                 Text(
                                                     "(${urlFreq.count})",
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                                 Spacer(Modifier.width(4.dp))
-                                                Icon(
-                                                    Icons.Outlined.OpenInNew,
-                                                    contentDescription = "Apri",
-                                                    modifier = Modifier.size(14.dp),
-                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                                Text(
+                                                    urlFreq.lastTimestamp?.let { dateFormatter.format(Date(it)) } ?: "",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                         }
