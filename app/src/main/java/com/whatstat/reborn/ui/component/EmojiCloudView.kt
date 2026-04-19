@@ -1,6 +1,7 @@
 package com.whatstat.reborn.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,11 @@ fun InteractiveEmojiCloud(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .background(color.copy(alpha = alpha * 0.15f))
+                        .then(
+                            if (onEmojiClick != null) {
+                                Modifier.clickable { onEmojiClick(emoji.emoji, emoji.count) }
+                            } else Modifier
+                        )
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Text(

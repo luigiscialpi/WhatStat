@@ -78,6 +78,8 @@ import com.whatstat.reborn.ui.component.StatCard
 import com.whatstat.reborn.ui.component.InteractiveEmojiCloud
 import com.whatstat.reborn.ui.component.InteractiveStickerCloud
 import com.whatstat.reborn.ui.component.InteractiveWordCloud
+import com.whatstat.reborn.ui.component.EmojiPreviewModal
+import com.whatstat.reborn.ui.component.StickerPreviewModal
 
 @Composable
 fun DashboardScreen(
@@ -110,6 +112,11 @@ fun DashboardScreen(
     var tooltipTitle by remember { mutableStateOf("") }
     var tooltipValue by remember { mutableStateOf("") }
     var showTooltip by remember { mutableStateOf(false) }
+
+    var previewEmoji by remember { mutableStateOf<String?>(null) }
+    var previewEmojiCount by remember { mutableIntStateOf(0) }
+    var previewSticker by remember { mutableStateOf<String?>(null) }
+    var previewStickerCount by remember { mutableIntStateOf(0) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -382,7 +389,11 @@ fun DashboardScreen(
                                         )
                                     } else {
                                         InteractiveEmojiCloud(
-                                            emojis = s.topEmojis.take(20)
+                                            emojis = s.topEmojis.take(20),
+                                            onEmojiClick = { emoji, count ->
+                                                previewEmoji = emoji
+                                                previewEmojiCount = count
+                                            }
                                         )
                                     }
                                 }
@@ -413,7 +424,11 @@ fun DashboardScreen(
                                         )
                                     } else {
                                         InteractiveStickerCloud(
-                                            stickers = s.topStickers.take(20)
+                                            stickers = s.topStickers.take(20),
+                                            onStickerClick = { fileName, count ->
+                                                previewSticker = fileName
+                                                previewStickerCount = count
+                                            }
                                         )
                                     }
                                 }
@@ -471,6 +486,24 @@ fun DashboardScreen(
                 title = tooltipTitle,
                 value = tooltipValue,
                 onDismiss = { showTooltip = false }
+            )
+        }
+
+        // ── Emoji Preview Modal ──────────────────────────────────
+        if (previewEmoji != null) {
+            EmojiPreviewModal(
+                emoji = previewEmoji!!,
+                count = previewEmojiCount,
+                onDismiss = { previewEmoji = null }
+            )
+        }
+
+        // ── Sticker Preview Modal ─────────────────────────────────
+        if (previewSticker != null) {
+            StickerPreviewModal(
+                fileName = previewSticker!!,
+                count = previewStickerCount,
+                onDismiss = { previewSticker = null }
             )
         }
     } // fine Box

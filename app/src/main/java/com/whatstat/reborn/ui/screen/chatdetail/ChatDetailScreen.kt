@@ -84,6 +84,8 @@ import com.whatstat.reborn.ui.component.InteractiveWordCloud
 import com.whatstat.reborn.ui.component.InteractiveEmojiCloud
 import com.whatstat.reborn.ui.component.InteractiveStickerCloud
 import com.whatstat.reborn.ui.component.LoadingSection
+import com.whatstat.reborn.ui.component.EmojiPreviewModal
+import com.whatstat.reborn.ui.component.StickerPreviewModal
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -131,6 +133,11 @@ fun ChatDetailScreen(
 
     var showAvatarZoom by remember { mutableStateOf(false) }
     var zoomAvatarPath by remember { mutableStateOf<String?>(null) }
+
+    var previewEmoji by remember { mutableStateOf<String?>(null) }
+    var previewEmojiCount by remember { mutableIntStateOf(0) }
+    var previewSticker by remember { mutableStateOf<String?>(null) }
+    var previewStickerCount by remember { mutableIntStateOf(0) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -572,7 +579,13 @@ fun ChatDetailScreen(
                                                     Text("Nessuna emoji trovata", style = MaterialTheme.typography.bodyMedium,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
                                                 else ->
-                                                    InteractiveEmojiCloud(emojis = currentEmojis)
+                                                    InteractiveEmojiCloud(
+                                                        emojis = currentEmojis,
+                                                        onEmojiClick = { emoji, count ->
+                                                            previewEmoji = emoji
+                                                            previewEmojiCount = count
+                                                        }
+                                                    )
                                             }
                                         }
                                         2 -> {
@@ -602,7 +615,13 @@ fun ChatDetailScreen(
                                                     Text("Nessuno sticker trovato", style = MaterialTheme.typography.bodyMedium,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
                                                 else ->
-                                                    InteractiveStickerCloud(stickers = currentStickers)
+                                                    InteractiveStickerCloud(
+                                                        stickers = currentStickers,
+                                                        onStickerClick = { fileName, count ->
+                                                            previewSticker = fileName
+                                                            previewStickerCount = count
+                                                        }
+                                                    )
                                             }
                                         }
                                     }
@@ -687,6 +706,24 @@ fun ChatDetailScreen(
                     contentScale = ContentScale.Fit
                 )
             }
+        }
+
+        // ── Emoji Preview Modal ──────────────────────────────────
+        if (previewEmoji != null) {
+            EmojiPreviewModal(
+                emoji = previewEmoji!!,
+                count = previewEmojiCount,
+                onDismiss = { previewEmoji = null }
+            )
+        }
+
+        // ── Sticker Preview Modal ─────────────────────────────────
+        if (previewSticker != null) {
+            StickerPreviewModal(
+                fileName = previewSticker!!,
+                count = previewStickerCount,
+                onDismiss = { previewSticker = null }
+            )
         }
 
     } // end Box
