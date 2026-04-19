@@ -29,6 +29,9 @@ class WordSearchViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+
     private val _selectedTimeRange = MutableStateFlow(TimeRange.ALL_TIME)
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
 
@@ -45,19 +48,23 @@ class WordSearchViewModel @Inject constructor(
 
     fun setChatId(id: Long) {
         _chatId.value = id
-        if (_searchQuery.value.length >= 2) {
-            searchDebounced(_searchQuery.value)
-        }
     }
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
+    }
+
+    fun startSearch() {
+        val query = _searchQuery.value
         if (query.length >= 2) {
+            _isSearching.value = true
             searchDebounced(query)
-        } else {
-            searchJob?.cancel()
-            _results.value = emptyList()
         }
+    }
+
+    fun cancelSearch() {
+        searchJob?.cancel()
+        _isSearching.value = false
     }
 
     private fun searchDebounced(query: String) {
@@ -70,18 +77,12 @@ class WordSearchViewModel @Inject constructor(
 
     fun setTimeRange(range: TimeRange) {
         _selectedTimeRange.value = range
-        if (_searchQuery.value.length >= 2) {
-            searchDebounced(_searchQuery.value)
-        }
     }
 
     fun setCustomDateRange(dateRange: DateRange?) {
         _customDateRange.value = dateRange
         if (dateRange != null) {
             _selectedTimeRange.value = TimeRange.CUSTOM
-        }
-        if (_searchQuery.value.length >= 2) {
-            searchDebounced(_searchQuery.value)
         }
     }
 
@@ -113,6 +114,7 @@ class WordSearchViewModel @Inject constructor(
                 _results.value = emptyList()
             } finally {
                 _isLoading.value = false
+                _isSearching.value = false
             }
         }
     }

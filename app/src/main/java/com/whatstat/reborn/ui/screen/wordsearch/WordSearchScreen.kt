@@ -22,10 +22,13 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -59,6 +62,7 @@ fun WordSearchScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val results by viewModel.results.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val isSearching by viewModel.isSearching.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
 
@@ -119,17 +123,54 @@ fun WordSearchScreen(
             modifier = Modifier.padding(horizontal = 16.dp)
         )
 
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { viewModel.onSearchQueryChange(it) },
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            placeholder = { Text("Cerca una parola...") },
-            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-            shape = RoundedCornerShape(16.dp),
-            singleLine = true
-        )
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.onSearchQueryChange(it) },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Cerca una parola...") },
+                leadingIcon = { 
+                    Icon(
+                        if (isSearching) Icons.Filled.Close else Icons.Filled.Search, 
+                        contentDescription = null 
+                    ) 
+                },
+                shape = RoundedCornerShape(16.dp),
+                singleLine = true
+            )
+            if (searchQuery.isNotEmpty()) {
+                FilledTonalButton(
+                    onClick = { 
+                        if (isSearching) {
+                            viewModel.cancelSearch()
+                        } else {
+                            viewModel.startSearch()
+                        }
+                    },
+                    modifier = Modifier.padding(start = 8.dp),
+                    colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+                        containerColor = if (isSearching) 
+                            MaterialTheme.colorScheme.errorContainer 
+                        else 
+                            MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = if (isSearching) 
+                            MaterialTheme.colorScheme.onErrorContainer 
+                        else 
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                ) {
+                    Icon(
+                        if (isSearching) Icons.Filled.Close else Icons.Filled.Search,
+                        contentDescription = if (isSearching) "Annulla" else "Cerca"
+                    )
+                }
+            }
+        }
 
         Spacer(Modifier.height(16.dp))
 

@@ -1071,14 +1071,19 @@ class MessageDao @Inject constructor(
                     SenderInfo(otherJid, otherName)
                 }
                 
-                // Conta occorrenze esatte: split sugli spazi e match esatto
-                val wordCount = text.lowercase()
-                    .replace(Regex("[^a-zàáâãäåæçèéêëìíîïðñòóôõöøùúûüý\\s]"), "")
-                    .split(Regex("\\s+"))
-                    .count { it == searchWord }
+                // Conta occorrenze della frase nel testo (case-insensitive)
+                val textLower = text.lowercase()
+                var count = 0
+                var index = 0
+                while (true) {
+                    val found = textLower.indexOf(searchWord, index)
+                    if (found == -1) break
+                    count++
+                    index = found + 1
+                }
                 
-                if (wordCount > 0) {
-                    counts[sender] = (counts[sender] ?: 0) + wordCount
+                if (count > 0) {
+                    counts[sender] = (counts[sender] ?: 0) + count
                 }
             }
         }
