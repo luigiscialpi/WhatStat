@@ -226,23 +226,9 @@ fun DashboardScreen(
                                 )
                                 StatCard(
                                     modifier = Modifier.weight(1f),
-                                    label = "Chat attive",
-                                    value = s.totalChats.toString(),
-                                    icon = Icons.Outlined.People
-                                )
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
                                     label = "Media/giorno",
                                     value = "%.1f".format(s.averageMessagesPerDay),
                                     icon = Icons.AutoMirrored.Outlined.TrendingUp
-                                )
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = "Striscia più lunga",
-                                    value = "${s.longestStreak} giorni",
-                                    icon = Icons.Outlined.LocalFireDepartment
                                 )
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
