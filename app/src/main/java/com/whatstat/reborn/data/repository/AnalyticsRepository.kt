@@ -92,7 +92,10 @@ class AnalyticsRepository @Inject constructor(
             val mostActiveChatJid = dMostActiveChat.await()
             onProgress(100)
             
-            val avgPerDay = if (oldestTs > 0) {
+            val avgPerDay = if (startTime != null && endTime != null) {
+                val daysInRange = ((endTime - startTime) / 86400000f).coerceAtLeast(1f)
+                totalMessages / daysInRange
+            } else if (oldestTs > 0) {
                 val daysSinceFirst = ((System.currentTimeMillis() - oldestTs) / 86400000f)
                     .coerceAtLeast(1f)
                 totalMessages / daysSinceFirst
