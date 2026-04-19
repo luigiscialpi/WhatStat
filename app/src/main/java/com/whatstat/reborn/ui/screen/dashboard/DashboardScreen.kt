@@ -104,148 +104,154 @@ fun DashboardScreen(
 
     val slowStatsRequested by viewModel.slowStatsRequested.collectAsState()
 
+    // ── FIX: estrai 's' fuori dal let, così è accessibile in tutto il LazyColumn ──
+    val s = stats
+
     var tooltipTitle by remember { mutableStateOf("") }
     var tooltipValue by remember { mutableStateOf("") }
     var showTooltip by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .statusBarsPadding()
         ) {
             // ── Header ───────────────────────────────────────────────
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Panoramica",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Text(
-                            "Le tue statistiche WhatsApp",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Torna indietro"
-                        )
-                    }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Panoramica",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        "Le tue statistiche WhatsApp",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onNavigateBack) {
+                    Icon(
+                        Icons.AutoMirrored.Outlined.ArrowBack,
+                        contentDescription = "Torna indietro"
+                    )
                 }
             }
 
             // ── Sticky Filter Chips ───────────────────────────────────
-            item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(TimeRange.entries.filter { it != TimeRange.CUSTOM }) { range ->
-                        FilterChip(
-                            selected = selectedRange == range,
-                            onClick = { viewModel.setTimeRange(range) },
-                            label = { Text(range.label) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp)
+            ) {
+                items(TimeRange.entries.filter { it != TimeRange.CUSTOM }) { range ->
+                    FilterChip(
+                        selected = selectedRange == range,
+                        onClick = { viewModel.setTimeRange(range) },
+                        label = { Text(range.label) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
                         )
+                    )
+                }
+            }
+
+            // ── Sticky Date Range Picker ─────────────────────────────
+            DateRangePicker(
+                dateRange = customDateRange,
+                onDateRangeChanged = { viewModel.setCustomDateRange(it) },
+                onSubmitClicked = { viewModel.retry() },
+                isSearching = isLoading,
+                onCancelClicked = { viewModel.cancelLoad() },
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+            )
+
+            // ── Scrollable Content ───────────────────────────────────
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (isLoading) {
+                    item {
+                        LoadingSection(progress = progress)
                     }
-                }
-            }
-
-            // ── Custom Date Range Picker ─────────────────────────────
-            item {
-                DateRangePicker(
-                    dateRange = customDateRange,
-                    onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-                    onSubmitClicked = { viewModel.retry() },
-                    isSearching = isLoading,
-                    onCancelClicked = { viewModel.cancelLoad() },
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-            }
-
-            if (isLoading) {
-                item {
-                    LoadingSection(progress = progress)
-                }
-            } else if (error != null) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(
-                                "ERRORE",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer
+                } else if (error != null) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
                             )
-                            Text(
-                                error ?: "",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Button(onClick = { viewModel.retry() }) {
-                                Text("Riprova")
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
+                                Text(
+                                    "ERRORE",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Text(
+                                    error ?: "",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Button(onClick = { viewModel.retry() }) {
+                                    Text("Riprova")
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // ── Stat Cards Grid (2x3) ───────────────────────────────
-            stats?.let { s ->
-                item {
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn() + slideInVertically { it / 2 }
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = "Messaggi totali",
-                                    value = "%,d".format(s.totalMessages),
-                                    icon = Icons.AutoMirrored.Outlined.Chat
-                                )
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = "Media/giorno",
-                                    value = "%.1f".format(s.averageMessagesPerDay),
-                                    icon = Icons.AutoMirrored.Outlined.TrendingUp
-                                )
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = "File media",
-                                    value = "%,d".format(s.totalMediaFiles),
-                                    icon = Icons.Outlined.PhotoLibrary,
-                                    isSmallText = true
-                                )
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = "Chat più attiva",
-                                    value = s.mostActiveChat,
-                                    icon = Icons.AutoMirrored.Outlined.TrendingUp,
-                                    isSmallText = true
-                                )
+                // ── Stat Cards Grid (2x3) ───────────────────────────────
+                if (s != null) {
+                    item {
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn() + slideInVertically { it / 2 }
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    StatCard(
+                                        modifier = Modifier.weight(1f),
+                                        label = "Messaggi totali",
+                                        value = "%,d".format(s.totalMessages),
+                                        icon = Icons.AutoMirrored.Outlined.Chat
+                                    )
+                                    StatCard(
+                                        modifier = Modifier.weight(1f),
+                                        label = "Media/giorno",
+                                        value = "%.1f".format(s.averageMessagesPerDay),
+                                        icon = Icons.AutoMirrored.Outlined.TrendingUp
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    StatCard(
+                                        modifier = Modifier.weight(1f),
+                                        label = "File media",
+                                        value = "%,d".format(s.totalMediaFiles),
+                                        icon = Icons.Outlined.PhotoLibrary,
+                                        isSmallText = true
+                                    )
+                                    StatCard(
+                                        modifier = Modifier.weight(1f),
+                                        label = "Chat più attiva",
+                                        value = s.mostActiveChat,
+                                        icon = Icons.AutoMirrored.Outlined.TrendingUp,
+                                        isSmallText = true
+                                    )
+                                }
                             }
                         }
                     }
@@ -314,8 +320,10 @@ fun DashboardScreen(
                     }
                 }
 
-                if (slowStatsRequested && !isLoadingSlow) {
-                    // ── Analisi Testi (Parole / Emoji / Sticker) ──────
+                // ── Analisi Testi (Parole / Emoji / Sticker) ──────────
+                // FIX: questo blocco era fuori dallo scope di 's'. Ora usa 's' (nullable)
+                // estratto prima del LazyColumn, con controlli null espliciti.
+                if (slowStatsRequested && !isLoadingSlow && s != null) {
                     item {
                         val tabs = listOf("Parole", "Emoji", "Sticker")
                         var selectedTab by remember { mutableIntStateOf(0) }
@@ -455,7 +463,7 @@ fun DashboardScreen(
                 // Spacer finale per navigation bar
                 item { Spacer(Modifier.height(32.dp)) }
             }
-        } // fine LazyColumn
+        } // fine Column
 
         // ── Tooltip overlay ──────────────────────────────────────
         if (showTooltip) {
@@ -581,8 +589,12 @@ private fun SectionCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                     if (subtitle != null) {
-                        Text(subtitle, style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+                        Text(
+                            subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
                     }
                 }
                 if (trailingContent != null) { trailingContent() }
