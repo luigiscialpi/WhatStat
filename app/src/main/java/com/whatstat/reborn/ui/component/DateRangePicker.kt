@@ -8,13 +8,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,62 +40,117 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.filled.Clear
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateRangePicker(
     dateRange: DateRange?,
     onDateRangeChanged: (DateRange?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSubmitClicked: (() -> Unit)? = null,
+    isSearching: Boolean = false,
+    onCancelClicked: (() -> Unit)? = null
 ) {
     var showStartPicker by remember { mutableStateOf(false) }
     var showEndPicker by remember { mutableStateOf(false) }
     var showPicker by remember { mutableStateOf(false) }
     
-    val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.ITALIAN) }
+    val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.ITALIAN) }
     
-    Row(
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                "Da:",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val transparentColors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent
             )
-            OutlinedButton(
-                onClick = { showStartPicker = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    dateRange?.startTime?.let { dateFormatter.format(Date(it)) } ?: "Seleziona data"
+
+            // Da: Field
+            Box(modifier = Modifier.weight(1f)) {
+                TextField(
+                    value = dateRange?.startTime?.let { dateFormatter.format(Date(it)) } ?: "",
+                    onValueChange = {},
+                    placeholder = { Text("Da", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                    readOnly = true,
+                    colors = transparentColors,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Box(modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Transparent)
+                    .clickable { showStartPicker = true }
                 )
             }
-        }
-        
-        Spacer(Modifier.width(8.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                "A:",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            OutlinedButton(
-                onClick = { showEndPicker = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    dateRange?.endTime?.let { dateFormatter.format(Date(it)) } ?: "Seleziona data"
+
+            Text("-", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+
+            // A: Field
+            Box(modifier = Modifier.weight(1f)) {
+                TextField(
+                    value = dateRange?.endTime?.let { dateFormatter.format(Date(it)) } ?: "",
+                    onValueChange = {},
+                    placeholder = { Text("A", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                    readOnly = true,
+                    colors = transparentColors,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Box(modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Transparent)
+                    .clickable { showEndPicker = true }
                 )
             }
-        }
-        
-        if (dateRange != null) {
-            Spacer(Modifier.width(4.dp))
-            IconButton(onClick = { onDateRangeChanged(null) }) {
-                Text("X", color = MaterialTheme.colorScheme.error)
+            
+            if (dateRange != null) {
+                IconButton(onClick = { onDateRangeChanged(null) }) {
+                    Icon(Icons.Default.Clear, tint = Color.Gray, contentDescription = "Svuota")
+                }
+            }
+            
+            if (onSubmitClicked != null && dateRange != null) {
+                FilledTonalButton(
+                    onClick = {
+                        if (isSearching && onCancelClicked != null) {
+                            onCancelClicked()
+                        } else {
+                            onSubmitClicked()
+                        }
+                    },
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = if (isSearching) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = if (isSearching) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.size(40.dp),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Icon(
+                        if (isSearching) Icons.Default.Close else Icons.Filled.Search,
+                        contentDescription = if (isSearching) "Annulla" else "Cerca"
+                    )
+                }
             }
         }
     }

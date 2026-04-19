@@ -184,14 +184,26 @@ class ChatDetailViewModel @Inject constructor(
 
     fun setTimeRange(range: TimeRange) {
         _selectedTimeRange.value = range
+        if (range != TimeRange.CUSTOM) {
+            _customDateRange.value = null
+        }
         loadChatStats()
     }
     
     fun setCustomDateRange(dateRange: DateRange?) {
+        val wasCustom = _selectedTimeRange.value == TimeRange.CUSTOM
         _customDateRange.value = dateRange
         if (dateRange != null) {
             _selectedTimeRange.value = TimeRange.CUSTOM
+        } else {
+            if (wasCustom) {
+                _selectedTimeRange.value = TimeRange.ALL_TIME
+                loadChatStats()
+            }
         }
+    }
+
+    fun applyCustomDateRange() {
         loadChatStats()
     }
 

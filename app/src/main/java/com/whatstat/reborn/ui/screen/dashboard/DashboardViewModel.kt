@@ -12,10 +12,12 @@ import com.whatstat.reborn.data.db.model.YearTrendCount
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.domain.model.GlobalStats
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -65,12 +67,25 @@ class DashboardViewModel @Inject constructor(
     private val _slowStatsRequested = MutableStateFlow(false)
     val slowStatsRequested: StateFlow<Boolean> = _slowStatsRequested.asStateFlow()
 
+    private var loadJob: Job? = null
+
     init {
         loadStats()
     }
 
+    fun cancelLoad() {
+        loadJob?.cancel()
+        _isLoading.value = false
+        _isLoadingSlow.value = false
+    }
+
+    fun retry() {
+        loadStats()
+    }
+
     private fun loadStats() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _isLoading.value = true
             _isLoadingSlow.value = false
             _slowStatsRequested.value = false
@@ -99,8 +114,11 @@ class DashboardViewModel @Inject constructor(
                 if (_selectedTimeRange.value == TimeRange.ALL_TIME) {
                     tryLoadSlowStatsFromCache()
                 }
+            } catch (e: CancellationException) {
+                // Ricerca annullata dall'utente, ignoriamo l'errore
             } catch (e: Exception) {
                 _error.value = "Errore: ${e.message}"
+            } finally {
                 _isLoading.value = false
                 _loadingProgress.value = null
             }
@@ -150,6 +168,8 @@ class DashboardViewModel @Inject constructor(
                     topEmojis = slowStats.topEmojis,
                     topStickers = slowStats.topStickers
                 )
+            } catch (e: CancellationException) {
+                // Annullato
             } catch (e: Exception) {
                 android.util.Log.w("WhatStat", "Slow stats failed: ${e.message}")
             } finally {
@@ -161,18 +181,23 @@ class DashboardViewModel @Inject constructor(
 
     fun setTimeRange(range: TimeRange) {
         _selectedTimeRange.value = range
+        if (range != TimeRange.CUSTOM) {
+            _customDateRange.value = null
+        }
         loadStats()
     }
     
     fun setCustomDateRange(dateRange: DateRange?) {
+        val wasCustom = _selectedTimeRange.value == TimeRange.CUSTOM
         _customDateRange.value = dateRange
         if (dateRange != null) {
             _selectedTimeRange.value = TimeRange.CUSTOM
+        } else {
+            if (wasCustom) {
+                _selectedTimeRange.value = TimeRange.ALL_TIME
+                loadStats()
+            }
         }
-        loadStats()
     }
 
-    fun retry() {
-        loadStats()
-    }
 }

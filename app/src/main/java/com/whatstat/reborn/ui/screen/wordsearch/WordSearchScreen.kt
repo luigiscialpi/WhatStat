@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -47,6 +49,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.outlined.People
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
@@ -120,7 +129,7 @@ fun WordSearchScreen(
         DateRangePicker(
             dateRange = customDateRange,
             onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
         )
 
         Row(
@@ -136,7 +145,7 @@ fun WordSearchScreen(
                 placeholder = { Text("Cerca una parola...") },
                 leadingIcon = { 
                     Icon(
-                        if (isSearching) Icons.Filled.Close else Icons.Filled.Search, 
+                        Icons.Filled.Search, 
                         contentDescription = null 
                     ) 
                 },
@@ -199,9 +208,39 @@ fun WordSearchScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.Start,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // Immagine Profilo
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (result.avatarPath != null) {
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(LocalContext.current)
+                                            .data(result.avatarPath)
+                                            .crossfade(true)
+                                            .build(),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Outlined.People,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                            
+                            Spacer(Modifier.width(12.dp))
+
                             Column(modifier = Modifier.weight(1f)) {
                                 ContactNameWithPhone(
                                     name = result.displayName ?: result.jid.substringBefore("@"),
@@ -209,6 +248,9 @@ fun WordSearchScreen(
                                     nameStyle = MaterialTheme.typography.titleMedium
                                 )
                             }
+                            
+                            Spacer(Modifier.width(8.dp))
+                            
                             Text(
                                 "${result.count}",
                                 style = MaterialTheme.typography.headlineSmall,

@@ -138,7 +138,8 @@ data class LinkStat(
 data class WordSearchResult(
     val jid: String,
     val displayName: String?,
-    val count: Int
+    val count: Int,
+    val avatarPath: String? = null
 )
 
 /** Conteggio messaggi per singolo mittente (pie chart) */

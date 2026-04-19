@@ -136,7 +136,8 @@ fun CallsStatsScreen(
         DateRangePicker(
             dateRange = customDateRange,
             onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-            modifier = Modifier.padding(horizontal = 16.dp)
+            onSubmitClicked = { viewModel.applyCustomDateRange() },
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
         )
 
         // Search bar (solo se ci sono risultati)

@@ -169,7 +169,11 @@ fun DashboardScreen(
             item {
                 DateRangePicker(
                     dateRange = customDateRange,
-                    onDateRangeChanged = { viewModel.setCustomDateRange(it) }
+                    onDateRangeChanged = { viewModel.setCustomDateRange(it) },
+                    onSubmitClicked = { viewModel.retry() },
+                    isSearching = isLoading,
+                    onCancelClicked = { viewModel.cancelLoad() },
+                    modifier = Modifier.padding(bottom = 12.dp)
                 )
             }
 

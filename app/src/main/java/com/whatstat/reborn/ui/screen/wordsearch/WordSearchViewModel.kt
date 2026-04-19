@@ -1,23 +1,28 @@
 package com.whatstat.reborn.ui.screen.wordsearch
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.whatstat.reborn.data.db.model.DateRange
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.db.model.WordSearchResult
 import com.whatstat.reborn.data.repository.AnalyticsRepository
+import com.whatstat.reborn.data.root.FileExtractor
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class WordSearchViewModel @Inject constructor(
-    private val analyticsRepository: AnalyticsRepository
+    private val analyticsRepository: AnalyticsRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -41,6 +46,20 @@ class WordSearchViewModel @Inject constructor(
     private val _chatId = MutableStateFlow<Long?>(null)
 
     private var searchJob: Job? = null
+
+    private val avatarDir: File by lazy {
+        File(context.filesDir, FileExtractor.AVATAR_DIR_DEST)
+    }
+
+    private fun getAvatarPath(jid: String): String? {
+        if (!avatarDir.exists()) return null
+        if (jid == "me@s.whatsapp.net") {
+            val me = File(avatarDir, "me.jpg")
+            return if (me.exists()) me.absolutePath else null
+        }
+        val avatarFile = File(avatarDir, jid + ".jpg")
+        return if (avatarFile.exists()) avatarFile.absolutePath else null
+    }
 
     companion object {
         private const val DEBOUNCE_MS = 300L
@@ -77,6 +96,9 @@ class WordSearchViewModel @Inject constructor(
 
     fun setTimeRange(range: TimeRange) {
         _selectedTimeRange.value = range
+        if (range != TimeRange.CUSTOM) {
+            _customDateRange.value = null
+        }
     }
 
     fun setCustomDateRange(dateRange: DateRange?) {
@@ -101,7 +123,7 @@ class WordSearchViewModel @Inject constructor(
                 try {
                     val directResults = analyticsRepository.searchWordDirect(query, _chatId.value, startTime, endTime)
                     if (directResults.isNotEmpty()) {
-                        _results.value = directResults
+                        _results.value = directResults.map { it.copy(avatarPath = getAvatarPath(it.jid)) }
                     }
                 } catch (e2: Exception) {
                     // Ignored
@@ -109,7 +131,7 @@ class WordSearchViewModel @Inject constructor(
                 
                 // Then try via repository
                 val searchResults = analyticsRepository.searchWord(query, _chatId.value, startTime, endTime)
-                _results.value = searchResults
+                _results.value = searchResults.map { it.copy(avatarPath = getAvatarPath(it.jid)) }
             } catch (e: Exception) {
                 _results.value = emptyList()
             } finally {

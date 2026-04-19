@@ -233,7 +233,8 @@ fun ChatDetailScreen(
             DateRangePicker(
                 dateRange = customDateRange,
                 onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-                modifier = Modifier.padding(horizontal = 16.dp)
+                onSubmitClicked = { viewModel.applyCustomDateRange() },
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
             )
 
             if (isLoading) {
@@ -905,6 +906,7 @@ private fun MessagePieChart(
                             nameStyle = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.weight(1f)
                         )
+                        Spacer(Modifier.width(4.dp))
                         Text(
                             "%,d".format(sender.count),
                             style = MaterialTheme.typography.bodySmall,
