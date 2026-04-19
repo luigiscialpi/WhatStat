@@ -74,6 +74,7 @@ import coil.request.ImageRequest
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.ActivityRecapCard
 import com.whatstat.reborn.ui.component.ChartTooltip
+import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
@@ -192,11 +193,12 @@ fun ChatDetailScreen(
                             showAvatarZoom = true
                         }
                     ) {
-                        Text(
-                            s.contactName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onBackground
+                        ContactNameWithPhone(
+                            name = s.contactName,
+                            jid = s.jid,
+                            nameStyle = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            )
                         )
                         Text(
                             "%,d messaggi".format(s.totalMessages),
@@ -525,7 +527,13 @@ fun ChatDetailScreen(
                                                 FilterChip(
                                                     selected = isSelected,
                                                     onClick = onSelect,
-                                                    label = { Text(sender.displayName) },
+                                                    label = { 
+                                                        ContactNameWithPhone(
+                                                            name = sender.displayName,
+                                                            jid = sender.jid,
+                                                            nameStyle = MaterialTheme.typography.bodyMedium
+                                                        )
+                                                    },
                                                     colors = FilterChipDefaults.filterChipColors(
                                                         selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                                                         selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -891,12 +899,11 @@ private fun MessagePieChart(
                                 .background(pieColors[index % pieColors.size])
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text(
-                            sender.displayName,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        ContactNameWithPhone(
+                            name = sender.displayName,
+                            jid = sender.jid,
+                            nameStyle = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f)
                         )
                         Text(
                             "%,d".format(sender.count),

@@ -77,6 +77,7 @@ import com.whatstat.reborn.data.db.model.DomainStat
 import com.whatstat.reborn.data.db.model.LinkStat
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
+import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.LoadingSection
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -416,10 +417,12 @@ private fun LinkStatCardContent(stat: LinkStat, onLinksClick: () -> Unit) {
             }
             Spacer(Modifier.width(10.dp))
             val isStories = stat.jid == "status@broadcast"
-            Text(
-                stat.displayName ?: stat.jid.substringBefore("@"),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = if (isStories) androidx.compose.ui.text.font.FontWeight.Bold else null
+            ContactNameWithPhone(
+                name = stat.displayName ?: stat.jid.substringBefore("@"),
+                jid = stat.jid,
+                nameStyle = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = if (isStories) androidx.compose.ui.text.font.FontWeight.Bold else null
+                )
             )
         }
         Row(

@@ -61,6 +61,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstat.reborn.data.db.model.CallStat
 import com.whatstat.reborn.data.db.model.TimeRange
+import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
 
@@ -418,9 +419,10 @@ private fun CallDetailCard(stat: CallStat) {
                     }
                 }
                 Spacer(Modifier.width(10.dp))
-                Text(
-                    stat.displayName ?: stat.jid.substringBefore("@"),
-                    style = MaterialTheme.typography.titleMedium
+                ContactNameWithPhone(
+                    name = stat.displayName ?: stat.jid.substringBefore("@"),
+                    jid = stat.jid,
+                    nameStyle = MaterialTheme.typography.titleMedium
                 )
             }
             Row(

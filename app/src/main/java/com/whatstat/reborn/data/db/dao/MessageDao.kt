@@ -733,21 +733,25 @@ class MessageDao @Inject constructor(
             SELECT
                 CASE 
                     WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN real_jid.raw_string IS NOT NULL THEN real_jid.raw_string
                     WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
                     ELSE COALESCE(chat_jid.raw_string, 'unknown')
-                END AS sender_jid,
+                END AS canonical_jid,
                 CASE 
                     WHEN m.from_me = 1 THEN 'Tu'
+                    WHEN real_jid.raw_string IS NOT NULL THEN real_jid.raw_string
                     WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
                     ELSE COALESCE(chat_jid.raw_string, 'Sconosciuto')
                 END AS sender_name,
                 COUNT(*) AS msg_count
             FROM message m
             LEFT JOIN jid sender_jid ON m.sender_jid_row_id = sender_jid._id AND m.sender_jid_row_id > 0
+            LEFT JOIN jid_map jm ON jm.lid_row_id = sender_jid._id
+            LEFT JOIN jid real_jid ON real_jid._id = jm.jid_row_id
             LEFT JOIN chat c ON m.chat_row_id = c._id
             LEFT JOIN jid chat_jid ON c.jid_row_id = chat_jid._id
             WHERE ${conditions.joinToString(" AND ")}
-            GROUP BY sender_jid
+            GROUP BY canonical_jid
             ORDER BY msg_count DESC
         """.trimIndent()
 
@@ -814,6 +818,7 @@ class MessageDao @Inject constructor(
             SELECT
                 CASE 
                     WHEN from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN real_jid IS NOT NULL THEN real_jid
                     WHEN sender_jid IS NOT NULL THEN sender_jid
                     ELSE COALESCE(chat_jid, 'unknown')
                 END AS starter_jid,
@@ -822,11 +827,14 @@ class MessageDao @Inject constructor(
                 SELECT
                     m.from_me,
                     CASE WHEN m.sender_jid_row_id > 0 THEN sj.raw_string ELSE NULL END AS sender_jid,
+                    CASE WHEN m.sender_jid_row_id > 0 THEN rj.raw_string ELSE NULL END AS real_jid,
                     cj.raw_string AS chat_jid,
                     m.timestamp,
                     LAG(m.timestamp) OVER (ORDER BY m.timestamp) AS prev_timestamp
                 FROM message m
                 LEFT JOIN jid sj ON m.sender_jid_row_id = sj._id AND m.sender_jid_row_id > 0
+                LEFT JOIN jid_map jm ON jm.lid_row_id = sj._id
+                LEFT JOIN jid rj ON rj._id = jm.jid_row_id
                 LEFT JOIN chat c ON m.chat_row_id = c._id
                 LEFT JOIN jid cj ON c.jid_row_id = cj._id
                 WHERE m.chat_row_id = ? AND m.message_type = 0 $timeFilter
@@ -1021,18 +1029,24 @@ class MessageDao @Inject constructor(
             SELECT
                 m.from_me,
                 CASE 
-                    WHEN j.raw_string IS NOT NULL THEN j.raw_string
-                    ELSE COALESCE(chat_jid.raw_string, 'unknown')
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN rj.raw_string IS NOT NULL THEN rj.raw_string
+                    WHEN sj.raw_string IS NOT NULL THEN sj.raw_string
+                    ELSE COALESCE(cj.raw_string, 'unknown')
                 END AS other_jid,
                 CASE 
-                    WHEN j.raw_string IS NOT NULL THEN j.raw_string
-                    ELSE chat_jid.raw_string
+                    WHEN m.from_me = 1 THEN 'Tu'
+                    WHEN rj.raw_string IS NOT NULL THEN rj.raw_string
+                    WHEN sj.raw_string IS NOT NULL THEN sj.raw_string
+                    ELSE cj.raw_string
                 END AS other_name,
                 m.text_data
             FROM message m
-            LEFT JOIN jid j ON m.sender_jid_row_id = j._id AND m.sender_jid_row_id > 0
+            LEFT JOIN jid sj ON m.sender_jid_row_id = sj._id AND m.sender_jid_row_id > 0
+            LEFT JOIN jid_map jm ON jm.lid_row_id = sj._id
+            LEFT JOIN jid rj ON rj._id = jm.jid_row_id
             LEFT JOIN chat c ON m.chat_row_id = c._id
-            LEFT JOIN jid chat_jid ON c.jid_row_id = chat_jid._id
+            LEFT JOIN jid cj ON c.jid_row_id = cj._id
             WHERE ${conditions.joinToString(" AND ")}
         """.trimIndent()
         

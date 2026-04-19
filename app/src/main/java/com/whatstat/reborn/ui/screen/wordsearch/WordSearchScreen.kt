@@ -48,6 +48,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
+import com.whatstat.reborn.ui.component.ContactNameWithPhone
 
 @Composable
 fun WordSearchScreen(
@@ -161,9 +162,10 @@ fun WordSearchScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    result.displayName ?: result.jid.substringBefore("@"),
-                                    style = MaterialTheme.typography.titleMedium
+                                ContactNameWithPhone(
+                                    name = result.displayName ?: result.jid.substringBefore("@"),
+                                    jid = result.jid,
+                                    nameStyle = MaterialTheme.typography.titleMedium
                                 )
                             }
                             Text(

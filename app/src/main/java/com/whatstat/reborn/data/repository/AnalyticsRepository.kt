@@ -325,16 +325,11 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                     stat.jid == "me@s.whatsapp.net" -> "Tu"
                     else -> contactNames[stat.jid]
                         ?: contactDao.resolveContactName(stat.jid)
-                        ?: stat.displayName
+                        ?: stat.displayName?.substringBefore("@")
+                        ?: stat.jid.substringBefore("@")
                 }
                 stat.copy(displayName = name)
-            }.groupBy { it.displayName }.map { (name, group) ->
-                com.whatstat.reborn.data.db.model.SenderStat(
-                    jid = group.first().jid,
-                    displayName = name,
-                    count = group.sumOf { it.count }
-                )
-            }.sortedByDescending { it.count }
+            }
 
             // Risoluzione nomi per conversation starters
             val starterJids = rawStarters.map { it.jid }
@@ -344,16 +339,11 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                     stat.jid == "me@s.whatsapp.net" -> "Tu"
                     else -> starterNames[stat.jid]
                         ?: contactDao.resolveContactName(stat.jid)
+                        ?: stat.displayName?.substringBefore("@")
                         ?: stat.jid.substringBefore("@")
                 }
                 stat.copy(displayName = name)
-            }.groupBy { it.displayName }.map { (name, group) ->
-                com.whatstat.reborn.data.db.model.SenderStat(
-                    jid = group.first().jid,
-                    displayName = name,
-                    count = group.sumOf { it.count }
-                )
-            }.sortedByDescending { it.count }
+            }
 
             onProgress(100)
             val result = SlowChatStats(

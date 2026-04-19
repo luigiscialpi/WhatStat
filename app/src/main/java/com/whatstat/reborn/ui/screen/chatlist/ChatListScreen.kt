@@ -52,6 +52,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.graphics.vector.ImageVector
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.whatstat.reborn.ui.component.ContactNameWithPhone
 
 @Composable
 fun ChatListScreen(
@@ -152,6 +153,7 @@ fun ChatListScreen(
                         ChatListItem(
                             rank = index + 1,
                             name = chat.displayName,
+                            jid = chat.jid,
                             messageCount = chat.totalMessages,
                             isGroup = chat.isGroup,
                             avatarPath = chat.avatarPath,
@@ -170,6 +172,7 @@ fun ChatListScreen(
 private fun ChatListItem(
     rank: Int,
     name: String,
+    jid: String?,
     messageCount: Int,
     isGroup: Boolean,
     avatarPath: String?,
@@ -246,13 +249,12 @@ private fun ChatListItem(
 
             // Name + message count
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
+                ContactNameWithPhone(
+                    name = name,
+                    jid = jid,
+                    nameStyle = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium
+                    )
                 )
                 Text(
                     "%,d messaggi".format(messageCount),
