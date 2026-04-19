@@ -2294,8 +2294,8 @@ class AnalyticsRepositoryTest {
 - [x] **Analisi Lessicale opt-in** — Bottone "Avvia analisi" con icona ℹ️ e avviso durata, al posto del caricamento automatico
 - [x] **Auto-restore dalla cache** — Se la cache contiene risultati slow, li mostra senza bottone alla riapertura
 - [x] **Cache Quick Stats per chat** — Distribuzioni orarie/settimanali/mensili e conteggi base cachati per chatId (ALL_TIME); apertura istantanea alla riapertura della chat
+- [x] **Sticker più usati** — Statistiche sticker dalla tabella message_media
 - [ ] Confronto tra periodi temporali
-- [ ] **Sticker più usati** — Statistiche sticker (file, count, animated/Lottie) dalla tabella message_media
 - [ ] Supporto WhatsApp Business
 - [ ] Modalità "time capsule" (analisi di un anno fa)
 - [ ] Supporto crypt15 (con inserimento manuale chiave 64 hex)
@@ -2315,7 +2315,7 @@ class AnalyticsRepositoryTest {
 - [x] **Query unificate** — Una sola SELECT per parole+emoji (ottimizzazione 2x)
 - [x] **Lazy loading** — Statistiche lente caricate in background con progress indicator
 - [x] **Pool dati esteso** — Pre-caricamento di 50 parole e emoji (invece di 10) per mostrare fino a 50 elementi senza query aggiuntive; chiavi cache incrementate a v3 per rigenerare i dati con la nuova dimensione del pool
-- [ ] **Sticker più usati** — Sezione analoga a "Parole più usate" ed "Emoji più usate" con visualizzazione thumbnail sticker e conteggio utilizzi
+- [x] **Sticker più usati** — Sezione analoga a "Parole più usate" ed "Emoji più usate" con visualizzazione thumbnail sticker e conteggio utilizzi
 
 ### v1.6 — Avatar e UI ✅ IMPLEMENTATO
 - [x] **Estrazione avatar** — Copia root di `/data/.../com.whatsapp/files/Avatars/*.j` nella directory privata dell'app, rinominati in `.jpg`
@@ -2328,6 +2328,21 @@ class AnalyticsRepositoryTest {
 - [x] **Avatar nel bottom sheet domini** — Header con avatar + nome nell'analisi link per contatto
 - [x] **Coil** — Libreria `coil-compose:2.7.0` per caricamento immagini da `File`
 - [x] **Profilo utente corrente** — Estrazione di `me.jpg` dalla directory Avatars WhatsApp e mapping del JID speciale `me@s.whatsapp.net` per visualizzare l'avatar dell'utente in tutte le schermate
+
+### v1.7 — Statistiche avanzate + UX migliorata ✅ IMPLEMENTATO
+- [x] **Sticker più usati** — Statistiche sticker (file, count) dalla tabella message_media con visualizzazione thumbnail e conteggio utilizzi
+- [x] **Sticker cloud interattivo** — Visualizzazione cloud analoga a parole ed emoji con tooltip per conteggio
+- [x] **Sticker nel dettaglio chat** — Sezione dedicata con filtri per mittente
+- [x] **Sticker nella Dashboard** — Sezione "Sticker più usati" nella panoramica globale
+- [x] **Visualizzazione numero telefono** — Componente `ContactNameWithPhone` che mostra il numero accanto al nome del contatto dove disponibile
+- [x] **Pagine con numero telefono** — Media & Link, Log chiamate, Le tue chat, Dettaglio chat, Chi scrive di più (FilterChips e legenda pie chart)
+- [x] **Ricerche multifrase** — Il "Radar Parole" ora supporta ricerche di frasi intere ("titina luxury") oltre a singole parole
+- [x] **Bottone ricerca manuale** — La ricerca parole parte solo alla pressione del bottone (non più automaticamente alla digitazione)
+- [x] **DateRangePicker con bottoni** — Bottone "Cerca" opzionale nel picker date, con stati verde (cerca) e rosso (annulla)
+- [x] **Media/giorno corretto** — La statistica ora usa l'intervallo temporale selezionato invece della data del primo messaggio
+- [x] **Dashboard sticky header** — FilterChips (Tutto, Oggi, ecc.) e DateRangePicker ora rimangono fissi in alto mentre si scorre
+- [x] **Code-review-graph MCP** — Integrazione server MCP per analisi codice e knowledge graph
+- [x] **Root file extraction service** — Servizio dedicato per l'estrazione dei file WhatsApp con gestione robusta degli errori
 
 ### Considerazioni per crypt15 (future)
 
