@@ -86,6 +86,8 @@ import com.whatstat.reborn.ui.component.InteractiveStickerCloud
 import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.ui.component.EmojiPreviewModal
 import com.whatstat.reborn.ui.component.StickerPreviewModal
+import com.whatstat.reborn.ui.component.ShimmerBox
+import com.whatstat.reborn.ui.component.rememberShimmerBrush
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -104,6 +106,7 @@ fun ChatDetailScreen(
     onNavigateToMedia: () -> Unit = {}
 ) {
     val stats by viewModel.chatStats.collectAsState()
+    val headerInfo by viewModel.headerInfo.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isLoadingSlow by viewModel.isLoadingSlow.collectAsState()
     val progress by viewModel.loadingProgress.collectAsState()
@@ -215,27 +218,62 @@ fun ChatDetailScreen(
                         )
                     }
                 } else {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
+                    val shimmerBrush = rememberShimmerBrush()
+                    // Se abbiamo già nome+avatar (caricati in anticipo), li mostriamo subito
+                    val hi = headerInfo
+                    if (hi != null) {
+                        if (hi.avatarPath != null) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(java.io.File(hi.avatarPath))
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Avatar",
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    if (hi.isGroup) Icons.Outlined.Group else Icons.Outlined.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                hi.name,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            ShimmerBox(
+                                modifier = Modifier.width(80.dp).height(10.dp),
+                                brush = shimmerBrush
+                            )
+                        }
+                    } else {
+                        // Fallback shimmer completo prima che headerInfo sia disponibile
+                        ShimmerBox(
+                            modifier = Modifier.size(40.dp),
+                            brush = shimmerBrush,
+                            shape = CircleShape
                         )
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            "Caricamento...",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            ShimmerBox(modifier = Modifier.width(140.dp).height(14.dp), brush = shimmerBrush)
+                            ShimmerBox(modifier = Modifier.width(80.dp).height(10.dp), brush = shimmerBrush)
+                        }
                     }
                 }
             }

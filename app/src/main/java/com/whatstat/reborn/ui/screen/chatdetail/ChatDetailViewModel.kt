@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.whatstat.reborn.data.db.model.DateRange
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.repository.AnalyticsRepository
+import com.whatstat.reborn.data.db.dao.ChatDao
+import com.whatstat.reborn.data.db.dao.ContactDao
 import com.whatstat.reborn.data.root.FileExtractor
 import com.whatstat.reborn.domain.model.ChatStats
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,6 +27,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatDetailViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
+    private val chatDao: ChatDao,
+    private val contactDao: ContactDao,
     @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -50,6 +54,11 @@ class ChatDetailViewModel @Inject constructor(
 
     private val _chatStats = MutableStateFlow<ChatStats?>(null)
     val chatStats: StateFlow<ChatStats?> = _chatStats.asStateFlow()
+
+    // Nome + avatar caricati immediatamente prima delle stats complete
+    data class HeaderInfo(val name: String, val jid: String, val isGroup: Boolean, val avatarPath: String?)
+    private val _headerInfo = MutableStateFlow<HeaderInfo?>(null)
+    val headerInfo: StateFlow<HeaderInfo?> = _headerInfo.asStateFlow()
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -125,6 +134,24 @@ class ChatDetailViewModel @Inject constructor(
             _error.value = null
 
             try {
+                // Carica subito nome+avatar per l'header (query velocissima)
+                if (_headerInfo.value == null) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        val basic = chatDao.getChatBasicInfo(chatId)
+                        val name = if (basic.isGroup) {
+                            basic.subject ?: contactDao.resolveContactName(basic.jid) ?: basic.jid.substringBefore("@")
+                        } else {
+                            contactDao.resolveContactName(basic.jid) ?: basic.jid.substringBefore("@")
+                        }
+                        _headerInfo.value = HeaderInfo(
+                            name = name,
+                            jid = basic.jid,
+                            isGroup = basic.isGroup,
+                            avatarPath = getAvatarPath(basic.jid)
+                        )
+                    }
+                }
+
                 val (startTime, endTime) = getTimeBounds()
 
                 _loadingProgress.value = 0
