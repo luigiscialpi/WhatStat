@@ -1,2384 +1,374 @@
-# WhatStat Reborn — Guida completa allo sviluppo
+# WhatStat Reborn — Documentazione funzionale
 
-> App Android nativa in Kotlin che legge, decifra e analizza il database di WhatsApp su dispositivi rootati (crypt14, backup E2E disattivato).
+> App Android nativa che legge, decifra e analizza il database di WhatsApp direttamente sul dispositivo, senza mai inviare dati a server esterni. Tutto avviene in locale.
 
 ---
 
 ## Indice
 
-1. [Panoramica del progetto](#1-panoramica-del-progetto)
-2. [Prerequisiti e setup](#2-prerequisiti-e-setup)
-3. [Struttura del progetto](#3-struttura-del-progetto)
-4. [Livello 1 — Root Access](#4-livello-1--root-access)
-5. [Livello 2 — Decryption Engine](#5-livello-2--decryption-engine)
-6. [Livello 3 — Database Layer](#6-livello-3--database-layer)
-7. [Livello 4 — Analytics Engine](#7-livello-4--analytics-engine)
-8. [Livello 5 — UI con Jetpack Compose](#8-livello-5--ui-con-jetpack-compose)
-9. [Architettura MVVM completa](#9-architettura-mvvm-completa)
+1. [Requisiti e compatibilità](#1-requisiti-e-compatibilità)
+2. [Setup e primo avvio](#2-setup-e-primo-avvio)
+3. [Sistema di cache e prestazioni](#3-sistema-di-cache-e-prestazioni)
+4. [Filtri temporali](#4-filtri-temporali)
+5. [Dashboard — Panoramica globale](#5-dashboard--panoramica-globale)
+6. [Le tue chat — Lista e ranking](#6-le-tue-chat--lista-e-ranking)
+7. [Dettaglio chat](#7-dettaglio-chat)
+8. [Radar Parole](#8-radar-parole)
+9. [Privacy e sicurezza](#9-privacy-e-sicurezza)
 10. [Gestione degli errori](#10-gestione-degli-errori)
-11. [Sicurezza e privacy](#11-sicurezza-e-privacy)
-12. [Testing](#12-testing)
-13. [Roadmap e feature future](#13-roadmap-e-feature-future)
-14. [Riferimenti e risorse](#14-riferimenti-e-risorse)
+11. [Struttura dei dati sorgente](#11-struttura-dei-dati-sorgente)
+12. [Comportamenti noti e quirk del database](#12-comportamenti-noti-e-quirk-del-database)
+13. [Roadmap](#13-roadmap)
 
 ---
 
-## 1. Panoramica del progetto
+## 1. Requisiti e compatibilità
 
-### Obiettivo
+Il funzionamento dell'app richiede:
 
-Creare un'app Android che, su dispositivo rootato, acceda direttamente al database cifrato di WhatsApp, lo decifri in locale e produca statistiche dettagliate sulle conversazioni — senza mai inviare dati a server esterni.
+- Dispositivo Android rootato, tipicamente con Magisk. I test su emulatore con root sono sconsigliati per dati reali.
+- Android 8.0 (API 26) o superiore. La versione target è Android 14 (API 34).
+- WhatsApp installato con backup end-to-end **disattivato**. Il formato supportato è `crypt14`. Il formato `crypt15` (backup E2E attivo) non è ancora supportato, ma è in roadmap con inserimento manuale della chiave a 64 caratteri esadecimali.
 
-### Stack tecnologico
-
-| Componente | Tecnologia |
-|---|---|
-| Linguaggio | Kotlin 1.9+ |
-| UI | Jetpack Compose + Material 3 |
-| Root access | libsu 5.x |
-| Crittografia | javax.crypto (AES-GCM, built-in Android) |
-| Database | SQLite diretto + Room (opzionale) |
-| Grafici | Vico (Compose-native) |
-| Architettura | MVVM + Repository pattern |
-| DI | Hilt |
-| Async | Kotlin Coroutines + Flow |
-| Build | Gradle KTS |
-
-### Flusso generale
-
-```
-Dispositivo rootato
-       |
-       v
-[libsu] Copia file protetti
-  - /data/data/com.whatsapp/files/key
-  - /sdcard/WhatsApp/Databases/msgstore.db.crypt14
-  - /data/data/com.whatsapp/databases/wa.db
-       |
-       v
-[Decryption Engine] Decifra crypt14
-  Legge header → estrae IV + salt → AES-GCM → msgstore.db
-       |
-       v
-[Database Layer] Legge SQLite
-  Tabelle: message, chat, jid + JOIN con wa.db
-       |
-       v
-[Analytics Engine] Calcola statistiche
-  Query aggregate SQL → modelli dati
-       |
-       v
-[UI Compose] Mostra risultati
-  Dashboard → Dettaglio chat → Grafici
-```
+Il formato del backup si riconosce dall'estensione del file: `msgstore.db.crypt14` indica il formato supportato. Se il file è `msgstore.db.crypt15`, il backup E2E è attivo e l'app non può procedere.
 
 ---
 
-## 2. Prerequisiti e setup
+## 2. Setup e primo avvio
 
-### Ambiente di sviluppo
+### Schermata di setup (`SetupScreen` / `SetupViewModel`)
 
-- Android Studio Hedgehog o superiore
-- Android SDK 34 (target), minSdk 26 (Android 8.0)
-- Dispositivo fisico rootato con Magisk (o emulatore con root — sconsigliato per test reali)
-- WhatsApp installato con backup E2E **disattivato** (formato crypt14)
+Al primo avvio l'app esegue in sequenza quattro operazioni, ognuna con un proprio indicatore di stato visibile nella schermata di setup:
 
-### Verifica del formato del backup
+**1. Verifica accesso root** — L'app controlla che la shell root sia disponibile e accessibile tramite Magisk. Se il root non è disponibile o i permessi sono stati negati, il processo si interrompe con un messaggio esplicativo.
 
-Prima di sviluppare, verifica il formato del tuo backup:
+**2. Estrazione file protetti** — Con i permessi root, l'app copia tre file dalla posizione di WhatsApp nella directory privata dell'app (inaccessibile ad altre applicazioni):
+- La chiave di cifratura: `/data/data/com.whatsapp/files/key`
+- Il database cifrato: `/sdcard/WhatsApp/Databases/msgstore.db.crypt14`
+- Il database contatti: `/data/data/com.whatsapp/databases/wa.db`
 
-```bash
-# Da shell root sul dispositivo
-ls -la /sdcard/WhatsApp/Databases/
-# Deve mostrare msgstore.db.crypt14
-# Se mostra msgstore.db.crypt15 → backup E2E attivo → approccio diverso
-```
+L'estrazione degli avatar avviene separatamente: l'app itera su tutti i profili in `/data/user/` per supportare configurazioni con profili multipli (es. XSpace), copia i file `.j` dalla directory `Avatars/` di WhatsApp e li rinomina in `.jpg`.
 
-### build.gradle.kts (app)
+**3. Decifratura database** — Il file crypt14 viene decifrato in locale. Il processo legge la chiave AES-256 dal file `key` (deserializzazione Java Object, byte 99–131), estrae l'IV dall'header protobuf del file cifrato, decifra con AES-GCM e decomprime con zlib. Il risultato è un file SQLite valido (`msgstore.db`). L'operazione fallisce se la chiave non corrisponde al database (errore GCM authentication tag).
 
-```kotlin
-plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("com.google.dagger.hilt.android")
-    id("com.google.devtools.ksp")
-}
+**4. Apertura database contatti** — Il file `wa.db` viene aperto in sola lettura per la risoluzione dei nomi dei contatti. I nomi sono ricavati dalla tabella `wa_contacts` del file `wa.db`, non da `jid.cached_name` in `msgstore.db` (spesso vuoto nelle versioni moderne di WhatsApp).
 
-android {
-    namespace = "com.tuonome.whatsappanalyzer"
-    compileSdk = 34
+### Avvii successivi e rilevamento aggiornamenti
 
-    defaultConfig {
-        applicationId = "com.tuonome.whatsappanalyzer"
-        minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions { jvmTarget = "17" }
-
-    buildFeatures { compose = true }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
-    }
-}
-
-dependencies {
-    // Compose BOM
-    val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
-    implementation(composeBom)
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.activity:activity-compose:1.8.2")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-    implementation("androidx.navigation:navigation-compose:2.7.7")
-
-    // Root access
-    implementation("com.github.topjohnwu.libsu:core:5.2.2")
-    implementation("com.github.topjohnwu.libsu:io:5.2.2")
-
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-
-    // Hilt
-    implementation("com.google.dagger:hilt-android:2.50")
-    ksp("com.google.dagger:hilt-android-compiler:2.50")
-    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
-
-    // Room (per la lettura del db decifrato)
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
-
-    // Grafici
-    implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
-    implementation("com.patrykandpatrick.vico:core:1.13.1")
-
-    // DataStore (preferenze app)
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-
-    // Permessi Compose
-    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
-
-    // Test
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-}
-```
-
-### settings.gradle.kts
-
-```kotlin
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven { url = uri("https://jitpack.io") } // per libsu
-    }
-}
-```
-
-### AndroidManifest.xml — permessi necessari
-
-```xml
-<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-    android:maxSdkVersion="28"/>
-<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
-
-<!-- Dichiara che l'app richiede root (non tecnico, solo informativo) -->
-<uses-feature android:name="android.hardware.root" android:required="false"/>
-```
+Ad ogni avvio l'app calcola l'hash SHA-256 del file `msgstore.db.crypt14` e lo confronta con quello dell'ultima sessione. Se l'hash non è cambiato, i dati vengono caricati dalla cache in modo istantaneo. Se l'hash è cambiato (WhatsApp ha aggiunto messaggi), la cache viene invalidata completamente e il processo di estrazione/decifratura riparte da capo.
 
 ---
 
-## 3. Struttura del progetto
+## 3. Sistema di cache e prestazioni
 
-```
-app/src/main/
-├── java/com/tuonome/whatsappanalyzer/
-│   ├── MainActivity.kt
-│   ├── App.kt                          ← Application class (Hilt)
-│   │
-│   ├── data/
-│   │   ├── root/
-│   │   │   ├── RootManager.kt          ← libsu wrapper
-│   │   │   └── FileExtractor.kt        ← copia file protetti
-│   │   │
-│   │   ├── crypto/
-│   │   │   ├── Crypt14Decryptor.kt     ← motore di decifratura
-│   │   │   └── KeyReader.kt            ← lettura e parsing della key
-│   │   │
-│   │   ├── db/
-│   │   │   ├── WhatsAppDatabase.kt     ← SQLiteOpenHelper custom
-│   │   │   ├── dao/
-│   │   │   │   ├── MessageDao.kt
-│   │   │   │   ├── ChatDao.kt
-│   │   │   │   └── ContactDao.kt
-│   │   │   └── model/
-│   │   │       ├── MessageEntity.kt
-│   │   │       ├── ChatEntity.kt
-│   │   │       ├── JidEntity.kt
-│   │   │       └── ContactEntity.kt
-│   │   │
-│   │   └── repository/
-│   │       ├── WhatsAppRepository.kt   ← orchestratore principale
-│   │       └── AnalyticsRepository.kt  ← statistiche
-│   │
-│   ├── domain/
-│   │   ├── model/
-│   │   │   ├── ChatStats.kt
-│   │   │   ├── GlobalStats.kt
-│   │   │   └── AppError.kt
-│   │   │
-│   │   └── usecase/
-│   │       ├── ExtractDatabaseUseCase.kt
-│   │       ├── DecryptDatabaseUseCase.kt
-│   │       ├── GetGlobalStatsUseCase.kt
-│   │       ├── GetChatStatsUseCase.kt
-│   │       └── GetContactRankingUseCase.kt
-│   │
-│   └── ui/
-│       ├── theme/
-│       │   ├── Theme.kt
-│       │   ├── Color.kt
-│       │   └── Type.kt
-│       │
-│       ├── navigation/
-│       │   └── AppNavigation.kt
-│       │
-│       ├── screen/
-│       │   ├── setup/
-│       │   │   ├── SetupScreen.kt      ← prima apertura, richiesta root
-│       │   │   └── SetupViewModel.kt
-│       │   │
-│       │   ├── dashboard/
-│       │   │   ├── DashboardScreen.kt  ← panoramica globale
-│       │   │   └── DashboardViewModel.kt
-│       │   │
-│       │   ├── chatlist/
-│       │   │   ├── ChatListScreen.kt   ← lista chat con ranking
-│       │   │   └── ChatListViewModel.kt
-│       │   │
-│       │   └── chatdetail/
-│       │       ├── ChatDetailScreen.kt ← statistiche singola chat
-│       │       └── ChatDetailViewModel.kt
-│       │
-│       └── component/
-│           ├── StatCard.kt
-│           ├── ActivityCard.kt
-│           ├── ChartTooltip.kt
-│           ├── DateRangePicker.kt
-│           ├── HourlyHeatmap.kt
-│           ├── InteractiveChart.kt
-│           ├── LoadingSection.kt
-│           ├── StatCard.kt
-│           ├── WordCloudView.kt
-│           └── EmojiCloudView.kt
-│
-└── res/
-    ├── values/
-    │   ├── strings.xml
-    │   └── themes.xml
-    ├── drawable/
-    │   ├── ic_launcher.xml
-    │   ├── ic_launcher_background.xml
-    │   └── ic_launcher_foreground.xml
-    └── mipmap-anydpi-v26/
-        ├── ic_launcher.xml
-        └── ic_launcher_round.xml
-```
+La cache è il meccanismo centrale per garantire aperture veloci. Usa `kotlinx.serialization` per serializzare tutti i modelli di dati, incluse distribuzioni, liste di parole, emoji e breakdown per mittente.
+
+### Tipi di cache
+
+**Cache Quick Stats globali** — Contiene `GlobalStats` con tutte le distribuzioni (oraria, settimanale, mensile, annuale). Viene popolata dopo la prima analisi completa e viene mostrata istantaneamente alle aperture successive, senza alcun calcolo.
+
+**Cache Slow Stats globali** — Contiene le parole più usate e le emoji più usate a livello globale. Queste analisi sono più lente perché richiedono di scorrere i testi di tutti i messaggi. Vengono cachate dopo la prima analisi manuale (opt-in) e mostrate automaticamente alle riaperture.
+
+**Cache Quick Stats per chat** — Contiene distribuzioni orarie, settimanali, mensili e annuali per ogni singola chat, oltre ai conteggi base. Indicizzata per `chatId`. Garantisce l'apertura istantanea del dettaglio di una chat.
+
+**Cache Slow Stats per chat** — Contiene le analisi testuali per chat: parole più usate, emoji più usate, sticker più usati, breakdown per mittente, breakdown degli starter, tempo medio di risposta. Cachata per `chatId` dopo la prima analisi opt-in.
+
+### Comportamento della cache per i filtri temporali
+
+La cache viene salvata **solo per il filtro `ALL_TIME`**. Quando l'utente applica un filtro temporale diverso (Oggi, Ultimi 7 giorni, ecc.), le query vengono rieseguite direttamente sul database. Questo è accettabile perché le query filtrate sono veloci grazie agli indici SQL.
+
+### Ottimizzazioni database
+
+Sono presenti 7 indici SQL compositi sulle colonne più usate nelle query: `chat_row_id`, `message_type`, `timestamp`. Il database è aperto in WAL mode (Write-Ahead Logging) per supportare letture concorrenti. Le query pesanti sono parallelizzate con `async`/`await` (fino a 14 query in parallelo per il calcolo delle statistiche globali).
 
 ---
 
-## 4. Livello 1 — Root Access
+## 4. Filtri temporali
 
-### Concetti chiave
+Tutte le schermate principali (Dashboard e Dettaglio chat) supportano filtri temporali applicabili a tutte le metriche. I filtri disponibili sono:
 
-libsu è la libreria Android più usata e affidabile per eseguire comandi shell con privilegi root. Mantiene una shell root persistente per tutta la sessione, evitando il costo di aprire una nuova shell a ogni operazione.
+- **Tutto** — nessun filtro, tutti i messaggi
+- **Oggi** — messaggi del giorno corrente
+- **Ieri** — messaggi del giorno precedente
+- **Ultimi 7 giorni**
+- **Ultimi 30 giorni**
+- **Quest'anno**
+- **Personalizzato** — selettore di intervallo date con `DateRangePicker`
 
-### App.kt — inizializzazione libsu
+Il `DateRangePicker` è un componente dedicato con un pulsante "Cerca" che diventa verde quando è attivo e rosso per annullare. I filtri rapidi e il date picker rimangono fissi in cima alla schermata mentre si scorre (sticky header).
 
-```kotlin
-@HiltAndroidApp
-class App : Application() {
-
-    override fun onCreate() {
-        super.onCreate()
-        // Imposta la shell root come shell di default per tutta l'app
-        Shell.enableVerboseLogging = BuildConfig.DEBUG
-        Shell.setDefaultBuilder(
-            Shell.Builder.create()
-                .setFlags(Shell.FLAG_REDIRECT_STDERR)
-                .setTimeout(10)
-        )
-    }
-}
-```
-
-### RootManager.kt
-
-```kotlin
-class RootManager @Inject constructor() {
-
-    /**
-     * Verifica se il dispositivo ha root disponibile e accessibile.
-     * Da chiamare prima di qualsiasi operazione privilegiata.
-     */
-    suspend fun checkRootAccess(): RootStatus = withContext(Dispatchers.IO) {
-        val shell = Shell.getShell()
-        return@withContext when {
-            !shell.isAlive -> RootStatus.NOT_AVAILABLE
-            !shell.isRoot  -> RootStatus.NOT_GRANTED
-            else           -> RootStatus.GRANTED
-        }
-    }
-
-    /**
-     * Esegue un comando root e restituisce l'output.
-     */
-    suspend fun execute(command: String): ShellResult = withContext(Dispatchers.IO) {
-        val result = Shell.cmd(command).exec()
-        ShellResult(
-            success = result.isSuccess,
-            output  = result.out,
-            error   = result.err
-        )
-    }
-}
-
-enum class RootStatus { GRANTED, NOT_GRANTED, NOT_AVAILABLE }
-
-data class ShellResult(
-    val success: Boolean,
-    val output: List<String>,
-    val error: List<String>
-)
-```
-
-### FileExtractor.kt
-
-```kotlin
-class FileExtractor @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val rootManager: RootManager
-) {
-    // Directory privata dell'app, accessibile solo a noi
-    private val workDir = context.filesDir
-
-    companion object {
-        const val KEY_PATH          = "/data/data/com.whatsapp/files/key"
-        const val CRYPT14_PATH      = "/sdcard/WhatsApp/Databases/msgstore.db.crypt14"
-        const val WA_DB_PATH        = "/data/data/com.whatsapp/databases/wa.db"
-
-        const val KEY_DEST          = "whatsapp.key"
-        const val CRYPT14_DEST      = "msgstore.db.crypt14"
-        const val WA_DB_DEST        = "wa.db"
-    }
-
-    /**
-    suspend fun extractAll(): Result<ExtractedFiles> = withContext(Dispatchers.IO) {
-        runCatching {
-            copyWithRoot(KEY_PATH,     File(workDir, KEY_DEST))
-            copyWithRoot(CRYPT14_PATH, File(workDir, CRYPT14_DEST))
-            copyWithRoot(WA_DB_PATH,   File(workDir, WA_DB_DEST))
-
-            ExtractedFiles(
-                keyFile     = File(workDir, KEY_DEST),
-                crypt14File = File(workDir, CRYPT14_DEST),
-                waDbFile    = File(workDir, WA_DB_DEST)
-            )
-        }
-    }
-
-    private suspend fun copyWithRoot(sourcePath: String, dest: File) {
-        val result = rootManager.execute("cat '$sourcePath' > '${dest.absolutePath}'")
-        if (!result.success) {
-            throw IOException("Errore copia $sourcePath: ${result.error.joinToString()}")
-        }
-        rootManager.execute("chmod 644 '${dest.absolutePath}'")
-    }
-
-    suspend fun copyFromUri(uri: Uri, destFileName: String): File = withContext(Dispatchers.IO) {
-        val destFile = File(workDir, destFileName)
-        if (destFile.exists() && !destFile.delete()) {
-            rootManager.execute("rm -f '${destFile.absolutePath}'")
-        }
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            destFile.outputStream().use { output -> input.copyTo(output) }
-        } ?: throw IOException("Fallback fallito per $uri")
-        destFile
-    }
-    suspend fun detectCryptVersion(crypt14File: File): Int = withContext(Dispatchers.IO) {
-        crypt14File.inputStream().use { stream ->
-            val header = ByteArray(15)
-            stream.read(header)
-            // I primi byte del file protobuf contengono la versione di cifratura
-            // crypt14: header contiene 0x0A seguito dal campo versione = 14
-            // Analisi semplificata: cerchiamo il valore 14 nella posizione attesa
-            return@withContext if (header.contains(14.toByte())) 14 else -1
-        }
-    }
-}
-
-data class ExtractedFiles(
-    val keyFile: File,
-    val crypt14File: File,
-    val waDbFile: File,
-    val meJpgFile: File? = null
-)
-
-/**
- * Estrae l'avatar dell'utente corrente (me.jpg) dalla directory WhatsApp.
- * Il file viene rinominato da .j a .jpg e copiato nella directory privata dell'app.
- * Il JID speciale "me@s.whatsapp.net" viene usato per identificare l'utente corrente.
- */
-suspend fun extractMeAvatar(context: Context, rootManager: RootManager): File? = withContext(Dispatchers.IO) {
-    val workDir = context.filesDir
-    val avatarDir = File(workDir, "avatars")
-    if (!avatarDir.exists()) avatarDir.mkdirs()
-
-    // Cerca in tutte le directory user (supporta XSpace/profili multipli)
-    val userDirs = listOf("0", "10", "11", "12") // userId comuni
-    for (userId in userDirs) {
-        val sourcePattern = "/data/user/$userId/com.whatsapp/files/Avatars/me.j"
-        val result = rootManager.execute("ls '$sourcePattern' 2>/dev/null")
-        if (result.success && result.output.isNotEmpty()) {
-            val destFile = File(avatarDir, "me.jpg")
-            val copyResult = rootManager.execute("cp '$sourcePattern' '${destFile.absolutePath}'")
-            if (copyResult.success && destFile.exists()) {
-                return@withContext destFile
-            }
-        }
-    }
-    null
-}
-```
+Il modello dati per i filtri è `TimeRange` (enum con valori: `ALL_TIME`, `TODAY`, `YESTERDAY`, `LAST_7_DAYS`, `LAST_30_DAYS`, `LAST_YEAR`, `CUSTOM`) e `DateRange` (con campi `startTime: Long?` e `endTime: Long?`, entrambi Unix timestamp in millisecondi).
 
 ---
 
-## 5. Livello 2 — Decryption Engine
+## 5. Dashboard — Panoramica globale
 
-> Implementazione basata sull'analisi del codice sorgente di
-> [wa-crypt-tools](https://github.com/ElDavoo/wa-crypt-tools) (ElDavoo).
-> Testata con WhatsApp 2.24.16.76 stable e 2.24.26.11 beta.
+**Schermata:** `DashboardScreen` / `DashboardViewModel`  
+**Modello dati:** `GlobalStats`
 
-### Concetti fondamentali
+### Statistiche di riepilogo (card in cima)
 
-Il file `msgstore.db.crypt14` e il file `key` NON sono dati raw.
-Entrambi usano formati strutturati che vanno parsati correttamente:
+Le card mostrano i valori principali per il periodo selezionato:
 
-- **File key**: e un oggetto Java serializzato (`java.io.ObjectOutputStream`), 
-  non un semplice array di byte.
-- **File .crypt14**: ha un header protobuf di dimensione variabile, 
-  non un header a offset fisso.
+- Numero totale di messaggi
+- Numero totale di chat
+- Numero totale di contatti
+- Numero totale di file multimediali scambiati
+- Media di messaggi al giorno — calcolata dividendo il totale di messaggi per il numero di giorni nell'intervallo selezionato, non per i giorni dal primo messaggio in assoluto (fix introdotto in v1.7)
+- Nome della chat più attiva (risolto tramite `wa.db`)
+- Ora del giorno in cui si scrive di più (0–23)
+- Giorno della settimana in cui si scrive di più (0 = domenica, 6 = sabato)
+- Streak più lunga: numero massimo di giorni consecutivi con almeno un messaggio, calcolato recuperando le date distinte con messaggi e contando le sequenze di giorni consecutivi (`calculateLongestStreak` in `AnalyticsRepository`)
 
-### Struttura del file key (crypt14)
+### Grafici di attività (componente `InteractiveBarChart`)
 
-Il file `/data/data/com.whatsapp/files/key` e un Java Serialized `byte[]`.
-Dopo la deserializzazione con `ObjectInputStream`, si ottiene un array di **131 byte**
-con questo layout:
+Quattro schede selezionabili, ciascuna con un grafico a barre con scrolling orizzontale:
 
-```
-Offset  Lunghezza  Campo
-------  ---------  -----
-0-1     2 byte     cipher_version     (atteso: 0x0001)
-2       1 byte     key_version        (supportati: 0x01, 0x02, 0x03)
-3-34    32 byte    server_salt
-35-50   16 byte    googleIdSalt
-51-82   32 byte    hashedGoogleID     (= SHA-256 di googleIdSalt)
-83-98   16 byte    padding            (sempre zero, IV placeholder)
-99-130  32 byte    cipherKey          <-- LA CHIAVE AES-256 EFFETTIVA
-```
+- **Oraria** — 24 barre, una per ogni ora del giorno (0–23)
+- **Settimanale** — 7 barre, una per ogni giorno della settimana
+- **Mensile** — barre per giorno del mese (1–31)
+- **Annuale** — una barra per ogni anno con dati
 
-> **ATTENZIONE**: la chiave AES e all'offset **99 dell'array deserializzato**,
-> NON all'offset 126 del file raw. L'overhead della serializzazione Java e variabile.
+I grafici sono interattivi: toccando una barra appare un tooltip con il valore esatto.
 
-### Struttura del file .crypt14
+### Analisi testi — Sezione opt-in
 
-Il file cifrato ha questa struttura:
+Le analisi testuali non partono automaticamente perché richiedono più tempo. L'utente vede un pulsante "Avvia analisi" con un'icona informativa che spiega la durata stimata. Una volta avviata, l'analisi procede in background con un indicatore di avanzamento (`LoadingSection`). I risultati vengono cachati e mostrati automaticamente alle aperture successive senza richiedere di riavviare l'analisi.
 
-```
-+------+------+---------------------------+---------------------+-----------+----------+
-| 1 B  | 0/1B | N byte (variabile)        | M byte              | 16 byte   | 16 byte  |
-| size | feat | Protobuf BackupPrefix     | Dati cifrati        | Auth Tag  | Checksum |
-|      | flag |                           | (AES-GCM)           | (GCM)     | (MD5)    |
-+------+------+---------------------------+---------------------+-----------+----------+
-```
+È possibile scegliere quanti elementi visualizzare (10, 20, 30 o 50) tramite il componente `SelectableLimitChip`. Il pool interno è sempre di 50 elementi pre-caricati; il selettore filtra la visualizzazione senza nuove query.
 
-L'header e un messaggio Protobuf di tipo `BackupPrefix` che contiene:
-- `key_type`: 0 = WA_PROVIDED (crypt14), 1 = HSM_CONTROLLED (crypt15)
-- `c14_cipher.IV`: l'Initialization Vector per AES-GCM (**16 byte**, non 12)
-- `c14_cipher.server_salt`, `c14_cipher.google_id`, ecc.
-- `info`: metadati (versione WhatsApp, feature flags, jid suffix)
+**Parole più usate** — Componente `WordCloudView`. Le parole sono mostrate con dimensione proporzionale alla frequenza. Le stop word italiane e comuni sono escluse con filtro in memoria dopo la query SQL. Toccando una parola appare un tooltip con il conteggio esatto.
 
-Il footer (ultimi 32 byte) contiene:
-- **Authentication Tag** GCM (16 byte) 
-- **MD5 checksum** di tutto il file precedente (16 byte)
+**Emoji più usate** — Componente `InteractiveEmojiCloud`. Analoga alla word cloud. Il parser supporta emoji con skin tone modifier, sequenze ZWJ (emoji composte), bandiere e keycap. Toccando un'emoji si apre `EmojiStickerPreviewModal`, un modal in stile light con backdrop che mostra l'emoji in grande e il conteggio.
 
-### KeyReader.kt
-
-```kotlin
-class KeyReader @Inject constructor() {
-
-    companion object {
-        // Layout dell'array deserializzato (131 byte per crypt14)
-        // Fonte: wa-crypt-tools/src/wa_crypt_tools/lib/key/key14.py
-        private const val CRYPT14_KEY_ARRAY_SIZE = 131
-        private const val CRYPT15_KEY_ARRAY_SIZE = 32
-        private const val AES_KEY_OFFSET = 99
-        private const val AES_KEY_LENGTH = 32
-        private const val SERVER_SALT_OFFSET = 3
-        private const val SERVER_SALT_LENGTH = 32
-        private const val GOOGLE_ID_OFFSET = 35
-        private const val GOOGLE_ID_LENGTH = 16
-    }
-
-    /**
-     * Risultato della lettura del file key.
-     * Contiene la chiave AES e il tipo di formato rilevato.
-     */
-    data class KeyData(
-        val aesKey: ByteArray,
-        val keyType: KeyType
-    ) {
-        enum class KeyType { CRYPT14, CRYPT15 }
-    }
-
-    /**
-     * Legge il file key di WhatsApp deserializzandolo come Java Object.
-     *
-     * Il file key e un oggetto Java serializzato (byte[]).
-     * - Se l'array deserializzato e 131 byte -> crypt14
-     *   La chiave AES-256 e all'offset 99 (32 byte).
-     * - Se l'array deserializzato e 32 byte -> crypt15
-     *   E la root key (richiede derivazione HMAC ulteriore).
-     *
-     * Fonte: wa-crypt-tools keyfactory.py + key14.py
-     */
-    fun readKey(keyFile: File): KeyData {
-        val keyArray: ByteArray = try {
-            ObjectInputStream(keyFile.inputStream().buffered()).use { ois ->
-                ois.readObject() as ByteArray
-            }
-        } catch (e: Exception) {
-            throw IllegalStateException(
-                "Impossibile deserializzare il file key come Java Object: ${e.message}", e
-            )
-        }
-
-        return when (keyArray.size) {
-            CRYPT14_KEY_ARRAY_SIZE -> {
-                // Validazione cipher_version (primi 2 byte devono essere 0x0001)
-                val cipherVersion = keyArray.copyOfRange(0, 2)
-                if (!cipherVersion.contentEquals(byteArrayOf(0x00, 0x01))) {
-                    throw IllegalStateException(
-                        "Versione cipher non supportata: ${cipherVersion.toHex()}"
-                    )
-                }
-                // Validazione key_version (byte 2, supportati: 0x01, 0x02, 0x03)
-                val keyVersion = keyArray[2]
-                if (keyVersion !in 1..3) {
-                    throw IllegalStateException(
-                        "Versione key non supportata: $keyVersion"
-                    )
-                }
-                // Estrazione chiave AES-256 dall'offset 99
-                val aesKey = keyArray.copyOfRange(AES_KEY_OFFSET, AES_KEY_OFFSET + AES_KEY_LENGTH)
-                KeyData(aesKey, KeyData.KeyType.CRYPT14)
-            }
-
-            CRYPT15_KEY_ARRAY_SIZE -> {
-                // La root key per crypt15 (richiede derivazione HMAC)
-                KeyData(keyArray, KeyData.KeyType.CRYPT15)
-            }
-
-            else -> throw IllegalStateException(
-                "Formato key non riconosciuto: ${keyArray.size} byte " +
-                "(attesi $CRYPT14_KEY_ARRAY_SIZE per crypt14 o $CRYPT15_KEY_ARRAY_SIZE per crypt15)"
-            )
-        }
-    }
-
-    /**
-     * Per crypt15: deriva la chiave di cifratura dalla root key
-     * usando HMAC-SHA256 con il messaggio "backup encryption".
-     *
-     * Fonte: wa-crypt-tools key15.py, metodo get()
-     */
-    fun deriveEncryptionKey(rootKey: ByteArray): ByteArray {
-        // Step 1: privatekey = HMAC-SHA256(seed=0x00*32, data=rootKey)
-        val seed = ByteArray(32) // 32 byte di zeri
-        val mac = Mac.getInstance("HmacSHA256")
-        mac.init(SecretKeySpec(seed, "HmacSHA256"))
-        val privateKey = mac.doFinal(rootKey)
-
-        // Step 2: encryptionKey = HMAC-SHA256(privateKey, data="" + "backup encryption" + 0x01)
-        val mac2 = Mac.getInstance("HmacSHA256")
-        mac2.init(SecretKeySpec(privateKey, "HmacSHA256"))
-        mac2.update("backup encryption".toByteArray(Charsets.US_ASCII))
-        mac2.update(byteArrayOf(0x01))
-        return mac2.doFinal()
-    }
-
-    /**
-     * Restituisce la chiave come stringa esadecimale (utile per debug).
-     * NON usare in produzione: non loggare mai la chiave.
-     */
-    fun ByteArray.toHex(): String =
-        joinToString("") { "%02x".format(it) }
-}
-```
-
-### Crypt14Decryptor.kt
-
-```kotlin
-class Crypt14Decryptor @Inject constructor(
-    private val keyReader: KeyReader
-) {
-    companion object {
-        private const val CIPHER_ALGO    = "AES/GCM/NoPadding"
-        private const val IV_LENGTH      = 16       // WhatsApp usa IV di 16 byte, non 12
-        private const val AUTH_TAG_BITS  = 128      // 16 byte di authentication tag
-        private const val FOOTER_SIZE    = 32       // auth_tag (16) + md5 checksum (16)
-        private const val BUFFER_SIZE    = 16384    // 16KB per streaming
-    }
-
-    /**
-     * Decifra un file .crypt14 (o .crypt15) usando la chiave dal file key.
-     *
-     * Algoritmo (basato su wa-crypt-tools wadecrypt.py):
-     * 1. Deserializza il file key -> estrai chiave AES-256
-     * 2. Parsa l'header protobuf del file cifrato -> estrai IV (16 byte)
-     * 3. Separa dati cifrati dal footer (auth tag + checksum)
-     * 4. Decifra con AES-GCM(key, iv)
-     * 5. Decompri con zlib (standard, CON header)
-     * 6. Verifica output: deve iniziare con "SQLite format 3"
-     */
-    suspend fun decrypt(
-        crypt14File: File,
-        keyFile: File,
-        outputFile: File
-    ): Result<File> = withContext(Dispatchers.IO) {
-        runCatching {
-            // -- Step 1: Carica e deserializza la chiave --
-            val keyData = keyReader.readKey(keyFile)
-            val aesKey: ByteArray = when (keyData.keyType) {
-                KeyReader.KeyData.KeyType.CRYPT14 -> keyData.aesKey
-                KeyReader.KeyData.KeyType.CRYPT15 -> keyReader.deriveEncryptionKey(keyData.aesKey)
-            }
-            val secretKey = SecretKeySpec(aesKey, "AES")
-
-            // -- Step 2: Parsa l'header protobuf ed estrai l'IV --
-            val allBytes = crypt14File.readBytes()
-            val headerParseResult = parseProtobufHeader(allBytes)
-
-            // -- Step 3: Separa dati cifrati dal footer --
-            // I dati cifrati iniziano subito dopo l'header protobuf.
-            // Gli ultimi 32 byte sono: auth_tag (16) + md5_checksum (16).
-            val dataStart = headerParseResult.dataOffset
-            val dataEnd = allBytes.size - FOOTER_SIZE
-            if (dataEnd <= dataStart) {
-                throw DecryptionException("File cifrato troppo piccolo o corrotto")
-            }
-            val encryptedData = allBytes.copyOfRange(dataStart, dataEnd)
-            val authTag = allBytes.copyOfRange(dataEnd, dataEnd + 16)
-            // val md5Checksum = allBytes.copyOfRange(dataEnd + 16, allBytes.size)
-
-            // -- Step 4: Decifra con AES-GCM --
-            // In Java, GCM si aspetta l'auth tag concatenato ai dati cifrati
-            val ciphertextWithTag = encryptedData + authTag
-            val cipher = Cipher.getInstance(CIPHER_ALGO)
-            cipher.init(
-                Cipher.DECRYPT_MODE,
-                secretKey,
-                GCMParameterSpec(AUTH_TAG_BITS, headerParseResult.iv)
-            )
-            val decrypted = cipher.doFinal(ciphertextWithTag)
-
-            // -- Step 5: Decomprimi con zlib (standard, CON header) --
-            // WhatsApp comprime con zlib (header 78 01), NON raw deflate.
-            // Inflater() SENZA il parametro "true" (che indica raw deflate).
-            val inflater = Inflater()
-            inflater.setInput(decrypted)
-            val bos = ByteArrayOutputStream(decrypted.size * 2)
-            val buffer = ByteArray(BUFFER_SIZE)
-            while (!inflater.finished()) {
-                val count = inflater.inflate(buffer)
-                if (count == 0 && inflater.needsInput()) break
-                bos.write(buffer, 0, count)
-            }
-            inflater.end()
-            val decompressed = bos.toByteArray()
-
-            // -- Step 6: Verifica output --
-            if (decompressed.size < 16) {
-                throw DecryptionException(
-                    "Output decompresso troppo piccolo: ${decompressed.size} byte"
-                )
-            }
-            val magic = String(decompressed, 0, 15, Charsets.US_ASCII)
-            if (magic != "SQLite format 3") {
-                throw DecryptionException(
-                    "Output non e un database SQLite valido (magic: '$magic')"
-                )
-            }
-
-            outputFile.writeBytes(decompressed)
-            outputFile
-        }
-    }
-
-    /**
-     * Risultato del parsing dell'header protobuf.
-     */
-    data class HeaderParseResult(
-        val iv: ByteArray,
-        val dataOffset: Int
-    )
-
-    /**
-     * Parsa l'header protobuf di un file .crypt14/.crypt15.
-     *
-     * Formato dell'header (fonte: wa-crypt-tools dbfactory.py):
-     * - Byte 0: dimensione del messaggio protobuf (1 byte)
-     * - Byte 1 (opzionale): flag feature table (0x01 se presente)
-     * - Byte 1/2..N: messaggio protobuf BackupPrefix
-     *
-     * L'IV viene estratto dal campo c14_cipher.IV (crypt14)
-     * o c15_iv.IV (crypt15) del messaggio protobuf.
-     */
-    private fun parseProtobufHeader(data: ByteArray): HeaderParseResult {
-        var offset = 0
-
-        // Byte 0: dimensione del messaggio protobuf
-        val protobufSize = data[offset].toInt() and 0xFF
-        offset++
-
-        // Byte 1: verifica se c'e il feature flag
-        if (data[offset].toInt() and 0xFF == 0x01) {
-            offset++ // Consuma il feature flag
-        }
-
-        // Leggi il messaggio protobuf raw
-        val protobufRaw = data.copyOfRange(offset, offset + protobufSize)
-        offset += protobufSize
-
-        // Parsa il protobuf per estrarre l'IV.
-        // Usiamo un parser minimale per estrarre il campo IV
-        // senza dipendere dalla libreria protobuf completa.
-        val iv = extractIvFromProtobuf(protobufRaw)
-            ?: throw DecryptionException("Impossibile estrarre IV dal header protobuf")
-
-        if (iv.size != IV_LENGTH) {
-            throw DecryptionException(
-                "IV ha lunghezza ${iv.size} byte, attesi $IV_LENGTH"
-            )
-        }
-
-        return HeaderParseResult(iv = iv, dataOffset = offset)
-    }
-
-    /**
-     * Estrae il campo IV dal messaggio protobuf BackupPrefix.
-     *
-     * Struttura protobuf BackupPrefix:
-     *   field 1 (key_type): varint
-     *   field 2 (c14_cipher): messaggio annidato C14_cipher
-     *     -> field 5 (IV): bytes (16 byte)
-     *   field 3 (c15_iv): messaggio annidato C15_IV
-     *     -> field 1 (IV): bytes (16 byte)
-     *
-     * Questo parser minimale evita la dipendenza dalla libreria protobuf.
-     * Per i dettagli del formato wire protobuf, vedi:
-     * https://protobuf.dev/programming-guides/encoding/
-     */
-    private fun extractIvFromProtobuf(data: ByteArray): ByteArray? {
-        // Cerca il campo IV nei sotto-messaggi c14_cipher o c15_iv.
-        // Per crypt14: il campo 2 (c14_cipher) contiene il sotto-campo 5 (IV).
-        // Per crypt15: il campo 3 (c15_iv) contiene il sotto-campo 1 (IV).
-        //
-        // Parser protobuf wire format minimale:
-        // Ogni campo e preceduto da un "tag" = (field_number << 3) | wire_type
-        // wire_type 0 = varint, 2 = length-delimited (bytes/string/embedded message)
-
-        var pos = 0
-        while (pos < data.size) {
-            val tag = readVarint(data, pos)
-            pos = tag.second
-            val fieldNumber = (tag.first ushr 3).toInt()
-            val wireType = (tag.first and 0x07).toInt()
-
-            when (wireType) {
-                0 -> {
-                    // Varint: leggi e ignora
-                    val v = readVarint(data, pos)
-                    pos = v.second
-                }
-                2 -> {
-                    // Length-delimited: leggi lunghezza e contenuto
-                    val lenResult = readVarint(data, pos)
-                    val len = lenResult.first.toInt()
-                    pos = lenResult.second
-                    val fieldData = data.copyOfRange(pos, pos + len)
-                    pos += len
-
-                    when (fieldNumber) {
-                        2 -> {
-                            // c14_cipher: parsa il sotto-messaggio per estrarre field 5 (IV)
-                            val iv = extractFieldFromSubmessage(fieldData, targetField = 5)
-                            if (iv != null) return iv
-                        }
-                        3 -> {
-                            // c15_iv: parsa il sotto-messaggio per estrarre field 1 (IV)
-                            val iv = extractFieldFromSubmessage(fieldData, targetField = 1)
-                            if (iv != null) return iv
-                        }
-                    }
-                }
-                else -> {
-                    // Altri wire type non attesi nell'header, interrompi
-                    break
-                }
-            }
-        }
-        return null
-    }
-
-    /**
-     * Estrae un campo bytes (length-delimited) da un sotto-messaggio protobuf.
-     */
-    private fun extractFieldFromSubmessage(data: ByteArray, targetField: Int): ByteArray? {
-        var pos = 0
-        while (pos < data.size) {
-            val tag = readVarint(data, pos)
-            pos = tag.second
-            val fieldNumber = (tag.first ushr 3).toInt()
-            val wireType = (tag.first and 0x07).toInt()
-
-            when (wireType) {
-                0 -> {
-                    val v = readVarint(data, pos)
-                    pos = v.second
-                }
-                2 -> {
-                    val lenResult = readVarint(data, pos)
-                    val len = lenResult.first.toInt()
-                    pos = lenResult.second
-                    val fieldData = data.copyOfRange(pos, pos + len)
-                    pos += len
-                    if (fieldNumber == targetField) return fieldData
-                }
-                else -> break
-            }
-        }
-        return null
-    }
-
-    /**
-     * Legge un varint protobuf dal buffer alla posizione data.
-     * Restituisce il valore e la nuova posizione nel buffer.
-     */
-    private fun readVarint(data: ByteArray, startPos: Int): Pair<Long, Int> {
-        var result = 0L
-        var shift = 0
-        var pos = startPos
-        while (pos < data.size) {
-            val b = data[pos].toInt() and 0xFF
-            result = result or ((b.toLong() and 0x7F) shl shift)
-            pos++
-            if (b and 0x80 == 0) break
-            shift += 7
-        }
-        return Pair(result, pos)
-    }
-}
-
-class DecryptionException(message: String) : Exception(message)
-```
-
-> **Note implementative:**
-> - L'implementazione sopra carica l'intero file in memoria (`readBytes()`).
->   Per backup molto grandi (> 100 MB), considerare un approccio streaming con
->   chunk di dati, come fa `chunked_decrypt()` in wa-crypt-tools.
-> - Il parser protobuf e minimale e gestisce solo i campi necessari.
->   Se si preferisce robustezza, si possono compilare i file `.proto` di wa-crypt-tools
->   con `protoc --java_out` e usare le classi generate.
-> - La verifica MD5 del checksum nel footer e opzionale ma consigliata
->   per rilevare corruzioni del file.
-
-### Test della decifratura
-
-```kotlin
-// Test rapido da eseguire prima di procedere con il resto
-class DecryptorTest {
-    @Test
-    fun `decifratura produce un file SQLite valido`() = runTest {
-        val keyFile    = File("test_assets/key")
-        val cryptFile  = File("test_assets/msgstore.db.crypt14")
-        val outputFile = File.createTempFile("msgstore", ".db")
-
-        val decryptor = Crypt14Decryptor(KeyReader())
-        val result = decryptor.decrypt(cryptFile, keyFile, outputFile)
-
-        assertTrue(result.isSuccess)
-
-        // I primi 16 byte di un SQLite valido sono sempre "SQLite format 3\000"
-        val magic = outputFile.readBytes().take(16)
-        val expected = "SQLite format 3\u0000".toByteArray()
-        assertArrayEquals(expected, magic.toByteArray())
-    }
-
-    @Test
-    fun `chiave sbagliata genera errore di decifratura`() = runTest {
-        // Crea un file key fake: un Java Serialized byte[131] con contenuto random
-        val wrongKeyFile = createFakeKeyFile()
-        val cryptFile    = File("test_assets/msgstore.db.crypt14")
-        val outputFile   = File.createTempFile("output", ".db")
-
-        val decryptor = Crypt14Decryptor(KeyReader())
-        val result = decryptor.decrypt(cryptFile, wrongKeyFile, outputFile)
-        assertTrue(result.isFailure)
-    }
-
-    @Test
-    fun `il KeyReader distingue crypt14 da crypt15`() {
-        val keyReader = KeyReader()
-
-        // File key crypt14 (131 byte dopo deserializzazione)
-        val key14 = keyReader.readKey(File("test_assets/key"))
-        assertEquals(KeyReader.KeyData.KeyType.CRYPT14, key14.keyType)
-        assertEquals(32, key14.aesKey.size)
-
-        // File key crypt15 (32 byte dopo deserializzazione)
-        val key15 = keyReader.readKey(File("test_assets/encrypted_backup.key"))
-        assertEquals(KeyReader.KeyData.KeyType.CRYPT15, key15.keyType)
-        assertEquals(32, key15.aesKey.size)
-    }
-}
+**Sticker più usati** — Componente `InteractiveStickerCloud`. Mostra le miniature degli sticker con conteggio utilizzi. I dati vengono letti dalla tabella `message_media`. Toccando uno sticker si apre lo stesso modal di anteprima.
 
 ---
 
-## 6. Livello 3 — Database Layer
+## 6. Le tue chat — Lista e ranking
 
-### Schema del database msgstore.db (versione moderna, WhatsApp 2.23+)
+**Schermata:** `ChatListScreen` / `ChatListViewModel`
 
-Le versioni recenti di WhatsApp hanno separato i dati in più tabelle rispetto al vecchio schema monolitico. Le tabelle principali sono:
+Elenco di tutte le conversazioni ordinate per numero totale di messaggi in ordine decrescente. Per ogni chat viene mostrato:
 
-```sql
--- Tabella principale messaggi
-CREATE TABLE message (
-    _id                     INTEGER PRIMARY KEY AUTOINCREMENT,
-    chat_row_id             INTEGER NOT NULL,   -- FK → chat._id
-    from_me                 INTEGER NOT NULL,   -- 0 = ricevuto, 1 = inviato
-    key_id                  TEXT NOT NULL,
-    sender_jid_row_id       INTEGER,            -- FK → jid._id (null se from_me=1)
-    status                  INTEGER,            -- 0=attesa, 4=consegnato, 5=letto
-    broadcast               INTEGER,
-    timestamp               INTEGER,            -- Unix timestamp milliseconds (UTC)
-    received_timestamp      INTEGER,
-    message_type            INTEGER,            -- 0=testo, 1=foto, 2=audio, 3=video
-    text_data               TEXT,               -- contenuto testuale
-    starred                 INTEGER             -- 1 = messaggio con stella
-);
-
--- Tabella chat (una riga per ogni conversazione)
-CREATE TABLE chat (
-    _id                     INTEGER PRIMARY KEY AUTOINCREMENT,
-    jid_row_id              INTEGER NOT NULL,   -- FK → jid._id
-    hidden                  INTEGER,
-    subject                 TEXT,               -- nome del gruppo (null per chat 1:1)
-    created_timestamp       INTEGER,
-    display_message_row_id  INTEGER,
-    last_message_row_id     INTEGER,
-    unseen_message_count    INTEGER
-);
-
--- Tabella identificatori WhatsApp (JID = phone@s.whatsapp.net)
-CREATE TABLE jid (
-    _id                     INTEGER PRIMARY KEY AUTOINCREMENT,
-    user                    TEXT,               -- numero di telefono
-    server                  TEXT,               -- "s.whatsapp.net" o "g.us" (gruppi)
-    agent                   INTEGER,
-    device                  INTEGER,
-    raw_string              TEXT,               -- "3391234567@s.whatsapp.net"
-    cached_name             TEXT                -- nome salvato (spesso null → usa wa.db)
-);
-
--- Tabella media allegati
-CREATE TABLE message_media (
-    message_row_id          INTEGER NOT NULL,   -- FK → message._id
-    file_path               TEXT,
-    file_size               INTEGER,
-    mime_type               TEXT,
-    media_name              TEXT,
-    media_caption           TEXT,
-    media_duration          INTEGER,            -- millisecondi (per audio/video)
-    message_url             TEXT
-);
-
--- Tabella reazioni e modifiche (WhatsApp 2022+)
-CREATE TABLE message_add_on (
-    _id                     INTEGER PRIMARY KEY AUTOINCREMENT,
-    parent_message_row_id   INTEGER,            -- FK → message._id
-    timestamp               INTEGER,
-    add_on_type             INTEGER             -- 1=reazione, 2=modifica, 3=visualizzazione unica
-);
-```
-
-### wa.db — database contatti
-
-```sql
--- In wa.db (database separato)
-CREATE TABLE wa_contacts (
-    _id                     INTEGER PRIMARY KEY AUTOINCREMENT,
-    jid                     TEXT,               -- "3391234567@s.whatsapp.net"
-    display_name            TEXT,               -- nome come appare in WhatsApp
-    given_name              TEXT,
-    family_name             TEXT,
-    number                  TEXT                -- numero normalizzato
-);
-```
-
-### WhatsAppDatabase.kt — helper SQLite custom
-
-Non usiamo Room direttamente sul file decifrato perché Room si aspetta di gestire il database dall'inizio. Usiamo SQLiteOpenHelper (o SQLiteDatabase direttamente) puntando al file decifrato.
-
-```kotlin
-class WhatsAppDatabase @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
-    private var msgDb: SQLiteDatabase? = null
-    private var waDb: SQLiteDatabase?  = null
-
-    /**
-     * Apre il database decifrato in modalità read-only.
-     * Il file deve già essere stato decifrato in precedenza.
-     */
-    fun open(msgstoreFile: File, waDbFile: File) {
-        msgDb = SQLiteDatabase.openDatabase(
-            msgstoreFile.absolutePath,
-            null,
-            SQLiteDatabase.OPEN_READONLY
-        )
-        waDb = SQLiteDatabase.openDatabase(
-            waDbFile.absolutePath,
-            null,
-            SQLiteDatabase.OPEN_READONLY
-        )
-    }
-
-    fun close() {
-        msgDb?.close()
-        waDb?.close()
-        msgDb = null
-        waDb  = null
-    }
-
-    fun getMsgDb(): SQLiteDatabase = msgDb
-        ?: throw IllegalStateException("Database non aperto. Chiama open() prima.")
-
-    fun getWaDb(): SQLiteDatabase = waDb
-        ?: throw IllegalStateException("Database wa.db non aperto. Chiama open() prima.")
-}
-```
-
-### MessageDao.kt — query principali
-
-```kotlin
-class MessageDao @Inject constructor(
-    private val database: WhatsAppDatabase
-) {
-
-    /**
-     * Conta i messaggi totali per chat, separando inviati e ricevuti.
-     */
-    fun getMessageCountByChat(): List<ChatMessageCount> {
-        val query = """
-            SELECT
-                c._id               AS chat_id,
-                j.raw_string        AS jid,
-                j.cached_name       AS name,
-                COUNT(*)            AS total,
-                SUM(m.from_me)      AS sent,
-                COUNT(*) - SUM(m.from_me) AS received
-            FROM message m
-            JOIN chat c ON m.chat_row_id = c._id
-            JOIN jid j  ON c.jid_row_id  = j._id
-            WHERE m.message_type = 0        -- solo messaggi di testo
-            GROUP BY c._id
-            ORDER BY total DESC
-        """.trimIndent()
-
-        val cursor = database.getMsgDb().rawQuery(query, null)
-        return cursor.use { parseChatMessageCount(it) }
-    }
-
-    /**
-     * Distribuzione oraria dei messaggi per una chat specifica.
-     * Restituisce 24 valori (uno per ora).
-     */
-    fun getHourlyDistribution(chatId: Long): List<HourlyCount> {
-        val query = """
-            SELECT
-                CAST(strftime('%H', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS hour,
-                COUNT(*) AS count
-            FROM message
-            WHERE chat_row_id = ?
-            GROUP BY hour
-            ORDER BY hour
-        """.trimIndent()
-
-        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
-        return cursor.use { parseHourlyCount(it) }
-    }
-
-    /**
-     * Distribuzione per giorno della settimana (0=domenica, 6=sabato).
-     */
-    fun getDayOfWeekDistribution(chatId: Long): List<DayCount> {
-        val query = """
-            SELECT
-                CAST(strftime('%w', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
-                COUNT(*) AS count
-            FROM message
-            WHERE chat_row_id = ?
-            GROUP BY day
-            ORDER BY day
-        """.trimIndent()
-
-        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
-        return cursor.use { parseDayCount(it) }
-    }
-
-    /**
-     * Evoluzione mensile del numero di messaggi.
-     */
-    fun getMonthlyTrend(chatId: Long): List<MonthlyCount> {
-        val query = """
-            SELECT
-                strftime('%Y-%m', datetime(timestamp / 1000, 'unixepoch')) AS month,
-                COUNT(*) AS count
-            FROM message
-            WHERE chat_row_id = ?
-            GROUP BY month
-            ORDER BY month
-        """.trimIndent()
-
-        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
-        return cursor.use { parseMonthlyCount(it) }
-    }
-
-    /**
-     * Parole più frequenti in una chat (esclude stop words italiane).
-     */
-    fun getTopWords(chatId: Long, limit: Int = 50): List<WordFrequency> {
-        // Le stop words vengono filtrate in memoria dopo la query
-        val query = """
-            SELECT text_data
-            FROM message
-            WHERE chat_row_id = ? AND from_me = 0 AND text_data IS NOT NULL
-              AND message_type = 0
-        """.trimIndent()
-
-        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
-        val texts = cursor.use {
-            buildList {
-                while (it.moveToNext()) add(it.getString(0))
-            }
-        }
-        return countWords(texts, limit)
-    }
-
-    /**
-     * Statistiche sui media inviati/ricevuti per tipo MIME.
-     */
-    fun getMediaStats(chatId: Long): List<MediaTypeStat> {
-        val query = """
-            SELECT
-                mm.mime_type,
-                COUNT(*) AS count,
-                SUM(mm.file_size) AS total_size
-            FROM message m
-            JOIN message_media mm ON m._id = mm.message_row_id
-            WHERE m.chat_row_id = ?
-            GROUP BY mm.mime_type
-            ORDER BY count DESC
-        """.trimIndent()
-
-        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
-        return cursor.use { parseMediaStats(it) }
-    }
-
-    /**
-     * Chi ha iniziato più conversazioni.
-     * Una "conversazione" è un messaggio che arriva dopo almeno 3 ore di silenzio.
-     */
-    fun getConversationStarters(chatId: Long): ConversationStarterStats {
-        val query = """
-            SELECT
-                from_me,
-                COUNT(*) AS starter_count
-            FROM (
-                SELECT
-                    from_me,
-                    timestamp,
-                    LAG(timestamp) OVER (ORDER BY timestamp) AS prev_timestamp
-                FROM message
-                WHERE chat_row_id = ? AND message_type = 0
-            )
-            WHERE prev_timestamp IS NULL
-               OR (timestamp - prev_timestamp) > 10800000  -- 3 ore in ms
-            GROUP BY from_me
-        """.trimIndent()
-
-        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
-        return cursor.use { parseConversationStarters(it) }
-    }
-
-    // --- Parsing helpers ---
-
-    private fun parseChatMessageCount(cursor: Cursor): List<ChatMessageCount> = buildList {
-        while (cursor.moveToNext()) {
-            add(ChatMessageCount(
-                chatId   = cursor.getLong(cursor.getColumnIndexOrThrow("chat_id")),
-                jid      = cursor.getString(cursor.getColumnIndexOrThrow("jid")),
-                name     = cursor.getString(cursor.getColumnIndexOrThrow("name")),
-                total    = cursor.getInt(cursor.getColumnIndexOrThrow("total")),
-                sent     = cursor.getInt(cursor.getColumnIndexOrThrow("sent")),
-                received = cursor.getInt(cursor.getColumnIndexOrThrow("received"))
-            ))
-        }
-    }
-
-    private fun parseHourlyCount(cursor: Cursor): List<HourlyCount> = buildList {
-        while (cursor.moveToNext()) {
-            add(HourlyCount(
-                hour  = cursor.getInt(0),
-                count = cursor.getInt(1)
-            ))
-        }
-    }
-
-    private fun parseDayCount(cursor: Cursor): List<DayCount> = buildList {
-        while (cursor.moveToNext()) {
-            add(DayCount(
-                dayOfWeek = cursor.getInt(0),
-                count     = cursor.getInt(1)
-            ))
-        }
-    }
-
-    private fun parseMonthlyCount(cursor: Cursor): List<MonthlyCount> = buildList {
-        while (cursor.moveToNext()) {
-            add(MonthlyCount(
-                month = cursor.getString(0),
-                count = cursor.getInt(1)
-            ))
-        }
-    }
-
-    private fun parseMediaStats(cursor: Cursor): List<MediaTypeStat> = buildList {
-        while (cursor.moveToNext()) {
-            add(MediaTypeStat(
-                mimeType  = cursor.getString(0) ?: "unknown",
-                count     = cursor.getInt(1),
-                totalSize = cursor.getLong(2)
-            ))
-        }
-    }
-
-    private fun parseConversationStarters(cursor: Cursor): ConversationStarterStats {
-        var iStarted  = 0
-        var theyStarted = 0
-        while (cursor.moveToNext()) {
-            val fromMe = cursor.getInt(0)
-            val count  = cursor.getInt(1)
-            if (fromMe == 1) iStarted    = count
-            else             theyStarted = count
-        }
-        return ConversationStarterStats(iStarted, theyStarted)
-    }
-
-    private fun countWords(texts: List<String>, limit: Int): List<WordFrequency> {
-        val stopWords = setOf(
-            "il", "lo", "la", "i", "gli", "le", "un", "uno", "una",
-            "di", "da", "in", "con", "su", "per", "tra", "fra",
-            "e", "o", "ma", "se", "che", "non", "ho", "hai", "ha",
-            "a", "al", "del", "della", "dei", "degli", "delle",
-            "mi", "ti", "ci", "si", "ne", "è", "sono", "sei", "siamo",
-            "come", "quando", "dove", "perché", "poi", "già", "anche",
-            "the", "a", "is", "in", "of", "and", "to", "it", "for"
-        )
-        val freq = mutableMapOf<String, Int>()
-        texts.forEach { text ->
-            text.lowercase()
-                .replace(Regex("[^a-zàáâãäåæçèéêëìíîïðñòóôõöøùúûüý\\s]"), "")
-                .split(Regex("\\s+"))
-                .filter { it.length > 2 && it !in stopWords }
-                .forEach { word -> freq[word] = (freq[word] ?: 0) + 1 }
-        }
-        return freq.entries
-            .sortedByDescending { it.value }
-            .take(limit)
-            .map { WordFrequency(it.key, it.value) }
-    }
-}
-```
+- Avatar circolare del contatto o del gruppo. Gli avatar vengono estratti da `/data/user/{userId}/com.whatsapp/files/Avatars/` e caricati come immagini JPEG tramite la libreria Coil. Se non è disponibile un avatar, viene mostrata un'icona Person (per chat 1-a-1) o Group (per gruppi).
+- L'utente corrente viene identificato con il JID speciale `me@s.whatsapp.net`, il cui avatar è estratto come `me.jpg` dalla stessa directory.
+- Nome del contatto risolto tramite `wa.db` (non il numero di telefono grezzo da `jid.raw_string`).
+- Numero di telefono del contatto, dove disponibile, mostrato accanto al nome tramite il componente `ContactNameWithPhone`.
+- Numero totale di messaggi.
+- Indicatore di posizione nel ranking.
 
 ---
 
-## 7. Livello 4 — Analytics Engine
+## 7. Dettaglio chat
 
-### Modelli di dati (QueryModels.kt)
+**Schermata:** `ChatDetailScreen` / `ChatDetailViewModel`  
+**Modelli dati:** `ChatStats` (statistiche veloci), `SlowChatStats` (analisi testuali)
 
-```kotlin
-// data/db/model/QueryModels.kt
+L'apertura è istantanea grazie alla `QuickChatStats` cache per chat. Le statistiche lente vengono caricate progressivamente in background.
 
-/** Range temporale per i filtri - definito in QueryModels.kt */
-enum class TimeRange(val label: String, val millisBack: Long?) {
-    ALL_TIME("Tutto", null),
-    TODAY("Oggi", 0L),
-    YESTERDAY("Ieri", 86400000L),
-    LAST_7_DAYS("7 giorni", 604800000L),
-    LAST_30_DAYS("30 giorni", 2592000000L),
-    LAST_YEAR("Anno", 31536000000L),
-    CUSTOM("Personalizzato", null)
-}
+### Intestazione
 
-/** Range temporale custom - definito in QueryModels.kt */
-data class DateRange(
-    val startTime: Long?,
-    val endTime: Long?
-) {
-    companion object {
-        val ALL = DateRange(null, null)
-        val TODAY = DateRange(System.currentTimeMillis() - 86400000L, System.currentTimeMillis())
-    }
-}
-```
+- Avatar del contatto cliccabile. Toccando l'avatar si apre una visualizzazione a schermo intero con overlay nero. Toccando di nuovo si chiude.
+- Nome del contatto e numero di telefono (componente `ContactNameWithPhone`).
+- Periodo analizzato: data del primo e dell'ultimo messaggio nel filtro selezionato.
 
-### Modelli di dominio
+### Statistiche di base
 
-```kotlin
-// domain/model/GlobalStats.kt
-data class GlobalStats(
-    val totalMessages: Int,
-    val totalChats: Int,
-    val totalContacts: Int,
-    val totalMediaFiles: Int,
-    val oldestMessageDate: Long,       // Unix timestamp ms
-    val mostActiveChat: String,
-    val mostActiveHour: Int,           // 0–23
-    val mostActiveDayOfWeek: Int,      // 0=domenica
-    val averageMessagesPerDay: Float,
-    val longestStreak: Int,            // giorni consecutivi con almeno un messaggio
-    val hourlyDistribution: List<HourlyCount> = emptyList(),
-    val weeklyDistribution: List<DayCount> = emptyList(),
-    val dayOfMonthDistribution: List<DayOfMonthCount> = emptyList(),
-    val monthOfYearDistribution: List<MonthOfYearCount> = emptyList(),
-    val yearTrendDistribution: List<YearTrendCount> = emptyList(),
-    val topWords: List<WordFrequency> = emptyList(),
-    val topEmojis: List<EmojiStat> = emptyList()
-)
+- Messaggi totali, suddivisi in inviati e ricevuti, con percentuale.
+- Rapporto messaggi inviati/totali (`sentRatio`, valore 0.0–1.0).
+- Tempo medio di risposta in minuti/ore. Il calcolo considera solo i cambi di mittente consecutivi (es. da `from_me=1` a `from_me=0` e viceversa) e scarta i gap superiori a 24 ore (86.400.000 ms) per non inquinare la media con periodi di inattività. Query con `LAG()` window function in `calculateAverageResponseTime` di `AnalyticsRepository`.
+- Lunghezza media dei messaggi in caratteri.
+- Messaggio più lungo.
+- Numero totale di media, di cui audio e video separati.
 
-// domain/model/ChatStats.kt
-data class ChatStats(
-    val chatId: Long,
-    val contactName: String,
-    val jid: String,
-    val isGroup: Boolean,
-    val totalMessages: Int,
-    val sentByMe: Int,
-    val receivedFromThem: Int,
-    val sentRatio: Float,              // percentuale messaggi inviati (0.0–1.0)
-    val firstMessageDate: Long,        // Unix timestamp ms
-    val lastMessageDate: Long,
-    val averageResponseTimeMs: Long,
-    val iStartedConversations: Int,
-    val theyStartedConversations: Int,
-    val longestMessage: String,
-    val averageMessageLength: Float,
-    val mediaCount: Int,
-    val audioCount: Int,
-    val videoCount: Int,
-    val hourlyDistribution: List<HourlyCount>,           // 24 elementi
-    val weeklyDistribution: List<DayCount>,             // 7 elementi
-    val dayOfMonthDistribution: List<DayOfMonthCount> = emptyList(),
-    val monthOfYearDistribution: List<MonthOfYearCount> = emptyList(),
-    val yearTrendDistribution: List<YearTrendCount> = emptyList(),
-    val monthlyTrend: List<MonthlyCount>,
-    val topWords: List<WordFrequency>,
-    val topEmojis: List<EmojiStat> = emptyList(),
-    val senderBreakdown: List<SenderStat> = emptyList(),
-    val conversationStarterBreakdown: List<SenderStat> = emptyList()
-)
+### Chi scrive di più (`SenderBreakdown`)
 
-data class HourlyCount(val hour: Int, val count: Int)
-data class DayCount(val dayOfWeek: Int, val count: Int)
-data class DayOfMonthCount(val day: Int, val count: Int)
-data class MonthOfYearCount(val month: Int, val count: Int)
-data class YearTrendCount(val year: Int, val count: Int)
-data class MonthlyCount(val month: String, val count: Int)
-data class WordFrequency(val word: String, val frequency: Int)
-data class EmojiStat(val emoji: String, val count: Int)
-data class SenderStat(val jid: String, val displayName: String, val count: Int)
+Donut chart (grafico a ciambella) che visualizza la proporzione di messaggi per partecipante. Il dato si basa su `getSenderBreakdown` in `MessageDao`, che raggruppa per mittente (`from_me` + `sender_jid_row_id`). Nei gruppi con più di 10 partecipanti viene mostrato un pulsante "Mostra tutti" per espandere la lista. La legenda include nome e numero di telefono di ogni partecipante.
 
-data class MediaTypeStat(
-    val mimeType: String,
-    val count: Int,
-    val totalSize: Long
-)
+### Chi inizia le conversazioni (`ConversationStarterBreakdown`)
 
-data class ConversationStarterStats(
-    val startedByMe: Int,
-    val startedByThem: Int
-)
-```
+Donut chart analogo che conta quante volte ogni partecipante ha inviato il primo messaggio dopo almeno 3 ore di silenzio (10.800.000 ms). La logica usa `LAG()` sulla colonna `timestamp` ordinata per tempo: se la differenza con il messaggio precedente è nulla (primo messaggio in assoluto) o supera 3 ore, si conta come "inizio conversazione". Include un tooltip informativo che spiega la definizione di "iniziare una conversazione". La breakdown è per mittente con nome e numero di telefono.
 
-### AnalyticsRepository.kt
+Nota tecnica rilevante: il totale della breakdown viene calcolato sommando i valori della breakdown stessa, non con una query separata, per evitare discrepanze con i filtri temporali (fix in v1.2).
 
-```kotlin
-/**
- * Repository per il calcolo delle statistiche.
- * Aggrega i dati dai vari DAO e calcola metriche derivate.
- * Supporta filtri temporali opzionali.
- */
-class AnalyticsRepository @Inject constructor(
-    private val messageDao: MessageDao,
-    private val chatDao: ChatDao,
-    private val contactDao: ContactDao
-) {
+### Grafici di attività
 
-    /**
-     * Calcola le statistiche globali aggregate su tutte le chat.
-     * Supporta filtro temporale opzionale.
-     */
-    suspend fun getGlobalStats(
-        timeRange: TimeRange = TimeRange.ALL_TIME,
-        customRange: DateRange? = null
-    ): GlobalStats = withContext(Dispatchers.IO) {
-        val (startTime, endTime) = if (timeRange == TimeRange.CUSTOM && customRange != null) {
-            getDateRangeBounds(customRange)
-        } else {
-            getTimeRangeBounds(timeRange, customRange)
-        }
-        
-        // Query parallele per massime prestazioni
-        coroutineScope {
-            val dTotalMessages = async { messageDao.getTotalMessageCount(startTime, endTime) }
-            val dTotalChats    = async { chatDao.getChatCount() }
-            val dHourly        = async { messageDao.getGlobalHourlyDistribution(startTime, endTime) }
-            val dWeekly        = async { messageDao.getGlobalWeeklyDistribution(startTime, endTime) }
-            val dDayOfMonth    = async { messageDao.getGlobalDayOfMonthDistribution(startTime, endTime) }
-            val dMonthOfYear   = async { messageDao.getGlobalMonthOfYearDistribution(startTime, endTime) }
-            val dYearTrend     = async { messageDao.getGlobalYearTrendDistribution(startTime, endTime) }
-            val dStreak        = async { calculateLongestStreak(startTime) }
-            val dOldestTs      = async { if (startTime != null) startTime else messageDao.getOldestTimestamp() }
-            val dMediaCount    = async { messageDao.getMediaCount(startTime, endTime) }
-            val dMostActiveChat = async { chatDao.getMostActiveChat(startTime, endTime) }
+Stesse quattro schede della Dashboard (oraria, settimanale, mensile, annuale), filtrate sulla chat corrente. Implementate con `InteractiveBarChart` con scrolling orizzontale.
 
-            val totalMessages = dTotalMessages.await()
-            val hourly = dHourly.await()
-            val weekly = dWeekly.await()
-            val oldestTs = dOldestTs.await()
+### Evoluzione mensile
 
-            val avgPerDay = if (oldestTs > 0) {
-                val daysSinceFirst = ((System.currentTimeMillis() - oldestTs) / 86400000f)
-                    .coerceAtLeast(1f)
-                totalMessages / daysSinceFirst
-            } else {
-                0f
-            }
+Grafico a barre con l'andamento mese per mese del numero di messaggi. Dati da `getMonthlyTrend` in `MessageDao`, che raggruppa per `strftime('%Y-%m', ...)` sul timestamp.
 
-            val mostActiveChatJid = dMostActiveChat.await()
-            val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
+### Analisi testi per chat (opt-in)
 
-            GlobalStats(
-                totalMessages       = totalMessages,
-                totalChats          = dTotalChats.await(),
-                totalContacts       = contactDao.getContactCount(),
-                totalMediaFiles     = dMediaCount.await(),
-                oldestMessageDate   = oldestTs,
-                mostActiveChat      = mostActiveChatName,
-                mostActiveHour      = hourly.maxByOrNull { it.count }?.hour ?: 0,
-                mostActiveDayOfWeek = weekly.maxByOrNull { it.count }?.dayOfWeek ?: 0,
-                averageMessagesPerDay = avgPerDay,
-                longestStreak       = dStreak.await(),
-                hourlyDistribution  = hourly,
-                weeklyDistribution  = weekly,
-                dayOfMonthDistribution = dDayOfMonth.await(),
-                monthOfYearDistribution = dMonthOfYear.await(),
-                yearTrendDistribution = dYearTrend.await()
-            )
-        }
-    }
+Stessa logica della Dashboard, ma filtrata per chat. Include in aggiunta il filtro per mittente (switcher "Tutti" / "Per Persona") su emoji e sticker.
 
-    suspend fun getChatStats(chatId: Long, timeRange: TimeRange = TimeRange.ALL_TIME, customRange: DateRange? = null): ChatStats = withContext(Dispatchers.IO) {
-        val (startTime, endTime) = if (timeRange == TimeRange.CUSTOM && customRange != null) {
-            getDateRangeBounds(customRange)
-        } else {
-            getTimeRangeBounds(timeRange, customRange)
-        }
-        
-        coroutineScope {
-            val basicInfo       = async { chatDao.getChatBasicInfo(chatId) }
-            val msgCount        = async { messageDao.getMessageCountForChat(chatId, startTime, endTime) }
-            val hourly          = async { messageDao.getHourlyDistribution(chatId, startTime, endTime) }
-            val weekly          = async { messageDao.getDayOfWeekDistribution(chatId, startTime, endTime) }
-            val dayOfMonth      = async { messageDao.getDayOfMonthDistribution(chatId, startTime, endTime) }
-            val monthOfYear     = async { messageDao.getMonthOfYearDistribution(chatId, startTime, endTime) }
-            val yearTrend       = async { messageDao.getYearTrendDistribution(chatId, startTime, endTime) }
-            val monthly         = async { messageDao.getMonthlyTrend(chatId, startTime, endTime) }
-            val topWords        = async { messageDao.getTopWords(chatId, startTime, endTime) }
-            val mediaStats      = async { messageDao.getMediaStats(chatId, startTime, endTime) }
-            val starters        = async { messageDao.getConversationStarters(chatId, startTime, endTime) }
-            val avgResponseTime = async { calculateAverageResponseTime(chatId, startTime, endTime) }
-            val senderBreakdown = async { messageDao.getSenderBreakdown(chatId, startTime, endTime) }
-            val starterBreakdown = async { messageDao.getConversationStarterBreakdown(chatId, startTime, endTime) }
+**Parole più usate** — `WordCloudView` con selettore limite e filtro per mittente.  
+**Emoji più usate** — `InteractiveEmojiCloud` con switcher aggregato/per-persona.  
+**Sticker più usati** — `InteractiveStickerCloud` con miniature da `message_media`.
 
-            val b = basicInfo.await()
-            val m = msgCount.await()
+### Log Chiamate
 
-            ChatStats(
-                chatId                   = chatId,
-                contactName              = b.name,
-                jid                      = b.jid,
-                isGroup                  = b.jid.contains("@g.us"),
-                totalMessages            = m.total,
-                sentByMe                 = m.sent,
-                receivedFromThem         = m.received,
-                sentRatio                = if (m.total > 0) m.sent.toFloat() / m.total else 0f,
-                firstMessageDate         = messageDao.getFirstMessageTimestamp(chatId, startTime),
-                lastMessageDate          = messageDao.getLastMessageTimestamp(chatId, endTime),
-                averageResponseTimeMs    = avgResponseTime.await(),
-                iStartedConversations    = starters.await().startedByMe,
-                theyStartedConversations = starters.await().startedByThem,
-                longestMessage           = messageDao.getLongestMessage(chatId, startTime, endTime),
-                averageMessageLength     = messageDao.getAverageMessageLength(chatId, startTime, endTime),
-                mediaCount               = mediaStats.await().sumOf { it.count },
-                audioCount               = mediaStats.await().filter { it.mimeType.startsWith("audio") }.sumOf { it.count },
-                videoCount               = mediaStats.await().filter { it.mimeType.startsWith("video") }.sumOf { it.count },
-                hourlyDistribution       = hourly.await(),
-                weeklyDistribution       = weekly.await(),
-                dayOfMonthDistribution   = dayOfMonth.await(),
-                monthOfYearDistribution  = monthOfYear.await(),
-                yearTrendDistribution    = yearTrend.await(),
-                monthlyTrend             = monthly.await(),
-                topWords                 = topWords.await(),
-                senderBreakdown          = senderBreakdown.await(),
-                conversationStarterBreakdown = starterBreakdown.await()
-            )
-        }
-    }
+Riepilogo delle chiamate per la chat selezionata. I dati vengono letti dalla tabella `call_log` di `msgstore.db`. Mostra:
 
-    /**
-     * Calcola il tempo medio di risposta in millisecondi.
-     * Considera solo i cambi di mittente consecutivi (io → loro, loro → io).
-     */
-    private suspend fun calculateAverageResponseTime(
-        chatId: Long,
-        startTime: Long?,
-        endTime: Long?
-    ): Long = withContext(Dispatchers.IO) {
-        val query = """
-            SELECT AVG(response_time) FROM (
-                SELECT
-                    timestamp - LAG(timestamp) OVER (ORDER BY timestamp) AS response_time,
-                    from_me,
-                    LAG(from_me) OVER (ORDER BY timestamp) AS prev_from_me
-                FROM message
-                WHERE chat_row_id = ? AND message_type = 0
-                ${startTime?.let { "AND timestamp >= $it" } ?: ""}
-                ${endTime?.let { "AND timestamp <= $it" } ?: ""}
-            )
-            WHERE prev_from_me IS NOT NULL AND from_me != prev_from_me
-              AND response_time < 86400000   -- ignora risposte dopo 24h
-        """.trimIndent()
+- Totale chiamate audio, video e perse.
+- Durata totale e durata media.
+- Card di dettaglio per ogni voce con avatar circolare e nome del contatto.
+- Barra di ricerca lato client per filtrare le voci. La barra viene nascosta automaticamente se non ci sono risultati.
 
-        messageDao.executeAvgResponseTime(query, arrayOf(chatId.toString()))
-    }
+### Media & Link
 
-    private suspend fun calculateLongestStreak(startTime: Long?): Int = withContext(Dispatchers.IO) {
-        val dates = messageDao.getActiveDates(startTime)
-        if (dates.isEmpty()) return@withContext 0
+Statistiche sui contenuti multimediali e sui link condivisi nella chat. Dati letti da `message_media` (per media) e da `message` con filtro `text_data LIKE 'http%'` e dalla tabella `message_link` (per i link). Mostra:
 
-        var maxStreak = 1
-        var currentStreak = 1
-
-        for (i in 1 until dates.size) {
-            val diff = dates[i] - dates[i - 1]
-            if (diff == 1L) { // giorni consecutivi
-                currentStreak++
-                if (currentStreak > maxStreak) maxStreak = currentStreak
-            } else {
-                currentStreak = 1
-            }
-        }
-        maxStreak
-    }
-}
-
-/**
- * Le classi TimeRange e DateRange sono definite in data/db/model/QueryModels.kt.
- * Vedi la sezione "Modelli di dati" in questo documento per i dettagli.
- * 
- * TimeRange usa valori: ALL_TIME, TODAY, YESTERDAY, LAST_7_DAYS, LAST_30_DAYS, LAST_YEAR, CUSTOM
- * DateRange ha campi: startTime: Long?, endTime: Long?
- */
-
----
-```
+- Conteggio media per tipo MIME (immagini, video, audio, documenti), con dimensione totale.
+- Link condivisi raggruppati per dominio, con conteggio e data dell'ultima condivisione per ogni URL. Il tracking della data di ultima condivisione è implementato in `getSharedUrlsWithTimestamps` che ritorna coppie `(testo, timestamp)`.
+- Per ogni dominio: breakdown per mittente con avatar e nome.
+- Bottom sheet espandibile con dettaglio domini per singolo contatto, con avatar nell'intestazione.
+- Barra di ricerca lato client. La barra viene nascosta se non ci sono risultati.
 
 ---
 
-### ⚠️ Comportamento DB: `sender_jid_row_id = 0` nelle chat 1-a-1
+## 8. Radar Parole
 
-**Scoperta critica** verificata su dispositivi reali con DB Browser for SQLite:
+Funzione di ricerca che conta le occorrenze di una parola o frase in una chat specifica, con breakdown per mittente. Implementata in `searchWordFrequency` di `MessageDao`.
 
-Nelle chat dirette (1-a-1), WhatsApp imposta `sender_jid_row_id = 0` per **tutti** i messaggi, sia inviati che ricevuti. Un `LEFT JOIN jid ON sender_jid_row_id = j._id` non restituisce mai il mittente in questo contesto.
+Caratteristiche principali:
 
-| Contesto | `sender_jid_row_id` | Soluzione |
-|---|---|---|
-| Chat di **gruppo** | JID del membro che ha scritto | `JOIN jid ON sender_jid_row_id = j._id` funziona ✅ |
-| Chat **1-a-1** | Sempre 0 per tutti | Usare `from_me` + JOIN `chat` + `jid` per il JID dell'altra persona ✅ |
-
-**Pattern corretto per chat 1-a-1:**
-```sql
--- Per il mittente nelle chat 1-a-1:
--- from_me=1 → "Tu" (l'utente corrente)
--- from_me=0 → prendi il JID della chat come mittente
-LEFT JOIN jid j ON m.sender_jid_row_id = j._id AND m.sender_jid_row_id > 0
-LEFT JOIN chat c ON m.chat_row_id = c._id
-LEFT JOIN jid chat_jid ON c.jid_row_id = chat_jid._id
--- Poi in SELECT:
-CASE WHEN m.from_me = 1 THEN 'Tu'
-     WHEN j.raw_string IS NOT NULL THEN j.raw_string  -- gruppi
-     ELSE chat_jid.raw_string                          -- 1-a-1
-END AS sender_jid
-```
-
-**File impattati:**
-- `MessageDao.kt` → `searchWordFrequency()`, `getLinkStatsBySender()`, `getCallStats(chatId)`
-- `AnalyticsRepository.kt` → risoluzione `me@s.whatsapp.net` → `"Tu"` in tutti i mapping
+- Supporta ricerche multifrase (es. "ci vediamo domani"), non solo singole parole.
+- La ricerca parte solo alla pressione esplicita del pulsante di ricerca, non in automatico durante la digitazione.
+- Ottimizzazione: pre-filtro SQL con `LIKE '%parola%'` prima del conteggio esatto, che riduce il numero di righe da processare in memoria di un fattore 10–100x.
+- La breakdown mostra il conteggio per ogni mittente, distinguendo `from_me=1` (l'utente) dal JID dell'interlocutore. Il mapping al nome del contatto avviene tramite `wa.db`.
 
 ---
 
-## 8. Livello 5 — UI con Jetpack Compose
+## 9. Privacy e sicurezza
 
-### Navigazione
-
-```kotlin
-// ui/navigation/AppNavigation.kt
-sealed class Screen(val route: String) {
-    object Setup       : Screen("setup")
-    object Dashboard   : Screen("dashboard")
-    object ChatList    : Screen("chat_list")
-    object ChatDetail  : Screen("chat_detail/{chatId}") {
-        fun createRoute(chatId: Long) = "chat_detail/$chatId"
-    }
-}
-
-@Composable
-fun AppNavigation(navController: NavHostController) {
-    NavHost(navController, startDestination = Screen.Setup.route) {
-        composable(Screen.Setup.route) {
-            SetupScreen(onSetupComplete = {
-                navController.navigate(Screen.Dashboard.route) {
-                    popUpTo(Screen.Setup.route) { inclusive = true }
-                }
-            })
-        }
-        composable(Screen.Dashboard.route) {
-            DashboardScreen(onNavigateToChatList = {
-                navController.navigate(Screen.ChatList.route)
-            })
-        }
-        composable(Screen.ChatList.route) {
-            ChatListScreen(onChatSelected = { chatId ->
-                navController.navigate(Screen.ChatDetail.createRoute(chatId))
-            })
-        }
-        composable(
-            route = Screen.ChatDetail.route,
-            arguments = listOf(navArgument("chatId") { type = NavType.LongType })
-        ) { backStackEntry ->
-            val chatId = backStackEntry.arguments?.getLong("chatId") ?: return@composable
-            ChatDetailScreen(chatId = chatId)
-        }
-    }
-}
-```
-
-### SetupScreen.kt — primo avvio
-
-```kotlin
-@Composable
-fun SetupScreen(
-    viewModel: SetupViewModel = hiltViewModel(),
-    onSetupComplete: () -> Unit
-) {
-    val state by viewModel.state.collectAsState()
-
-    LaunchedEffect(state.isComplete) {
-        if (state.isComplete) onSetupComplete()
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement   = Arrangement.Center,
-        horizontalAlignment   = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Lock,
-            contentDescription = null,
-            modifier = Modifier.size(72.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(Modifier.height(24.dp))
-        Text("WhatStat Reborn", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "L'app accede al database di WhatsApp sul tuo dispositivo. " +
-            "Tutti i dati rimangono locali, nulla viene inviato.",
-            style    = MaterialTheme.typography.bodyMedium,
-            color    = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        // Stato delle operazioni
-        SetupStep(
-            label     = "Accesso root",
-            status    = state.rootStatus,
-            icon      = Icons.Outlined.AdminPanelSettings
-        )
-        SetupStep(
-            label     = "Estrazione file",
-            status    = state.extractionStatus,
-            icon      = Icons.Outlined.FolderOpen
-        )
-        SetupStep(
-            label     = "Decifratura database",
-            status    = state.decryptionStatus,
-            icon      = Icons.Outlined.Key
-        )
-        SetupStep(
-            label     = "Lettura contatti",
-            status    = state.contactsStatus,
-            icon      = Icons.Outlined.Contacts
-        )
-
-        Spacer(Modifier.height(40.dp))
-
-        if (state.error != null) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Text(
-                    state.error!!,
-                    modifier = Modifier.padding(16.dp),
-                    color    = MaterialTheme.colorScheme.onErrorContainer
-                )
-            }
-            Spacer(Modifier.height(16.dp))
-        }
-
-        Button(
-            onClick  = { viewModel.startSetup() },
-            enabled  = !state.isLoading,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp
-                )
-                Spacer(Modifier.width(8.dp))
-            }
-            Text(if (state.isLoading) "Elaborazione..." else "Inizia analisi")
-        }
-    }
-}
-
-@Composable
-fun SetupStep(label: String, status: StepStatus, icon: ImageVector) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
-        Spacer(Modifier.width(12.dp))
-        Text(label, modifier = Modifier.weight(1f))
-        when (status) {
-            StepStatus.IDLE     -> Icon(Icons.Outlined.RadioButtonUnchecked, null, tint = MaterialTheme.colorScheme.outline)
-            StepStatus.LOADING  -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-            StepStatus.SUCCESS  -> Icon(Icons.Filled.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
-            StepStatus.ERROR    -> Icon(Icons.Filled.Error, null, tint = MaterialTheme.colorScheme.error)
-        }
-    }
-}
-```
-
-### DashboardScreen.kt — panoramica globale
-
-```kotlin
-@Composable
-fun DashboardScreen(
-    viewModel: DashboardViewModel = hiltViewModel(),
-    onNavigateToChatList: () -> Unit
-) {
-    val stats by viewModel.globalStats.collectAsState()
-
-    LazyColumn(
-        modifier          = Modifier.fillMaxSize(),
-        contentPadding    = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Text("Panoramica", style = MaterialTheme.typography.headlineSmall)
-        }
-
-        // Statistiche principali in grid 2x2
-        item {
-            stats?.let { s ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard(
-                        modifier = Modifier.weight(1f),
-                        label    = "Messaggi totali",
-                        value    = "%,d".format(s.totalMessages),
-                        icon     = Icons.Outlined.Chat
-                    )
-                    StatCard(
-                        modifier = Modifier.weight(1f),
-                        label    = "Chat attive",
-                        value    = s.totalChats.toString(),
-                        icon     = Icons.Outlined.People
-                    )
-                }
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard(
-                        modifier = Modifier.weight(1f),
-                        label    = "Media/giorno",
-                        value    = "%.1f".format(s.averageMessagesPerDay),
-                        icon     = Icons.Outlined.TrendingUp
-                    )
-                    StatCard(
-                        modifier = Modifier.weight(1f),
-                        label    = "Streak più lungo",
-                        value    = "${s.longestStreak} giorni",
-                        icon     = Icons.Outlined.LocalFireDepartment
-                    )
-                }
-            } ?: CircularProgressIndicator()
-        }
-
-        // Heatmap oraria globale
-        item {
-            Card {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Quando sei più attivo", style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(12.dp))
-                    stats?.let {
-                        HourlyHeatmap(hourlyData = viewModel.hourlyData.collectAsState().value)
-                    }
-                }
-            }
-        }
-
-        // Pulsante lista chat
-        item {
-            Button(
-                onClick  = onNavigateToChatList,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Analizza le singole chat")
-            }
-        }
-    }
-}
-}
-
-### Componenti UI riutilizzabili
-
-```kotlin
-// ui/component/StatCard.kt
-@Composable
-fun StatCard(...)
-// ui/component/HourlyHeatmap.kt
-@Composable
-fun HourlyHeatmap(...)
-// ui/component/LoadingSection.kt - Progress tracking per calcoli analitici
-@Composable
-fun LoadingSection(
-    isLoading: Boolean,
-    progress: Float? = null,  // nullable per loading indeterminato
-    label: String = "Caricamento..."
-)
-// ui/component/ActivityCard.kt - Card con tabs per metriche di attività
-@Composable
-fun ActivityCard(...)
-```
-@Composable
-fun StatCard(
-    modifier: Modifier = Modifier,
-    label: String,
-    value: String,
-    icon: ImageVector
-) {
-    Card(modifier = modifier) {
-        Column(Modifier.padding(16.dp)) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(8.dp))
-            Text(value, style = MaterialTheme.typography.headlineSmall)
-            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-// ui/component/HourlyHeatmap.kt
-@Composable
-fun HourlyHeatmap(hourlyData: List<HourlyCount>) {
-    if (hourlyData.isEmpty()) return
-    val maxCount = hourlyData.maxOf { it.count }.toFloat()
-    val primary = MaterialTheme.colorScheme.primary
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        (0..23).forEach { hour ->
-            val count = hourlyData.find { it.hour == hour }?.count ?: 0
-            val alpha = if (maxCount > 0) count / maxCount else 0f
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(10.dp)
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(primary.copy(alpha = 0.15f + alpha * 0.85f))
-                )
-                if (hour % 6 == 0) {
-                    Text(
-                        "$hour",
-                        style    = MaterialTheme.typography.labelSmall,
-                        fontSize = 8.sp
-                    )
-                }
-            }
-        }
-    }
-}
-```
-
----
-
-## 9. Architettura MVVM completa
-
-### SetupViewModel.kt
-
-```kotlin
-@HiltViewModel
-class SetupViewModel @Inject constructor(
-    private val fileExtractor: FileExtractor,
-    private val decryptor: Crypt14Decryptor,
-    private val rootManager: RootManager,
-    private val database: WhatsAppDatabase,
-    @ApplicationContext private val context: Context
-) : ViewModel() {
-
-    private val _state = MutableStateFlow(SetupState())
-    val state: StateFlow<SetupState> = _state.asStateFlow()
-
-    fun startSetup() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-
-            // Step 1: verifica root
-            _state.update { it.copy(rootStatus = StepStatus.LOADING) }
-            val rootStatus = rootManager.checkRootAccess()
-            if (rootStatus != RootStatus.GRANTED) {
-                _state.update {
-                    it.copy(
-                        isLoading  = false,
-                        rootStatus = StepStatus.ERROR,
-                        error      = "Root non disponibile. Assicurati che Magisk sia installato e che l'app abbia i permessi root."
-                    )
-                }
-                return@launch
-            }
-            _state.update { it.copy(rootStatus = StepStatus.SUCCESS) }
-
-            // Step 2: estrai file
-            _state.update { it.copy(extractionStatus = StepStatus.LOADING) }
-            val extractResult = fileExtractor.extractAll()
-            if (extractResult.isFailure) {
-                _state.update {
-                    it.copy(
-                        isLoading       = false,
-                        extractionStatus = StepStatus.ERROR,
-                        error           = "Errore durante l'estrazione: ${extractResult.exceptionOrNull()?.message}"
-                    )
-                }
-                return@launch
-            }
-            val files = extractResult.getOrThrow()
-            _state.update { it.copy(extractionStatus = StepStatus.SUCCESS) }
-
-            // Step 3: decifra
-            _state.update { it.copy(decryptionStatus = StepStatus.LOADING) }
-            val outputDb = File(context.filesDir, "msgstore.db")
-            val decryptResult = decryptor.decrypt(files.crypt14File, files.keyFile, outputDb)
-            if (decryptResult.isFailure) {
-                _state.update {
-                    it.copy(
-                        isLoading        = false,
-                        decryptionStatus = StepStatus.ERROR,
-                        error            = "Decifratura fallita: ${decryptResult.exceptionOrNull()?.message}"
-                    )
-                }
-                return@launch
-            }
-            _state.update { it.copy(decryptionStatus = StepStatus.SUCCESS) }
-
-            // Step 4: apri database
-            _state.update { it.copy(contactsStatus = StepStatus.LOADING) }
-            runCatching { database.open(outputDb, files.waDbFile) }
-                .onFailure {
-                    _state.update {
-                        it.copy(
-                            isLoading      = false,
-                            contactsStatus = StepStatus.ERROR,
-                            error          = "Impossibile aprire il database: ${it.message}"
-                        )
-                    }
-                    return@launch
-                }
-            _state.update { it.copy(contactsStatus = StepStatus.SUCCESS) }
-
-            // Completato
-            _state.update { it.copy(isLoading = false, isComplete = true) }
-        }
-    }
-}
-
-data class SetupState(
-    val isLoading        : Boolean    = false,
-    val isComplete       : Boolean    = false,
-    val error            : String?    = null,
-    val rootStatus       : StepStatus = StepStatus.IDLE,
-    val extractionStatus : StepStatus = StepStatus.IDLE,
-    val decryptionStatus : StepStatus = StepStatus.IDLE,
-    val contactsStatus   : StepStatus = StepStatus.IDLE
-)
-
-enum class StepStatus { IDLE, LOADING, SUCCESS, ERROR }
-```
+- Nessuna connessione di rete. Il traffico è bloccato a livello di configurazione Android (`network_security_config.xml` con `cleartextTrafficPermitted="false"` e nessuna trust anchor).
+- Tutti i file estratti (chiave, database cifrato, database decifrato, avatar) sono salvati in `context.filesDir`, la directory privata dell'app non accessibile ad altre app senza root.
+- La chiave di cifratura AES-256 non viene mai inclusa nei log di sistema.
+- I contenuti dei messaggi, i nomi e i numeri di telefono non vengono loggati in produzione.
+- I file temporanei vengono eliminati con sovrascrittura a zero prima della cancellazione (`secureDelete`), per evitare recupero da storage.
 
 ---
 
 ## 10. Gestione degli errori
 
-### Casi d'errore da gestire
+Gli errori sono modellati con la sealed class `AppError` in `domain/model/AppError.kt`. I casi gestiti:
 
-| Scenario | Causa probabile | Risposta dell'app |
-|---|---|---|
-| Root non disponibile | Magisk non installato / permessi negati | Mostra istruzioni chiare |
-| File key non trovato | Percorso cambiato con aggiornamento WhatsApp | Messaggio con percorso atteso |
-| File crypt14 non trovato | Backup locale disabilitato o crypt15 | Guida per abilitare backup locale |
-| Decifratura fallita (tag GCM) | Chiave non corrispondente | Suggerisci di rigenerare il backup |
-| Database corrotto | Backup incompleto | Guida per fare nuovo backup da WhatsApp |
-| Schema non riconosciuto | Versione WhatsApp troppo nuova | Segnala agli sviluppatori |
-| Spazio insufficiente | Database molto grande | Mostra spazio necessario |
+- **`RootNotAvailable`** — Root non presente o permessi negati. L'app mostra istruzioni per verificare Magisk.
+- **`KeyFileNotFound`** — Il file `/data/data/com.whatsapp/files/key` non esiste. Può accadere se il percorso è cambiato con un aggiornamento di WhatsApp.
+- **`Crypt14NotFound`** — Il file `msgstore.db.crypt14` non è presente. Può indicare che il backup locale è disabilitato.
+- **`Crypt15Detected`** — Rilevato un file `msgstore.db.crypt15` (backup E2E attivo). L'app mostra un messaggio che spiega come disattivare il backup E2E in WhatsApp.
+- **`DecryptionFailed(reason)`** — La decifratura AES-GCM è fallita. Causa più comune: la chiave non corrisponde al database (es. WhatsApp reinstallata). Soluzione suggerita: forzare un nuovo backup da WhatsApp.
+- **`DatabaseError(message)`** — Il file SQLite è corrotto o ha uno schema non riconosciuto. Può accadere con versioni molto recenti di WhatsApp che modificano lo schema del database.
+- **`UnknownError(throwable)`** — Errore imprevisto, con stacktrace.
 
-### Sealed class per i risultati
-
-```kotlin
-sealed class AppError {
-    object RootNotAvailable  : AppError()
-    object KeyFileNotFound   : AppError()
-    object Crypt14NotFound   : AppError()
-    object Crypt15Detected   : AppError()   // backup E2E attivo
-    data class DecryptionFailed(val reason: String) : AppError()
-    data class DatabaseError(val message: String)   : AppError()
-    data class UnknownError(val throwable: Throwable) : AppError()
-}
-```
+Tutti gli errori vengono mostrati nella schermata di Setup come card con sfondo `errorContainer` (Material 3) e testo descrittivo.
 
 ---
 
-## 11. Sicurezza e privacy
+## 11. Struttura dei dati sorgente
 
-### Principi fondamentali
+### Database `msgstore.db` (WhatsApp 2.23+)
 
-- **Zero network access:** l'app non deve mai aprire connessioni di rete. Aggiungere la regola in `network_security_config.xml` per bloccare tutto il traffico.
-- **Dati in directory privata:** tutti i file estratti e il database decifrato vanno in `context.filesDir`, inaccessibile ad altre app senza root.
-- **Nessuna persistenza non necessaria:** il database decifrato può essere eliminato dopo l'analisi e ricostruito al prossimo avvio.
-- **Nessun log in produzione:** non loggare mai contenuti di messaggi, nomi o numeri di telefono nei log di sistema.
+Le tabelle principali usate dall'app:
 
-```xml
-<!-- res/xml/network_security_config.xml -->
-<?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
-    <base-config cleartextTrafficPermitted="false">
-        <trust-anchors>
-            <!-- Blocca TUTTO il traffico di rete -->
-        </trust-anchors>
-    </base-config>
-</network-security-config>
-```
+**`message`** — tabella principale dei messaggi. Campi rilevanti:
+- `_id`: chiave primaria
+- `chat_row_id`: FK verso `chat._id`
+- `from_me`: 0 = messaggio ricevuto, 1 = messaggio inviato
+- `sender_jid_row_id`: FK verso `jid._id` del mittente. Attenzione: nelle chat 1-a-1 questo campo è sempre 0 (vedi sezione 12).
+- `timestamp`: Unix timestamp in millisecondi (UTC)
+- `message_type`: 0 = testo, 1 = foto, 2 = audio, 3 = video, altri valori per sticker, documenti, ecc.
+- `text_data`: contenuto testuale del messaggio (null per messaggi non testuali)
+- `starred`: 1 se il messaggio ha la stella
 
-```xml
-<!-- AndroidManifest.xml -->
-<application
-    android:networkSecurityConfig="@xml/network_security_config"
-    ...>
-```
+**`chat`** — una riga per ogni conversazione.
+- `jid_row_id`: FK verso `jid._id` dell'interlocutore o del gruppo
+- `subject`: nome del gruppo (null per chat 1-a-1)
 
-### Pulizia sicura dei file temporanei
+**`jid`** — identificatori WhatsApp.
+- `raw_string`: JID completo, es. `393391234567@s.whatsapp.net` o `123456789@g.us` per i gruppi
+- `server`: `s.whatsapp.net` per contatti, `g.us` per gruppi
+- `cached_name`: nome in cache (spesso vuoto nelle versioni moderne)
 
-```kotlin
-fun secureDelete(file: File) {
-    if (!file.exists()) return
-    // Sovrascrive con zeri prima di eliminare
-    file.outputStream().use { out ->
-        val zeros = ByteArray(8192)
-        var remaining = file.length()
-        while (remaining > 0) {
-            val toWrite = minOf(remaining, zeros.size.toLong()).toInt()
-            out.write(zeros, 0, toWrite)
-            remaining -= toWrite
-        }
-        out.flush()
-    }
-    file.delete()
-}
-```
+**`message_media`** — allegati multimediali.
+- `message_row_id`: FK verso `message._id`
+- `mime_type`: tipo MIME (es. `image/jpeg`, `audio/ogg`, `video/mp4`)
+- `file_size`: dimensione in byte
+- `media_duration`: durata in millisecondi (per audio e video)
+
+**`message_link`** — link estratti dai messaggi.
+
+**`call_log`** — registro delle chiamate.
+
+**`message_add_on`** — reazioni e modifiche (WhatsApp 2022+).
+- `add_on_type`: 1 = reazione, 2 = modifica, 3 = visualizzazione unica
+
+### Database `wa.db`
+
+**`wa_contacts`** — rubrica contatti WhatsApp.
+- `jid`: JID del contatto
+- `display_name`: nome come appare in WhatsApp
+- `number`: numero normalizzato
 
 ---
 
-## 12. Testing
+## 12. Comportamenti noti e quirk del database
 
-### Unit test — Decryption Engine
+### `sender_jid_row_id = 0` nelle chat 1-a-1
 
-```kotlin
-class Crypt14DecryptorTest {
+Nelle chat dirette (non di gruppo), WhatsApp imposta `sender_jid_row_id = 0` per **tutti** i messaggi, sia inviati che ricevuti. Un `JOIN jid ON sender_jid_row_id = j._id` non restituisce mai il mittente in questo contesto.
 
-    private val keyReader  = KeyReader()
-    private val decryptor  = Crypt14Decryptor(keyReader)
+Il pattern corretto prevede:
+- Per i messaggi di gruppo: `JOIN jid ON sender_jid_row_id = j._id` funziona normalmente.
+- Per le chat 1-a-1: usare `from_me` per distinguere i messaggi inviati, e ricavare il JID dell'interlocutore facendo JOIN su `chat` e poi su `jid` tramite `chat.jid_row_id`.
 
-    @Test
-    fun `il file decifrato inizia con magic bytes SQLite`() = runTest {
-        val keyFile    = loadTestAsset("test.key")
-        val cryptFile  = loadTestAsset("test.db.crypt14")
-        val outputFile = File.createTempFile("test_output", ".db")
+Questo pattern è implementato in `MessageDao` nei metodi `searchWordFrequency`, `getLinkStatsBySender` e `getCallStats`. In `AnalyticsRepository` il JID speciale `me@s.whatsapp.net` viene mappato alla stringa "Tu" in tutti i contesti di risoluzione nomi.
 
-        val result = decryptor.decrypt(cryptFile, keyFile, outputFile)
+### Identificazione chat 1-a-1 vs gruppo
 
-        assertTrue(result.isSuccess)
-        val magic = outputFile.readBytes().take(6).toByteArray()
-        assertEquals("SQLite", String(magic))
-    }
+Un JID che contiene `@g.us` è un gruppo; un JID con `@s.whatsapp.net` è una chat 1-a-1. Il campo `ChatStats.isGroup` è calcolato come `jid.contains("@g.us")`.
 
-    @Test
-    fun `chiave sbagliata genera errore di decifratura`() = runTest {
-        val wrongKey  = File.createTempFile("wrong", ".key").also {
-            it.writeBytes(ByteArray(32 + 126) { 0xFF.toByte() })
-        }
-        val cryptFile = loadTestAsset("test.db.crypt14")
-        val output    = File.createTempFile("output", ".db")
+### Timestamp in UTC
 
-        val result = decryptor.decrypt(cryptFile, wrongKey, output)
-        assertTrue(result.isFailure)
-    }
-}
-```
+Tutti i timestamp nel database sono in UTC. Le query che calcolano distribuzioni orarie e per giorno della settimana applicano la conversione a ora locale con `datetime(timestamp / 1000, 'unixepoch', 'localtime')` in SQLite.
 
-### Integration test — Analytics
+### Schema versioni recenti
 
-```kotlin
-class AnalyticsRepositoryTest {
-
-    // Usa un database SQLite di test pre-popolato
-    @Test
-    fun `getGlobalStats restituisce valori coerenti`() = runTest {
-        val db    = openTestDatabase()
-        val repo  = buildTestRepository(db)
-        val stats = repo.getGlobalStats()
-
-        assertTrue(stats.totalMessages > 0)
-        assertTrue(stats.mostActiveHour in 0..23)
-        assertTrue(stats.longestStreak >= 1)
-    }
-}
-```
+WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitico delle versioni precedenti. Se l'app restituisce `DatabaseError` con un messaggio su colonne o tabelle non trovate, è probabile che WhatsApp abbia rilasciato un aggiornamento che modifica lo schema. In quel caso occorre verificare le query nei DAO e aggiornare i nomi di colonna o tabella.
 
 ---
 
-## 13. Roadmap e feature future
+## 13. Roadmap
 
-### v1.0 — MVP
-- [x] Root access e estrazione file
-- [x] Decifratura crypt14
-- [x] Lettura database SQLite
-- [x] Statistiche base per chat (messaggi, orari, giorni)
-- [x] Dashboard globale
-- [x] Lista chat con ranking
+### Rilasciato (v1.0 — v1.7)
 
-### v1.1 — Analytics avanzati ✅ IMPLEMENTATO
-- [x] Filtri temporali (Oggi, Ieri, 7gg, 30gg, Anno, Personalizzato)
-- [x] Word cloud interattiva con tooltip
-- [x] SearchAnalyzer - Ricerca parole con occorrenze per utente
-- [x] Call logs - Chiamate audio, video, perse, durata
-- [x] Media & Link stats - Link condivisi per chat
-- [x] Tempo medio di risposta per chat
-- [x] Grafici di evoluzione mensile
-- [x] Analisi link condivisi (via message_link table)
+**v1.0 — MVP:** Accesso root, estrazione file, decifratura crypt14, Dashboard globale e lista chat, statistiche base per chat (messaggi, orari, giorni).
 
-### v1.2 — Pie chart, nomi contatti, performance ✅ IMPLEMENTATO
-- [x] Donut chart per-membro "Chi scrive di più" con breakdown per singolo mittente
-- [x] Donut chart per-membro "Chi inizia le conversazioni" con breakdown per singolo mittente
-- [x] Pie chart espandibile ("Mostra tutti" per gruppi > 10 membri)
-- [x] Risoluzione nomi contatti via wa_contacts (wa.db) — non più numeri di telefono
-- [x] Fix numeri di telefono in ChatDao, MessageDao, Repository, ChatListViewModel
-- [x] Fix bug pie chart starters con filtri temporali (totale ora calcolato dalla breakdown)
-- [x] 7 indici SQL per velocizzare le query (compositi su chat_row_id, message_type, timestamp)
-- [x] WAL mode per letture concorrenti
-- [x] Query parallelizzate con async/await (14 query in parallelo)
-- [x] Progressive loading: stat veloci in <1s, stat lente progressivamente con indicatore
-- [x] Pre-filtro SQL `LIKE` per searchWordFrequency (velocità 10-100x)
-- [x] Search bar client-side in Log Chiamate e Media & Link
-- [x] Search bar nascosta quando non ci sono risultati
-- [x] Icona app ridisegnata (bolla chat verde + barre statistiche bianche)
+**v1.1 — Analytics avanzati:** Filtri temporali su tutte le schermate, word cloud interattiva con tooltip, Radar Parole con occorrenze per mittente, Log Chiamate (audio, video, perse, durata), Media & Link con link raggruppati per dominio, tempo medio di risposta, grafici di evoluzione mensile.
 
-### v1.3 — UX migliorata ✅ IMPLEMENTATO
-- [x] Metriche di attività complete (distribuzione giornaliera, mensile, annuale)
-- [x] UI a schede (tabs) per visualizzare diverse metriche di attività
-- [x] InteractiveBarChart con supporto scrolling orizzontale
-- [x] Layout migliorato per le card di riepilogo chiamate con divisore verticale
-- [x] Filtri temporali opzionali per tutte le query analitiche
-- [x] Estrazione domini e statistiche per link condivisi
-- [x] Progress tracking per calcoli analitici con LoadingSection
-- [x] Tooltip informativo per "Chi inizia le conversazioni"
-- [x] Icona launcher adattiva (adaptive icon) per Android 8+
-- [x] Rimosso pannello debug dalle screen analitiche
+**v1.2 — Donut chart, nomi contatti, performance:** Donut chart "Chi scrive di più" e "Chi inizia le conversazioni" con breakdown per mittente, espansione per gruppi con più di 10 membri, risoluzione nomi contatti tramite `wa.db`, 7 indici SQL compositi, WAL mode, 14 query parallelizzate, progressive loading.
 
-### v1.4 — Cache intelligente + UX ✅ IMPLEMENTATO
-- [x] **Rilevamento cambio DB** — Hash SHA-256 del file crypt14 confrontato ad ogni avvio
-- [x] **Cache completa con kotlinx.serialization** — Serializzazione di tutti i campi (distribuzioni, parole, emoji, sender breakdown)
-- [x] **Cache Quick Stats (Dashboard)** — GlobalStats con distribuzioni cachati per ALL_TIME, istantanei alla riapertura
-- [x] **Cache Slow Stats globali** — Parole + emoji globali cachati dopo la prima analisi, mostrati automaticamente alla riapertura
-- [x] **Cache Slow Stats per chat** — SlowChatStats (parole, emoji, sender breakdown, starters, response time) cachati per ogni chatId
-- [x] **Invalidazione automatica** — Se hash DB cambia → clearCache() → ricalcola tutto
-- [x] **Cache solo ALL_TIME** — Filtri temporali ricalcolano sempre dal DB (dati indicizzati, <1s)
-- [x] **Analisi Lessicale opt-in** — Bottone "Avvia analisi" con icona ℹ️ e avviso durata, al posto del caricamento automatico
-- [x] **Auto-restore dalla cache** — Se la cache contiene risultati slow, li mostra senza bottone alla riapertura
-- [x] **Cache Quick Stats per chat** — Distribuzioni orarie/settimanali/mensili e conteggi base cachati per chatId (ALL_TIME); apertura istantanea alla riapertura della chat
-- [x] **Sticker più usati** — Statistiche sticker dalla tabella message_media
-- [ ] Confronto tra periodi temporali
-- [ ] Supporto WhatsApp Business
-- [ ] Modalità "time capsule" (analisi di un anno fa)
-- [ ] Supporto crypt15 (con inserimento manuale chiave 64 hex)
-- [ ] Backup automatico delle statistiche (non dei messaggi)
+**v1.3 — UX migliorata:** Distribuzione giornaliera/mensile/annuale, schede (tabs) per le metriche di attività, `InteractiveBarChart` con scrolling orizzontale, filtri temporali per tutte le query, estrazione domini per link, progress tracking con `LoadingSection`, icona launcher adattiva.
 
-### v1.5 — Emoji & Word Analytics + Performance ✅ IMPLEMENTATO
-- [x] **Emoji Cloud** — Visualizzazione cloud interattiva delle emoji più usate
-- [x] **Taglia dinamica** — La dimensione dell'emoji riflette la sua frequenza
-- [x] **Supporto filtri temporali** — Emoji filtrate per periodo selezionato
-- [x] **Modalità aggregata e per-persona** — Switcher "Tutti" / "Per Persona"
-- [x] **Selettore limite** — Limiti configurabili (3, 5, 10, 20, 30, 50)
-- [x] **Dashboard globale** — Sezione "Emoji più usate" nella panoramica
-- [x] **Dettaglio chat** — Sezione dedicata con filtri per mittente
-- [x] **Tooltip** — Click su emoji per vedere il conteggio esatto
-- [x] **Parsing avanzato** — Supporto per skin tone, ZWJ, bandiere, keycap
-- [x] **Parole più usate globale** — Word cloud nella Dashboard
-- [x] **Query unificate** — Una sola SELECT per parole+emoji (ottimizzazione 2x)
-- [x] **Lazy loading** — Statistiche lente caricate in background con progress indicator
-- [x] **Pool dati esteso** — Pre-caricamento di 50 parole e emoji (invece di 10) per mostrare fino a 50 elementi senza query aggiuntive; chiavi cache incrementate a v3 per rigenerare i dati con la nuova dimensione del pool
-- [x] **Sticker più usati** — Sezione analoga a "Parole più usate" ed "Emoji più usate" con visualizzazione thumbnail sticker e conteggio utilizzi
+**v1.4 — Cache intelligente:** Rilevamento cambio database tramite SHA-256, cache completa con `kotlinx.serialization`, cache Quick e Slow Stats globali e per singola chat, invalidazione automatica al cambio del database, analisi lessicale opt-in con pulsante, sticker più usati.
 
-### v1.6 — Avatar e UI ✅ IMPLEMENTATO
-- [x] **Estrazione avatar** — Copia root di `/data/.../com.whatsapp/files/Avatars/*.j` nella directory privata dell'app, rinominati in `.jpg`
-- [x] **Ricerca dinamica userId** — `extractAvatarDir()` itera su tutti i profili in `/data/user/` (supporta XSpace/profili multipli)
-- [x] **Avatar in lista chat** — Immagine circolare con fallback icona Person/Group
-- [x] **Avatar in dettaglio chat** — Header con avatar cliccabile + tap sul nome per zoom
-- [x] **Avatar zoom a schermo intero** — Overlay nero con immagine fullscreen, tap per chiudere
-- [x] **Avatar in Log Chiamate** — Immagine circolare per ogni contatto nella card di dettaglio
-- [x] **Avatar in Media & Link** — Immagine circolare nella card di ogni mittente
-- [x] **Avatar nel bottom sheet domini** — Header con avatar + nome nell'analisi link per contatto
-- [x] **Coil** — Libreria `coil-compose:2.7.0` per caricamento immagini da `File`
-- [x] **Profilo utente corrente** — Estrazione di `me.jpg` dalla directory Avatars WhatsApp e mapping del JID speciale `me@s.whatsapp.net` per visualizzare l'avatar dell'utente in tutte le schermate
+**v1.5 — Emoji & Word Analytics:** Emoji Cloud con dimensione dinamica e filtri temporali, modalità aggregata e per-persona per emoji, selettore limite (3, 5, 10, 20, 30, 50), pool interno di 50 elementi pre-caricati, query unificate per parole ed emoji, lazy loading con progress indicator.
 
-### v1.7 — Statistiche avanzate + UX migliorata ✅ IMPLEMENTATO
-- [x] **Sticker più usati** — Statistiche sticker (file, count) dalla tabella message_media con visualizzazione thumbnail e conteggio utilizzi
-- [x] **Sticker cloud interattivo** — Visualizzazione cloud analoga a parole ed emoji con tooltip per conteggio
-- [x] **Sticker nel dettaglio chat** — Sezione dedicata con filtri per mittente
-- [x] **Sticker nella Dashboard** — Sezione "Sticker più usati" nella panoramica globale
-- [x] **Visualizzazione numero telefono** — Componente `ContactNameWithPhone` che mostra il numero accanto al nome del contatto dove disponibile
-- [x] **Pagine con numero telefono** — Media & Link, Log chiamate, Le tue chat, Dettaglio chat, Chi scrive di più (FilterChips e legenda pie chart)
-- [x] **Ricerche multifrase** — Il "Radar Parole" ora supporta ricerche di frasi intere ("titina luxury") oltre a singole parole
-- [x] **Bottone ricerca manuale** — La ricerca parole parte solo alla pressione del bottone (non più automaticamente alla digitazione)
-- [x] **DateRangePicker con bottoni** — Bottone "Cerca" opzionale nel picker date, con stati verde (cerca) e rosso (annulla)
-- [x] **Media/giorno corretto** — La statistica ora usa l'intervallo temporale selezionato invece della data del primo messaggio
-- [x] **Dashboard sticky header** — FilterChips (Tutto, Oggi, ecc.) e DateRangePicker ora rimangono fissi in alto mentre si scorre
-- [x] **Code-review-graph MCP** — Integrazione server MCP per analisi codice e knowledge graph
-- [x] **Root file extraction service** — Servizio dedicato per l'estrazione dei file WhatsApp con gestione robusta degli errori
+**v1.6 — Avatar:** Estrazione avatar da `/data/user/*/com.whatsapp/files/Avatars/`, supporto profili multipli (XSpace), avatar in lista chat, dettaglio chat, log chiamate e media & link, zoom avatar a schermo intero con overlay, mapping utente corrente tramite `me@s.whatsapp.net` / `me.jpg`.
 
-### Considerazioni per crypt15 (future)
+**v1.7 — Statistiche avanzate e UX:** Sticker cloud interattivo con miniature e modal di anteprima, numero di telefono accanto al nome in tutte le schermate, ricerca multifrase nel Radar Parole, ricerca manuale su pressione pulsante (non automatica), `DateRangePicker` con pulsante "Cerca" con stati verde/rosso, correzione "Media/giorno" per usare l'intervallo selezionato, sticky header con filtri temporali nella Dashboard, skeleton loading su tutte le schermate principali (`ShimmerUtils`), modal light per emoji e sticker, tracking data ultima condivisione per ogni URL.
 
-Se si volesse supportare anche crypt15 (backup E2E attivo), l'utente dovrebbe fornire manualmente la chiave a 64 caratteri esadecimali visibile nelle impostazioni WhatsApp. Il processo di decifratura sarebbe diverso (usa un KDF — Key Derivation Function — aggiuntivo prima di AES-GCM).
+### Pianificato (non ancora implementato)
+
+- Confronto tra due periodi temporali
+- Supporto WhatsApp Business
+- Modalità "time capsule" (analisi di un anno fa)
+- Supporto formato crypt15 con inserimento manuale della chiave a 64 hex
+- Backup automatico delle statistiche (non dei messaggi)
 
 ---
 
-## 14. Riferimenti e risorse
-
-### Progetti open source di riferimento
-
-- **wa-crypt-tools** (ElDavoo) — https://github.com/ElDavoo/wa-crypt-tools  
-  La fonte più aggiornata per la specifica tecnica del formato crypt14/15. Fondamentale.
-
-- **WhatsApp-Crypt14-Crypt15-Decrypter** (NelisMk7) — https://github.com/NelisMk7/WhatsApp-Crypt14-Crypt15-Decrypter  
-  Implementazione Python di riferimento per la decifratura.
-
-- **whatsapp-chat-exporter** (KnugiHK) — https://github.com/KnugiHK/Whatsapp-Chat-Exporter  
-  Parser completo del database decifrato, utile per capire lo schema.
-
-- **libsu** (topjohnwu) — https://github.com/topjohnwu/libsu  
-  Documentazione completa per il root access su Android.
-
-### Documentazione tecnica
-
-- Schema SQLite msgstore.db: https://github.com/andreas-mausch/whatsapp-viewer/blob/master/data/msgstore.db.schema.sql
-- Forensic analysis WhatsApp Android: https://belkasoft.com/android-whatsapp-forensics-analysis
-- XDA thread recupero database: https://xdaforums.com/t/recovering-whatsapp-messages-from-android-without-root-writeup.4364621/
-
-### Librerie Android consigliate
-
-- **Vico** (grafici Compose-native): https://patrykandpatrick.com/vico/
-- **libsu**: https://github.com/topjohnwu/libsu
-- **Hilt** (DI): https://dagger.dev/hilt/
-- **Accompanist** (utilities Compose): https://google.github.io/accompanist/
-
----
-
-> Documento generato come guida di sviluppo. Aggiorna l'offset della chiave e la struttura dell'header se WhatsApp rilascia aggiornamenti che modificano il formato del database.
+> Documento aggiornato alla versione **1.7**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
