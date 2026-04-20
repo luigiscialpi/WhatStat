@@ -12,13 +12,14 @@
 4. [Filtri temporali](#4-filtri-temporali)
 5. [Dashboard — Panoramica globale](#5-dashboard--panoramica-globale)
 6. [Le tue chat — Lista e ranking](#6-le-tue-chat--lista-e-ranking)
-7. [Dettaglio chat](#7-dettaglio-chat)
-8. [Radar Parole](#8-radar-parole)
-9. [Privacy e sicurezza](#9-privacy-e-sicurezza)
-10. [Gestione degli errori](#10-gestione-degli-errori)
-11. [Struttura dei dati sorgente](#11-struttura-dei-dati-sorgente)
-12. [Comportamenti noti e quirk del database](#12-comportamenti-noti-e-quirk-del-database)
-13. [Roadmap](#13-roadmap)
+ 7. [Dettaglio chat](#7-dettaglio-chat)
+ 8. [Media Gallery](#8-media-gallery)
+ 9. [Radar Parole](#9-radar-parole)
+10. [Privacy e sicurezza](#10-privacy-e-sicurezza)
+11. [Gestione degli errori](#11-gestione-degli-errori)
+12. [Struttura dei dati sorgente](#12-struttura-dei-dati-sorgente)
+13. [Comportamenti noti e quirk del database](#13-comportamenti-noti-e-quirk-del-database)
+14. [Roadmap](#14-roadmap)
 
 ---
 
@@ -229,7 +230,33 @@ Statistiche sui contenuti multimediali e sui link condivisi nella chat. Dati let
 
 ---
 
-## 8. Radar Parole
+## 8. Media Gallery
+
+**Schermata:** `MediaStatsScreen` / `MediaStatsViewModel`
+
+Galleria multimediale per esplorare foto e video scambiati nelle chat, con accesso root per file protetti e supporto Scoped Storage.
+
+### Funzionalità principali
+
+- **Lista media** — Mostra tutti i file foto e video dalle tabelle `message_media` e `addon_message_media`, filtrando per MIME types image/* e video/* ed escludendo tipi di messaggio di sistema (20, 7).
+- **Accesso root** — Quando il percorso normale del file non è accessibile (Scoped Storage), utilizza `RootFileFetcher` con `SuFileInputStream` per leggere i file protetti da directory root come `/data/user/*/com.whatsapp/files/Avatars/`.
+- **Risoluzione percorsi** — Tenta prima il percorso standard, poi fallback a percorsi root comuni: `/sdcard/Android/media/com.whatsapp/WhatsApp` e `/sdcard/WhatsApp`.
+- **Ordinamento** — Toggle tra ordine crescente e decrescente per data del media.
+- **Lazy loading** — Caricamento a blocchi di 100 elementi alla volta con `LazyVerticalGrid`.
+- **Anteprime video** — Supporto anteprime video tramite dipendenza `coil-video`.
+- **Tracking** — Barra di progresso e stato di caricamento visibili durante il fetch.
+
+### Cache
+
+Le statistiche media hanno cache dedicata:
+- `media_global_v1` → `media_global_v2` (incrementata in v1.8)
+- `media_chat_v1` → `media_chat_v2`
+
+L'invalidazione avviene automaticamente al cambio del database (SHA-256).
+
+---
+
+## 9. Radar Parole
 
 Funzione di ricerca che conta le occorrenze di una parola o frase in una chat specifica, con breakdown per mittente. Implementata in `searchWordFrequency` di `MessageDao`.
 
@@ -242,7 +269,7 @@ Caratteristiche principali:
 
 ---
 
-## 9. Privacy e sicurezza
+## 10. Privacy e sicurezza
 
 - Nessuna connessione di rete. Il traffico è bloccato a livello di configurazione Android (`network_security_config.xml` con `cleartextTrafficPermitted="false"` e nessuna trust anchor).
 - Tutti i file estratti (chiave, database cifrato, database decifrato, avatar) sono salvati in `context.filesDir`, la directory privata dell'app non accessibile ad altre app senza root.
@@ -252,7 +279,7 @@ Caratteristiche principali:
 
 ---
 
-## 10. Gestione degli errori
+## 11. Gestione degli errori
 
 Gli errori sono modellati con la sealed class `AppError` in `domain/model/AppError.kt`. I casi gestiti:
 
@@ -268,7 +295,7 @@ Tutti gli errori vengono mostrati nella schermata di Setup come card con sfondo 
 
 ---
 
-## 11. Struttura dei dati sorgente
+## 12. Struttura dei dati sorgente
 
 ### Database `msgstore.db` (WhatsApp 2.23+)
 
@@ -315,7 +342,7 @@ Le tabelle principali usate dall'app:
 
 ---
 
-## 12. Comportamenti noti e quirk del database
+## 13. Comportamenti noti e quirk del database
 
 ### `sender_jid_row_id = 0` nelle chat 1-a-1
 
@@ -341,9 +368,9 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ---
 
-## 13. Roadmap
+## 14. Roadmap
 
-### Rilasciato (v1.0 — v1.7)
+### Rilasciato (v1.0 — v1.8)
 
 **v1.0 — MVP:** Accesso root, estrazione file, decifratura crypt14, Dashboard globale e lista chat, statistiche base per chat (messaggi, orari, giorni).
 
@@ -360,6 +387,8 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 **v1.6 — Avatar:** Estrazione avatar da `/data/user/*/com.whatsapp/files/Avatars/`, supporto profili multipli (XSpace), avatar in lista chat, dettaglio chat, log chiamate e media & link, zoom avatar a schermo intero con overlay, mapping utente corrente tramite `me@s.whatsapp.net` / `me.jpg`.
 
 **v1.7 — Statistiche avanzate e UX:** Sticker cloud interattivo con miniature e modal di anteprima, numero di telefono accanto al nome in tutte le schermate, ricerca multifrase nel Radar Parole, ricerca manuale su pressione pulsante (non automatica), `DateRangePicker` con pulsante "Cerca" con stati verde/rosso, correzione "Media/giorno" per usare l'intervallo selezionato, sticky header con filtri temporali nella Dashboard, skeleton loading su tutte le schermate principali (`ShimmerUtils`), modal light per emoji e sticker, tracking data ultima condivisione per ogni URL.
+
+**v1.8 — Media Gallery:** Galleria multimediale con accesso root a file protetti, risoluzione percorsi Scoped Storage (/sdcard/Android/media/com.whatsapp/WhatsApp, /sdcard/WhatsApp), lettura file tramite `SuFileInputStream` quando l'accesso diretto fallisce, griglia lazy con caricamento blocchi da 100, ordinamento per data (ascendente/discesa), cache keys aggiornate (global_stats_v2→v3, chat_quick_v2→v3, media_global_v1→v2, media_chat_v1→v2), supporto anteprime video via coil-video.
 
 ### Pianificato (non ancora implementato)
 
