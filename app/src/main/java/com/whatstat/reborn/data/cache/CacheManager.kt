@@ -232,7 +232,7 @@ class CacheManager @Inject constructor(
     companion object {
         private val KEY_DB_HASH = stringPreferencesKey("db_file_hash")
         private val KEY_LAST_UPDATE = longPreferencesKey("last_cache_update")
-        private val KEY_GLOBAL_STATS = stringPreferencesKey("global_stats_v2")
+        private val KEY_GLOBAL_STATS = stringPreferencesKey("global_stats_v3")
         // v3: bump per rigenerare la cache con pool da 50 words/emoji
         private val KEY_GLOBAL_SLOW = stringPreferencesKey("global_slow_v4")
     }
@@ -340,7 +340,7 @@ class CacheManager @Inject constructor(
     // ── Chat Quick Stats (per chat) ──────────────────────────────
 
     suspend fun getChatQuickStats(chatId: Long): ChatStats? {
-        val key = stringPreferencesKey("chat_quick_${chatId}_v2")
+        val key = stringPreferencesKey("chat_quick_${chatId}_v3")
         val json = dataStore.data.first()[key] ?: return null
         return try {
             cacheJson.decodeFromString<CachedQuickChatStats>(json).toDomain(chatId)
@@ -350,7 +350,7 @@ class CacheManager @Inject constructor(
     }
 
     suspend fun saveChatQuickStats(chatId: Long, stats: ChatStats) {
-        val key = stringPreferencesKey("chat_quick_${chatId}_v2")
+        val key = stringPreferencesKey("chat_quick_${chatId}_v3")
         dataStore.edit { prefs ->
             prefs[key] = cacheJson.encodeToString(stats.toQuickCached())
         }
@@ -359,7 +359,7 @@ class CacheManager @Inject constructor(
     // ── Media & Link Stats (global) ───────────────────────────────
 
     suspend fun getGlobalMediaStats(): Pair<List<LinkStat>, List<DomainStat>>? {
-        val key = stringPreferencesKey("media_global_v1")
+        val key = stringPreferencesKey("media_global_v2")
         val json = dataStore.data.first()[key] ?: return null
         return try {
             val cached = cacheJson.decodeFromString<CachedMediaPageStats>(json)
@@ -371,7 +371,7 @@ class CacheManager @Inject constructor(
     }
 
     suspend fun saveGlobalMediaStats(linkStats: List<LinkStat>, topDomains: List<DomainStat>) {
-        val key = stringPreferencesKey("media_global_v1")
+        val key = stringPreferencesKey("media_global_v2")
         val cached = CachedMediaPageStats(
             linkStats = linkStats.map { CachedLinkStat(it.jid, it.displayName, it.totalLinks, it.mediaCount) },
             topDomains = topDomains.map { CachedDomainStat(it.domain, it.count) }
@@ -382,7 +382,7 @@ class CacheManager @Inject constructor(
     // ── Media & Link Stats (per chat) ────────────────────────────
 
     suspend fun getChatMediaStats(chatId: Long): Pair<List<LinkStat>, List<DomainStat>>? {
-        val key = stringPreferencesKey("media_chat_${chatId}_v1")
+        val key = stringPreferencesKey("media_chat_${chatId}_v2")
         val json = dataStore.data.first()[key] ?: return null
         return try {
             val cached = cacheJson.decodeFromString<CachedMediaPageStats>(json)
@@ -394,7 +394,7 @@ class CacheManager @Inject constructor(
     }
 
     suspend fun saveChatMediaStats(chatId: Long, linkStats: List<LinkStat>, topDomains: List<DomainStat>) {
-        val key = stringPreferencesKey("media_chat_${chatId}_v1")
+        val key = stringPreferencesKey("media_chat_${chatId}_v2")
         val cached = CachedMediaPageStats(
             linkStats = linkStats.map { CachedLinkStat(it.jid, it.displayName, it.totalLinks, it.mediaCount) },
             topDomains = topDomains.map { CachedDomainStat(it.domain, it.count) }

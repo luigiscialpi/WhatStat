@@ -13,8 +13,10 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.net.URI
 import java.util.regex.Pattern
+import com.topjohnwu.superuser.io.SuFile
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -658,5 +660,78 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         limit: Int = 10
     ): List<StickerStat> = withContext(Dispatchers.IO) {
         messageDao.getTopStickers(chatId, jid, startTime, endTime, limit)
+    }
+
+    /**
+     * Recupera lista di file media (foto/video) con risoluzione path assoluto.
+     * Filtra automaticamente i file non esistenti nel filesystem.
+     * Il paging è gestito in UI — qui viene restituita l'intera lista.
+     */
+    suspend fun getMediaFiles(
+        chatId: Long? = null,
+        jid: String? = null,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        onProgress: ((Int) -> Unit)? = null
+    ): List<MediaStat> = withContext(Dispatchers.IO) {
+        onProgress?.invoke(0)
+        val raw = messageDao.getMediaFiles(chatId, jid, startTime, endTime)
+        if (raw.isEmpty()) {
+            onProgress?.invoke(100)
+            return@withContext emptyList()
+        }
+        
+        val total = raw.size
+        var processed = 0
+        val mapped = mutableListOf<MediaStat>()
+        for (stat in raw) {
+            resolveMediaPath(stat.filePath)?.let { absPath ->
+                mapped.add(stat.copy(filePath = absPath))
+            }
+            processed++
+            if (processed % 10 == 0 || processed == total) {
+                onProgress?.invoke((processed * 100) / total)
+            }
+        }
+        mapped
+    }
+
+    private fun resolveMediaPath(relativePath: String): String? {
+        val bases = listOf(
+            "/sdcard/Android/media/com.whatsapp/WhatsApp",
+            "/sdcard/WhatsApp"
+        )
+        
+        // WhatsApp salva spesso i media inviati nella sottocartella "Sent"
+        val sentRelativePath = if (relativePath.contains("Media/") && !relativePath.contains("/Sent/")) {
+            val segments = relativePath.split("/")
+            if (segments.size >= 3) {
+                // E.g., "Media/WhatsApp Images/IMG-123.jpg" -> "Media/WhatsApp Images/Sent/IMG-123.jpg"
+                val dir = segments.dropLast(1).joinToString("/")
+                val file = segments.last()
+                "$dir/Sent/$file"
+            } else null
+        } else null
+
+        val candidates = bases.flatMap { base ->
+            listOfNotNull(
+                "$base/$relativePath",
+                sentRelativePath?.let { "$base/$it" }
+            )
+        }
+
+        // 1) Prova accesso normale (veloce, per path legacy /sdcard/WhatsApp)
+        candidates.firstOrNull { path ->
+            val f = File(path)
+            f.exists() && f.isFile && f.length() > 0
+        }?.let { return it }
+
+        // 2) Fallback root per Scoped Storage (/sdcard/Android/media/com.whatsapp/)
+        return candidates.firstOrNull { path ->
+            try {
+                val sf = SuFile(path)
+                sf.exists() && sf.isFile && sf.length() > 0
+            } catch (_: Exception) { false }
+        }
     }
 }

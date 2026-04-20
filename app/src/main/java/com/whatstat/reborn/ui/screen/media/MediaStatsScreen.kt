@@ -1,5 +1,6 @@
 package com.whatstat.reborn.ui.screen.media
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,8 +19,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -36,7 +42,9 @@ import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,7 +59,14 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -78,14 +93,20 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstat.reborn.data.db.model.DomainStat
 import com.whatstat.reborn.data.db.model.LinkStat
+import com.whatstat.reborn.data.db.model.MediaStat
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.db.model.UrlFrequency
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import coil.ImageLoader
+import coil.decode.VideoFrameDecoder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,6 +126,9 @@ fun MediaStatsScreen(
     val isDomainLoading by viewModel.isDomainLoading.collectAsState()
     val progress by viewModel.loadingProgress.collectAsState()
     val progressDomains by viewModel.loadingProgressDomains.collectAsState()
+    val progressMediaGallery by viewModel.loadingProgressMediaGallery.collectAsState()
+    val mediaGalleryState by viewModel.mediaGalleryState.collectAsState()
+    val isMediaGalleryLoading by viewModel.isMediaGalleryLoading.collectAsState()
 
     val sheetState = rememberModalBottomSheetState()
 
@@ -121,6 +145,10 @@ fun MediaStatsScreen(
         }
     }
     val isShowingBreakdown = !isChatDetail && linkStatsBySender.isNotEmpty()
+    
+    val globalListState = rememberLazyListState()
+    val breakdownListState = rememberLazyListState()
+    val currentListState = if (isShowingBreakdown) breakdownListState else globalListState
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -150,6 +178,33 @@ fun MediaStatsScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.weight(1f)
                 )
+
+                var showInfoDialog by remember { mutableStateOf(false) }
+                IconButton(onClick = { showInfoDialog = true }) {
+                    Icon(
+                        Icons.Outlined.Info,
+                        contentDescription = "Informazioni sui media",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+
+                if (showInfoDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showInfoDialog = false },
+                        title = { Text("Informazioni sui Media") },
+                        text = { 
+                            Text("Questi contatori includono solo Foto e Video scambiati storicamente.\n\nNota bene: i bottoni esterni mostrano il totale assoluto di sempre. Tuttavia, entrando nella galleria i numeri saranno quasi sempre inferiori poiché verranno caricati e visualizzati solo i media ancora fisicamente presenti nel telefono e non eliminati nel corso del tempo.")
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showInfoDialog = false }) {
+                                Text("Ho capito")
+                            }
+                        },
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             // ── FILTER CHIPS ─────────────────────────────
@@ -228,6 +283,7 @@ fun MediaStatsScreen(
 
                 else -> {
                     LazyColumn(
+                        state = currentListState,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.weight(1f)
@@ -300,6 +356,9 @@ fun MediaStatsScreen(
                                 },
                                 onLinksClick = {
                                     viewModel.loadDomainStatsForContact(stat.jid, stat.displayName)
+                                },
+                                onMediaClick = {
+                                    viewModel.loadMediaGalleryForContact(stat.jid, stat.displayName)
                                 }
                             )
                         }
@@ -307,7 +366,7 @@ fun MediaStatsScreen(
                         item { Spacer(Modifier.height(48.dp)) }
                     }
                 }
-            }
+        }
         } // fine Column
 
         // ── DOMAIN ANALYSIS BOTTOM SHEET ──────────────
@@ -340,18 +399,354 @@ fun MediaStatsScreen(
             }
         }
 
+        // ── MEDIA GALLERY BOTTOM SHEET ──────────────
+        if (mediaGalleryState != null) {
+            ModalBottomSheet(
+                onDismissRequest = { viewModel.dismissMediaGallery() },
+                sheetState = sheetState,
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp,
+                dragHandle = {
+                    Box(
+                        modifier = Modifier
+                            .padding(vertical = 12.dp)
+                            .width(32.dp)
+                            .height(4.dp)
+                            .background(
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                RoundedCornerShape(2.dp)
+                            )
+                    )
+                }
+            ) {
+                MediaGallerySheet(
+                    contactName = mediaGalleryState!!.first,
+                    avatarPath = mediaGalleryState!!.second,
+                    mediaFiles = mediaGalleryState!!.third,
+                    isLoading = isMediaGalleryLoading,
+                    progress = progressMediaGallery
+                )
+            }
+        }
 
     } // fine Box
+} // fine MediaStatsScreen
+
+@Composable
+private fun MediaGallerySheet(
+    contactName: String,
+    avatarPath: String?,
+    mediaFiles: List<MediaStat>,
+    isLoading: Boolean,
+    progress: Int?
+) {
+    var displayedCount by remember { mutableIntStateOf(100) }
+    var sortAscending by remember { mutableStateOf(false) }
+    var selectedImageForPreview by remember { mutableStateOf<MediaStat?>(null) }
+    val context = LocalContext.current
+
+    val imageLoader = remember(context) {
+        ImageLoader.Builder(context)
+            .components {
+                add(VideoFrameDecoder.Factory())
+                add(com.whatstat.reborn.ui.component.RootFileFetcher.Factory())
+            }
+            .build()
+    }
+
+    val sortedAll = remember(mediaFiles, sortAscending) {
+        if (sortAscending) mediaFiles.sortedBy { it.timestamp }
+        else mediaFiles.sortedByDescending { it.timestamp }
+    }
+    val visibleItems = sortedAll.take(displayedCount)
+    val hasMore = displayedCount < sortedAll.size
+
+    val photoCount = mediaFiles.count { it.mimeType.startsWith("image/") }
+    val videoCount = mediaFiles.count { it.mimeType.startsWith("video/") }
+    val audioCount = mediaFiles.count { it.mimeType.startsWith("audio/") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 32.dp)
+    ) {
+        // Header con avatar
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (avatarPath != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(java.io.File(avatarPath))
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(Modifier.width(12.dp))
+            }
+            Column {
+                Text(
+                    "Analisi Media",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    contactName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+
+        // Contatori e toggle ordinamento
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${photoCount} foto · $videoCount video" + if(audioCount > 0) " · $audioCount audio" else "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                var showInfoDialog by remember { mutableStateOf(false) }
+                IconButton(onClick = { showInfoDialog = true }, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Outlined.Info,
+                        contentDescription = "Informazioni",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp).padding(start = 4.dp)
+                    )
+                }
+
+                if (showInfoDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showInfoDialog = false },
+                        title = { Text("Informazioni sui Media") },
+                        text = { 
+                            Text("Questi contatori si riferiscono solo ai file attuali.\n\nNota bene: i bottoni nella schermata precedente e nei breakdown mostrano il totale assoluto dei file scambiati per sempre. Tuttavia la galleria calcola e ti permette di vedere solo i numeri fisicamente presenti adesso nel telefono, escludendo i file cancellati nel corso del tempo (da te o da pulitori automatici).")
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showInfoDialog = false }) {
+                                Text("Ho capito")
+                            }
+                        },
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            val rotation by animateFloatAsState(if (sortAscending) 180f else 0f)
+            TextButton(onClick = { sortAscending = !sortAscending }) {
+                Icon(
+                    Icons.Outlined.SwapVert,
+                    contentDescription = "Ordina data",
+                    modifier = Modifier.rotate(rotation)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(if (sortAscending) "Meno recenti" else "Più recenti")
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+
+        // Contenuto
+        when {
+            isLoading && mediaFiles.isEmpty() -> {
+                LoadingSection(progress = progress)
+            }
+            mediaFiles.isEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Nessun media trovato",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            else -> {
+                val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.ITALIAN) }
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    contentPadding = PaddingValues(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(visibleItems) { media ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable {
+                                        if (media.mimeType.startsWith("video/") || media.mimeType.startsWith("audio/")) {
+                                            try {
+                                                val builder = android.os.StrictMode.VmPolicy.Builder()
+                                                android.os.StrictMode.setVmPolicy(builder.build())
+                                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
+                                                intent.setDataAndType(
+                                                    android.net.Uri.fromFile(java.io.File(media.filePath)),
+                                                    media.mimeType
+                                                )
+                                                intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                context.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                android.widget.Toast.makeText(context, "Impossibile aprire il file", android.widget.Toast.LENGTH_SHORT).show()
+                                            }
+                                        } else {
+                                            selectedImageForPreview = media
+                                        }
+                                    }
+                            ) {
+                                if (media.mimeType.startsWith("audio/")) {
+                                    Box(
+                                        modifier = Modifier.matchParentSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            Icons.Outlined.Mic,
+                                            contentDescription = "Audio",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(32.dp).align(Alignment.Center)
+                                        )
+                                        MediaDurationBadge(media.filePath, Modifier.align(Alignment.BottomEnd).padding(end = 4.dp, bottom = 4.dp).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.surface)
+                                    }
+                                } else {
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(LocalContext.current)
+                                            .data(java.io.File(media.filePath))
+                                            .crossfade(true)
+                                            .build(),
+                                        imageLoader = imageLoader,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.matchParentSize()
+                                    )
+                                    if (media.mimeType.startsWith("video/")) {
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.Center)
+                                                .size(40.dp)
+                                                .background(Color.Black.copy(alpha = 0.6f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                Icons.Outlined.PlayArrow,
+                                                contentDescription = "Video",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                        MediaDurationBadge(media.filePath, Modifier.align(Alignment.BottomEnd).padding(end = 4.dp, bottom = 4.dp).background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp, vertical = 2.dp), color = Color.White)
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = dateFormatter.format(Date(media.timestamp)),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    if (hasMore) {
+                        item(span = { GridItemSpan(3) }) {
+                            OutlinedButton(
+                                onClick = { displayedCount += 100 },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            ) {
+                                Text("Carica altri (${sortedAll.size - displayedCount} rimasti)")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (selectedImageForPreview != null) {
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = { selectedImageForPreview = null },
+                properties = androidx.compose.ui.window.DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    dismissOnBackPress = true,
+                    dismissOnClickOutside = true
+                )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.9f))
+                        .clickable { selectedImageForPreview = null },
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(java.io.File(selectedImageForPreview!!.filePath))
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Anteprima",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun MediaDurationBadge(filePath: String, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    var duration by remember(filePath) { mutableStateOf<String?>(null) }
+    LaunchedEffect(filePath) {
+        duration = withContext(Dispatchers.IO) {
+            try {
+                val mmr = android.media.MediaMetadataRetriever()
+                mmr.setDataSource(filePath)
+                val durationMs = mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+                mmr.release()
+                if (durationMs != null && durationMs > 0) {
+                    val sec = (durationMs / 1000) % 60
+                    val min = (durationMs / 1000) / 60
+                    String.format(Locale.getDefault(), "%d:%02d", min, sec)
+                } else null
+            } catch (e: Exception) { null }
+        }
+    }
+    
+    duration?.let {
+        Text(text = it, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium), color = color, modifier = modifier)
+    }
+}
 
 @Composable
 private fun LinkStatCard(
     stat: LinkStat,
     showTotal: Boolean,
     onClick: (() -> Unit)? = null,
-    onLinksClick: () -> Unit
+    onLinksClick: () -> Unit,
+    onMediaClick: (() -> Unit)? = null
 ) {
     val cardColors = CardDefaults.cardColors(
         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -363,7 +758,7 @@ private fun LinkStatCard(
             colors = cardColors,
             shape = RoundedCornerShape(12.dp)
         ) {
-            LinkStatCardContent(stat, onLinksClick)
+            LinkStatCardContent(stat, onLinksClick, onMediaClick)
         }
     } else {
         Card(
@@ -371,13 +766,17 @@ private fun LinkStatCard(
             colors = cardColors,
             shape = RoundedCornerShape(12.dp)
         ) {
-            LinkStatCardContent(stat, onLinksClick)
+            LinkStatCardContent(stat, onLinksClick, onMediaClick)
         }
     }
 }
 
 @Composable
-private fun LinkStatCardContent(stat: LinkStat, onLinksClick: () -> Unit) {
+private fun LinkStatCardContent(
+    stat: LinkStat,
+    onLinksClick: () -> Unit,
+    onMediaClick: (() -> Unit)? = null
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -439,7 +838,18 @@ private fun LinkStatCardContent(stat: LinkStat, onLinksClick: () -> Unit) {
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.width(56.dp)
+                modifier = Modifier
+                    .width(64.dp)
+                    .then(
+                        if (onMediaClick != null && stat.mediaCount > 0) {
+                            Modifier.clickable { onMediaClick() }
+                        } else Modifier
+                    )
+                    .background(
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(vertical = 4.dp)
             ) {
                 Icon(
                     Icons.Outlined.PhotoLibrary,
@@ -531,9 +941,9 @@ private fun DomainChip(stat: DomainStat) {
 @Composable
 private fun DomainBreakdownSheet(
     contactName: String,
-    avatarPath: String? = null,
     domains: List<DomainStat>,
     isLoading: Boolean,
+    avatarPath: String? = null,
     progress: Int? = null
 ) {
     var expandedDomain by remember { mutableIntStateOf(-1) }
@@ -641,7 +1051,7 @@ private fun DomainBreakdownSheet(
 
                             // Barra progresso
                             LinearProgressIndicator(
-                                progress = { stat.count.toFloat() / maxCount },
+                                progress = stat.count.toFloat() / maxCount,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(8.dp),

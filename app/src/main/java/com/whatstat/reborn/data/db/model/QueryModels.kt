@@ -169,3 +169,10 @@ data class StickerStat(
     val fileName: String, // "STK-20240406-WA0029.webp"
     val count: Int
 )
+
+/** Media file (foto/video) per galleria */
+data class MediaStat(
+    val filePath: String,    // percorso relativo dal DB (es. "Media/WhatsApp Images/IMG-xxx.jpg")
+    val mimeType: String,    // "image/jpeg", "video/mp4", ecc.
+    val timestamp: Long      // timestamp del messaggio in ms
+)
