@@ -51,12 +51,13 @@ class CallsStatsViewModel @Inject constructor(
 
     private val _chatId = MutableStateFlow<Long?>(null)
 
-    fun setChatId(id: Long) {
-        _chatId.value = id
+    fun initialize(chatId: Long?) {
+        _chatId.value = chatId
         loadStats()
     }
 
-    init {
+    fun setChatId(id: Long) {
+        _chatId.value = id
         loadStats()
     }
 

@@ -84,7 +84,7 @@ fun CallsStatsScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
 
     LaunchedEffect(chatId) {
-        chatId?.let { viewModel.setChatId(it) }
+        viewModel.initialize(chatId)
     }
 
     Column(
