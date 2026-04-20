@@ -166,7 +166,7 @@ fun CallsStatsScreen(
         }
 
         if (isLoading) {
-            LoadingSection()
+            CallsStatsSkeletonContent(modifier = Modifier.fillMaxSize())
         } else if (callStats.isEmpty()) {
             Box(
                 modifier = Modifier

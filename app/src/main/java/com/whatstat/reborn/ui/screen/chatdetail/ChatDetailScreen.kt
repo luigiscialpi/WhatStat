@@ -270,9 +270,11 @@ fun ChatDetailScreen(
             )
             }
 
-            if (!isLoading) {
-                stats?.let { s ->
-                    LazyColumn(
+            if (isLoading) {
+                ChatDetailSkeletonContent(modifier = Modifier.fillMaxSize())
+            } else if (stats != null) {
+                val s = stats!!
+                LazyColumn(
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
@@ -693,8 +695,7 @@ fun ChatDetailScreen(
                         item { Spacer(Modifier.height(32.dp)) }
 
                     } // end LazyColumn
-                } // end stats?.let
-            } // end if (!isLoading)
+                } // end else if (stats != null)
         } // end Column
 
         // ── Tooltip overlay (fuori dalla LazyColumn) ─────────────

@@ -208,7 +208,7 @@ fun MediaStatsScreen(
             // ── LOADING / EMPTY / LIST ───────────────────
             when {
                 isLoading -> {
-                    LoadingSection(progress = progress)
+                    MediaStatsSkeletonContent(modifier = Modifier.fillMaxSize())
                 }
 
                 displayStats.isEmpty() -> {

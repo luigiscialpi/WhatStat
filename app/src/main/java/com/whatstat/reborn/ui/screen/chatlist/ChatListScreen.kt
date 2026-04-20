@@ -134,12 +134,7 @@ fun ChatListScreen(
 
         // ── Chat List ────────────────────────────────────────────
         if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            ChatListSkeletonContent(modifier = Modifier.fillMaxSize())
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),

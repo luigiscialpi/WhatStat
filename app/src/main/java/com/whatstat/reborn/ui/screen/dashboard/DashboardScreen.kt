@@ -45,6 +45,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ScrollableTabRow
@@ -155,6 +156,19 @@ fun DashboardScreen(
                 }
             }
 
+            // ── Progress bar ─────────────────────────────────────────
+            if (isLoading) {
+                val p = progress
+                if (p != null) {
+                    LinearProgressIndicator(
+                        progress = { p / 100f },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+
             if (!isLoading) {
                 // ── Sticky Filter Chips ───────────────────────────────────
                 LazyRow(
@@ -188,7 +202,9 @@ fun DashboardScreen(
             }
 
             // ── Scrollable Content ───────────────────────────────────
-            if (!isLoading) {
+            if (isLoading) {
+                DashboardSkeletonContent(modifier = Modifier.fillMaxSize())
+            } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
@@ -506,7 +522,7 @@ fun DashboardScreen(
                 // Spacer finale per navigation bar
                 item { Spacer(Modifier.height(32.dp)) }
             }
-            } // fine if (!isLoading)
+            } // fine else (!isLoading)
         } // fine Column
 
         // ── Tooltip overlay ──────────────────────────────────────
