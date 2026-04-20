@@ -155,47 +155,46 @@ fun DashboardScreen(
                 }
             }
 
-            // ── Sticky Filter Chips ───────────────────────────────────
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 4.dp)
-            ) {
-                items(TimeRange.entries.filter { it != TimeRange.CUSTOM }) { range ->
-                    FilterChip(
-                        selected = selectedRange == range,
-                        onClick = { viewModel.setTimeRange(range) },
-                        label = { Text(range.label) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+            if (!isLoading) {
+                // ── Sticky Filter Chips ───────────────────────────────────
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 4.dp)
+                ) {
+                    items(TimeRange.entries.filter { it != TimeRange.CUSTOM }) { range ->
+                        FilterChip(
+                            selected = selectedRange == range,
+                            onClick = { viewModel.setTimeRange(range) },
+                            label = { Text(range.label) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                         )
-                    )
+                    }
                 }
+
+                // ── Sticky Date Range Picker ─────────────────────────────
+                DateRangePicker(
+                    dateRange = customDateRange,
+                    onDateRangeChanged = { viewModel.setCustomDateRange(it) },
+                    onSubmitClicked = { viewModel.retry() },
+                    isSearching = isLoading,
+                    onCancelClicked = { viewModel.cancelLoad() },
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                )
             }
 
-            // ── Sticky Date Range Picker ─────────────────────────────
-            DateRangePicker(
-                dateRange = customDateRange,
-                onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-                onSubmitClicked = { viewModel.retry() },
-                isSearching = isLoading,
-                onCancelClicked = { viewModel.cancelLoad() },
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-            )
-
             // ── Scrollable Content ───────────────────────────────────
+            if (!isLoading) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                if (isLoading) {
-                    item {
-                        LoadingSection(progress = progress)
-                    }
-                } else if (error != null) {
+                if (error != null) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -507,6 +506,7 @@ fun DashboardScreen(
                 // Spacer finale per navigation bar
                 item { Spacer(Modifier.height(32.dp)) }
             }
+            } // fine if (!isLoading)
         } // fine Column
 
         // ── Tooltip overlay ──────────────────────────────────────

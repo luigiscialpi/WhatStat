@@ -160,7 +160,8 @@ fun ChatDetailScreen(
                     )
                 }
 
-                stats?.let { s ->
+                if (stats != null) {
+                    val s = stats!!
                     if (s.avatarPath != null) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
@@ -213,10 +214,34 @@ fun ChatDetailScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            "Caricamento...",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
 
-            // ── Sticky Filter Chips ───────────────────────────────────
+            if (!isLoading) {
+                // ── Sticky Filter Chips ───────────────────────────────────
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
@@ -243,13 +268,9 @@ fun ChatDetailScreen(
                 onSubmitClicked = { viewModel.applyCustomDateRange() },
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
             )
+            }
 
-            if (isLoading) {
-                LoadingSection(
-                    progress = progress,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
+            if (!isLoading) {
                 stats?.let { s ->
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
@@ -673,7 +694,7 @@ fun ChatDetailScreen(
 
                     } // end LazyColumn
                 } // end stats?.let
-            } // end else
+            } // end if (!isLoading)
         } // end Column
 
         // ── Tooltip overlay (fuori dalla LazyColumn) ─────────────
