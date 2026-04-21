@@ -99,6 +99,7 @@ import com.whatstat.reborn.data.db.model.UrlFrequency
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
+import com.whatstat.reborn.ui.component.ZoomableImageViewer
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -684,32 +685,10 @@ private fun MediaGallerySheet(
         }
         
         if (selectedImageForPreview != null) {
-            androidx.compose.ui.window.Dialog(
-                onDismissRequest = { selectedImageForPreview = null },
-                properties = androidx.compose.ui.window.DialogProperties(
-                    usePlatformDefaultWidth = false,
-                    dismissOnBackPress = true,
-                    dismissOnClickOutside = true
-                )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.9f))
-                        .clickable { selectedImageForPreview = null },
-                    contentAlignment = Alignment.Center
-                ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(java.io.File(selectedImageForPreview!!.filePath))
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = "Anteprima",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
-                }
-            }
+            ZoomableImageViewer(
+                filePath = selectedImageForPreview!!.filePath,
+                onDismiss = { selectedImageForPreview = null }
+            )
         }
     }
 }

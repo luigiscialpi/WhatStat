@@ -86,6 +86,7 @@ import com.whatstat.reborn.ui.component.InteractiveStickerCloud
 import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.ui.component.EmojiPreviewModal
 import com.whatstat.reborn.ui.component.StickerPreviewModal
+import com.whatstat.reborn.ui.component.ZoomableImageViewer
 import com.whatstat.reborn.ui.component.ShimmerBox
 import com.whatstat.reborn.ui.component.rememberShimmerBrush
 import java.io.File
@@ -747,25 +748,10 @@ fun ChatDetailScreen(
 
         // ── Avatar zoom overlay ────────────────────────────────
         if (showAvatarZoom && zoomAvatarPath != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.95f))
-                    .clickable { showAvatarZoom = false },
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(java.io.File(zoomAvatarPath!!))
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "Avatar ingrandito",
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentScale = ContentScale.Fit
-                )
-            }
+            ZoomableImageViewer(
+                filePath = zoomAvatarPath!!,
+                onDismiss = { showAvatarZoom = false }
+            )
         }
 
         // ── Emoji Preview Modal ──────────────────────────────────
