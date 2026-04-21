@@ -155,7 +155,7 @@ Elenco di tutte le conversazioni ordinate per numero totale di messaggi in ordin
 - Avatar circolare del contatto o del gruppo. Gli avatar vengono estratti da `/data/user/{userId}/com.whatsapp/files/Avatars/` e caricati come immagini JPEG tramite la libreria Coil. Se non è disponibile un avatar, viene mostrata un'icona Person (per chat 1-a-1) o Group (per gruppi).
 - L'utente corrente viene identificato con il JID speciale `me@s.whatsapp.net`, il cui avatar è estratto come `me.jpg` dalla stessa directory.
 - Nome del contatto risolto tramite `wa.db` (non il numero di telefono grezzo da `jid.raw_string`).
-- Numero di telefono del contatto, dove disponibile, mostrato accanto al nome tramite il componente `ContactNameWithPhone`.
+- Numero di telefono del contatto, dove disponibile, mostrato accanto al nome tramite il componente `ContactNameWithPhone`. **v1.11:** il nome supporta scrolling orizzontale automatico con animazione per nomi lunghi, evitando troncamenti.
 - Numero totale di messaggi.
 - Indicatore di posizione nel ranking.
 
@@ -170,9 +170,9 @@ L'apertura è istantanea grazie alla `QuickChatStats` cache per chat. Le statist
 
 ### Intestazione
 
-- Avatar del contatto cliccabile. Toccando l'avatar si apre una visualizzazione a schermo intero con overlay nero. Toccando di nuovo si chiude.
-- Nome del contatto e numero di telefono (componente `ContactNameWithPhone`).
-- Periodo analizzato: data del primo e dell'ultimo messaggio nel filtro selezionato.
+- Avatar del contatto cliccabile. Toccando l'avatar si apre una visualizzazione a schermo intero con overlay nero. Toccando di nuovo si chiude. **v1.10:** l'anteprima a schermo intero supporta pinch-to-zoom, rotazione a 90°, doppio tap e swipe-to-dismiss tramite `ZoomableImageViewer`.
+- Nome del contatto e numero di telefono (componente `ContactNameWithPhone`). **v1.11:** scrolling orizzontale automatico con animazione per nomi lunghi.
+- Periodo analizzato: data del primo e dell'ultimo messaggio nel filtro selezionato. **v1.12:** visualizzato tramite `DateRangeCard` con sfondo SurfaceVariant e scorrimento orizzontale.
 
 **v1.8.1:** L'intestazione viene caricata in anticipo (`HeaderInfo` state) con shimmer placeholder, fornendo feedback visivo immediato. Il nome e l'avatar sono recuperati in background in parallelo alle statistiche, migliorando la percezione delle prestazioni.
 
@@ -191,7 +191,7 @@ Donut chart (grafico a ciambella) che visualizza la proporzione di messaggi per 
 
 ### Chi inizia le conversazioni (`ConversationStarterBreakdown`)
 
-Donut chart analogo che conta quante volte ogni partecipante ha inviato il primo messaggio dopo almeno 3 ore di silenzio (10.800.000 ms). La logica usa `LAG()` sulla colonna `timestamp` ordinata per tempo: se la differenza con il messaggio precedente è nulla (primo messaggio in assoluto) o supera 3 ore, si conta come "inizio conversazione". Include un tooltip informativo che spiega la definizione di "iniziare una conversazione". La breakdown è per mittente con nome e numero di telefono.
+Donut chart analogo che conta quante volte ogni partecipante ha inviato il primo messaggio dopo almeno 3 ore di silenzio (10.800.000 ms). La logica usa `LAG()` sulla colonna `timestamp` ordinata per tempo: se la differenza con il messaggio precedente è nulla (primo messaggio in assoluto) o supera 3 ore, si conta come "inizio conversazione". **v1.13:** la spiegazione della definizione è mostrata in un `AlertDialog` modale accessibile tramite pulsante info, invece di un tooltip, migliorando la chiarezza. La breakdown è per mittente con nome e numero di telefono.
 
 Nota tecnica rilevante: il totale della breakdown viene calcolato sommando i valori della breakdown stessa, non con una query separata, per evitare discrepanze con i filtri temporali (fix in v1.2).
 
@@ -247,6 +247,7 @@ Galleria multimediale per esplorare foto e video scambiati nelle chat, con acces
 - **Lazy loading** — Caricamento a blocchi di 100 elementi alla volta con `LazyVerticalGrid`.
 - **Anteprime video** — Supporto anteprime video tramite dipendenza `coil-video`.
 - **Tracking** — Barra di progresso e stato di caricamento visibili durante il fetch.
+- **Zoom immagini** — **v1.10:** anteprima a schermo intero con `ZoomableImageViewer` che supporta pinch-to-zoom, rotazione a 90°, doppio tap per zoom toggle e swipe-to-dismiss.
 
 ### Cache
 
@@ -380,7 +381,7 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ## 14. Roadmap
 
-### Rilasciato (v1.0 — v1.9)
+### Rilasciato (v1.0 — v1.13)
 
 **v1.0 — MVP:** Accesso root, estrazione file, decifratura crypt14, Dashboard globale e lista chat, statistiche base per chat (messaggi, orari, giorni).
 
@@ -404,6 +405,14 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 **v1.9 — Media Index Cache:** Introdotto indice gzipped persistente su disco dei file multimediali, caricamento in parallelo con query database per eliminare scansione sequenziale, fallback a scansione filesystem one-time solo se indice mancante o stale, supporto variante `/Sent/` in `RootFileFetcher` per media inviati, tempo di caricamento galleria ridotto da secondi a millisecondi nelle riaperture.
 
+**v1.10 — Zoomable Image Viewer:** Introdotto componente `ZoomableImageViewer` con pinch-to-zoom, rotazione a 90° con snap, doppio tap per toggle zoom, swipe-to-dismiss. Sostituisce tutte le anteprime statiche di immagini in `MediaStatsScreen` e `ChatDetailScreen` con visualizzatore interattivo.
+
+**v1.11 — Contact name horizontal scroll:** Il componente `ContactNameWithPhone` supporta scrolling orizzontale automatico con animazione per nomi lunghi (dopo 3s scorre alla fine, attende 1.5s, poi ritorna all'inizio). Comportamento configurabile tramite parametro `enableHorizontalScroll`.
+
+**v1.12 — DateRangeCard:** Nuovo componente `DateRangeCard` con scrolling orizzontale per visualizzare intervalli di date (icona calendario, freccia separatore, timestamp inizio/fine). Sostituisce la `StatCard` nel dettaglio chat per mostrare il periodo di attività conversazione. Disabilita l'auto-scroll in `ContactNameWithPhone`commentando il blocco `LaunchedEffect`.
+
+**v1.13 — Conversation starter info dialog:** Il tooltip informativo nella sezione "Chi inizia le conversazioni" è sostituito da un `AlertDialog` modale con spiegazione più chiara della soglia di 3 ore di silenzio, migliorando l'usabilità.
+
 ### Pianificato (non ancora implementato)
 
 - Confronto tra due periodi temporali
@@ -414,4 +423,4 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ---
 
-> Documento aggiornato alla versione **1.9**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
+> Documento aggiornato alla versione **1.13**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
