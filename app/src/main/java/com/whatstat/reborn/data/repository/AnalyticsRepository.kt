@@ -16,6 +16,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.URI
 import java.util.regex.Pattern
+import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.io.SuFile
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -675,63 +676,79 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         onProgress: ((Int) -> Unit)? = null
     ): List<MediaStat> = withContext(Dispatchers.IO) {
         onProgress?.invoke(0)
-        val raw = messageDao.getMediaFiles(chatId, jid, startTime, endTime)
-        if (raw.isEmpty()) {
+
+        // Query SQL e scansione filesystem in parallelo.
+        // La scansione è lenta perché le directory WhatsApp contengono i file
+        // di TUTTE le chat, ma viene eseguita una sola volta per sessione
+        // (cachedMediaIndex): dalla seconda apertura è istantanea.
+        val base = detectWhatsAppBase()
+        lateinit var rawList: List<com.whatstat.reborn.data.db.model.MediaStat>
+        lateinit var existingFiles: Set<String>
+        coroutineScope {
+            val rawDeferred = async { messageDao.getMediaFiles(chatId, jid, startTime, endTime) }
+            val indexDeferred = async { getOrBuildMediaIndex(base) }
+            rawList = rawDeferred.await()
+            existingFiles = indexDeferred.await()
+        }
+        onProgress?.invoke(90)
+
+        if (rawList.isEmpty()) {
             onProgress?.invoke(100)
             return@withContext emptyList()
         }
-        
-        val total = raw.size
-        var processed = 0
-        val mapped = mutableListOf<MediaStat>()
-        for (stat in raw) {
-            resolveMediaPath(stat.filePath)?.let { absPath ->
-                mapped.add(stat.copy(filePath = absPath))
+
+        val result = mutableListOf<com.whatstat.reborn.data.db.model.MediaStat>()
+        for (stat in rawList) {
+            val direct = "$base/${stat.filePath}"
+            val sent = if (stat.filePath.contains("Media/") && !stat.filePath.contains("/Sent/")) {
+                val relDir = stat.filePath.substringBeforeLast("/", "")
+                val fileName = stat.filePath.substringAfterLast("/")
+                "$base/$relDir/Sent/$fileName"
+            } else null
+            val found = when {
+                direct in existingFiles -> direct
+                sent != null && sent in existingFiles -> sent
+                else -> null
             }
-            processed++
-            if (processed % 10 == 0 || processed == total) {
-                onProgress?.invoke((processed * 100) / total)
-            }
+            if (found != null) result.add(stat.copy(filePath = found))
         }
-        mapped
+
+        onProgress?.invoke(100)
+        result
     }
 
-    private fun resolveMediaPath(relativePath: String): String? {
-        val bases = listOf(
-            "/sdcard/Android/media/com.whatsapp/WhatsApp",
-            "/sdcard/WhatsApp"
-        )
-        
-        // WhatsApp salva spesso i media inviati nella sottocartella "Sent"
-        val sentRelativePath = if (relativePath.contains("Media/") && !relativePath.contains("/Sent/")) {
-            val segments = relativePath.split("/")
-            if (segments.size >= 3) {
-                // E.g., "Media/WhatsApp Images/IMG-123.jpg" -> "Media/WhatsApp Images/Sent/IMG-123.jpg"
-                val dir = segments.dropLast(1).joinToString("/")
-                val file = segments.last()
-                "$dir/Sent/$file"
-            } else null
-        } else null
-
-        val candidates = bases.flatMap { base ->
-            listOfNotNull(
-                "$base/$relativePath",
-                sentRelativePath?.let { "$base/$it" }
-            )
+    /**
+     * Restituisce l'indice dei file presenti nella cartella Media di WhatsApp.
+     * Priorità: 1) in-memory, 2) file gzippato su cacheDir, 3) find via root (lento).
+     * Il risultato viene salvato sia in memoria che su disco per le sessioni successive.
+     * La cache viene azzerata da CacheManager.clearCache() quando viene rilevato un
+     * nuovo backup WhatsApp.
+     */
+    private fun getOrBuildMediaIndex(base: String): Set<String> {
+        // 1) In-memory (stessa sessione)
+        cacheManager.mediaFileIndex?.let { return it }
+        // 2) Disco (sessioni precedenti)
+        cacheManager.loadMediaIndexFromDisk()?.let { index ->
+            cacheManager.mediaFileIndex = index
+            return index
         }
+        // 3) Scansione root — lenta, una tantum
+        val result = Shell.cmd("find \"$base/Media\" -maxdepth 3 -type f 2>/dev/null").exec()
+        val index: Set<String> = result.out.toHashSet()
+        cacheManager.mediaFileIndex = index
+        cacheManager.saveMediaIndexToDisk(index)
+        return index
+    }
 
-        // 1) Prova accesso normale (veloce, per path legacy /sdcard/WhatsApp)
-        candidates.firstOrNull { path ->
-            val f = File(path)
-            f.exists() && f.isFile && f.length() > 0
-        }?.let { return it }
+    @Volatile private var cachedWhatsAppBase: String? = null
 
-        // 2) Fallback root per Scoped Storage (/sdcard/Android/media/com.whatsapp/)
-        return candidates.firstOrNull { path ->
-            try {
-                val sf = SuFile(path)
-                sf.exists() && sf.isFile && sf.length() > 0
-            } catch (_: Exception) { false }
-        }
+    private fun detectWhatsAppBase(): String {
+        cachedWhatsAppBase?.let { return it }
+        val scoped = "/sdcard/Android/media/com.whatsapp/WhatsApp"
+        val base = try {
+            if (SuFile("$scoped/Media").exists()) scoped else "/sdcard/WhatsApp"
+        } catch (_: Exception) { "/sdcard/WhatsApp" }
+        cachedWhatsAppBase = base
+        return base
     }
 }

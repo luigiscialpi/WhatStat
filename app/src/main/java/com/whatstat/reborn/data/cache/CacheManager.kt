@@ -419,9 +419,42 @@ class CacheManager @Inject constructor(
         dataStore.edit { prefs -> prefs[key] = cacheJson.encodeToString(cached) }
     }
 
+    // ── Indice filesystem media (cache in-memory + file gzippato) ─────────────────
+
+    @Volatile var mediaFileIndex: Set<String>? = null
+
+    private val mediaIndexFile get() = java.io.File(context.cacheDir, "media_index.gz")
+
+    /**
+     * Carica l'indice dal file gzippato su disco (se esiste).
+     * Dimensione attesa: ~0.5 MB per 50.000 file (prefissi molto ripetuti → alta compressione).
+     */
+    fun loadMediaIndexFromDisk(): Set<String>? {
+        val file = mediaIndexFile
+        if (!file.exists() || file.length() == 0L) return null
+        return try {
+            java.util.zip.GZIPInputStream(file.inputStream().buffered()).bufferedReader().use { reader ->
+                reader.lines().collect(java.util.stream.Collectors.toSet())
+            }
+        } catch (_: Exception) { null }
+    }
+
+    /**
+     * Salva l'indice su disco in formato gzippato (operazione in background).
+     */
+    fun saveMediaIndexToDisk(index: Set<String>) {
+        try {
+            java.util.zip.GZIPOutputStream(mediaIndexFile.outputStream().buffered()).bufferedWriter().use { writer ->
+                index.forEach { writer.write(it); writer.newLine() }
+            }
+        } catch (_: Exception) { /* non bloccante */ }
+    }
+
     // ── Invalidazione ────────────────────────────────────────────
 
     suspend fun clearCache() {
         dataStore.edit { it.clear() }
+        mediaFileIndex = null
+        mediaIndexFile.delete()
     }
 }

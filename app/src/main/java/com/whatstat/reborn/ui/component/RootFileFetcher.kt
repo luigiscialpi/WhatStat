@@ -17,6 +17,7 @@ import java.io.File
  * Coil Fetcher che usa SuFileInputStream (root) per leggere file
  * in directory protette da Scoped Storage (es. /sdcard/Android/media/com.whatsapp/).
  * Interviene SOLO quando il file non è accessibile normalmente ma esiste via root.
+ * Tenta anche la variante /Sent/ per i media inviati dall'utente.
  */
 class RootFileFetcher(
     private val file: File,
@@ -34,13 +35,21 @@ class RootFileFetcher(
 
     class Factory : Fetcher.Factory<File> {
         override fun create(data: File, options: Options, imageLoader: ImageLoader): Fetcher? {
-            if (!data.exists()) {
-                val suFile = SuFile(data.absolutePath)
-                if (suFile.exists()) {
-                    return RootFileFetcher(data, options)
+            // Il file esiste normalmente — lascia gestire a Coil
+            if (data.exists()) return null
+
+            // Candidati: path originale + variante /Sent/
+            val candidates = buildList {
+                add(data)
+                // Es. .../WhatsApp Images/IMG-123.jpg → .../WhatsApp Images/Sent/IMG-123.jpg
+                val parent = data.parentFile
+                if (parent != null && !parent.name.equals("Sent", ignoreCase = true)) {
+                    add(File(parent, "Sent/${data.name}"))
                 }
             }
-            return null
+
+            val found = candidates.firstOrNull { SuFile(it.absolutePath).exists() }
+            return if (found != null) RootFileFetcher(found, options) else null
         }
     }
 }
