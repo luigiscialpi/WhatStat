@@ -79,6 +79,7 @@ import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
 import com.whatstat.reborn.ui.component.StatCard
+import com.whatstat.reborn.ui.component.DateRangeCard
 import com.whatstat.reborn.ui.component.WordCloudView
 import com.whatstat.reborn.ui.component.InteractiveWordCloud
 import com.whatstat.reborn.ui.component.InteractiveEmojiCloud
@@ -361,10 +362,12 @@ fun ChatDetailScreen(
                         // ── Info Cards ───────────────────────────────────────
                         item {
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                StatCard(
+                                DateRangeCard(
                                     modifier = Modifier.weight(1f),
-                                    label = "Primo messaggio",
-                                    value = if (s.firstMessageDate > 0) dateFormatter.format(Date(s.firstMessageDate)) else "—",
+                                    label = "Periodo di attività",
+                                    startTimestamp = s.firstMessageDate,
+                                    endTimestamp = s.lastMessageDate,
+                                    dateFormatter = dateFormatter,
                                     icon = Icons.Outlined.CalendarMonth,
                                     isSmallText = true
                                 )

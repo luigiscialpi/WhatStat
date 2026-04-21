@@ -8,7 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+/* import androidx.compose.runtime.LaunchedEffect */
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -35,14 +35,14 @@ fun ContactNameWithPhone(
     val showPhone = phone != null && phone != name
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(Unit) {
+    /* LaunchedEffect(Unit) {
         if (enableHorizontalScroll) {
             delay(3000)
             scrollState.animateScrollTo(scrollState.maxValue)
             delay(1500)
             scrollState.animateScrollTo(0)
         }
-    }
+    } */
 
     if (enableHorizontalScroll) {
         Box(
