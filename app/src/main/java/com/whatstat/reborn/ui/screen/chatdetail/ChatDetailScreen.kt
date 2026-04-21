@@ -48,6 +48,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
@@ -132,10 +133,6 @@ fun ChatDetailScreen(
     val isStickerLoading by viewModel.isStickerLoading.collectAsState()
     val topStickers by viewModel.topStickers.collectAsState()
 
-    var tooltipTitle by remember { mutableStateOf("") }
-    var tooltipValue by remember { mutableStateOf("") }
-    var showTooltip by remember { mutableStateOf(false) }
-
     var showAvatarZoom by remember { mutableStateOf(false) }
     var zoomAvatarPath by remember { mutableStateOf<String?>(null) }
 
@@ -143,6 +140,14 @@ fun ChatDetailScreen(
     var previewEmojiCount by remember { mutableIntStateOf(0) }
     var previewSticker by remember { mutableStateOf<String?>(null) }
     var previewStickerCount by remember { mutableIntStateOf(0) }
+
+    // Tooltip per ActivityRecapCard
+    var tooltipTitle by remember { mutableStateOf("") }
+    var tooltipValue by remember { mutableStateOf("") }
+    var showTooltip by remember { mutableStateOf(false) }
+
+    // Dialog per "Chi inizia le conversazioni"
+    var showInfoDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -404,11 +409,7 @@ fun ChatDetailScreen(
                         item {
                             SectionCard(
                                 title = "Chi inizia le conversazioni",
-                                onInfoClick = {
-                                    tooltipTitle = "Inizio Conversazione"
-                                    tooltipValue = "Una nuova conversazione viene contata quando un messaggio viene inviato dopo almeno 3 ore di silenzio."
-                                    showTooltip = true
-                                }
+                                onInfoClick = { showInfoDialog = true }
                             ) {
                                 if (s.conversationStarterBreakdown.isNotEmpty()) {
                                     val breakdownTotal = s.conversationStarterBreakdown.sumOf { it.count }.coerceAtLeast(1)
@@ -740,12 +741,22 @@ fun ChatDetailScreen(
                 } // end else if (stats != null)
         } // end Column
 
-        // ── Tooltip overlay (fuori dalla LazyColumn) ─────────────
-        if (showTooltip) {
-            ChartTooltip(
-                title = tooltipTitle,
-                value = tooltipValue,
-                onDismiss = { showTooltip = false }
+        // ── Info Dialog ────────────────────────────────────────
+        if (showInfoDialog) {
+            AlertDialog(
+                onDismissRequest = { showInfoDialog = false },
+                title = { Text("Informazioni") },
+                text = { 
+                    Text("Una nuova conversazione viene contata quando un messaggio viene inviato dopo almeno 3 ore di silenzio rispetto all'ultimo messaggio precedente.")
+                },
+                confirmButton = {
+                    TextButton(onClick = { showInfoDialog = false }) {
+                        Text("Ho capito")
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
