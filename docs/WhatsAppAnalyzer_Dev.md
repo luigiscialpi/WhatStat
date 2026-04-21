@@ -174,6 +174,8 @@ L'apertura è istantanea grazie alla `QuickChatStats` cache per chat. Le statist
 - Nome del contatto e numero di telefono (componente `ContactNameWithPhone`).
 - Periodo analizzato: data del primo e dell'ultimo messaggio nel filtro selezionato.
 
+**v1.8.1:** L'intestazione viene caricata in anticipo (`HeaderInfo` state) con shimmer placeholder, fornendo feedback visivo immediato. Il nome e l'avatar sono recuperati in background in parallelo alle statistiche, migliorando la percezione delle prestazioni.
+
 ### Statistiche di base
 
 - Messaggi totali, suddivisi in inviati e ricevuti, con percentuale.
@@ -249,10 +251,18 @@ Galleria multimediale per esplorare foto e video scambiati nelle chat, con acces
 ### Cache
 
 Le statistiche media hanno cache dedicata:
-- `media_global_v1` → `media_global_v2` (incrementata in v1.8)
-- `media_chat_v1` → `media_chat_v2`
+- `media_global_v1` → `media_global_v2` (v1.8) → `media_global_v3` (v1.9)
+- `media_chat_v1` → `media_chat_v2` (v1.8) → `media_chat_v3` (v1.9)
 
 L'invalidazione avviene automaticamente al cambio del database (SHA-256).
+
+### Ottimizzazioni prestazionali (v1.9)
+
+**Indice gzipped** — Un indice persistente e gzippato dei file multimediali viene salvato su disco. All'apertura della galleria, l'indice viene caricato in parallelo con la query SQL, eliminando completamente la scansione sequenziale del filesystem. Se l'indice non esiste o è obsoleto (mismatch SHA-256 del DB), viene eseguita una scansione one-time del filesystem per ricostruirlo.
+
+**Supporto Sent** — `RootFileFetcher` tenta il lookup nella directory `/Sent/` per i media inviati, risolvendo correttamente i percorsi per i file multimediali inviati dall'utente.
+
+**Risultato** — Tempo di caricamento passato da secondi a millisecondi nelle riaperture consecutive.
 
 ---
 
@@ -370,7 +380,7 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ## 14. Roadmap
 
-### Rilasciato (v1.0 — v1.8)
+### Rilasciato (v1.0 — v1.9)
 
 **v1.0 — MVP:** Accesso root, estrazione file, decifratura crypt14, Dashboard globale e lista chat, statistiche base per chat (messaggi, orari, giorni).
 
@@ -388,7 +398,11 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 **v1.7 — Statistiche avanzate e UX:** Sticker cloud interattivo con miniature e modal di anteprima, numero di telefono accanto al nome in tutte le schermate, ricerca multifrase nel Radar Parole, ricerca manuale su pressione pulsante (non automatica), `DateRangePicker` con pulsante "Cerca" con stati verde/rosso, correzione "Media/giorno" per usare l'intervallo selezionato, sticky header con filtri temporali nella Dashboard, skeleton loading su tutte le schermate principali (`ShimmerUtils`), modal light per emoji e sticker, tracking data ultima condivisione per ogni URL.
 
-**v1.8 — Media Gallery:** Galleria multimediale con accesso root a file protetti, risoluzione percorsi Scoped Storage (/sdcard/Android/media/com.whatsapp/WhatsApp, /sdcard/WhatsApp), lettura file tramite `SuFileInputStream` quando l'accesso diretto fallisce, griglia lazy con caricamento blocchi da 100, ordinamento per data (ascendente/discesa), cache keys aggiornate (global_stats_v2→v3, chat_quick_v2→v3, media_global_v1→v2, media_chat_v1→v2), supporto anteprime video via coil-video.
+**v1.8 — Media Gallery:** Galleria multimediale con accesso root a file protetti, risoluzione percorsi Scoped Storage (`/sdcard/Android/media/com.whatsapp/WhatsApp`, `/sdcard/WhatsApp`), lettura file tramite `SuFileInputStream` quando l'accesso diretto fallisce, griglia lazy con caricamento blocchi da 100, ordinamento per data (ascendente/discesa), cache keys aggiornate (`global_stats_v2→v3`, `chat_quick_v2→v3`, `media_global_v1→v2`, `media_chat_v1→v2`), supporto anteprime video via `coil-video`.
+
+**v1.8.1 — Chat Detail UX:** Caricamento anticipato dell'header (`HeaderInfo` state) con shimmer placeholder, query asincrona per nome contatto e avatar eseguita in parallelo alle statistiche, header visibile immediatamente quando disponibile, migliorata percezione delle prestazioni.
+
+**v1.9 — Media Index Cache:** Introdotto indice gzipped persistente su disco dei file multimediali, caricamento in parallelo con query database per eliminare scansione sequenziale, fallback a scansione filesystem one-time solo se indice mancante o stale, supporto variante `/Sent/` in `RootFileFetcher` per media inviati, tempo di caricamento galleria ridotto da secondi a millisecondi nelle riaperture.
 
 ### Pianificato (non ancora implementato)
 
@@ -400,4 +414,4 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ---
 
-> Documento aggiornato alla versione **1.7**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
+> Documento aggiornato alla versione **1.9**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
