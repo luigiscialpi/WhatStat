@@ -93,17 +93,16 @@ Sono presenti 7 indici SQL compositi sulle colonne più usate nelle query: `chat
 Tutte le schermate principali che espongono analisi temporali (Dashboard, Dettaglio chat, Log Chiamate, Media & Link, Radar Parole) supportano filtri temporali applicabili alle metriche. I filtri disponibili sono:
 
 - **Tutto** — nessun filtro, tutti i messaggi
-- **Ultimi 7 giorni**
 - **Ultimi 30 giorni**
 - **Ultimi 6 mesi**
 - **Ultimo anno**
-- **Personalizzato** — selettore di intervallo date con `DateRangePicker`
+- **Scegli** — apre un selettore di intervallo date inline (`DateRangePicker`) senza triggerare alcun reload dei dati; il caricamento avviene solo alla pressione del pulsante di conferma
 
 Il `DateRangePicker` è un componente dedicato con un pulsante "Cerca" che diventa verde quando è attivo e rosso per annullare. I filtri rapidi e il date picker rimangono fissi in cima alla schermata mentre si scorre (sticky header).
 
-Dalla v1.15 lo stato dei filtri viene mantenuto in memoria tramite `FilterStateHolder` (`globalTimeRange/globalCustomRange` e `chatTimeRange/chatCustomRange`), così il range selezionato viene preservato quando si passa tra schermate globali e chat-specifiche. Dalla v1.16 l'UI dei filtri è stata centralizzata nel componente `TimeRangeFilterRow`, con auto-scroll del carosello al chip selezionato per rendere sempre visibile il filtro attivo. Dalla v1.17 è stato uniformato il comportamento visivo top-bar tra schermate (progress bar superiore coerente e spazio riservato per evitare layout shift durante i caricamenti).
+Dalla v1.15 lo stato dei filtri viene mantenuto in memoria tramite `FilterStateHolder` (`globalTimeRange/globalCustomRange` e `chatTimeRange/chatCustomRange`), così il range selezionato viene preservato quando si passa tra schermate globali e chat-specifiche. Dalla v1.16 l'UI dei filtri è stata centralizzata nel componente `TimeRangeFilterRow`, con auto-scroll del carosello al chip selezionato per rendere sempre visibile il filtro attivo. Dalla v1.17 è stato uniformato il comportamento visivo top-bar tra schermate (progress bar superiore coerente e spazio riservato per evitare layout shift durante i caricamenti). Dalla v1.18 il chip "Scegli" gestisce uno stato locale `showDatePicker` separato dal `selectedRange`: premere il chip mostra/nasconde il picker senza propagare alcuna chiamata a `setTimeRange()` e senza triggerare query al database.
 
-Il modello dati per i filtri è `TimeRange` (enum con valori: `ALL_TIME`, `LAST_7_DAYS`, `LAST_30_DAYS`, `LAST_6_MONTHS`, `LAST_YEAR`, `CUSTOM`) e `DateRange` (con campi `startTime: Long?` e `endTime: Long?`, entrambi Unix timestamp in millisecondi).
+Il modello dati per i filtri è `TimeRange` (enum con valori: `ALL_TIME`, `LAST_30_DAYS`, `LAST_6_MONTHS`, `LAST_YEAR`, `CUSTOM`) e `DateRange` (con campi `startTime: Long?` e `endTime: Long?`, entrambi Unix timestamp in millisecondi). Il valore `LAST_7_DAYS` è stato rimosso dalla v1.18.
 
 ---
 
@@ -386,7 +385,7 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ## 14. Roadmap
 
-### Rilasciato (v1.0 — v1.17)
+### Rilasciato (v1.0 — v1.18)
 
 **v1.0 — MVP:** Accesso root, estrazione file, decifratura crypt14, Dashboard globale e lista chat, statistiche base per chat (messaggi, orari, giorni).
 
@@ -426,6 +425,8 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 **v1.17 — Rifiniture visuali cross-screen:** Uniformata la UX di transizione tra Dashboard e schermate analitiche (es. Radar Parole) introducendo progress bar top coerente su Dashboard/Dettaglio chat/Log Chiamate/Media & Link/Radar Parole con altezza riservata per ridurre i micro-spostamenti del layout. In Dashboard il pulsante back rimane posizionato a destra.
 
+**v1.18 — Bottom Tab Navigation e header contestuali:** Refactor completo della navigazione con `AppScaffold` + `BottomNavigationBar` Material 3 a 5 tab (Panoramica, Chat, Media, Radar, Chiamate). Ogni tab mantiene il proprio back stack indipendente (`saveState`/`restoreState`). Il `NavHost` è strutturato con grafi annidati: un grafo Setup e un grafo Main contenente i 5 sotto-grafi per tab. Le schermate Radar, Chiamate e Media sono accessibili sia come radici di tab globali (senza `chatId`) sia come destinazioni chat-specifiche (con `chatId` nel path, es. `word_search/{chatId}`) all'interno del grafo Chat. Quando aperte da una chat, le schermate mostrano un header contestuale con nome chat, avatar e pulsante back tramite il componente `SimpleScreenHeader` potenziato. Il nome/avatar della chat è caricato da `AnalyticsRepository.getChatContextInfo(chatId)` e esposto come `StateFlow` nei rispettivi ViewModel (`WordSearchViewModel`, `CallsStatsViewModel`, `MediaStatsViewModel`). I 4 bottoni azione dalla Dashboard sono stati rimossi (la navigazione avviene esclusivamente via tab). Il `ChatDetailScreen` non ha più la card "Tutte le Chat"; le 3 card azione rimaste (Radar, Chiamate, Media) sono disposte in una riga orizzontale 1×3. Il `DateRangePicker` nel filtro "Scegli" è ora controllato da stato locale `showDatePicker` in `TimeRangeFilterRow` e non propaga `onRangeSelected(CUSTOM)` al tap del chip, eliminando reload indesiderati. Rimosso `LAST_7_DAYS` da `TimeRange`. Fix layout `LinkStatCard` in Media & Link: la sezione nome usa `weight(1f)` nella Row esterna (rimosso `SpaceBetween`), i pulsanti media/link restano fissi a destra senza sovrapporsi al nome scrollabile.
+
 ### Pianificato (non ancora implementato)
 
 - Confronto tra due periodi temporali
@@ -436,4 +437,4 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ---
 
-> Documento aggiornato alla versione **1.17**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
+> Documento aggiornato alla versione **1.18**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
