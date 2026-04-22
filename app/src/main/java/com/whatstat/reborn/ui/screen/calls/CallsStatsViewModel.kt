@@ -54,22 +54,40 @@ class CallsStatsViewModel @Inject constructor(
 
     private val _chatId = MutableStateFlow<Long?>(null)
 
+    private var initialized = false
+
     fun initialize(chatId: Long?) {
-        _chatId.value = chatId
-        // Ripristina il filtro dal contesto corretto
-        if (chatId != null) {
-            _selectedTimeRange.value = filterState.chatTimeRange
-            _customDateRange.value = filterState.chatCustomRange
-        } else {
-            _selectedTimeRange.value = filterState.globalTimeRange
-            _customDateRange.value = filterState.globalCustomRange
+        if (!initialized) {
+            initialized = true
+            _chatId.value = chatId
+            // Ripristina il filtro dal contesto corretto
+            if (chatId != null) {
+                _selectedTimeRange.value = filterState.chatTimeRange
+                _customDateRange.value = filterState.chatCustomRange
+            } else {
+                _selectedTimeRange.value = filterState.globalTimeRange
+                _customDateRange.value = filterState.globalCustomRange
+            }
+            loadStats()
         }
-        loadStats()
     }
 
     fun setChatId(id: Long) {
         _chatId.value = id
         loadStats()
+    }
+
+    fun syncFilterState() {
+        val (newRange, newCustom) = if (_chatId.value != null) {
+            filterState.chatTimeRange to filterState.chatCustomRange
+        } else {
+            filterState.globalTimeRange to filterState.globalCustomRange
+        }
+        if (newRange != _selectedTimeRange.value || newCustom != _customDateRange.value) {
+            _selectedTimeRange.value = newRange
+            _customDateRange.value = newCustom
+            loadStats()
+        }
     }
 
     fun setTimeRange(range: TimeRange) {

@@ -75,6 +75,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -137,6 +138,11 @@ fun MediaStatsScreen(
 
     LaunchedEffect(chatId) {
         viewModel.initialize(chatId)
+    }
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.syncFilterState()
+        onPauseOrDispose { }
     }
 
     val isChatDetail = chatId != null

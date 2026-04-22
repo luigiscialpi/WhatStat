@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.whatstat.reborn.data.db.model.DateRange
@@ -34,10 +35,15 @@ fun TimeRangeFilterRow(
     onCancelClicked: (() -> Unit)? = null
 ) {
     val timeRangeItems = TimeRange.entries.filter { it != TimeRange.CUSTOM }
-    val listState = rememberLazyListState()
+    val initialIndex = remember(timeRangeItems, selectedRange) {
+        timeRangeItems.indexOf(selectedRange).coerceAtLeast(0)
+    }
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
     LaunchedEffect(selectedRange) {
         val idx = timeRangeItems.indexOf(selectedRange)
-        if (idx >= 0) listState.animateScrollToItem(idx)
+        if (idx >= 0) {
+            listState.scrollToItem(idx)
+        }
     }
     Column(modifier = modifier) {
         LazyRow(

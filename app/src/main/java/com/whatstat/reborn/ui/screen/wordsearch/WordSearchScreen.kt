@@ -47,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -80,7 +81,12 @@ fun WordSearchScreen(
     val customDateRange by viewModel.customDateRange.collectAsState()
 
     LaunchedEffect(chatId) {
-        chatId?.let { viewModel.setChatId(it) }
+        viewModel.initialize(chatId)
+    }
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.syncFilterState()
+        onPauseOrDispose { }
     }
 
     Column(

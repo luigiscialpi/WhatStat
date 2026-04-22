@@ -211,6 +211,16 @@ class ChatDetailViewModel @Inject constructor(
         }
     }
 
+    fun syncFilterState() {
+        val newRange = filterState.chatTimeRange
+        val newCustom = filterState.chatCustomRange
+        if (newRange != _selectedTimeRange.value || newCustom != _customDateRange.value) {
+            _selectedTimeRange.value = newRange
+            _customDateRange.value = newCustom
+            loadChatStats()
+        }
+    }
+
     fun setTimeRange(range: TimeRange) {
         _selectedTimeRange.value = range
         if (range != TimeRange.CUSTOM) {

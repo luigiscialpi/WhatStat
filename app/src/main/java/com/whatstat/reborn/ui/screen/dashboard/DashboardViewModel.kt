@@ -188,6 +188,16 @@ class DashboardViewModel @Inject constructor(
         _selectedLimit.value = limit
     }
 
+    fun syncFilterState() {
+        val newRange = filterState.globalTimeRange
+        val newCustom = filterState.globalCustomRange
+        if (newRange != _selectedTimeRange.value || newCustom != _customDateRange.value) {
+            _selectedTimeRange.value = newRange
+            _customDateRange.value = newCustom
+            loadStats()
+        }
+    }
+
     fun setTimeRange(range: TimeRange) {
         _selectedTimeRange.value = range
         if (range != TimeRange.CUSTOM) {

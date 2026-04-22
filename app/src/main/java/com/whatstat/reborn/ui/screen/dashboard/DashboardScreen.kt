@@ -61,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -108,6 +109,11 @@ fun DashboardScreen(
     val error by viewModel.error.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.syncFilterState()
+        onPauseOrDispose { }
+    }
     val selectedLimit by viewModel.selectedLimit.collectAsState()
 
     val slowStatsRequested by viewModel.slowStatsRequested.collectAsState()
@@ -296,7 +302,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    "L'analisi potrebbe richiedere diversi secondi",
+                                    "L'analisi potrebbe richiedere parecchi secondi - forse anche qualche minuto!",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

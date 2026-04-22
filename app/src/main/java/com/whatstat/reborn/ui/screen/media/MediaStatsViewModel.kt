@@ -131,6 +131,19 @@ class MediaStatsViewModel @Inject constructor(
         }
     }
 
+    fun syncFilterState() {
+        val (newRange, newCustom) = if (_chatId.value != null) {
+            filterState.chatTimeRange to filterState.chatCustomRange
+        } else {
+            filterState.globalTimeRange to filterState.globalCustomRange
+        }
+        if (newRange != _selectedTimeRange.value || newCustom != _customDateRange.value) {
+            _selectedTimeRange.value = newRange
+            _customDateRange.value = newCustom
+            loadStats()
+        }
+    }
+
     fun setTimeRange(range: TimeRange) {
         _selectedTimeRange.value = range
         if (range != TimeRange.CUSTOM) {

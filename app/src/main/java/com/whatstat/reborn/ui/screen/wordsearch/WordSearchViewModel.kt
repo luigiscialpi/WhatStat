@@ -67,8 +67,20 @@ class WordSearchViewModel @Inject constructor(
         private const val DEBOUNCE_MS = 300L
     }
 
-    fun setChatId(id: Long) {
-        _chatId.value = id
+    private var initialized = false
+
+    fun initialize(chatId: Long?) {
+        if (!initialized) {
+            initialized = true
+            _chatId.value = chatId
+            if (chatId != null) {
+                _selectedTimeRange.value = filterState.chatTimeRange
+                _customDateRange.value = filterState.chatCustomRange
+            } else {
+                _selectedTimeRange.value = filterState.globalTimeRange
+                _customDateRange.value = filterState.globalCustomRange
+            }
+        }
     }
 
     fun onSearchQueryChange(query: String) {
@@ -93,6 +105,18 @@ class WordSearchViewModel @Inject constructor(
         searchJob = viewModelScope.launch {
             delay(DEBOUNCE_MS)
             search(query)
+        }
+    }
+
+    fun syncFilterState() {
+        val (newRange, newCustom) = if (_chatId.value != null) {
+            filterState.chatTimeRange to filterState.chatCustomRange
+        } else {
+            filterState.globalTimeRange to filterState.globalCustomRange
+        }
+        if (newRange != _selectedTimeRange.value || newCustom != _customDateRange.value) {
+            _selectedTimeRange.value = newRange
+            _customDateRange.value = newCustom
         }
     }
 
