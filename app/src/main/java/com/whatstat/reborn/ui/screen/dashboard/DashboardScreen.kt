@@ -92,7 +92,7 @@ import com.whatstat.reborn.ui.component.StickerPreviewModal
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
-    onNavigateToChatList: () -> Unit,
+    onNavigateToChatList: () -> Unit = {},
     onNavigateToWordSearch: () -> Unit = {},
     onNavigateToCalls: () -> Unit = {},
     onNavigateToMedia: () -> Unit = {},
@@ -477,44 +477,6 @@ fun DashboardScreen(
                     }
                 }
 
-                // ── Action Grid (2x2) ────────────────────────────────
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            ActionCard(
-                                modifier = Modifier.weight(1f),
-                                title = "Radar Parole",
-                                subtitle = "Cerca parole frequenti",
-                                icon = Icons.Outlined.Search,
-                                onClick = onNavigateToWordSearch
-                            )
-                            ActionCard(
-                                modifier = Modifier.weight(1f),
-                                title = "Log Chiamate",
-                                subtitle = "Audio, video, perse",
-                                icon = Icons.Outlined.Call,
-                                onClick = onNavigateToCalls
-                            )
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            ActionCard(
-                                modifier = Modifier.weight(1f),
-                                title = "Media & Link",
-                                subtitle = "Documenti e URL",
-                                icon = Icons.Outlined.Link,
-                                onClick = onNavigateToMedia
-                            )
-                            ActionCard(
-                                modifier = Modifier.weight(1f),
-                                title = "Analisi Chat",
-                                subtitle = "Singole conversazioni",
-                                icon = Icons.AutoMirrored.Outlined.Chat,
-                                onClick = onNavigateToChatList
-                            )
-                        }
-                    }
-                }
-
                 // Spacer finale per navigation bar
                 item { Spacer(Modifier.height(32.dp)) }
             }
@@ -539,52 +501,6 @@ fun DashboardScreen(
             )
         }
     } // fine Box
-}
-
-@Composable
-private fun ActionCard(
-    modifier: Modifier = Modifier,
-    title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
-) {
-    Card(
-        onClick = onClick,
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp)
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
-        }
-    }
 }
 
 @Composable

@@ -9,7 +9,6 @@ package com.whatstat.reborn.data.db.model
 /** Range temporale per i filtri */
 enum class TimeRange(val label: String, val millisBack: Long?) {
     ALL_TIME("Tutto", null),
-    LAST_7_DAYS("7 giorni", 604800000L),
     LAST_30_DAYS("30 giorni", 2592000000L),
     LAST_6_MONTHS("6 mesi", 15552000000L),
     LAST_YEAR("Anno", 31536000000L),

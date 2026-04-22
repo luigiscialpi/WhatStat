@@ -13,7 +13,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.whatstat.reborn.data.db.model.DateRange
@@ -34,7 +37,9 @@ fun TimeRangeFilterRow(
     isSearching: Boolean = false,
     onCancelClicked: (() -> Unit)? = null
 ) {
-    val timeRangeItems = TimeRange.entries.filter { it != TimeRange.CUSTOM }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val timeRangeItems = TimeRange.entries
     val initialIndex = remember(timeRangeItems, selectedRange) {
         timeRangeItems.indexOf(selectedRange).coerceAtLeast(0)
     }
@@ -43,6 +48,9 @@ fun TimeRangeFilterRow(
         val idx = timeRangeItems.indexOf(selectedRange)
         if (idx >= 0) {
             listState.scrollToItem(idx)
+        }
+        if (selectedRange != TimeRange.CUSTOM) {
+            showDatePicker = false
         }
     }
     Column(modifier = modifier) {
@@ -56,8 +64,17 @@ fun TimeRangeFilterRow(
             items(timeRangeItems) { range ->
                 FilterChip(
                     selected = selectedRange == range,
-                    onClick = { onRangeSelected(range) },
-                    label = { Text(range.label) },
+                    onClick = {
+                        if (range == TimeRange.CUSTOM) {
+                            showDatePicker = !showDatePicker
+                        } else {
+                            showDatePicker = false
+                            onRangeSelected(range)
+                        }
+                    },
+                    label = {
+                        Text(if (range == TimeRange.CUSTOM) "Scegli" else range.label)
+                    },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -65,13 +82,15 @@ fun TimeRangeFilterRow(
                 )
             }
         }
-        DateRangePicker(
-            dateRange = customDateRange,
-            onDateRangeChanged = onDateRangeChanged,
-            onSubmitClicked = onSubmitClicked,
-            isSearching = isSearching,
-            onCancelClicked = onCancelClicked,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
-        )
+        if (showDatePicker) {
+            DateRangePicker(
+                dateRange = customDateRange,
+                onDateRangeChanged = onDateRangeChanged,
+                onSubmitClicked = onSubmitClicked,
+                isSearching = isSearching,
+                onCancelClicked = onCancelClicked,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+            )
+        }
     }
 }

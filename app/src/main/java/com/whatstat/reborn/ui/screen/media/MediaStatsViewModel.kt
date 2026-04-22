@@ -61,6 +61,12 @@ class MediaStatsViewModel @Inject constructor(
     private val _chatId = MutableStateFlow<Long?>(null)
     val chatId: StateFlow<Long?> = _chatId.asStateFlow()
 
+    private val _chatContextName = MutableStateFlow<String?>(null)
+    val chatContextName: StateFlow<String?> = _chatContextName.asStateFlow()
+
+    private val _chatContextAvatarPath = MutableStateFlow<String?>(null)
+    val chatContextAvatarPath: StateFlow<String?> = _chatContextAvatarPath.asStateFlow()
+
     private val _selectedChatJid = MutableStateFlow<String?>(null)
     val selectedChatJid: StateFlow<String?> = _selectedChatJid.asStateFlow()
 
@@ -123,9 +129,19 @@ class MediaStatsViewModel @Inject constructor(
             if (chatId != null) {
                 _selectedTimeRange.value = filterState.chatTimeRange
                 _customDateRange.value = filterState.chatCustomRange
+                viewModelScope.launch {
+                    runCatching {
+                        analyticsRepository.getChatContextInfo(chatId)
+                    }.onSuccess { info ->
+                        _chatContextName.value = info.displayName
+                        _chatContextAvatarPath.value = getAvatarPath(info.jid)
+                    }
+                }
             } else {
                 _selectedTimeRange.value = filterState.globalTimeRange
                 _customDateRange.value = filterState.globalCustomRange
+                _chatContextName.value = null
+                _chatContextAvatarPath.value = null
             }
             loadStats()
         }

@@ -23,6 +23,13 @@ import com.topjohnwu.superuser.io.SuFile
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class ChatContextInfo(
+    val chatId: Long,
+    val jid: String,
+    val displayName: String,
+    val isGroup: Boolean
+)
+
 /**
  * Repository per il calcolo delle statistiche.
  * Aggrega i dati dai vari DAO e calcola metriche derivate.
@@ -499,7 +506,6 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         val now = System.currentTimeMillis()
         return when (timeRange) {
             TimeRange.ALL_TIME -> null to null // No time filter
-            TimeRange.LAST_7_DAYS -> now - 604800000L to now
             TimeRange.LAST_30_DAYS -> now - 2592000000L to now
             TimeRange.LAST_6_MONTHS -> now - 15552000000L to now
             TimeRange.LAST_YEAR -> now - 31536000000L to now
@@ -620,6 +626,22 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             }
         }
         aggregated.values.sortedByDescending { it.totalLinks + it.mediaCount }
+    }
+
+    suspend fun getChatContextInfo(chatId: Long): ChatContextInfo = withContext(Dispatchers.IO) {
+        val basicInfo = chatDao.getChatBasicInfo(chatId)
+        val resolvedName = if (basicInfo.isGroup) {
+            basicInfo.subject ?: basicInfo.name ?: contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")
+        } else {
+            contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.name ?: basicInfo.jid.substringBefore("@")
+        }
+
+        ChatContextInfo(
+            chatId = basicInfo.chatId,
+            jid = basicInfo.jid,
+            displayName = resolvedName,
+            isGroup = basicInfo.isGroup
+        )
     }
 
     /**

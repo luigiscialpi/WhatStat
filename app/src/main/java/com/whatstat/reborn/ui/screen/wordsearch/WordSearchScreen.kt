@@ -79,6 +79,8 @@ fun WordSearchScreen(
     val isSearching by viewModel.isSearching.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val chatContextName by viewModel.chatContextName.collectAsState()
+    val chatContextAvatarPath by viewModel.chatContextAvatarPath.collectAsState()
 
     LaunchedEffect(chatId) {
         viewModel.initialize(chatId)
@@ -89,12 +91,19 @@ fun WordSearchScreen(
         onPauseOrDispose { }
     }
 
+    val isChatSpecific = chatId != null
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        SimpleScreenHeader(title = "Radar Parole", onBack = onNavigateBack)
+        SimpleScreenHeader(
+            title = "Radar Parole",
+            onBack = if (isChatSpecific) onNavigateBack else null,
+            subtitle = chatContextName,
+            avatarPath = chatContextAvatarPath
+        )
 
         Box(
             modifier = Modifier

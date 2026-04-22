@@ -133,6 +133,8 @@ fun MediaStatsScreen(
     val progressMediaGallery by viewModel.loadingProgressMediaGallery.collectAsState()
     val mediaGalleryState by viewModel.mediaGalleryState.collectAsState()
     val isMediaGalleryLoading by viewModel.isMediaGalleryLoading.collectAsState()
+    val chatContextName by viewModel.chatContextName.collectAsState()
+    val chatContextAvatarPath by viewModel.chatContextAvatarPath.collectAsState()
 
     val sheetState = rememberModalBottomSheetState()
 
@@ -170,8 +172,10 @@ fun MediaStatsScreen(
             // ── HEADER ─────────────────────────────────────
             var showInfoDialog by remember { mutableStateOf(false) }
             SimpleScreenHeader(
-                title = if (isChatDetail) "Media & Link nella chat" else "Media & Link",
-                onBack = onNavigateBack
+                title = "Media & Link",
+                onBack = if (isChatDetail) onNavigateBack else null,
+                subtitle = chatContextName,
+                avatarPath = chatContextAvatarPath
             ) {
                 IconButton(onClick = { showInfoDialog = true }) {
                     Icon(
@@ -757,7 +761,6 @@ private fun LinkStatCardContent(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Avatar + nome
@@ -808,6 +811,7 @@ private fun LinkStatCardContent(
                 )
             )
         }
+        Spacer(Modifier.width(12.dp))
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically

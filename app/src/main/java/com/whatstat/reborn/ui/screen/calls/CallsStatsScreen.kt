@@ -86,6 +86,8 @@ fun CallsStatsScreen(
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val chatContextName by viewModel.chatContextName.collectAsState()
+    val chatContextAvatarPath by viewModel.chatContextAvatarPath.collectAsState()
 
     LaunchedEffect(chatId) {
         viewModel.initialize(chatId)
@@ -96,12 +98,19 @@ fun CallsStatsScreen(
         onPauseOrDispose { }
     }
 
+    val isChatSpecific = chatId != null
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        SimpleScreenHeader(title = "Log Chiamate", onBack = onNavigateBack)
+        SimpleScreenHeader(
+            title = "Log Chiamate",
+            onBack = if (isChatSpecific) onNavigateBack else null,
+            subtitle = chatContextName,
+            avatarPath = chatContextAvatarPath
+        )
 
         Box(
             modifier = Modifier

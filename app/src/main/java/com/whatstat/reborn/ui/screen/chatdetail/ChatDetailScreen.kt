@@ -710,41 +710,30 @@ fun ChatDetailScreen(
                         }
 
 
-                        // ── Action Grid (2x2) ────────────────────────────────
+                        // ── Action Row (1x3) ────────────────────────────────
                         item {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    ActionCard(
-                                        modifier = Modifier.weight(1f),
-                                        title = "Radar Parole",
-                                        subtitle = "Cerca parole frequenti",
-                                        icon = Icons.Outlined.Search,
-                                        onClick = onNavigateToWordSearch
-                                    )
-                                    ActionCard(
-                                        modifier = Modifier.weight(1f),
-                                        title = "Log Chiamate",
-                                        subtitle = "Audio, video, perse",
-                                        icon = Icons.Outlined.Call,
-                                        onClick = onNavigateToCalls
-                                    )
-                                }
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    ActionCard(
-                                        modifier = Modifier.weight(1f),
-                                        title = "Media & Link",
-                                        subtitle = "Documenti e URL",
-                                        icon = Icons.Outlined.Link,
-                                        onClick = onNavigateToMedia
-                                    )
-                                    ActionCard(
-                                        modifier = Modifier.weight(1f),
-                                        title = "Tutte le Chat",
-                                        subtitle = "Altre conversazioni",
-                                        icon = Icons.Outlined.Group,
-                                        onClick = onNavigateBack
-                                    )
-                                }
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                ActionCard(
+                                    modifier = Modifier.weight(1f),
+                                    title = "Radar Parole",
+                                    subtitle = "Cerca parole frequenti",
+                                    icon = Icons.Outlined.Search,
+                                    onClick = onNavigateToWordSearch
+                                )
+                                ActionCard(
+                                    modifier = Modifier.weight(1f),
+                                    title = "Log Chiamate",
+                                    subtitle = "Audio, video, perse",
+                                    icon = Icons.Outlined.Call,
+                                    onClick = onNavigateToCalls
+                                )
+                                ActionCard(
+                                    modifier = Modifier.weight(1f),
+                                    title = "Media & Link",
+                                    subtitle = "Documenti e URL",
+                                    icon = Icons.Outlined.Link,
+                                    onClick = onNavigateToMedia
+                                )
                             }
                         }
 
