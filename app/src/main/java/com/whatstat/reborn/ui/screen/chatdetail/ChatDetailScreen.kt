@@ -859,7 +859,7 @@ private fun ActionCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 10.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -874,13 +874,15 @@ private fun ActionCard(
                 title,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
+                maxLines = 2,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
+                maxLines = 2,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }
@@ -900,18 +902,18 @@ private fun formatDuration(ms: Long): String {
 // ── Pie Chart messaggi per mittente ──────────────────────────────────────────
 
 private val pieColors = listOf(
-    Color(0xFF6750A4), // primary-like
-    Color(0xFF625B71), // secondary-like
-    Color(0xFF7D5260), // tertiary-like
-    Color(0xFF006D40),
-    Color(0xFFBA1A1A),
-    Color(0xFF3F51B5),
-    Color(0xFFFF9800),
-    Color(0xFF009688),
-    Color(0xFFE91E63),
-    Color(0xFF8BC34A),
-    Color(0xFF795548),
-    Color(0xFF607D8B)
+    Color(0xFFE53935), // Red
+    Color(0xFF1E88E5), // Blue
+    Color(0xFF43A047), // Green
+    Color(0xFFFF9800), // Orange
+    Color(0xFF9C27B0), // Purple
+    Color(0xFF00ACC1), // Cyan
+    Color(0xFFE91E63), // Pink
+    Color(0xFFFFD600), // Yellow
+    Color(0xFF3949AB), // Indigo
+    Color(0xFF795548), // Brown
+    Color(0xFF00695C), // Dark Teal
+    Color(0xFF7CB342), // Light Green
 )
 
 @Composable
