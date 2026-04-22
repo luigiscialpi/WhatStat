@@ -70,13 +70,17 @@ La cache è il meccanismo centrale per garantire aperture veloci. Usa `kotlinx.s
 
 **Cache Slow Stats globali** — Contiene le parole più usate e le emoji più usate a livello globale. Queste analisi sono più lente perché richiedono di scorrere i testi di tutti i messaggi. Vengono cachate dopo la prima analisi manuale (opt-in) e mostrate automaticamente alle riaperture.
 
+**Indice lessicale incrementale (v1.14)** — A partire da v1.14 le frequenze di parole ed emoji globali e per-chat vengono persistite su disco come file gzippati (`word_index_global.gz`, `word_index_chat_{id}.gz` in `filesDir`/`cacheDir`). Ogni file memorizza la mappa completa `parola → conteggio`, il timestamp dell'ultimo messaggio processato e il totale dei messaggi come sanity check. Quando il DB cambia (SHA-256 diverso), l'app esegue un **delta**: legge solo i messaggi con `timestamp > lastProcessedTimestamp`, unisce le frequenze e aggiorna il file. Il rebuild completo avviene solo al primo avvio o se il totale messaggi nel nuovo DB è inferiore a quello registrato nell'indice (cambio account/device).
+
+**Indice mensile (v1.14)** — Accanto all'indice globale viene mantenuto `word_index_monthly.gz` (in `filesDir`), che bucket-izza le frequenze per mese ("YYYY-MM"). Per query con filtri temporali che coprono ≥ 28 giorni e il cui `endTime` ricade entro 7 giorni dall'ultimo aggiornamento dell'indice, le parole/emoji vengono calcolate sommando i bucket mensili pertinenti in memoria — zero accessi a SQLite. Per range più brevi (es. Ultimi 7/30 giorni o range custom ravvicinati) continua ad essere usata la query SQL diretta.
+
 **Cache Quick Stats per chat** — Contiene distribuzioni orarie, settimanali, mensili e annuali per ogni singola chat, oltre ai conteggi base. Indicizzata per `chatId`. Garantisce l'apertura istantanea del dettaglio di una chat.
 
 **Cache Slow Stats per chat** — Contiene le analisi testuali per chat: parole più usate, emoji più usate, sticker più usati, breakdown per mittente, breakdown degli starter, tempo medio di risposta. Cachata per `chatId` dopo la prima analisi opt-in.
 
 ### Comportamento della cache per i filtri temporali
 
-La cache viene salvata **solo per il filtro `ALL_TIME`**. Quando l'utente applica un filtro temporale diverso (Oggi, Ultimi 7 giorni, ecc.), le query vengono rieseguite direttamente sul database. Questo è accettabile perché le query filtrate sono veloci grazie agli indici SQL.
+La cache viene salvata **solo per il filtro `ALL_TIME`**. Quando l'utente applica un filtro temporale diverso (Ultimi 7 giorni, Ultimi 6 mesi, custom, ecc.), le query vengono rieseguite direttamente sul database. Questo è accettabile perché le query filtrate sono veloci grazie agli indici SQL.
 
 ### Ottimizzazioni database
 
@@ -86,19 +90,20 @@ Sono presenti 7 indici SQL compositi sulle colonne più usate nelle query: `chat
 
 ## 4. Filtri temporali
 
-Tutte le schermate principali (Dashboard e Dettaglio chat) supportano filtri temporali applicabili a tutte le metriche. I filtri disponibili sono:
+Tutte le schermate principali che espongono analisi temporali (Dashboard, Dettaglio chat, Log Chiamate, Media & Link, Radar Parole) supportano filtri temporali applicabili alle metriche. I filtri disponibili sono:
 
 - **Tutto** — nessun filtro, tutti i messaggi
-- **Oggi** — messaggi del giorno corrente
-- **Ieri** — messaggi del giorno precedente
 - **Ultimi 7 giorni**
 - **Ultimi 30 giorni**
-- **Quest'anno**
+- **Ultimi 6 mesi**
+- **Ultimo anno**
 - **Personalizzato** — selettore di intervallo date con `DateRangePicker`
 
 Il `DateRangePicker` è un componente dedicato con un pulsante "Cerca" che diventa verde quando è attivo e rosso per annullare. I filtri rapidi e il date picker rimangono fissi in cima alla schermata mentre si scorre (sticky header).
 
-Il modello dati per i filtri è `TimeRange` (enum con valori: `ALL_TIME`, `TODAY`, `YESTERDAY`, `LAST_7_DAYS`, `LAST_30_DAYS`, `LAST_YEAR`, `CUSTOM`) e `DateRange` (con campi `startTime: Long?` e `endTime: Long?`, entrambi Unix timestamp in millisecondi).
+Dalla v1.15 lo stato dei filtri viene mantenuto in memoria tramite `FilterStateHolder` (`globalTimeRange/globalCustomRange` e `chatTimeRange/chatCustomRange`), così il range selezionato viene preservato quando si passa tra schermate globali e chat-specifiche. Dalla v1.16 l'UI dei filtri è stata centralizzata nel componente `TimeRangeFilterRow`, con auto-scroll del carosello al chip selezionato per rendere sempre visibile il filtro attivo. Dalla v1.17 è stato uniformato il comportamento visivo top-bar tra schermate (progress bar superiore coerente e spazio riservato per evitare layout shift durante i caricamenti).
+
+Il modello dati per i filtri è `TimeRange` (enum con valori: `ALL_TIME`, `LAST_7_DAYS`, `LAST_30_DAYS`, `LAST_6_MONTHS`, `LAST_YEAR`, `CUSTOM`) e `DateRange` (con campi `startTime: Long?` e `endTime: Long?`, entrambi Unix timestamp in millisecondi).
 
 ---
 
@@ -381,7 +386,7 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ## 14. Roadmap
 
-### Rilasciato (v1.0 — v1.13)
+### Rilasciato (v1.0 — v1.17)
 
 **v1.0 — MVP:** Accesso root, estrazione file, decifratura crypt14, Dashboard globale e lista chat, statistiche base per chat (messaggi, orari, giorni).
 
@@ -413,6 +418,14 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 **v1.13 — Conversation starter info dialog:** Il tooltip informativo nella sezione "Chi inizia le conversazioni" è sostituito da un `AlertDialog` modale con spiegazione più chiara della soglia di 3 ore di silenzio, migliorando l'usabilità.
 
+**v1.14 — Lexical Index (delta incrementale):** Indice lessicale persistente gzippato per parole ed emoji, globale e per-chat. Al cambio del database WhatsApp vengono processati solo i messaggi nuovi (delta da `lastProcessedTimestamp`) invece di rileggere tutto da zero. Indice mensile separato per query con filtri temporali ≥ 28 giorni. Tempo di ricalcolo dell'analisi lessicale ridotto da secondi a millisecondi nelle sessioni successive. Struttura: `WordFrequencyIndexData`, `MonthlyWordIndexData`; helper in `AnalyticsRepository` (`buildOrUpdateGlobalWordIndex`, `buildOrUpdateChatWordIndex`, `computeFromMonthlyIndex`); nuovi metodi in `MessageDao` (`getTextsWithTimestamps`, `buildWordFrequencyMap`, `buildEmojiFrequencyMap`, `getGlobalTextMessageCount`, `getChatTextMessageCount`). La stop-word list è ora in `MessageDao.STOP_WORDS` (companion object).
+
+**v1.15 — Persistenza filtri cross-screen:** Introdotto `FilterStateHolder` singleton (Hilt) per mantenere il filtro temporale attivo separatamente per contesto globale e contesto chat. Integrato in `DashboardViewModel`, `ChatDetailViewModel`, `CallsStatsViewModel`, `MediaStatsViewModel`, `WordSearchViewModel`.
+
+**v1.16 — UI filtri e header centralizzati:** Refactor dei componenti UI con `TimeRangeFilterRow` (carosello filtri + `DateRangePicker` con auto-scroll sul chip attivo) e `SimpleScreenHeader` (header standard riusabile per schermate secondarie). Aggiornati i filtri temporali: rimossi `TODAY`/`YESTERDAY`, aggiunto `LAST_6_MONTHS`.
+
+**v1.17 — Rifiniture visuali cross-screen:** Uniformata la UX di transizione tra Dashboard e schermate analitiche (es. Radar Parole) introducendo progress bar top coerente su Dashboard/Dettaglio chat/Log Chiamate/Media & Link/Radar Parole con altezza riservata per ridurre i micro-spostamenti del layout. In Dashboard il pulsante back rimane posizionato a destra.
+
 ### Pianificato (non ancora implementato)
 
 - Confronto tra due periodi temporali
@@ -423,4 +436,4 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ---
 
-> Documento aggiornato alla versione **1.13**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
+> Documento aggiornato alla versione **1.17**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
