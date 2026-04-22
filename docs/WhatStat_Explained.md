@@ -134,7 +134,7 @@ Quattro schede selezionabili, ciascuna con un grafico a barre con scrolling oriz
 - **Mensile** — barre per giorno del mese (1–31)
 - **Annuale** — una barra per ogni anno con dati
 
-I grafici sono interattivi: toccando una barra appare un tooltip con il valore esatto.
+I grafici sono interattivi: toccando una barra appare un popup di selezione inline con il valore esatto; toccare fuori dall'area del grafico chiude la selezione tramite il meccanismo `dismissSignal` (introdotto in v1.17).
 
 ### Analisi testi — Sezione opt-in
 
@@ -385,7 +385,7 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ## 14. Roadmap
 
-### Rilasciato (v1.0 — v1.18)
+### Rilasciato (v1.0 — v1.19)
 
 **v1.0 — MVP:** Accesso root, estrazione file, decifratura crypt14, Dashboard globale e lista chat, statistiche base per chat (messaggi, orari, giorni).
 
@@ -423,9 +423,11 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 **v1.16 — UI filtri e header centralizzati:** Refactor dei componenti UI con `TimeRangeFilterRow` (carosello filtri + `DateRangePicker` con auto-scroll sul chip attivo) e `SimpleScreenHeader` (header standard riusabile per schermate secondarie). Aggiornati i filtri temporali: rimossi `TODAY`/`YESTERDAY`, aggiunto `LAST_6_MONTHS`.
 
-**v1.17 — Rifiniture visuali cross-screen:** Uniformata la UX di transizione tra Dashboard e schermate analitiche (es. Radar Parole) introducendo progress bar top coerente su Dashboard/Dettaglio chat/Log Chiamate/Media & Link/Radar Parole con altezza riservata per ridurre i micro-spostamenti del layout. In Dashboard il pulsante back rimane posizionato a destra.
+**v1.17 — Rifiniture visuali cross-screen:** Uniformata la UX di transizione tra Dashboard e schermate analitiche (es. Radar Parole) introducendo progress bar top coerente su Dashboard/Dettaglio chat/Log Chiamate/Media & Link/Radar Parole con altezza riservata per ridurre i micro-spostamenti del layout. In Dashboard il pulsante back rimane posizionato a destra. Sostituito il componente `ChartTooltip` (overlay statico) con un sistema di selezione basato su `Popup` in `InteractiveHourlyHeatmap`: introdotto meccanismo `dismissSignal` in `ActivityRecapCard` e `InteractiveHourlyHeatmap` che incrementa un contatore per propagare l'evento di dismiss ai grafici quando si tocca fuori dall'area; aggiunta pointer-input detection in `ChatDetailScreen` e `DashboardScreen` per catturare i tap esterni. Fix layout shift nelle barre di ricerca di `CallsStatsScreen` e `MediaStatsScreen`: il campo `OutlinedTextField` è avvolto in un `Box` ad altezza fissa che mantiene il layout stabile durante la transizione dallo stato di caricamento ai risultati.
 
 **v1.18 — Bottom Tab Navigation e header contestuali:** Refactor completo della navigazione con `AppScaffold` + `BottomNavigationBar` Material 3 a 5 tab (Panoramica, Chat, Media, Radar, Chiamate). Ogni tab mantiene il proprio back stack indipendente (`saveState`/`restoreState`). Il `NavHost` è strutturato con grafi annidati: un grafo Setup e un grafo Main contenente i 5 sotto-grafi per tab. Le schermate Radar, Chiamate e Media sono accessibili sia come radici di tab globali (senza `chatId`) sia come destinazioni chat-specifiche (con `chatId` nel path, es. `word_search/{chatId}`) all'interno del grafo Chat. Quando aperte da una chat, le schermate mostrano un header contestuale con nome chat, avatar e pulsante back tramite il componente `SimpleScreenHeader` potenziato. Il nome/avatar della chat è caricato da `AnalyticsRepository.getChatContextInfo(chatId)` e esposto come `StateFlow` nei rispettivi ViewModel (`WordSearchViewModel`, `CallsStatsViewModel`, `MediaStatsViewModel`). I 4 bottoni azione dalla Dashboard sono stati rimossi (la navigazione avviene esclusivamente via tab). Il `ChatDetailScreen` non ha più la card "Tutte le Chat"; le 3 card azione rimaste (Radar, Chiamate, Media) sono disposte in una riga orizzontale 1×3. Il `DateRangePicker` nel filtro "Scegli" è ora controllato da stato locale `showDatePicker` in `TimeRangeFilterRow` e non propaga `onRangeSelected(CUSTOM)` al tap del chip, eliminando reload indesiderati. Rimosso `LAST_7_DAYS` da `TimeRange`. Fix layout `LinkStatCard` in Media & Link: la sezione nome usa `weight(1f)` nella Row esterna (rimosso `SpaceBetween`), i pulsanti media/link restano fissi a destra senza sovrapporsi al nome scrollabile.
+
+**v1.19 — Theming navigazione e layout ActionCard:** Applicato `MaterialTheme` color scheme ai componenti `NavigationBarItem` della `BottomNavigationBar` per coerenza visiva con il design system dell'app. Aggiornati padding e tipografia di `ActionCard` in `ChatDetailScreen` per migliorare la leggibilità del testo su più righe. Rinnovata la palette colori del pie chart (donut chart) con un set di colori più vivaci e distinti per una migliore visualizzazione dei dati.
 
 ### Pianificato (non ancora implementato)
 
@@ -437,4 +439,4 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ---
 
-> Documento aggiornato alla versione **1.18**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
+> Documento aggiornato alla versione **1.19**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
