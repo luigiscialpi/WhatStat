@@ -67,6 +67,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -77,7 +80,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.ActivityRecapCard
-import com.whatstat.reborn.ui.component.ChartTooltip
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
@@ -149,16 +151,24 @@ fun ChatDetailScreen(
     var previewEmojiCount by remember { mutableIntStateOf(0) }
     var previewSticker by remember { mutableStateOf<String?>(null) }
     var previewStickerCount by remember { mutableIntStateOf(0) }
-
-    // Tooltip per ActivityRecapCard
-    var tooltipTitle by remember { mutableStateOf("") }
-    var tooltipValue by remember { mutableStateOf("") }
-    var showTooltip by remember { mutableStateOf(false) }
-
+    var chartDismissSignal by remember { mutableIntStateOf(0) }
     // Dialog per "Chi inizia le conversazioni"
     var showInfoDialog by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Final)
+                        if (event.changes.any { it.changedToUp() }) {
+                            chartDismissSignal++
+                        }
+                    }
+                }
+            }
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -452,11 +462,7 @@ fun ChatDetailScreen(
                                 dailyData = s.dayOfMonthDistribution,
                                 monthlyData = s.monthOfYearDistribution,
                                 yearlyData = s.yearTrendDistribution,
-                                onPointClick = { title, value ->
-                                    tooltipTitle = title
-                                    tooltipValue = value
-                                    showTooltip = true
-                                }
+                                dismissSignal = chartDismissSignal
                             )
                         }
 

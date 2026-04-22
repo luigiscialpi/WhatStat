@@ -36,7 +36,8 @@ fun ActivityRecapCard(
     dailyData: List<DayOfMonthCount>,
     monthlyData: List<MonthOfYearCount>,
     yearlyData: List<YearTrendCount>,
-    onPointClick: (String, String) -> Unit,
+    dismissSignal: Int = 0,
+    onPointClick: ((String, String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -47,6 +48,10 @@ fun ActivityRecapCard(
         "Gen", "Feb", "Mar", "Apr", "Mag", "Giu",
         "Lug", "Ago", "Set", "Ott", "Nov", "Dic"
     )
+
+    val handlePointClick: (String, String) -> Unit = { title, value ->
+        onPointClick?.invoke(title, value)
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -108,8 +113,9 @@ fun ActivityRecapCard(
                     0 -> {
                         InteractiveHourlyHeatmap(
                             hourlyData = hourlyData,
+                            dismissSignal = dismissSignal,
                             onHourClick = { hour, count ->
-                                onPointClick("Ore $hour:00", "$count messaggi")
+                                handlePointClick("Ore $hour:00", "$count messaggi")
                             }
                         )
                     }
@@ -122,12 +128,13 @@ fun ActivityRecapCard(
                             data = points,
                             barWidth = 32.dp,
                             spacing = 12.dp,
+                            dismissSignal = dismissSignal,
                             onPointClick = { point ->
                                 val dayFull = listOf(
                                     "Domenica", "Lunedì", "Martedì",
                                     "Mercoledì", "Giovedì", "Venerdì", "Sabato"
                                 )[point.id as Int]
-                                onPointClick(dayFull, "${point.count} messaggi")
+                                handlePointClick(dayFull, "${point.count} messaggi")
                             }
                         )
                     }
@@ -141,8 +148,9 @@ fun ActivityRecapCard(
                             barWidth = 14.dp,
                             spacing = 6.dp,
                             labelFrequency = 5,
+                            dismissSignal = dismissSignal,
                             onPointClick = { point ->
-                                onPointClick("Giorno ${point.label}", "${point.count} messaggi")
+                                handlePointClick("Giorno ${point.label}", "${point.count} messaggi")
                             }
                         )
                     }
@@ -155,12 +163,13 @@ fun ActivityRecapCard(
                             data = points,
                             barWidth = 24.dp,
                             spacing = 8.dp,
+                            dismissSignal = dismissSignal,
                             onPointClick = { point ->
                                 val monthFull = listOf(
                                     "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
                                     "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
                                 )[point.id as Int - 1]
-                                onPointClick(monthFull, "${point.count} messaggi")
+                                handlePointClick(monthFull, "${point.count} messaggi")
                             }
                         )
                     }
@@ -173,8 +182,9 @@ fun ActivityRecapCard(
                             data = points,
                             barWidth = 48.dp,
                             spacing = 16.dp,
+                            dismissSignal = dismissSignal,
                             onPointClick = { point ->
-                                onPointClick("Anno ${point.label}", "${point.count} messaggi")
+                                handlePointClick("Anno ${point.label}", "${point.count} messaggi")
                             }
                         )
                     }

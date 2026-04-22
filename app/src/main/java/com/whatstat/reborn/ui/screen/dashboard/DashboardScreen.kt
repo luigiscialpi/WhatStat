@@ -66,6 +66,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -79,7 +82,6 @@ import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.TimeRangeFilterRow
 import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
 import com.whatstat.reborn.ui.component.ActivityRecapCard
-import com.whatstat.reborn.ui.component.ChartTooltip
 import com.whatstat.reborn.ui.component.StatCard
 import com.whatstat.reborn.ui.component.InteractiveEmojiCloud
 import com.whatstat.reborn.ui.component.InteractiveStickerCloud
@@ -121,16 +123,28 @@ fun DashboardScreen(
     // ── FIX: estrai 's' fuori dal let, così è accessibile in tutto il LazyColumn ──
     val s = stats
 
-    var tooltipTitle by remember { mutableStateOf("") }
-    var tooltipValue by remember { mutableStateOf("") }
-    var showTooltip by remember { mutableStateOf(false) }
-
     var previewEmoji by remember { mutableStateOf<String?>(null) }
     var previewEmojiCount by remember { mutableIntStateOf(0) }
     var previewSticker by remember { mutableStateOf<String?>(null) }
     var previewStickerCount by remember { mutableIntStateOf(0) }
+    var chartDismissSignal by remember { mutableIntStateOf(0) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Final)
+                        // changedToUp() (senza IgnoreConsumed) è true solo se l'evento
+                        // NON è stato consumato da un figlio (es. clickable della barra)
+                        if (event.changes.any { it.changedToUp() }) {
+                            chartDismissSignal++
+                        }
+                    }
+                }
+            }
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -140,7 +154,7 @@ fun DashboardScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                    .padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -275,11 +289,7 @@ fun DashboardScreen(
                         dailyData = dailyData,
                         monthlyData = monthlyData,
                         yearlyData = yearlyData,
-                        onPointClick = { title, value ->
-                            tooltipTitle = title
-                            tooltipValue = value
-                            showTooltip = true
-                        }
+                        dismissSignal = chartDismissSignal
                     )
                 }
 
@@ -510,15 +520,6 @@ fun DashboardScreen(
             }
             } // fine else (!isLoading)
         } // fine Column
-
-        // ── Tooltip overlay ──────────────────────────────────────
-        if (showTooltip) {
-            ChartTooltip(
-                title = tooltipTitle,
-                value = tooltipValue,
-                onDismiss = { showTooltip = false }
-            )
-        }
 
         // ── Emoji Preview Modal ──────────────────────────────────
         if (previewEmoji != null) {
