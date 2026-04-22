@@ -11,6 +11,7 @@ import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.db.model.YearTrendCount
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.domain.model.GlobalStats
+import com.whatstat.reborn.ui.state.FilterStateHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +23,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val analyticsRepository: AnalyticsRepository
+    private val analyticsRepository: AnalyticsRepository,
+    private val filterState: FilterStateHolder
 ) : ViewModel() {
 
     private val _globalStats = MutableStateFlow<GlobalStats?>(null)
@@ -58,10 +60,10 @@ class DashboardViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    private val _selectedTimeRange = MutableStateFlow(TimeRange.ALL_TIME)
+    private val _selectedTimeRange = MutableStateFlow(filterState.globalTimeRange)
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
-    
-    private val _customDateRange = MutableStateFlow<DateRange?>(null)
+
+    private val _customDateRange = MutableStateFlow(filterState.globalCustomRange)
     val customDateRange: StateFlow<DateRange?> = _customDateRange.asStateFlow()
 
     private val _slowStatsRequested = MutableStateFlow(false)
@@ -191,17 +193,20 @@ class DashboardViewModel @Inject constructor(
         if (range != TimeRange.CUSTOM) {
             _customDateRange.value = null
         }
+        filterState.setGlobal(range, _customDateRange.value)
         loadStats()
     }
-    
+
     fun setCustomDateRange(dateRange: DateRange?) {
         val wasCustom = _selectedTimeRange.value == TimeRange.CUSTOM
         _customDateRange.value = dateRange
         if (dateRange != null) {
             _selectedTimeRange.value = TimeRange.CUSTOM
+            filterState.setGlobal(TimeRange.CUSTOM, dateRange)
         } else {
             if (wasCustom) {
                 _selectedTimeRange.value = TimeRange.ALL_TIME
+                filterState.setGlobal(TimeRange.ALL_TIME)
                 loadStats()
             }
         }

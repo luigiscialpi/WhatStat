@@ -8,6 +8,7 @@ import com.whatstat.reborn.data.db.model.DateRange
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.root.FileExtractor
+import com.whatstat.reborn.ui.state.FilterStateHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,7 @@ import javax.inject.Inject
 @HiltViewModel
 class CallsStatsViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
+    private val filterState: FilterStateHolder,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -43,6 +45,7 @@ class CallsStatsViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    // Il filtro iniziale viene letto da FilterStateHolder dopo che chatId è noto (in initialize)
     private val _selectedTimeRange = MutableStateFlow(TimeRange.ALL_TIME)
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
 
@@ -53,6 +56,14 @@ class CallsStatsViewModel @Inject constructor(
 
     fun initialize(chatId: Long?) {
         _chatId.value = chatId
+        // Ripristina il filtro dal contesto corretto
+        if (chatId != null) {
+            _selectedTimeRange.value = filterState.chatTimeRange
+            _customDateRange.value = filterState.chatCustomRange
+        } else {
+            _selectedTimeRange.value = filterState.globalTimeRange
+            _customDateRange.value = filterState.globalCustomRange
+        }
         loadStats()
     }
 
@@ -66,6 +77,8 @@ class CallsStatsViewModel @Inject constructor(
         if (range != TimeRange.CUSTOM) {
             _customDateRange.value = null
         }
+        if (_chatId.value != null) filterState.setChat(range, _customDateRange.value)
+        else filterState.setGlobal(range, _customDateRange.value)
         loadStats()
     }
 
@@ -74,9 +87,13 @@ class CallsStatsViewModel @Inject constructor(
         _customDateRange.value = dateRange
         if (dateRange != null) {
             _selectedTimeRange.value = TimeRange.CUSTOM
+            if (_chatId.value != null) filterState.setChat(TimeRange.CUSTOM, dateRange)
+            else filterState.setGlobal(TimeRange.CUSTOM, dateRange)
         } else {
             if (wasCustom) {
                 _selectedTimeRange.value = TimeRange.ALL_TIME
+                if (_chatId.value != null) filterState.setChat(TimeRange.ALL_TIME)
+                else filterState.setGlobal(TimeRange.ALL_TIME)
                 loadStats()
             }
         }

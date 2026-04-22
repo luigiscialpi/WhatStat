@@ -98,6 +98,8 @@ import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.db.model.UrlFrequency
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.DateRangePicker
+import com.whatstat.reborn.ui.component.SimpleScreenHeader
+import com.whatstat.reborn.ui.component.TimeRangeFilterRow
 import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.ui.component.ZoomableImageViewer
 import java.io.File
@@ -160,27 +162,11 @@ fun MediaStatsScreen(
         ) {
 
             // ── HEADER ─────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            var showInfoDialog by remember { mutableStateOf(false) }
+            SimpleScreenHeader(
+                title = if (isChatDetail) "Media & Link nella chat" else "Media & Link",
+                onBack = onNavigateBack
             ) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Indietro",
-                        tint = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-                Text(
-                    if (isChatDetail) "Media & Link nella chat" else "Media & Link",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.weight(1f)
-                )
-
-                var showInfoDialog by remember { mutableStateOf(false) }
                 IconButton(onClick = { showInfoDialog = true }) {
                     Icon(
                         Icons.Outlined.Info,
@@ -188,7 +174,6 @@ fun MediaStatsScreen(
                         tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
-
                 if (showInfoDialog) {
                     AlertDialog(
                         onDismissRequest = { showInfoDialog = false },
@@ -208,32 +193,31 @@ fun MediaStatsScreen(
                 }
             }
 
-            // ── FILTER CHIPS ─────────────────────────────
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .height(4.dp)
             ) {
-                items(TimeRange.entries.filter { it != TimeRange.CUSTOM }) { range ->
-                    FilterChip(
-                        selected = selectedRange == range,
-                        onClick = { viewModel.setTimeRange(range) },
-                        label = { Text(range.label) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                if (isLoading) {
+                    val p = progress
+                    if (p != null) {
+                        LinearProgressIndicator(
+                            progress = { p / 100f },
+                            modifier = Modifier.fillMaxWidth()
                         )
-                    )
+                    } else {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
                 }
             }
 
-            // ── DATE RANGE ───────────────────────────────
-            DateRangePicker(
-                dateRange = customDateRange,
+            // ── FILTER CHIPS ─────────────────────────────
+            TimeRangeFilterRow(
+                selectedRange = selectedRange,
+                onRangeSelected = { viewModel.setTimeRange(it) },
+                customDateRange = customDateRange,
                 onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-                onSubmitClicked = { viewModel.applyCustomDateRange() },
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+                onSubmitClicked = { viewModel.applyCustomDateRange() }
             )
 
             // ── SEARCH BAR ───────────────────────────────

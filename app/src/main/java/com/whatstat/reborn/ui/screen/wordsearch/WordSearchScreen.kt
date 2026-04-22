@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -35,6 +36,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -61,6 +63,8 @@ import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
+import com.whatstat.reborn.ui.component.SimpleScreenHeader
+import com.whatstat.reborn.ui.component.TimeRangeFilterRow
 
 @Composable
 fun WordSearchScreen(
@@ -84,52 +88,23 @@ fun WordSearchScreen(
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Indietro",
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            Text(
-                "Radar Parole",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.weight(1f)
-            )
-        }
+        SimpleScreenHeader(title = "Radar Parole", onBack = onNavigateBack)
 
-        // Filter Chips
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .height(4.dp)
         ) {
-            items(TimeRange.entries.filter { it != TimeRange.CUSTOM }) { range ->
-                FilterChip(
-                    selected = selectedRange == range,
-                    onClick = { viewModel.setTimeRange(range) },
-                    label = { Text(range.label) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                )
+            if (isLoading || isSearching) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
         }
 
-        // Custom Date Range
-        DateRangePicker(
-            dateRange = customDateRange,
-            onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+        TimeRangeFilterRow(
+            selectedRange = selectedRange,
+            onRangeSelected = { viewModel.setTimeRange(it) },
+            customDateRange = customDateRange,
+            onDateRangeChanged = { viewModel.setCustomDateRange(it) }
         )
 
         Row(

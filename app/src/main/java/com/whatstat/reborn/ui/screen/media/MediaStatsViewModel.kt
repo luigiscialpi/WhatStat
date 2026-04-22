@@ -11,6 +11,7 @@ import com.whatstat.reborn.data.db.model.MediaStat
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.root.FileExtractor
+import com.whatstat.reborn.ui.state.FilterStateHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ import javax.inject.Inject
 class MediaStatsViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
     private val cacheManager: CacheManager,
+    private val filterState: FilterStateHolder,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -117,6 +119,14 @@ class MediaStatsViewModel @Inject constructor(
         if (!initialized) {
             initialized = true
             _chatId.value = chatId
+            // Ripristina il filtro dal contesto corretto
+            if (chatId != null) {
+                _selectedTimeRange.value = filterState.chatTimeRange
+                _customDateRange.value = filterState.chatCustomRange
+            } else {
+                _selectedTimeRange.value = filterState.globalTimeRange
+                _customDateRange.value = filterState.globalCustomRange
+            }
             loadStats()
         }
     }
@@ -126,6 +136,8 @@ class MediaStatsViewModel @Inject constructor(
         if (range != TimeRange.CUSTOM) {
             _customDateRange.value = null
         }
+        if (_chatId.value != null) filterState.setChat(range, _customDateRange.value)
+        else filterState.setGlobal(range, _customDateRange.value)
         loadStats()
     }
 
@@ -134,9 +146,13 @@ class MediaStatsViewModel @Inject constructor(
         _customDateRange.value = dateRange
         if (dateRange != null) {
             _selectedTimeRange.value = TimeRange.CUSTOM
+            if (_chatId.value != null) filterState.setChat(TimeRange.CUSTOM, dateRange)
+            else filterState.setGlobal(TimeRange.CUSTOM, dateRange)
         } else {
             if (wasCustom) {
                 _selectedTimeRange.value = TimeRange.ALL_TIME
+                if (_chatId.value != null) filterState.setChat(TimeRange.ALL_TIME)
+                else filterState.setGlobal(TimeRange.ALL_TIME)
                 loadStats()
             }
         }

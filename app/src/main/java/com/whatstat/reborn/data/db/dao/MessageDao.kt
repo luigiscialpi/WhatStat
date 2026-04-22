@@ -15,6 +15,31 @@ class MessageDao @Inject constructor(
     private val database: WhatsAppDatabase
 ) {
 
+    companion object {
+        val STOP_WORDS: Set<String> = setOf(
+            // Italiano
+            "il", "lo", "la", "i", "gli", "le", "un", "uno", "una",
+            "di", "da", "in", "con", "su", "per", "tra", "fra",
+            "e", "o", "ma", "se", "che", "non", "ho", "hai", "ha",
+            "a", "al", "del", "della", "dei", "degli", "delle",
+            "mi", "ti", "ci", "si", "ne", "è", "sono", "sei", "siamo",
+            "come", "quando", "dove", "perché", "poi", "già", "anche",
+            "più", "questo", "questa", "quello", "quella", "cosa",
+            "tutto", "tutti", "molto", "bene", "solo", "ancora",
+            "ora", "qui", "così", "fare", "fatto", "dire", "detto",
+            "stato", "stata", "essere", "avere", "dopo", "prima",
+            // Inglese
+            "the", "a", "is", "in", "of", "and", "to", "it", "for",
+            "on", "are", "was", "with", "that", "this", "but", "not",
+            "you", "all", "can", "had", "her", "one", "our", "out",
+            // WhatsApp-specifiche
+            "http", "https", "www", "com", "media", "omitted"
+        )
+        private val WORD_NORMALIZER = Regex("(.)\\1{2,}")
+        private val WORD_SPLITTER   = Regex("\\s+")
+        private val WORD_CLEANER    = Regex("[^a-zàáâãäåæçèéêëìíîïðñòóôõöøùúûüý\\s]")
+    }
+
     /** Conta i messaggi totali nel database. */
     fun getTotalMessageCount(): Int {
         val cursor = database.getMsgDb().rawQuery(
@@ -571,18 +596,11 @@ class MessageDao @Inject constructor(
     }
 
     private fun countEmojis(texts: List<String>, limit: Int): List<EmojiStat> {
-        val freq = mutableMapOf<String, Int>()
-        try {
-            texts.forEach { text ->
-                extractEmojis(text).forEach { emoji ->
-                    val base = stripSkinTone(emoji)
-                    freq[base] = (freq[base] ?: 0) + 1
-                }
-            }
-        } catch (e: Exception) {
-            android.util.Log.w("WhatStat", "Error counting emojis: ${e.message}")
-        }
-        return freq.entries.sortedByDescending { it.value }.take(limit).map { EmojiStat(it.key, it.value) }
+        return buildEmojiFrequencyMap(texts)
+            .entries
+            .sortedByDescending { it.value }
+            .take(limit)
+            .map { EmojiStat(it.key, it.value) }
     }
 
     private fun stripSkinTone(emoji: String): String {
@@ -1437,47 +1455,107 @@ class MessageDao @Inject constructor(
         return ConversationStarterStats(iStarted, theyStarted)
     }
 
+    // =====================================================================
+    // === Word/Emoji Index Building (metodi pubblici per delta increment) ===
+    // =====================================================================
+
+    /**
+     * Ritorna coppie (text, timestamp) per costruire o aggiornare l'indice lessicale.
+     * - [chatId] null = tutte le chat (globale)
+     * - [sinceTimestamp] null = tutti i messaggi; altrimenti solo quelli più recenti
+     */
+    fun getTextsWithTimestamps(
+        chatId: Long? = null,
+        sinceTimestamp: Long? = null
+    ): List<Pair<String, Long>> {
+        val conditions = mutableListOf("text_data IS NOT NULL", "message_type = 0")
+        val args = mutableListOf<String>()
+        if (chatId != null) {
+            conditions.add("chat_row_id = ?")
+            args.add(chatId.toString())
+        }
+        if (sinceTimestamp != null && sinceTimestamp > 0L) {
+            conditions.add("timestamp > ?")
+            args.add(sinceTimestamp.toString())
+        }
+        val query = "SELECT text_data, timestamp FROM message WHERE ${conditions.joinToString(" AND ")}"
+        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
+        return cursor.use {
+            buildList {
+                while (it.moveToNext()) {
+                    val text = it.getString(0)
+                    val ts = it.getLong(1)
+                    if (!text.isNullOrBlank()) add(text to ts)
+                }
+            }
+        }
+    }
+
+    /** Numero di messaggi testuali globali. Usato per sanity check dell'indice. */
+    fun getGlobalTextMessageCount(): Int {
+        val cursor = database.getMsgDb().rawQuery(
+            "SELECT COUNT(*) FROM message WHERE message_type = 0 AND text_data IS NOT NULL", null
+        )
+        return cursor.use { if (it.moveToFirst()) it.getInt(0) else 0 }
+    }
+
+    /** Numero di messaggi testuali per chat. Usato per sanity check dell'indice per-chat. */
+    fun getChatTextMessageCount(chatId: Long): Int {
+        val cursor = database.getMsgDb().rawQuery(
+            "SELECT COUNT(*) FROM message WHERE chat_row_id = ? AND message_type = 0 AND text_data IS NOT NULL",
+            arrayOf(chatId.toString())
+        )
+        return cursor.use { if (it.moveToFirst()) it.getInt(0) else 0 }
+    }
+
+    /**
+     * Costruisce una mappa word→frequenza (nessun limite) da una lista di testi.
+     * Usa la stessa logica di normalizzazione e filtro stop-words di [countWords].
+     * Esposto pubblicamente per la costruzione/aggiornamento dell'indice lessicale.
+     */
+    fun buildWordFrequencyMap(texts: List<String>): Map<String, Int> {
+        val freq = mutableMapOf<String, Int>()
+        texts.forEach { text ->
+            text.lowercase()
+                .replace(WORD_CLEANER, "")
+                .split(WORD_SPLITTER)
+                .filter { it.length > 2 && it !in STOP_WORDS }
+                .forEach { word ->
+                    val norm = word.replace(WORD_NORMALIZER, "$1$1")
+                    freq[norm] = (freq[norm] ?: 0) + 1
+                }
+        }
+        return freq
+    }
+
+    /**
+     * Costruisce una mappa emoji→frequenza (nessun limite) da una lista di testi.
+     * Esposto pubblicamente per la costruzione/aggiornamento dell'indice lessicale.
+     */
+    fun buildEmojiFrequencyMap(texts: List<String>): Map<String, Int> {
+        val freq = mutableMapOf<String, Int>()
+        try {
+            texts.forEach { text ->
+                extractEmojis(text).forEach { emoji ->
+                    val base = stripSkinTone(emoji)
+                    freq[base] = (freq[base] ?: 0) + 1
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("WhatStat", "buildEmojiFrequencyMap error: ${e.message}")
+        }
+        return freq
+    }
+
+    // =====================================================================
+
     /**
      * Conta le parole escludendo stop words italiane e inglesi.
      * Filtra parole con meno di 3 caratteri.
      */
     private fun countWords(texts: List<String>, limit: Int): List<WordFrequency> {
-        val stopWords = setOf(
-            // Italiano
-            "il", "lo", "la", "i", "gli", "le", "un", "uno", "una",
-            "di", "da", "in", "con", "su", "per", "tra", "fra",
-            "e", "o", "ma", "se", "che", "non", "ho", "hai", "ha",
-            "a", "al", "del", "della", "dei", "degli", "delle",
-            "mi", "ti", "ci", "si", "ne", "è", "sono", "sei", "siamo",
-            "come", "quando", "dove", "perché", "poi", "già", "anche",
-            "più", "questo", "questa", "quello", "quella", "cosa",
-            "tutto", "tutti", "molto", "bene", "solo", "ancora",
-            "ora", "qui", "così", "fare", "fatto", "dire", "detto",
-            "stato", "stata", "essere", "avere", "dopo", "prima",
-            // Inglese
-            "the", "a", "is", "in", "of", "and", "to", "it", "for",
-            "on", "are", "was", "with", "that", "this", "but", "not",
-            "you", "all", "can", "had", "her", "one", "our", "out",
-            // WhatsApp-specifiche (da escludere)
-            "http", "https", "www", "com", "media", "omitted"
-        )
-
-        val freq = mutableMapOf<String, Int>()
-        // Normalizza solo ripetizioni eccessive (3+ dello stesso carattere → 2)
-        val normalize = { word: String -> word.replace(Regex("(.)\\1{2,}"), "$1$1") }
-        
-        texts.forEach { text ->
-            text.lowercase()
-                .replace(Regex("[^a-zàáâãäåæçèéêëìíîïðñòóôõöøùúûüý\\s]"), "")
-                .split(Regex("\\s+"))
-                .filter { it.length > 2 && it !in stopWords }
-                .forEach { word -> 
-                    val normalized = normalize(word)
-                    freq[normalized] = (freq[normalized] ?: 0) + 1 
-                }
-        }
-
-        return freq.entries
+        return buildWordFrequencyMap(texts)
+            .entries
             .sortedByDescending { it.value }
             .take(limit)
             .map { WordFrequency(it.key, it.value) }

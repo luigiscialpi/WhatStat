@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -64,6 +65,8 @@ import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
+import com.whatstat.reborn.ui.component.SimpleScreenHeader
+import com.whatstat.reborn.ui.component.TimeRangeFilterRow
 
 private fun formatDuration(seconds: Long): String {
     val hours = seconds / 3600
@@ -92,52 +95,24 @@ fun CallsStatsScreen(
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Indietro",
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            Text(
-                "Log Chiamate",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
+        SimpleScreenHeader(title = "Log Chiamate", onBack = onNavigateBack)
 
-        // Filter Chips
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .height(4.dp)
         ) {
-            items(TimeRange.entries.filter { it != TimeRange.CUSTOM }) { range ->
-                FilterChip(
-                    selected = selectedRange == range,
-                    onClick = { viewModel.setTimeRange(range) },
-                    label = { Text(range.label) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                )
+            if (isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
         }
 
-        // Custom Date Range
-        DateRangePicker(
-            dateRange = customDateRange,
+        TimeRangeFilterRow(
+            selectedRange = selectedRange,
+            onRangeSelected = { viewModel.setTimeRange(it) },
+            customDateRange = customDateRange,
             onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-            onSubmitClicked = { viewModel.applyCustomDateRange() },
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+            onSubmitClicked = { viewModel.applyCustomDateRange() }
         )
 
         // Search bar (solo se ci sono risultati)

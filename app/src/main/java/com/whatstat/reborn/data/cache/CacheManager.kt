@@ -103,6 +103,32 @@ private data class CachedQuickChatStats(
 )
 @Serializable private data class CachedStickerStat(val filePath: String, val fileName: String, val count: Int)
 
+// ── Indice lessicale incrementale ─────────────────────────────────
+
+/**
+ * Indice globale (o per-chat) delle frequenze di parole ed emoji.
+ * Persistito su disco come file gzippato, sopravvive alle sessioni.
+ * [lastProcessedTimestamp] = timestamp dell'ultimo messaggio processato.
+ * [totalMessageCount] = conteggio messaggi al momento del salvataggio (sanity check).
+ */
+data class WordFrequencyIndexData(
+    val wordFrequencies: Map<String, Int>,
+    val emojiFrequencies: Map<String, Int>,
+    val lastProcessedTimestamp: Long,
+    val totalMessageCount: Int
+)
+
+/**
+ * Indice mensile delle frequenze per supportare le query con filtri temporali
+ * senza dover rileggere l'intero database.
+ * Chiave di [monthlyWords] e [monthlyEmojis]: "YYYY-MM".
+ */
+data class MonthlyWordIndexData(
+    val monthlyWords: Map<String, Map<String, Int>>,
+    val monthlyEmojis: Map<String, Map<String, Int>>,
+    val lastProcessedTimestamp: Long
+)
+
 // ── Conversioni domain ↔ cache ───────────────────────────────────
 
 private fun GlobalStats.toCached() = CachedGlobalStats(
@@ -419,6 +445,126 @@ class CacheManager @Inject constructor(
         dataStore.edit { prefs -> prefs[key] = cacheJson.encodeToString(cached) }
     }
 
+    // ── Indice lessicale (word/emoji frequency, incrementale) ─────────────────────
+
+    @Volatile var globalWordIndex: WordFrequencyIndexData? = null
+    @Volatile var monthlyWordIndex: MonthlyWordIndexData? = null
+    private val chatWordIndexCache = java.util.concurrent.ConcurrentHashMap<Long, WordFrequencyIndexData>()
+
+    // filesDir: persistente tra sessioni (costoso da ricostruire)
+    private val globalWordIndexFile get() = java.io.File(context.filesDir, "word_index_global.gz")
+    private val monthlyWordIndexFile get() = java.io.File(context.filesDir, "word_index_monthly.gz")
+    private fun chatWordIndexFile(chatId: Long) = java.io.File(context.cacheDir, "word_index_chat_${chatId}.gz")
+
+    fun loadGlobalWordIndexFromDisk(): WordFrequencyIndexData? {
+        globalWordIndex?.let { return it }
+        val file = globalWordIndexFile
+        if (!file.exists() || file.length() == 0L) return null
+        return try {
+            parseWordIndexFile(file).also { globalWordIndex = it }
+        } catch (_: Exception) { null }
+    }
+
+    fun saveGlobalWordIndexToDisk(data: WordFrequencyIndexData) {
+        globalWordIndex = data
+        try {
+            val tmp = java.io.File(context.filesDir, "word_index_global.tmp")
+            writeWordIndexFile(tmp, data)
+            tmp.renameTo(globalWordIndexFile)
+        } catch (_: Exception) { }
+    }
+
+    fun loadChatWordIndexFromDisk(chatId: Long): WordFrequencyIndexData? {
+        chatWordIndexCache[chatId]?.let { return it }
+        val file = chatWordIndexFile(chatId)
+        if (!file.exists() || file.length() == 0L) return null
+        return try {
+            parseWordIndexFile(file).also { chatWordIndexCache[chatId] = it }
+        } catch (_: Exception) { null }
+    }
+
+    fun saveChatWordIndexToDisk(chatId: Long, data: WordFrequencyIndexData) {
+        chatWordIndexCache[chatId] = data
+        try {
+            val tmp = java.io.File(context.cacheDir, "word_index_chat_${chatId}.tmp")
+            writeWordIndexFile(tmp, data)
+            tmp.renameTo(chatWordIndexFile(chatId))
+        } catch (_: Exception) { }
+    }
+
+    fun loadMonthlyWordIndexFromDisk(): MonthlyWordIndexData? {
+        monthlyWordIndex?.let { return it }
+        val file = monthlyWordIndexFile
+        if (!file.exists() || file.length() == 0L) return null
+        return try {
+            val mWords = mutableMapOf<String, MutableMap<String, Int>>()
+            val mEmojis = mutableMapOf<String, MutableMap<String, Int>>()
+            var lastTs = 0L
+            java.util.zip.GZIPInputStream(file.inputStream().buffered()).bufferedReader().use { reader ->
+                reader.forEachLine { line ->
+                    val parts = line.split('\t', ignoreCase = false, limit = 4)
+                    when {
+                        parts.size >= 2 && parts[0] == "LAST_TS" -> lastTs = parts[1].toLongOrNull() ?: 0L
+                        parts.size == 4 && parts[1] == "W" ->
+                            mWords.getOrPut(parts[0]) { mutableMapOf() }[parts[2]] = parts[3].toIntOrNull() ?: 0
+                        parts.size == 4 && parts[1] == "E" ->
+                            mEmojis.getOrPut(parts[0]) { mutableMapOf() }[parts[2]] = parts[3].toIntOrNull() ?: 0
+                    }
+                }
+            }
+            MonthlyWordIndexData(mWords, mEmojis, lastTs).also { monthlyWordIndex = it }
+        } catch (_: Exception) { null }
+    }
+
+    fun saveMonthlyWordIndexToDisk(data: MonthlyWordIndexData) {
+        monthlyWordIndex = data
+        try {
+            val tmp = java.io.File(context.filesDir, "word_index_monthly.tmp")
+            java.util.zip.GZIPOutputStream(tmp.outputStream().buffered()).bufferedWriter().use { writer ->
+                writer.write("LAST_TS\t${data.lastProcessedTimestamp}"); writer.newLine()
+                data.monthlyWords.forEach { (month, freqs) ->
+                    freqs.forEach { (word, count) ->
+                        writer.write("$month\tW\t$word\t$count"); writer.newLine()
+                    }
+                }
+                data.monthlyEmojis.forEach { (month, freqs) ->
+                    freqs.forEach { (emoji, count) ->
+                        writer.write("$month\tE\t$emoji\t$count"); writer.newLine()
+                    }
+                }
+            }
+            tmp.renameTo(monthlyWordIndexFile)
+        } catch (_: Exception) { }
+    }
+
+    private fun parseWordIndexFile(file: java.io.File): WordFrequencyIndexData {
+        val wordFreqs = mutableMapOf<String, Int>()
+        val emojiFreqs = mutableMapOf<String, Int>()
+        var lastTs = 0L
+        var msgCount = 0
+        java.util.zip.GZIPInputStream(file.inputStream().buffered()).bufferedReader().use { reader ->
+            reader.forEachLine { line ->
+                val parts = line.split('\t', ignoreCase = false, limit = 3)
+                when {
+                    parts.size >= 2 && parts[0] == "LAST_TS"   -> lastTs   = parts[1].toLongOrNull() ?: 0L
+                    parts.size >= 2 && parts[0] == "MSG_COUNT" -> msgCount = parts[1].toIntOrNull()  ?: 0
+                    parts.size == 3 && parts[0] == "W"         -> wordFreqs[parts[1]]  = parts[2].toIntOrNull() ?: 0
+                    parts.size == 3 && parts[0] == "E"         -> emojiFreqs[parts[1]] = parts[2].toIntOrNull() ?: 0
+                }
+            }
+        }
+        return WordFrequencyIndexData(wordFreqs, emojiFreqs, lastTs, msgCount)
+    }
+
+    private fun writeWordIndexFile(file: java.io.File, data: WordFrequencyIndexData) {
+        java.util.zip.GZIPOutputStream(file.outputStream().buffered()).bufferedWriter().use { writer ->
+            writer.write("LAST_TS\t${data.lastProcessedTimestamp}");  writer.newLine()
+            writer.write("MSG_COUNT\t${data.totalMessageCount}"); writer.newLine()
+            data.wordFrequencies.forEach  { (word,  count) -> writer.write("W\t$word\t$count");  writer.newLine() }
+            data.emojiFrequencies.forEach { (emoji, count) -> writer.write("E\t$emoji\t$count"); writer.newLine() }
+        }
+    }
+
     // ── Indice filesystem media (cache in-memory + file gzippato) ─────────────────
 
     @Volatile var mediaFileIndex: Set<String>? = null
@@ -456,5 +602,11 @@ class CacheManager @Inject constructor(
         dataStore.edit { it.clear() }
         mediaFileIndex = null
         mediaIndexFile.delete()
+        // I file degli indici lessicali NON vengono eliminati:
+        // supportano il delta update quando il DB cambia.
+        // Azzeriamo solo le referenze in-memory; i file restano su disco.
+        globalWordIndex = null
+        monthlyWordIndex = null
+        chatWordIndexCache.clear()
     }
 }

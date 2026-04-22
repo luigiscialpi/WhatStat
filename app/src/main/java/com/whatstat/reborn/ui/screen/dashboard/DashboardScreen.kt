@@ -22,10 +22,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Call
@@ -53,6 +54,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -73,6 +75,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
+import com.whatstat.reborn.ui.component.TimeRangeFilterRow
 import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
 import com.whatstat.reborn.ui.component.ActivityRecapCard
 import com.whatstat.reborn.ui.component.ChartTooltip
@@ -131,75 +134,52 @@ fun DashboardScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Panoramica",
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        "Le tue statistiche WhatsApp",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    "Panoramica",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
                 IconButton(onClick = onNavigateBack) {
                     Icon(
-                        Icons.AutoMirrored.Outlined.ArrowBack,
+                        Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Torna indietro"
                     )
                 }
             }
 
             // ── Progress bar ─────────────────────────────────────────
-            if (isLoading) {
-                val p = progress
-                if (p != null) {
-                    LinearProgressIndicator(
-                        progress = { p / 100f },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
-            }
-
-            if (!isLoading) {
-                // ── Sticky Filter Chips ───────────────────────────────────
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 4.dp)
-                ) {
-                    items(TimeRange.entries.filter { it != TimeRange.CUSTOM }) { range ->
-                        FilterChip(
-                            selected = selectedRange == range,
-                            onClick = { viewModel.setTimeRange(range) },
-                            label = { Text(range.label) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+            ) {
+                if (isLoading) {
+                    val p = progress
+                    if (p != null) {
+                        LinearProgressIndicator(
+                            progress = { p / 100f },
+                            modifier = Modifier.fillMaxWidth()
                         )
+                    } else {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     }
                 }
-
-                // ── Sticky Date Range Picker ─────────────────────────────
-                DateRangePicker(
-                    dateRange = customDateRange,
-                    onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-                    onSubmitClicked = { viewModel.retry() },
-                    isSearching = isLoading,
-                    onCancelClicked = { viewModel.cancelLoad() },
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-                )
             }
+
+            // ── Sticky Filter Chips ───────────────────────────────────
+            TimeRangeFilterRow(
+                selectedRange = selectedRange,
+                onRangeSelected = { viewModel.setTimeRange(it) },
+                customDateRange = customDateRange,
+                onDateRangeChanged = { viewModel.setCustomDateRange(it) },
+                onSubmitClicked = { viewModel.retry() },
+                isSearching = isLoading,
+                onCancelClicked = { viewModel.cancelLoad() }
+            )
 
             // ── Scrollable Content ───────────────────────────────────
             if (isLoading) {

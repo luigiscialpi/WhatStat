@@ -8,6 +8,7 @@ import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.db.model.WordSearchResult
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.root.FileExtractor
+import com.whatstat.reborn.ui.state.FilterStateHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -22,6 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 class WordSearchViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
+    private val filterState: FilterStateHolder,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -99,12 +101,16 @@ class WordSearchViewModel @Inject constructor(
         if (range != TimeRange.CUSTOM) {
             _customDateRange.value = null
         }
+        if (_chatId.value != null) filterState.setChat(range, _customDateRange.value)
+        else filterState.setGlobal(range, _customDateRange.value)
     }
 
     fun setCustomDateRange(dateRange: DateRange?) {
         _customDateRange.value = dateRange
         if (dateRange != null) {
             _selectedTimeRange.value = TimeRange.CUSTOM
+            if (_chatId.value != null) filterState.setChat(TimeRange.CUSTOM, dateRange)
+            else filterState.setGlobal(TimeRange.CUSTOM, dateRange)
         }
     }
 

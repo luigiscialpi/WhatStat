@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -54,6 +55,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,6 +80,7 @@ import com.whatstat.reborn.ui.component.ChartTooltip
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
+import com.whatstat.reborn.ui.component.TimeRangeFilterRow
 import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
 import com.whatstat.reborn.ui.component.StatCard
 import com.whatstat.reborn.ui.component.DateRangeCard
@@ -285,33 +288,32 @@ fun ChatDetailScreen(
                 }
             }
 
-            if (!isLoading) {
-                // ── Sticky Filter Chips ───────────────────────────────────
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .height(4.dp)
             ) {
-                items(TimeRange.entries.filter { it != TimeRange.CUSTOM }) { range ->
-                    FilterChip(
-                        selected = selectedRange == range,
-                        onClick = { viewModel.setTimeRange(range) },
-                        label = { Text(range.label) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                if (isLoading) {
+                    val p = progress
+                    if (p != null) {
+                        LinearProgressIndicator(
+                            progress = { p / 100f },
+                            modifier = Modifier.fillMaxWidth()
                         )
-                    )
+                    } else {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
                 }
             }
 
-            // ── Custom Date Range Picker ─────────────────────────────
-            DateRangePicker(
-                dateRange = customDateRange,
+            if (!isLoading) {
+                // ── Sticky Filter Chips ───────────────────────────────────
+            TimeRangeFilterRow(
+                selectedRange = selectedRange,
+                onRangeSelected = { viewModel.setTimeRange(it) },
+                customDateRange = customDateRange,
                 onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-                onSubmitClicked = { viewModel.applyCustomDateRange() },
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+                onSubmitClicked = { viewModel.applyCustomDateRange() }
             )
             }
 

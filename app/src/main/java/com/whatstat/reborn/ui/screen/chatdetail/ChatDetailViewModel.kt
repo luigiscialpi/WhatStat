@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import com.whatstat.reborn.data.db.model.WordFrequency
 import com.whatstat.reborn.data.db.model.SenderStat
 import com.whatstat.reborn.data.db.model.EmojiStat
+import com.whatstat.reborn.ui.state.FilterStateHolder
 import java.io.File
 import javax.inject.Inject
 
@@ -30,6 +31,7 @@ class ChatDetailViewModel @Inject constructor(
     private val chatDao: ChatDao,
     private val contactDao: ContactDao,
     @ApplicationContext private val context: Context,
+    private val filterState: FilterStateHolder,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -75,10 +77,10 @@ class ChatDetailViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    private val _selectedTimeRange = MutableStateFlow(TimeRange.ALL_TIME)
+    private val _selectedTimeRange = MutableStateFlow(filterState.chatTimeRange)
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
-    
-    private val _customDateRange = MutableStateFlow<DateRange?>(null)
+
+    private val _customDateRange = MutableStateFlow(filterState.chatCustomRange)
     val customDateRange: StateFlow<DateRange?> = _customDateRange.asStateFlow()
 
     private val _wordViewMode = MutableStateFlow(WordViewMode.AGGREGATED)
@@ -214,17 +216,20 @@ class ChatDetailViewModel @Inject constructor(
         if (range != TimeRange.CUSTOM) {
             _customDateRange.value = null
         }
+        filterState.setChat(range, _customDateRange.value)
         loadChatStats()
     }
-    
+
     fun setCustomDateRange(dateRange: DateRange?) {
         val wasCustom = _selectedTimeRange.value == TimeRange.CUSTOM
         _customDateRange.value = dateRange
         if (dateRange != null) {
             _selectedTimeRange.value = TimeRange.CUSTOM
+            filterState.setChat(TimeRange.CUSTOM, dateRange)
         } else {
             if (wasCustom) {
                 _selectedTimeRange.value = TimeRange.ALL_TIME
+                filterState.setChat(TimeRange.ALL_TIME)
                 loadChatStats()
             }
         }
