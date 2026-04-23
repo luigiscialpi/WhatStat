@@ -619,7 +619,8 @@ fun ChatDetailScreen(
                                                         ContactNameWithPhone(
                                                             name = sender.displayName,
                                                             jid = sender.jid,
-                                                            nameStyle = MaterialTheme.typography.bodyMedium
+                                                            nameStyle = MaterialTheme.typography.bodyMedium,
+                                                            enableHorizontalScroll = false
                                                         )
                                                     },
                                                     colors = FilterChipDefaults.filterChipColors(

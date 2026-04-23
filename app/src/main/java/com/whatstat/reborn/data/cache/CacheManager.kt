@@ -187,7 +187,8 @@ private fun CachedSlowChatStats.toDomain() = SlowChatStats(
     topWords = topWords.map { WordFrequency(it.word, it.frequency) },
     topEmojis = topEmojis.map { EmojiStat(it.emoji, it.count) },
     topStickers = topStickers.map { StickerStat(it.filePath, it.fileName, it.count) },
-    senderBreakdown = senderBreakdown.map { SenderStat(it.jid, it.displayName, it.count) },
+    senderBreakdown = senderBreakdown.map { SenderStat(it.jid, it.displayName, it.count) }
+        .sortedWith(compareBy { if (it.jid == "me@s.whatsapp.net") 0 else 1 }),
     conversationStarterBreakdown = conversationStarterBreakdown.map { SenderStat(it.jid, it.displayName, it.count) },
     averageResponseTimeMs = averageResponseTimeMs,
     iStartedConversations = iStartedConversations,
