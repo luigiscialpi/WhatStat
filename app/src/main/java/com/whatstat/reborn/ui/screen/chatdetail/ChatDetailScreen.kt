@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -112,7 +113,8 @@ fun ChatDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToWordSearch: () -> Unit = {},
     onNavigateToCalls: () -> Unit = {},
-    onNavigateToMedia: () -> Unit = {}
+    onNavigateToMedia: () -> Unit = {},
+    onNavigateToHistory: () -> Unit = {}
 ) {
     val stats by viewModel.chatStats.collectAsState()
     val headerInfo by viewModel.headerInfo.collectAsState()
@@ -716,30 +718,69 @@ fun ChatDetailScreen(
                         }
 
 
-                        // ── Action Row (1x3) ────────────────────────────────
+                        // ── Action Row ────────────────────────────────
                         item {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                ActionCard(
-                                    modifier = Modifier.weight(1f),
-                                    title = "Radar Parole",
-                                    subtitle = "Cerca parole frequenti",
-                                    icon = Icons.Outlined.Search,
-                                    onClick = onNavigateToWordSearch
-                                )
-                                ActionCard(
-                                    modifier = Modifier.weight(1f),
-                                    title = "Log Chiamate",
-                                    subtitle = "Audio, video, perse",
-                                    icon = Icons.Outlined.Call,
-                                    onClick = onNavigateToCalls
-                                )
-                                ActionCard(
-                                    modifier = Modifier.weight(1f),
-                                    title = "Media & Link",
-                                    subtitle = "Documenti e URL",
-                                    icon = Icons.Outlined.Link,
-                                    onClick = onNavigateToMedia
-                                )
+                            if (stats?.isGroup == true) {
+                                // Layout 2x2 per i gruppi
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        ActionCard(
+                                            modifier = Modifier.weight(1f),
+                                            title = "Radar Parole",
+                                            subtitle = "Cerca parole frequenti",
+                                            icon = Icons.Outlined.Search,
+                                            onClick = onNavigateToWordSearch
+                                        )
+                                        ActionCard(
+                                            modifier = Modifier.weight(1f),
+                                            title = "Log Chiamate",
+                                            subtitle = "Audio, video, perse",
+                                            icon = Icons.Outlined.Call,
+                                            onClick = onNavigateToCalls
+                                        )
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        ActionCard(
+                                            modifier = Modifier.weight(1f),
+                                            title = "Media & Link",
+                                            subtitle = "Documenti e URL",
+                                            icon = Icons.Outlined.Link,
+                                            onClick = onNavigateToMedia
+                                        )
+                                        ActionCard(
+                                            modifier = Modifier.weight(1f),
+                                            title = "Storico Gruppo",
+                                            subtitle = "Eventi del gruppo",
+                                            icon = Icons.Outlined.History,
+                                            onClick = onNavigateToHistory
+                                        )
+                                    }
+                                }
+                            } else {
+                                // Layout 1x3 per le chat singole
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = "Radar Parole",
+                                        subtitle = "Cerca parole frequenti",
+                                        icon = Icons.Outlined.Search,
+                                        onClick = onNavigateToWordSearch
+                                    )
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = "Log Chiamate",
+                                        subtitle = "Audio, video, perse",
+                                        icon = Icons.Outlined.Call,
+                                        onClick = onNavigateToCalls
+                                    )
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = "Media & Link",
+                                        subtitle = "Documenti e URL",
+                                        icon = Icons.Outlined.Link,
+                                        onClick = onNavigateToMedia
+                                    )
+                                }
                             }
                         }
 

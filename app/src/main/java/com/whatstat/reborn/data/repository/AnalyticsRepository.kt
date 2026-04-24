@@ -903,6 +903,57 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         cacheManager.saveMonthlyWordIndexToDisk(MonthlyWordIndexData(mWords, mEmojis, lastTs))
     }
 
+    private var cachedMyJid: String? = null
+
+    fun getMyJid(): String? {
+        if (cachedMyJid == null) {
+            cachedMyJid = messageDao.guessUserJid()
+        }
+        return cachedMyJid
+    }
+
+    /**
+     * Recupera e consolida la storia del gruppo (partecipanti e nomi).
+     */
+    suspend fun getGroupHistory(chatId: Long): List<com.whatstat.reborn.domain.model.GroupEvent> = withContext(Dispatchers.IO) {
+        val chatInfo = chatDao.getChatBasicInfo(chatId)
+        if (!chatInfo.isGroup) return@withContext emptyList()
+        
+        val groupJid = chatInfo.jid
+
+        val participantHistory = async { messageDao.getGroupParticipantHistory(chatId) }
+        val nameHistory = async { messageDao.getGroupNameHistory(chatId) }
+
+        val events = mutableListOf<com.whatstat.reborn.domain.model.GroupEvent>()
+
+        participantHistory.await().forEach { entity ->
+            events.add(com.whatstat.reborn.domain.model.GroupEvent.ParticipantAction(
+                timestamp = if (entity.timestamp < 100000000000L) entity.timestamp * 1000L else entity.timestamp,
+                userJid = entity.jid,
+                actionType = entity.action,
+                adminJid = null
+            ))
+        }
+
+        nameHistory.await().forEach { entity ->
+            events.add(com.whatstat.reborn.domain.model.GroupEvent.NameChange(
+                timestamp = if (entity.timestamp < 100000000000L) entity.timestamp * 1000L else entity.timestamp,
+                oldName = entity.oldData,
+                newName = entity.newNameFallback ?: "",
+                userJid = entity.senderJid
+            ))
+        }
+
+        events.sortedByDescending { it.timestamp }
+    }
+
+    /**
+     * Risolve i nomi dei contatti per una lista di JID.
+     */
+    suspend fun resolveContactNames(jids: List<String>): Map<String, String> = withContext(Dispatchers.IO) {
+        contactDao.resolveContactNames(jids)
+    }
+
     /**
      * Calcola top-N parole ed emoji dall'indice mensile per un intervallo di date.
      * Strategia "bucket": include tutti i mesi che si sovrappongono all'intervallo.

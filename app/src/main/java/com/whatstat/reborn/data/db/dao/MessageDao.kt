@@ -595,6 +595,106 @@ class MessageDao @Inject constructor(
         return words to emojis
     }
 
+    fun guessUserJid(): String? {
+        val query = """
+            SELECT j.raw_string
+            FROM message m
+            JOIN jid j ON m.sender_jid_row_id = j._id
+            WHERE m.from_me = 1 AND j.raw_string LIKE '%@s.whatsapp.net'
+            GROUP BY j.raw_string
+            ORDER BY COUNT(*) DESC
+            LIMIT 1
+        """.trimIndent()
+        
+        val cursor = database.getMsgDb().rawQuery(query, null)
+        return cursor.use {
+            if (it.moveToFirst()) it.getString(0) else null
+        }
+    }
+
+    fun getGroupParticipantHistory(chatId: Long): List<GroupParticipantHistoryEntity> {
+        val query = """
+            SELECT 
+                m.timestamp, 
+                c.jid_row_id, -- Non abbiamo il raw_string qui per via della join base, ma ci serve solo restituire entità
+                COALESCE(j_part.raw_string, 'unknown') AS user_jid, 
+                sys.action_type,
+                CASE 
+                    WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    ELSE 'unknown'
+                END AS admin_jid
+            FROM message m
+            JOIN chat c ON m.chat_row_id = c._id
+            JOIN message_system sys ON m._id = sys.message_row_id
+            JOIN message_system_chat_participant mscp ON m._id = mscp.message_row_id
+            LEFT JOIN jid j_part ON mscp.user_jid_row_id = j_part._id
+            LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+            WHERE m.chat_row_id = ? AND sys.action_type IN (4, 5, 6, 7, 14, 15)
+            ORDER BY m.timestamp DESC
+        """.trimIndent()
+        
+        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
+        return cursor.use { 
+            buildList {
+                while (it.moveToNext()) {
+                    val rawAction = it.getInt(3)
+                    val mappedAction = when (rawAction) {
+                        4 -> 1 // Add
+                        5 -> 2 // Remove
+                        14 -> 3 // Promote
+                        15 -> 4 // Demote
+                        6 -> 5 // Join
+                        7 -> 6 // Leave
+                        else -> 0
+                    }
+                    if (mappedAction > 0) {
+                        add(GroupParticipantHistoryEntity(
+                            timestamp = it.getLong(0),
+                            gjid = "", // Non essenziale per il mapper a dominio se passiamo user_jid
+                            jid = it.getString(2),
+                            action = mappedAction
+                        ))
+                    }
+                }
+            }
+        }
+    }
+
+    fun getGroupNameHistory(chatId: Long): List<GroupNameChangeEntity> {
+        val query = """
+            SELECT 
+                m.timestamp, 
+                svc.old_data, 
+                CASE 
+                    WHEN m.sender_jid_row_id > 0 THEN j.raw_string
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    ELSE 'unknown'
+                END AS sender_jid,
+                m.text_data
+            FROM message m
+            JOIN message_system sys ON m._id = sys.message_row_id
+            LEFT JOIN message_system_value_change svc ON m._id = svc.message_row_id
+            LEFT JOIN jid j ON m.sender_jid_row_id = j._id
+            WHERE m.chat_row_id = ? AND sys.action_type = 1
+            ORDER BY m.timestamp DESC
+        """.trimIndent()
+
+        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
+        return cursor.use {
+            buildList {
+                while (it.moveToNext()) {
+                    add(GroupNameChangeEntity(
+                        timestamp = it.getLong(0),
+                        oldData = it.getString(1) ?: "",
+                        senderJid = it.getString(2) ?: "unknown",
+                        newNameFallback = it.getString(3)
+                    ))
+                }
+            }
+        }
+    }
+
     private fun countEmojis(texts: List<String>, limit: Int): List<EmojiStat> {
         return buildEmojiFrequencyMap(texts)
             .entries

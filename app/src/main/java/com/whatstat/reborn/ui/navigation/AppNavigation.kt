@@ -22,6 +22,7 @@ import com.whatstat.reborn.ui.screen.home.AppScaffold
 import com.whatstat.reborn.ui.screen.media.MediaStatsScreen
 import com.whatstat.reborn.ui.screen.setup.SetupScreen
 import com.whatstat.reborn.ui.screen.wordsearch.WordSearchScreen
+import com.whatstat.reborn.ui.screen.history.GroupHistoryScreen
 
 sealed class Screen(val route: String) {
     data object Setup : Screen("setup")
@@ -42,6 +43,10 @@ sealed class Screen(val route: String) {
 
     data object MediaStats : Screen("media_stats") {
         fun createRoute(chatId: Long? = null) = if (chatId != null) "media_stats/$chatId" else route
+    }
+
+    data object GroupHistory : Screen("group_history") {
+        fun createRoute(chatId: Long) = "group_history/$chatId"
     }
 }
 
@@ -151,6 +156,9 @@ private fun NavGraphBuilder.mainGraph(
                     },
                     onNavigateToMedia = {
                         navController.navigate(Screen.MediaStats.createRoute(chatId))
+                    },
+                    onNavigateToHistory = {
+                        navController.navigate(Screen.GroupHistory.createRoute(chatId))
                     }
                 )
             }
@@ -183,6 +191,17 @@ private fun NavGraphBuilder.mainGraph(
             ) { backStackEntry ->
                 val chatId = backStackEntry.arguments?.getLong("chatId")
                 MediaStatsScreen(
+                    chatId = chatId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = "${Screen.GroupHistory.route}/{chatId}",
+                arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val chatId = backStackEntry.arguments?.getLong("chatId")
+                GroupHistoryScreen(
                     chatId = chatId,
                     onNavigateBack = { navController.popBackStack() }
                 )
