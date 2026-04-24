@@ -4,7 +4,8 @@ data class GroupParticipantHistoryEntity(
     val timestamp: Long,
     val gjid: String,
     val jid: String,
-    val action: Int
+    val action: Int,
+    val textData: String? = null
 )
 
 data class GroupNameChangeEntity(

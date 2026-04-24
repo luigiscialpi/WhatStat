@@ -83,17 +83,20 @@ fun GroupHistoryScreen(
                         reverseLayout = true
                     ) {
                         itemsIndexed(state.events) { index, uiModel ->
-                            val currentEvent = uiModel.event
-                            val isNameChange = currentEvent is com.whatstat.reborn.domain.model.GroupEvent.NameChange
-                            // L'evento precedente cronologicamente è all'indice index + 1
+                            val isLeftAligned = uiModel.isLeftAligned
+                            
+                            // L'evento precedente cronologicamente (più vecchio) è all'indice index + 1
+                            // Poiché usiamo reverseLayout=true, l'indice index+1 è quello che sta SOPRA visivamente
                             val olderIndex = index + 1
                             val olderUiModel = state.events.getOrNull(olderIndex)
-                            val showHeader = olderUiModel == null ||
-                                olderUiModel.userName != uiModel.userName ||
-                                olderUiModel.event.javaClass != currentEvent.javaClass
+                            
+                            val showHeader = olderUiModel == null || 
+                                             olderUiModel.userJid != uiModel.userJid || 
+                                             olderUiModel.isLeftAligned != uiModel.isLeftAligned
+                                             
                             ChatBubbleItem(
                                 uiModel = uiModel,
-                                isNameChange = isNameChange,
+                                isLeftAligned = isLeftAligned,
                                 showHeader = showHeader
                             )
                         }
@@ -119,7 +122,7 @@ fun TimelineLegendBar() {
                 .padding(horizontal = 0.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Sinistra: Nuovi nomi
+            // Sinistra: Nomi/Descrizioni
             Box(
                 modifier = Modifier.weight(1f).fillMaxHeight(),
                 contentAlignment = Alignment.Center
@@ -127,16 +130,28 @@ fun TimelineLegendBar() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Outlined.Edit,
-                        contentDescription = "Nuovi nomi",
+                        contentDescription = "Nomi/Descrizioni",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Nuovi nomi",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Nomi",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "/",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Text(
+                            text = "Descrizioni",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = androidx.compose.ui.graphics.Color(0xFF0288D1) // Azzurro più scuro per la legenda
+                        )
+                    }
                 }
             }
             // Destra: Entrate/Uscite
@@ -166,12 +181,13 @@ fun TimelineLegendBar() {
 @Composable
 fun ChatBubbleItem(
     uiModel: GroupEventUiModel,
-    isNameChange: Boolean,
+    isLeftAligned: Boolean,
     showHeader: Boolean
 ) {
-    val arrangement = if (isNameChange) Arrangement.Start else Arrangement.End
-
-    val topPadding = if (showHeader) 8.dp else 1.dp
+    val arrangement = if (isLeftAligned) Arrangement.Start else Arrangement.End
+    
+    // Padding più stretto tra eventi consecutivi
+    val topPadding = if (showHeader) 8.dp else 2.dp
 
     Row(
         modifier = Modifier
@@ -179,77 +195,34 @@ fun ChatBubbleItem(
             .padding(top = topPadding, bottom = 2.dp),
         horizontalArrangement = arrangement
     ) {
-        if (isNameChange) {
-            if (showHeader) {
-                Box(
-                    modifier = Modifier
-                        .width(40.dp)
-                        .padding(end = 8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (uiModel.avatarPath != null) {
-                            AsyncImage(
-                                model = File(uiModel.avatarPath),
-                                contentDescription = null,
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Text(
-                                text = uiModel.userName.take(1).uppercase(),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            } else {
-                Spacer(modifier = Modifier.width(40.dp))
-            }
+        if (isLeftAligned) {
+            // Spazio per Avatar (Sinistra)
+            AvatarSection(uiModel, showHeader)
         }
 
         // Forma della nuvoletta
         val bubbleShape = androidx.compose.foundation.shape.RoundedCornerShape(
-            topStart = if (isNameChange && showHeader) 0.dp else 12.dp,
-            topEnd = if (!isNameChange && showHeader) 0.dp else 12.dp,
+            topStart = if (isLeftAligned && showHeader) 0.dp else 12.dp,
+            topEnd = if (!isLeftAligned && showHeader) 0.dp else 12.dp,
             bottomStart = 12.dp,
             bottomEnd = 12.dp
         )
 
-        val bubbleColor = if (isNameChange) {
-            androidx.compose.ui.graphics.Color(0xFFE6F4EA)
-        } else {
-            MaterialTheme.colorScheme.primaryContainer
+        val bubbleColor = when {
+            uiModel.isDescriptionChange -> androidx.compose.ui.graphics.Color(0xFFE1F5FE) // Azzurrino tenue (Description style)
+            isLeftAligned -> androidx.compose.ui.graphics.Color(0xFFE6F4EA) // Verde chiaro WhatsApp ricevuto
+            else -> androidx.compose.ui.graphics.Color(0xFFEEEEEE) // Grigio chiaro leggermente più scuro (Participant Action)
         }
 
-        val textColor = if (isNameChange) {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        } else {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        }
+        val textColor = MaterialTheme.colorScheme.onSurfaceVariant
 
         Surface(
             shape = bubbleShape,
             color = bubbleColor,
             modifier = Modifier.widthIn(max = 280.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(
-                    start = 10.dp,
-                    end = 10.dp,
-                    top = if (showHeader) 10.dp else 4.dp,
-                    bottom = 6.dp
-                )
-            ) {
-                if (showHeader && isNameChange) {
+            Column(modifier = Modifier.padding(10.dp)) {
+                if (showHeader && isLeftAligned) {
                     Text(
                         text = uiModel.userName,
                         style = MaterialTheme.typography.labelMedium,
@@ -257,39 +230,27 @@ fun ChatBubbleItem(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
-                    if (uiModel.secondaryText != null) {
-                        Text(
-                            text = uiModel.secondaryText,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = textColor
-                        )
-                    }
-                } else {
-                    if (isNameChange) {
-                        // Senza header: solo il nome nuovo, niente frase introduttiva
-                        if (uiModel.secondaryText != null) {
-                            Text(
-                                text = uiModel.secondaryText,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = textColor
-                            )
-                        }
-                    } else {
-                        Text(
-                            text = uiModel.primaryText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = textColor
-                        )
-                        if (uiModel.secondaryText != null) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = uiModel.secondaryText,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = textColor
-                            )
-                        }
-                    }
                 }
+
+                if (uiModel.primaryText.isNotEmpty()) {
+                    Text(
+                        text = uiModel.primaryText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = textColor
+                    )
+                }
+                
+                if (uiModel.secondaryText != null) {
+                    if (uiModel.primaryText.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                    Text(
+                        text = uiModel.secondaryText,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = textColor
+                    )
+                }
+
                 // Data e ora in basso a destra
                 Text(
                     text = "${uiModel.formattedDate} - ${uiModel.formattedTime}",
@@ -299,6 +260,49 @@ fun ChatBubbleItem(
                         .align(Alignment.End)
                         .padding(top = 4.dp)
                 )
+            }
+        }
+
+        if (!isLeftAligned) {
+            // Spazio per Avatar (Destra)
+            AvatarSection(uiModel, showHeader, isRight = true)
+        }
+    }
+}
+
+@Composable
+fun AvatarSection(uiModel: GroupEventUiModel, showHeader: Boolean, isRight: Boolean = false) {
+    Box(
+        modifier = Modifier
+            .width(40.dp)
+            .padding(
+                start = if (isRight) 8.dp else 0.dp,
+                end = if (isRight) 0.dp else 8.dp
+            )
+    ) {
+        if (showHeader) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (uiModel.avatarPath != null) {
+                    AsyncImage(
+                        model = File(uiModel.avatarPath),
+                        contentDescription = null,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(
+                        text = uiModel.userName.take(1).uppercase(),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

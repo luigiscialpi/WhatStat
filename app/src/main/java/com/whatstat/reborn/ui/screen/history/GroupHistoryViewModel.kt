@@ -64,6 +64,9 @@ class GroupHistoryViewModel @Inject constructor(
                         is GroupEvent.NameChange -> {
                             jidsToResolve.add(event.userJid)
                         }
+                        is GroupEvent.DescriptionChange -> {
+                            jidsToResolve.add(event.userJid)
+                        }
                     }
                 }
 
@@ -87,18 +90,20 @@ class GroupHistoryViewModel @Inject constructor(
                             val primaryText = when (event.actionType) {
                                 1 -> if (isMe) "Sei stato aggiunto" else "$userName è stato aggiunto"
                                 2 -> if (isMe) "Sei stato rimosso" else "$userName è stato rimosso"
-                                3 -> if (isMe) "Ora sei un amministratore" else "$userName è ora un amministratore"
-                                4 -> if (isMe) "Non sei più un amministratore" else "$userName non è più un amministratore"
-                                5 -> if (isMe) "Sei entrato nel gruppo" else "$userName è entrato nel gruppo"
-                                6 -> if (isMe) "Hai abbandonato il gruppo" else "$userName ha abbandonato il gruppo"
-                                else -> "Azione sconosciuta per $userName"
+                                3 -> if (isMe) "Ora è un amministratore" else "$userName è ora un amministratore"
+                                4 -> if (isMe) "Non è più un amministratore" else "$userName non è più un amministratore"
+                                5 -> if (isMe) "È entrato nel gruppo" else "$userName è entrato nel gruppo"
+                                6 -> if (isMe) "Ha abbandonato il gruppo" else "$userName ha abbandonato il gruppo"
+                                else -> "Azione partecipante: $userName"
                             }
                             GroupEventUiModel(
                                 event = event,
+                                userJid = event.userJid,
                                 userName = userName,
                                 isMe = isMe,
+                                isLeftAligned = false, // Azioni partecipanti a destra
                                 primaryText = primaryText,
-                                secondaryText = null, // Potremmo aggiungere info su chi ha fatto l'azione se adminJid fosse disponibile
+                                secondaryText = null,
                                 avatarPath = if (isMe) getAvatarPath("me@s.whatsapp.net") else getAvatarPath(event.userJid),
                                 formattedDate = formattedDate,
                                 formattedTime = formattedTime
@@ -112,16 +117,39 @@ class GroupHistoryViewModel @Inject constructor(
                                 rawName != null -> rawName
                                 else -> "Sconosciuto"
                             }
-                            // primaryText vuoto, secondaryText contiene solo il nuovo nome
                             GroupEventUiModel(
                                 event = event,
+                                userJid = event.userJid,
                                 userName = userName,
                                 isMe = isMe,
-                                primaryText = "", // sarà ignorato se showHeader && isNameChange
-                                secondaryText = "${event.newName}",
+                                isLeftAligned = true, // Info gruppo a sinistra
+                                primaryText = "", // Lasciamo solo il nuovo nome sotto
+                                secondaryText = event.newName,
                                 avatarPath = if (isMe) getAvatarPath("me@s.whatsapp.net") else getAvatarPath(event.userJid),
                                 formattedDate = formattedDate,
                                 formattedTime = formattedTime
+                            )
+                        }
+                        is GroupEvent.DescriptionChange -> {
+                            val isMe = event.userJid == "me@s.whatsapp.net" || event.userJid == myJid
+                            val rawName = resolvedNames[event.userJid]
+                            val userName = when {
+                                isMe -> "Tu"
+                                rawName != null -> rawName
+                                else -> "Sconosciuto"
+                            }
+                            GroupEventUiModel(
+                                event = event,
+                                userJid = event.userJid,
+                                userName = userName,
+                                isMe = isMe,
+                                isLeftAligned = true, // Spostato a sinistra
+                                primaryText = "", // Rimosso come richiesto (basta il colore giallo)
+                                secondaryText = event.newDescription,
+                                avatarPath = if (isMe) getAvatarPath("me@s.whatsapp.net") else getAvatarPath(event.userJid),
+                                formattedDate = formattedDate,
+                                formattedTime = formattedTime,
+                                isDescriptionChange = true
                             )
                         }
                     }

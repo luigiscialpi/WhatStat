@@ -927,12 +927,21 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         val events = mutableListOf<com.whatstat.reborn.domain.model.GroupEvent>()
 
         participantHistory.await().forEach { entity ->
-            events.add(com.whatstat.reborn.domain.model.GroupEvent.ParticipantAction(
-                timestamp = if (entity.timestamp < 100000000000L) entity.timestamp * 1000L else entity.timestamp,
-                userJid = entity.jid,
-                actionType = entity.action,
-                adminJid = null
-            ))
+            val timestamp = if (entity.timestamp < 100000000000L) entity.timestamp * 1000L else entity.timestamp
+            if (entity.action == 8) {
+                events.add(com.whatstat.reborn.domain.model.GroupEvent.DescriptionChange(
+                    timestamp = timestamp,
+                    userJid = entity.jid,
+                    newDescription = entity.textData ?: ""
+                ))
+            } else {
+                events.add(com.whatstat.reborn.domain.model.GroupEvent.ParticipantAction(
+                    timestamp = timestamp,
+                    userJid = entity.jid,
+                    actionType = entity.action,
+                    adminJid = null
+                ))
+            }
         }
 
         nameHistory.await().forEach { entity ->

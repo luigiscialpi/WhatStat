@@ -16,15 +16,24 @@ sealed class GroupEvent {
         val newName: String,
         val userJid: String // JID di chi ha cambiato il nome
     ) : GroupEvent()
+
+    data class DescriptionChange(
+        override val timestamp: Long,
+        val userJid: String,
+        val newDescription: String
+    ) : GroupEvent()
 }
 
 data class GroupEventUiModel(
     val event: GroupEvent,
+    val userJid: String,
     val userName: String,
     val isMe: Boolean,
+    val isLeftAligned: Boolean,
     val primaryText: String,
     val secondaryText: String?,
     val avatarPath: String?,
     val formattedDate: String,
-    val formattedTime: String
+    val formattedTime: String,
+    val isDescriptionChange: Boolean = false
 )

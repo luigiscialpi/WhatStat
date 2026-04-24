@@ -616,21 +616,22 @@ class MessageDao @Inject constructor(
         val query = """
             SELECT 
                 m.timestamp, 
-                c.jid_row_id, -- Non abbiamo il raw_string qui per via della join base, ma ci serve solo restituire entità
-                COALESCE(j_part.raw_string, 'unknown') AS user_jid, 
+                c.jid_row_id,
+                COALESCE(j_part.raw_string, j_sender.raw_string, 'unknown') AS user_jid, 
                 sys.action_type,
                 CASE 
                     WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
                     WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
                     ELSE 'unknown'
-                END AS admin_jid
+                END AS admin_jid,
+                m.text_data
             FROM message m
             JOIN chat c ON m.chat_row_id = c._id
             JOIN message_system sys ON m._id = sys.message_row_id
-            JOIN message_system_chat_participant mscp ON m._id = mscp.message_row_id
+            LEFT JOIN message_system_chat_participant mscp ON m._id = mscp.message_row_id
             LEFT JOIN jid j_part ON mscp.user_jid_row_id = j_part._id
             LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
-            WHERE m.chat_row_id = ? AND sys.action_type IN (4, 5, 6, 7, 14, 15)
+            WHERE m.chat_row_id = ? AND sys.action_type IN (4, 5, 6, 7, 12, 13, 14, 15, 20, 27)
             ORDER BY m.timestamp DESC
         """.trimIndent()
         
@@ -639,21 +640,22 @@ class MessageDao @Inject constructor(
             buildList {
                 while (it.moveToNext()) {
                     val rawAction = it.getInt(3)
+                    val textData = it.getString(5)
                     val mappedAction = when (rawAction) {
-                        4 -> 1 // Add
-                        5 -> 2 // Remove
-                        14 -> 3 // Promote
-                        15 -> 4 // Demote
-                        6 -> 5 // Join
-                        7 -> 6 // Leave
+                        4, 12, 13, 20 -> 1  // Add (aggiunto il 13)
+                        5, 7 -> 6           // Leave
+                        14 -> 3             // Promote (spostato il 14 qui)
+                        15 -> if (textData.isNullOrEmpty()) 6 else 8 // 6=Leave se vuoto, 8=Description se pieno
+                        27 -> if (textData.isNullOrEmpty()) 0 else 8 // Description Change
                         else -> 0
                     }
                     if (mappedAction > 0) {
                         add(GroupParticipantHistoryEntity(
                             timestamp = it.getLong(0),
-                            gjid = "", // Non essenziale per il mapper a dominio se passiamo user_jid
+                            gjid = "", 
                             jid = it.getString(2),
-                            action = mappedAction
+                            action = mappedAction,
+                            textData = textData
                         ))
                     }
                 }
