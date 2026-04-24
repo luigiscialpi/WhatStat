@@ -236,6 +236,25 @@ Statistiche sui contenuti multimediali e sui link condivisi nella chat. Dati let
 - Bottom sheet espandibile con dettaglio domini per singolo contatto, con avatar nell'intestazione.
 - Barra di ricerca lato client. La barra viene nascosta se non ci sono risultati.
 
+### Cronologia gruppi (Group History Timeline)
+
+**Novità v1.20:** Per le chat di gruppo è ora disponibile una timeline completa della cronologia del gruppo, accessibile tramite un nuovo pulsante nella schermata dettaglio. La timeline mostra in ordine cronologico tutti gli eventi rilevanti:
+
+- **Azioni sui partecipanti:** join, leave, add, remove, promote, demote
+- **Cambi nome gruppo**
+- **Cambi descrizione gruppo** (nuovo)
+
+Questi eventi sono estratti tramite query dedicate in `MessageDao` e consolidati in `AnalyticsRepository.getGroupHistory()`, che normalizza i timestamp e risolve i nomi/avatari dei partecipanti tramite batch JID resolution. La UI utilizza una `LazyColumn` a layout inverso per simulare la timeline chat, distinguendo visivamente tra eventi informativi (es. cambio descrizione) e azioni sui partecipanti tramite l'allineamento (`isLeftAligned`).
+
+**Modifiche ai modelli dati:**
+- La sealed class `GroupEvent` ora include i tipi `ParticipantAction`, `NameChange` e `DescriptionChange`.
+- Il modello `GroupParticipantHistoryEntity` ha una nuova colonna `textData` per tracciare le descrizioni.
+- Breaking change: i costruttori di `GroupEventUiModel` e `ChatDetailScreen` richiedono nuovi parametri (`userJid`, `isLeftAligned`, `onNavigateToHistory`).
+
+**Integrazione UI:**
+- La schermata dettaglio dei gruppi mostra ora un pulsante "Cronologia" (history) che apre la timeline.
+- La visualizzazione è ottimizzata per gruppi con molti eventi e supporta la risoluzione batch di nomi/avatar.
+
 ---
 
 ## 8. Media Gallery
@@ -387,7 +406,7 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ## 14. Roadmap
 
-### Rilasciato (v1.0 — v1.19)
+### Rilasciato (v1.0 — v1.20)
 
 **v1.0 — MVP:** Accesso root, estrazione file, decifratura crypt14, Dashboard globale e lista chat, statistiche base per chat (messaggi, orari, giorni).
 
@@ -431,6 +450,9 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 **v1.19 — Theming navigazione e layout ActionCard:** Applicato `MaterialTheme` color scheme ai componenti `NavigationBarItem` della `BottomNavigationBar` per coerenza visiva con il design system dell'app. Aggiornati padding e tipografia di `ActionCard` in `ChatDetailScreen` per migliorare la leggibilità del testo su più righe. Rinnovata la palette colori del pie chart (donut chart) con un set di colori più vivaci e distinti per una migliore visualizzazione dei dati. Ordinamento mittenti e chip UX: il sort "Tu per primo" (`me@s.whatsapp.net`) è ora applicato esclusivamente ai chip di selezione nella sezione "Per Persona" dell'analisi testi — rimosso da `CacheManager.toDomain()` e `AnalyticsRepository.getSlowChatStats()` dove alterava anche la sezione "Chi scrive di più". Il `senderBreakdown` esposto dal data layer torna all'ordine naturale (volume decrescente). Aggiunto `enableHorizontalScroll = false` sui `FilterChip` dei mittenti in "Per Persona" per evitare layout inconsistenti nei chip.
 
+**v1.20 — Cronologia gruppi e tracking descrizione:**
+Introdotta la timeline della cronologia gruppi con visualizzazione stile chat di tutti gli eventi (join/leave/add/remove/promote/demote, cambi nome, cambi descrizione). Database e modelli dati aggiornati per tracciare anche le modifiche alla descrizione del gruppo. UI ottimizzata con risoluzione batch di nomi/avatar e allineamento differenziato per eventi informativi. Breaking change: modificati i costruttori di `GroupEventUiModel` e `ChatDetailScreen`.
+
 ### Pianificato (non ancora implementato)
 
 - Confronto tra due periodi temporali
@@ -441,4 +463,4 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ---
 
-> Documento aggiornato alla versione **1.19**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
+> Documento aggiornato alla versione **1.20**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
