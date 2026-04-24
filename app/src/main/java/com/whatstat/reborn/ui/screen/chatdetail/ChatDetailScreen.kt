@@ -601,7 +601,12 @@ fun ChatDetailScreen(
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                                             modifier = Modifier.padding(bottom = 16.dp)
                                         ) {
-                                            items(s.senderBreakdown) { sender ->
+                                            // "me" viene sempre mostrato per primo nei chip di selezione persona.
+                                            // Il dato grezzo (senderBreakdown) non viene alterato per non
+                                            // influenzare altre sezioni come "Chi scrive di piu'".
+                                            val sendersForChips = s.senderBreakdown
+                                                .sortedWith(compareBy { if (it.jid == "me@s.whatsapp.net") 0 else 1 })
+                                            items(sendersForChips) { sender ->
                                                 val isSelected = when (selectedTab) {
                                                     0 -> selectedSenderWords?.jid == sender.jid
                                                     1 -> selectedSenderEmojis?.jid == sender.jid

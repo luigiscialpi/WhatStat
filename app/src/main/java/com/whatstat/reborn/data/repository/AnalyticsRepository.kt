@@ -424,7 +424,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                         ?: stat.jid.substringBefore("@")
                 }
                 stat.copy(displayName = name)
-            }.sortedWith(compareBy { if (it.jid == "me@s.whatsapp.net") 0 else 1 })
+            }
 
             // Risoluzione nomi per conversation starters
             val starterJids = rawStarters.map { it.jid }
