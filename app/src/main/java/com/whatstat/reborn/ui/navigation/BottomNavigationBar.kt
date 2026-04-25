@@ -1,9 +1,11 @@
 package com.whatstat.reborn.ui.navigation
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
@@ -13,6 +15,10 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -58,8 +64,14 @@ fun BottomNavigationBar(
         BottomNavItem(
             graphRoute = NavGraphRoute.Calls,
             destinationRoute = Screen.CallsStats.route,
-            label = "Chiamate",
+            label = "Call",
             icon = Icons.Outlined.Call
+        ),
+        BottomNavItem(
+            graphRoute = NavGraphRoute.Tutorial,
+            destinationRoute = Screen.Tutorial.route,
+            label = "Tutorial",
+            icon = Icons.Outlined.HelpOutline
         )
     )
 
@@ -84,13 +96,20 @@ fun BottomNavigationBar(
                     Icon(item.icon, contentDescription = item.label)
                 },
                 label = {
-                    Text(item.label)
+                    Text(
+                        text = item.label,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 },
                 colors = NavigationBarItemDefaults.colors(
                     indicatorColor = MaterialTheme.colorScheme.primaryContainer,
                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                    selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier.padding(horizontal = 1.dp)
             )
         }
     }

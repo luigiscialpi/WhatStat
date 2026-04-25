@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -13,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import com.whatstat.reborn.data.cache.CacheManager
 import com.whatstat.reborn.data.repository.WhatsAppRepository
 import com.whatstat.reborn.ui.screen.calls.CallsStatsScreen
 import com.whatstat.reborn.ui.screen.chatdetail.ChatDetailScreen
@@ -23,6 +25,10 @@ import com.whatstat.reborn.ui.screen.media.MediaStatsScreen
 import com.whatstat.reborn.ui.screen.setup.SetupScreen
 import com.whatstat.reborn.ui.screen.wordsearch.WordSearchScreen
 import com.whatstat.reborn.ui.screen.history.GroupHistoryScreen
+import com.whatstat.reborn.ui.screen.tutorial.TutorialScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String) {
     data object Setup : Screen("setup")
@@ -48,6 +54,8 @@ sealed class Screen(val route: String) {
     data object GroupHistory : Screen("group_history") {
         fun createRoute(chatId: Long) = "group_history/$chatId"
     }
+    
+    data object Tutorial : Screen("tutorial")
 }
 
 object NavGraphRoute {
@@ -58,15 +66,18 @@ object NavGraphRoute {
     const val Media = "media_graph"
     const val Radar = "radar_graph"
     const val Calls = "calls_graph"
+    const val Tutorial = "tutorial_graph"
 }
 
 @Composable
 fun AppNavigation(
     navController: NavHostController,
-    repository: WhatsAppRepository
+    repository: WhatsAppRepository,
+    cacheManager: CacheManager
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val coroutineScope = rememberCoroutineScope()
 
     AppScaffold(
         navController = navController,
@@ -78,13 +89,17 @@ fun AppNavigation(
             route = "root_graph",
             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
         ) {
-            setupGraph(navController)
+            setupGraph(navController, cacheManager, coroutineScope)
             mainGraph(navController, repository)
         }
     }
 }
 
-private fun NavGraphBuilder.setupGraph(navController: NavHostController) {
+private fun NavGraphBuilder.setupGraph(
+    navController: NavHostController,
+    cacheManager: CacheManager,
+    coroutineScope: CoroutineScope
+) {
     navigation(
         startDestination = Screen.Setup.route,
         route = NavGraphRoute.Setup
@@ -92,8 +107,16 @@ private fun NavGraphBuilder.setupGraph(navController: NavHostController) {
         composable(Screen.Setup.route) {
             SetupScreen(
                 onSetupComplete = {
-                    navController.navigate(NavGraphRoute.Main) {
-                        popUpTo(NavGraphRoute.Setup) { inclusive = true }
+                    coroutineScope.launch {
+                        if (cacheManager.hasSeenTutorial()) {
+                            navController.navigate(NavGraphRoute.Main) {
+                                popUpTo(NavGraphRoute.Setup) { inclusive = true }
+                            }
+                        } else {
+                            navController.navigate(NavGraphRoute.Tutorial) {
+                                popUpTo(NavGraphRoute.Setup) { inclusive = true }
+                            }
+                        }
                     }
                 }
             )
@@ -240,6 +263,22 @@ private fun NavGraphBuilder.mainGraph(
                 CallsStatsScreen(
                     chatId = null,
                     onNavigateBack = {}
+                )
+            }
+        }
+        
+        navigation(
+            startDestination = Screen.Tutorial.route,
+            route = NavGraphRoute.Tutorial
+        ) {
+            composable(Screen.Tutorial.route) {
+                TutorialScreen(
+                    onTutorialComplete = {
+                        // Navigate to Dashboard after tutorial completion
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(NavGraphRoute.Tutorial) { inclusive = true }
+                        }
+                    }
                 )
             }
         }

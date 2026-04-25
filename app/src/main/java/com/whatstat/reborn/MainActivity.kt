@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import com.whatstat.reborn.data.cache.CacheManager
 import com.whatstat.reborn.data.repository.WhatsAppRepository
 import com.whatstat.reborn.ui.navigation.AppNavigation
 import com.whatstat.reborn.ui.theme.WhatStatTheme
@@ -18,6 +19,7 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var repository: WhatsAppRepository
+    @Inject lateinit var cacheManager: CacheManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,7 +29,7 @@ class MainActivity : ComponentActivity() {
             WhatStatTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
-                    AppNavigation(navController = navController, repository = repository)
+                    AppNavigation(navController = navController, repository = repository, cacheManager = cacheManager)
                 }
             }
         }

@@ -261,6 +261,7 @@ class CacheManager @Inject constructor(
         private val KEY_GLOBAL_STATS = stringPreferencesKey("global_stats_v3")
         // v3: bump per rigenerare la cache con pool da 50 words/emoji
         private val KEY_GLOBAL_SLOW = stringPreferencesKey("global_slow_v4")
+        private val KEY_HAS_SEEN_TUTORIAL = androidx.datastore.preferences.core.booleanPreferencesKey("has_seen_tutorial")
     }
 
     // ── Hash DB ──────────────────────────────────────────────────
@@ -608,5 +609,17 @@ class CacheManager @Inject constructor(
         globalWordIndex = null
         monthlyWordIndex = null
         chatWordIndexCache.clear()
+    }
+    
+    // ── Tutorial Preference ──────────────────────────────────────
+    
+    suspend fun hasSeenTutorial(): Boolean {
+        return dataStore.data.first()[KEY_HAS_SEEN_TUTORIAL] ?: false
+    }
+    
+    suspend fun setHasSeenTutorial() {
+        dataStore.edit { prefs ->
+            prefs[KEY_HAS_SEEN_TUTORIAL] = true
+        }
     }
 }
