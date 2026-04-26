@@ -129,7 +129,7 @@ class ChatDetailViewModel @Inject constructor(
         if (chatId != -1L) loadChatStats()
     }
 
-    private fun loadChatStats() {
+    internal fun loadChatStats() {
         viewModelScope.launch {
             _isLoading.value = true
             _isLoadingSlow.value = true

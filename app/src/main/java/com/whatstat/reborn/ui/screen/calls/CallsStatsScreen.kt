@@ -68,6 +68,11 @@ import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.ui.component.SimpleScreenHeader
 import com.whatstat.reborn.ui.component.TimeRangeFilterRow
+import com.whatstat.reborn.ui.tutorial.LocalTutorialManager
+import com.whatstat.reborn.ui.tutorial.TutorialOverlay
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
 
 private fun formatDuration(seconds: Long): String {
     val hours = seconds / 3600
@@ -89,6 +94,10 @@ fun CallsStatsScreen(
     val chatContextName by viewModel.chatContextName.collectAsState()
     val chatContextAvatarPath by viewModel.chatContextAvatarPath.collectAsState()
 
+    // Tutorial integration
+    val tutorialManager = LocalTutorialManager.current
+    val tutorialState by tutorialManager.uiState.collectAsState()
+
     LaunchedEffect(chatId) {
         viewModel.initialize(chatId)
     }
@@ -100,142 +109,186 @@ fun CallsStatsScreen(
 
     val isChatSpecific = chatId != null
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        SimpleScreenHeader(
-            title = "Log Chiamate",
-            onBack = if (isChatSpecific) onNavigateBack else null,
-            subtitle = chatContextName,
-            avatarPath = chatContextAvatarPath
-        )
-
-        Box(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(4.dp)
+                .fillMaxSize()
         ) {
-            if (isLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-        }
+            SimpleScreenHeader(
+                title = "Log Chiamate",
+                onBack = if (isChatSpecific) onNavigateBack else null,
+                subtitle = chatContextName,
+                avatarPath = chatContextAvatarPath
+            )
 
-        TimeRangeFilterRow(
-            selectedRange = selectedRange,
-            onRangeSelected = { viewModel.setTimeRange(it) },
-            customDateRange = customDateRange,
-            onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-            onSubmitClicked = { viewModel.applyCustomDateRange() }
-        )
-
-        // Search bar slot fisso: evita micro-shift quando il campo appare dopo il caricamento
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-        ) {
-            if (!isLoading && callStats.isNotEmpty()) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.setSearchQuery(it) },
-                    placeholder = { Text("Cerca contatto…") },
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                                Icon(Icons.Outlined.Clear, contentDescription = "Cancella")
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                    )
-                )
-            }
-        }
-
-        if (isLoading) {
-            CallsStatsSkeletonContent(modifier = Modifier.fillMaxSize())
-        } else if (callStats.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp),
-                contentAlignment = Alignment.Center
+                    .height(4.dp)
             ) {
-                Text(
-                    "Nessuna chiamata trovata",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            // Calcola i totali
-            val totals = remember(callStats) {
-                CallStat(
-                    jid = "",
-                    displayName = "Riepilogo",
-                    totalCalls = callStats.sumOf { it.totalCalls },
-                    videoCalls = callStats.sumOf { it.videoCalls },
-                    missedCalls = callStats.sumOf { it.missedCalls },
-                    totalDurationSec = callStats.sumOf { it.totalDurationSec },
-                    audioDurationSec = callStats.sumOf { it.audioDurationSec },
-                    videoDurationSec = callStats.sumOf { it.videoDurationSec }
-                )
-            }
-
-            val filteredStats = remember(callStats, searchQuery) {
-                if (searchQuery.isBlank()) callStats
-                else callStats.filter {
-                    (it.displayName ?: it.jid).contains(searchQuery, ignoreCase = true)
+                if (isLoading) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
             }
 
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // ── Riepilogo totale ──────────────────────────
-                item {
-                    CallSummaryCard(totals)
-                }
+            TimeRangeFilterRow(
+                modifier = Modifier
+                    .onGloballyPositioned {
+                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "calls") {
+                            tutorialManager.setTargetBounds("calls_time_filter", it.boundsInRoot())
+                        }
+                    },
+                selectedRange = selectedRange,
+                onRangeSelected = { viewModel.setTimeRange(it) },
+                customDateRange = customDateRange,
+                onDateRangeChanged = { viewModel.setCustomDateRange(it) },
+                onSubmitClicked = { viewModel.applyCustomDateRange() }
+            )
 
-                item {
-                    Spacer(Modifier.height(4.dp))
+            // Search bar slot fisso
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+            ) {
+                if (!isLoading && callStats.isNotEmpty()) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { viewModel.setSearchQuery(it) },
+                        placeholder = { Text("Cerca contatto…") },
+                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                                    Icon(Icons.Outlined.Clear, contentDescription = "Cancella")
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                        )
+                    )
+                }
+            }
+
+            if (isLoading) {
+                CallsStatsSkeletonContent(modifier = Modifier.fillMaxSize())
+            } else if (callStats.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
-                        "Dettaglio",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        "Nessuna chiamata trovata",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                // Calcola i totali
+                val totals = remember(callStats) {
+                    CallStat(
+                        jid = "",
+                        displayName = "Riepilogo",
+                        totalCalls = callStats.sumOf { it.totalCalls },
+                        videoCalls = callStats.sumOf { it.videoCalls },
+                        missedCalls = callStats.sumOf { it.missedCalls },
+                        totalDurationSec = callStats.sumOf { it.totalDurationSec },
+                        audioDurationSec = callStats.sumOf { it.audioDurationSec },
+                        videoDurationSec = callStats.sumOf { it.videoDurationSec }
                     )
                 }
 
-                // ── Dettaglio per persona ─────────────────────
-                items(filteredStats) { stat ->
-                    CallDetailCard(stat)
+                val filteredStats = remember(callStats, searchQuery) {
+                    if (searchQuery.isBlank()) callStats
+                    else callStats.filter {
+                        (it.displayName ?: it.jid).contains(searchQuery, ignoreCase = true)
+                    }
                 }
 
-                // Bottom spacer
-                item { Spacer(Modifier.height(48.dp)) }
+                LazyColumn(
+                    modifier = Modifier.onGloballyPositioned {
+                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "calls") {
+                            tutorialManager.setTargetBounds("calls_list", it.boundsInRoot())
+                        }
+                    },
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        CallSummaryCard(
+                            totals = totals,
+                            modifier = Modifier.onGloballyPositioned {
+                                if (tutorialState.isTutorialActive && tutorialState.currentScreen == "calls") {
+                                    tutorialManager.setTargetBounds("calls_summary_card", it.boundsInRoot())
+                                }
+                            }
+                        )
+                    }
+
+                    item {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Dettaglio",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    items(filteredStats) { stat ->
+                        CallDetailCard(stat)
+                    }
+
+                    item { Spacer(Modifier.height(48.dp)) }
+                }
+            }
+        }
+
+        // ── Tutorial Overlay ──────────────────────────────────────────
+        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "calls") {
+            val currentStep = tutorialManager.currentStep
+            if (currentStep != null) {
+                val targetBounds = tutorialManager.getTargetBounds(currentStep.targetKey)
+                if (targetBounds != null) {
+                    TutorialOverlay(
+                        step = currentStep,
+                        targetBounds = targetBounds,
+                        arrowDirection = currentStep.arrowDirection,
+                        isVisible = true,
+                        isLastStep = tutorialState.currentStepIndex >= tutorialState.steps.size - 1,
+                        onNext = { tutorialManager.nextStep() },
+                        onPrevious = { tutorialManager.previousStep() },
+                        onClose = { tutorialManager.closeTutorial() },
+                        onComplete = { tutorialManager.completeTutorial("calls") }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun CallSummaryCard(totals: CallStat) {
+private fun CallSummaryCard(
+    totals: CallStat,
+    modifier: Modifier = Modifier
+) {
     val audioCalls = totals.totalCalls - totals.videoCalls
     val totalDur = totals.totalDurationSec.coerceAtLeast(1)
     val audioRatio = totals.audioDurationSec.toFloat() / totalDur
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
         ),
@@ -254,7 +307,6 @@ private fun CallSummaryCard(totals: CallStat) {
 
             Spacer(Modifier.height(12.dp))
 
-            // Contatori
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -310,7 +362,6 @@ private fun CallSummaryCard(totals: CallStat) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
             Spacer(Modifier.height(12.dp))
 
-            // Durate
             Text(
                 "Durata totale: ${formatDuration(totals.totalDurationSec)}",
                 style = MaterialTheme.typography.titleSmall,
@@ -319,7 +370,6 @@ private fun CallSummaryCard(totals: CallStat) {
 
             Spacer(Modifier.height(8.dp))
 
-            // Barra audio vs video
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -385,7 +435,6 @@ private fun CallDetailCard(stat: CallStat) {
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Nome con avatar
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (stat.avatarPath != null) {
                     AsyncImage(

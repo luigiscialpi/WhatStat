@@ -70,17 +70,18 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.whatstat.reborn.ui.component.LoadingSection
-import com.whatstat.reborn.data.db.model.TimeRange
+import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.TimeRangeFilterRow
-import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
 import com.whatstat.reborn.ui.component.ActivityRecapCard
 import com.whatstat.reborn.ui.component.StatCard
 import com.whatstat.reborn.ui.component.InteractiveEmojiCloud
@@ -88,6 +89,9 @@ import com.whatstat.reborn.ui.component.InteractiveStickerCloud
 import com.whatstat.reborn.ui.component.InteractiveWordCloud
 import com.whatstat.reborn.ui.component.EmojiPreviewModal
 import com.whatstat.reborn.ui.component.StickerPreviewModal
+import com.whatstat.reborn.ui.component.LoadingSection
+import com.whatstat.reborn.ui.tutorial.LocalTutorialManager
+import com.whatstat.reborn.ui.tutorial.TutorialOverlay
 
 @Composable
 fun DashboardScreen(
@@ -111,17 +115,17 @@ fun DashboardScreen(
     val error by viewModel.error.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val selectedLimit by viewModel.selectedLimit.collectAsState()
+    val slowStatsRequested by viewModel.slowStatsRequested.collectAsState()
 
     LifecycleResumeEffect(Unit) {
         viewModel.syncFilterState()
         onPauseOrDispose { }
     }
-    val selectedLimit by viewModel.selectedLimit.collectAsState()
 
-    val slowStatsRequested by viewModel.slowStatsRequested.collectAsState()
-
-    // ── FIX: estrai 's' fuori dal let, così è accessibile in tutto il LazyColumn ──
-    val s = stats
+    // Tutorial integration
+    val tutorialManager = LocalTutorialManager.current
+    val tutorialState by tutorialManager.uiState.collectAsState()
 
     var previewEmoji by remember { mutableStateOf<String?>(null) }
     var previewEmojiCount by remember { mutableIntStateOf(0) }
@@ -136,8 +140,6 @@ fun DashboardScreen(
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent(PointerEventPass.Final)
-                        // changedToUp() (senza IgnoreConsumed) è true solo se l'evento
-                        // NON è stato consumato da un figlio (es. clickable della barra)
                         if (event.changes.any { it.changedToUp() }) {
                             chartDismissSignal++
                         }
@@ -192,6 +194,13 @@ fun DashboardScreen(
 
             // ── Sticky Filter Chips ───────────────────────────────────
             TimeRangeFilterRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onGloballyPositioned {
+                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
+                            tutorialManager.setTargetBounds("dashboard_time_filter", it.boundsInRoot())
+                        }
+                    },
                 selectedRange = selectedRange,
                 onRangeSelected = { viewModel.setTimeRange(it) },
                 customDateRange = customDateRange,
@@ -205,359 +214,312 @@ fun DashboardScreen(
             if (isLoading) {
                 DashboardSkeletonContent(modifier = Modifier.fillMaxSize())
             } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                if (error != null) {
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
-                            )
-                        ) {
-                            Column(Modifier.padding(16.dp)) {
-                                Text(
-                                    "ERRORE",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (error != null) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer
                                 )
-                                Text(
-                                    error ?: "",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Spacer(Modifier.height(8.dp))
-                                Button(onClick = { viewModel.retry() }) {
-                                    Text("Riprova")
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ── Stat Cards Grid (2x3) ───────────────────────────────
-                if (s != null) {
-                    item {
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn() + slideInVertically { it / 2 }
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    StatCard(
-                                        modifier = Modifier.weight(1f),
-                                        label = "Messaggi totali",
-                                        value = "%,d".format(s.totalMessages),
-                                        icon = Icons.AutoMirrored.Outlined.Chat
-                                    )
-                                    StatCard(
-                                        modifier = Modifier.weight(1f),
-                                        label = "Media/giorno",
-                                        value = "%.1f".format(s.averageMessagesPerDay),
-                                        icon = Icons.AutoMirrored.Outlined.TrendingUp
-                                    )
-                                }
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    StatCard(
-                                        modifier = Modifier.weight(1f),
-                                        label = "File media",
-                                        value = "%,d".format(s.totalMediaFiles),
-                                        icon = Icons.Outlined.PhotoLibrary,
-                                        isSmallText = true
-                                    )
-                                    StatCard(
-                                        modifier = Modifier.weight(1f),
-                                        label = "Chat più attiva",
-                                        value = s.mostActiveChat,
-                                        icon = Icons.AutoMirrored.Outlined.TrendingUp,
-                                        isSmallText = true
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ── Activity Recap Card (Tabbed) ──────────────────────────
-                item {
-                    ActivityRecapCard(
-                        hourlyData = hourlyData,
-                        weeklyData = weeklyData,
-                        dailyData = dailyData,
-                        monthlyData = monthlyData,
-                        yearlyData = yearlyData,
-                        dismissSignal = chartDismissSignal
-                    )
-                }
-
-                // ── Analisi Lessicale (opt-in) ───────────────────────
-                item {
-                    if (!slowStatsRequested) {
-                        SectionCard(
-                            title = "Analisi Lessicale",
-                            subtitle = "Parole ed emoji più frequenti"
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(bottom = 12.dp)
                             ) {
-                                Icon(
-                                    Icons.Outlined.Info,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    "L'analisi potrebbe richiedere parecchi secondi - forse anche qualche minuto!",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(Modifier.padding(16.dp)) {
+                                    Text(
+                                        "ERRORE",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                    Text(
+                                        error ?: "",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    Button(onClick = { viewModel.retry() }) {
+                                        Text("Riprova")
+                                    }
+                                }
                             }
-                            Button(
-                                onClick = { viewModel.loadSlowStats() },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(
-                                    Icons.Outlined.Search,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text("Avvia analisi")
-                            }
-                        }
-                    } else if (isLoadingSlow) {
-                        SectionCard(
-                            title = "Analisi Lessicale",
-                            subtitle = "Elaborazione in corso..."
-                        ) {
-                            LoadingSection(progress = progressSlow)
                         }
                     }
-                }
 
-                // ── Analisi Testi (Parole / Emoji / Sticker) ──────────
-                // FIX: questo blocco era fuori dallo scope di 's'. Ora usa 's' (nullable)
-                // estratto prima del LazyColumn, con controlli null espliciti.
-                if (slowStatsRequested && !isLoadingSlow && s != null) {
+                    stats?.let { s ->
+                        item {
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn() + slideInVertically { it / 2 }
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        StatCard(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .onGloballyPositioned {
+                                                    if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
+                                                        tutorialManager.setTargetBounds("dashboard_stat_messages", it.boundsInRoot())
+                                                    }
+                                                },
+                                            label = "Messaggi totali",
+                                            value = "%,d".format(s.totalMessages),
+                                            icon = Icons.AutoMirrored.Outlined.Chat
+                                        )
+                                        StatCard(
+                                            modifier = Modifier.weight(1f),
+                                            label = "Media/giorno",
+                                            value = "%.1f".format(s.averageMessagesPerDay),
+                                            icon = Icons.AutoMirrored.Outlined.TrendingUp
+                                        )
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        StatCard(
+                                            modifier = Modifier.weight(1f),
+                                            label = "File media",
+                                            value = "%,d".format(s.totalMediaFiles),
+                                            icon = Icons.Outlined.PhotoLibrary,
+                                            isSmallText = true
+                                        )
+                                        StatCard(
+                                            modifier = Modifier.weight(1f),
+                                            label = "Chat più attiva",
+                                            value = s.mostActiveChat,
+                                            icon = Icons.AutoMirrored.Outlined.TrendingUp,
+                                            isSmallText = true
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     item {
-                        val tabs = listOf("Parole", "Emoji", "Sticker")
-                        var selectedTab by remember { mutableIntStateOf(0) }
+                        ActivityRecapCard(
+                            modifier = Modifier
+                                .onGloballyPositioned {
+                                    if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
+                                        tutorialManager.setTargetBounds("dashboard_activity_chart", it.boundsInRoot())
+                                    }
+                                },
+                            hourlyData = hourlyData,
+                            weeklyData = weeklyData,
+                            dailyData = dailyData,
+                            monthlyData = monthlyData,
+                            yearlyData = yearlyData,
+                            dismissSignal = chartDismissSignal,
+                            tabsModifier = Modifier.onGloballyPositioned {
+                                if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
+                                    tutorialManager.setTargetBounds("dashboard_analysis_tabs", it.boundsInRoot())
+                                }
+                            }
+                        )
+                    }
 
-                        SectionCard(
-                            title = "Analisi testi",
-                            subtitle = "Parole, emoji e sticker più frequenti",
-                            trailingContent = {
+                    item {
+                        if (!slowStatsRequested) {
+                            SectionCard(
+                                title = "Analisi Lessicale",
+                                subtitle = "Parole ed emoji più frequenti"
+                            ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    modifier = Modifier.padding(bottom = 12.dp)
                                 ) {
-                                    listOf(10, 20, 30, 50).forEach { limit ->
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(
-                                                    if (selectedLimit == limit) MaterialTheme.colorScheme.primary
-                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    Icon(
+                                        Icons.Outlined.Info,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        "L'analisi potrebbe richiedere parecchi secondi - forse anche qualche minuto!",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Button(
+                                    onClick = { viewModel.loadSlowStats() },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .onGloballyPositioned {
+                                            if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
+                                                tutorialManager.setTargetBounds("dashboard_analyze_button", it.boundsInRoot())
+                                            }
+                                        }
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Search,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Avvia analisi")
+                                }
+                            }
+                        } else if (isLoadingSlow) {
+                            SectionCard(
+                                title = "Analisi Lessicale",
+                                subtitle = "Elaborazione in corso..."
+                            ) {
+                                LoadingSection(progress = progressSlow)
+                            }
+                        }
+                    }
+
+                    if (slowStatsRequested && !isLoadingSlow && stats != null) {
+                        val s = stats!!
+                        item {
+                            var selectedTab by remember { mutableIntStateOf(0) }
+                            val tabs = listOf("Parole", "Emoji", "Sticker")
+
+                            SectionCard(
+                                modifier = Modifier
+                                    .onGloballyPositioned {
+                                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
+                                            tutorialManager.setTargetBounds("dashboard_wordcloud", it.boundsInRoot())
+                                        }
+                                    },
+                                title = "Analisi testi",
+                                subtitle = "Parole, emoji e sticker più frequenti",
+                                trailingContent = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        listOf(10, 20, 30, 50).forEach { limit ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(
+                                                        if (selectedLimit == limit) MaterialTheme.colorScheme.primary
+                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                    )
+                                                    .clickable { viewModel.setSelectedLimit(limit) }
+                                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    limit.toString(),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = if (selectedLimit == limit) MaterialTheme.colorScheme.onPrimary
+                                                    else MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
-                                                .clickable { viewModel.setSelectedLimit(limit) }
-                                                .padding(horizontal = 8.dp, vertical = 2.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                limit.toString(),
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = if (selectedLimit == limit) MaterialTheme.colorScheme.onPrimary
-                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                            }
+                                        }
+                                    }
+                                }
+                            ) {
+                                ScrollableTabRow(
+                                    modifier = Modifier.padding(bottom = 12.dp),
+                                    selectedTabIndex = selectedTab,
+                                    containerColor = Color.Transparent,
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                    edgePadding = 0.dp,
+                                    divider = {},
+                                    indicator = { tabPositions ->
+                                        if (selectedTab < tabPositions.size) {
+                                            TabRowDefaults.SecondaryIndicator(
+                                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                ) {
+                                    tabs.forEachIndexed { index, title ->
+                                        Tab(
+                                            selected = selectedTab == index,
+                                            onClick = { selectedTab = index },
+                                            text = { Text(title, fontSize = 12.sp) }
+                                        )
+                                    }
+                                }
+
+                                when (selectedTab) {
+                                    0 -> {
+                                        if (s.topWords.isEmpty()) {
+                                            Text("Nessuna parola", modifier = Modifier.padding(vertical = 24.dp))
+                                        } else {
+                                            InteractiveWordCloud(words = s.topWords.take(selectedLimit))
+                                        }
+                                    }
+                                    1 -> {
+                                        if (s.topEmojis.isEmpty()) {
+                                            Text("Nessuna emoji", modifier = Modifier.padding(vertical = 24.dp))
+                                        } else {
+                                            InteractiveEmojiCloud(
+                                                emojis = s.topEmojis.take(selectedLimit),
+                                                onEmojiClick = { emoji, count ->
+                                                    previewEmoji = emoji
+                                                    previewEmojiCount = count
+                                                }
+                                            )
+                                        }
+                                    }
+                                    2 -> {
+                                        if (s.topStickers.isEmpty()) {
+                                            Text("Nessuno sticker", modifier = Modifier.padding(vertical = 24.dp))
+                                        } else {
+                                            InteractiveStickerCloud(
+                                                stickers = s.topStickers.take(selectedLimit),
+                                                onStickerClick = { fileName, count ->
+                                                    previewSticker = fileName
+                                                    previewStickerCount = count
+                                                }
                                             )
                                         }
                                     }
                                 }
                             }
-                        ) {
-                            ScrollableTabRow(
-                                selectedTabIndex = selectedTab,
-                                containerColor = Color.Transparent,
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                edgePadding = 0.dp,
-                                divider = {},
-                                modifier = Modifier.padding(bottom = 12.dp),
-                                indicator = { tabPositions ->
-                                    if (selectedTab < tabPositions.size) {
-                                        TabRowDefaults.SecondaryIndicator(
-                                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            ) {
-                                tabs.forEachIndexed { index, title ->
-                                    Tab(
-                                        selected = selectedTab == index,
-                                        onClick = { selectedTab = index },
-                                        text = { Text(title, fontSize = 12.sp) }
-                                    )
-                                }
-                            }
-
-                            when (selectedTab) {
-                                0 -> {
-                                    if (s.topWords.isEmpty()) {
-                                        Text(
-                                            "Nessuna parola trovata",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(vertical = 24.dp)
-                                        )
-                                    } else {
-                                        InteractiveWordCloud(
-                                            words = s.topWords.take(selectedLimit)
-                                        )
-                                    }
-                                }
-                                1 -> {
-                                    if (s.topEmojis.isEmpty()) {
-                                        Text(
-                                            "Nessuna emoji trovata",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(vertical = 24.dp)
-                                        )
-                                    } else {
-                                        InteractiveEmojiCloud(
-                                            emojis = s.topEmojis.take(selectedLimit),
-                                            onEmojiClick = { emoji, count ->
-                                                previewEmoji = emoji
-                                                previewEmojiCount = count
-                                            }
-                                        )
-                                    }
-                                }
-                                2 -> {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(bottom = 8.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Outlined.Info,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(
-                                            "Sticker simili possono comparire più volte perché WhatsApp li salva come file separati.",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    if (s.topStickers.isEmpty()) {
-                                        Text(
-                                            "Nessuno sticker trovato",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(vertical = 24.dp)
-                                        )
-                                    } else {
-                                        InteractiveStickerCloud(
-                                            stickers = s.topStickers.take(selectedLimit),
-                                            onStickerClick = { fileName, count ->
-                                                previewSticker = fileName
-                                                previewStickerCount = count
-                                            }
-                                        )
-                                    }
-                                }
-                            }
                         }
                     }
+
+                    item { Spacer(Modifier.height(32.dp)) }
                 }
-
-                // Spacer finale per navigation bar
-                item { Spacer(Modifier.height(32.dp)) }
-            }
-            } // fine else (!isLoading)
-        } // fine Column
-
-        // ── Emoji Preview Modal ──────────────────────────────────
-        if (previewEmoji != null) {
-            EmojiPreviewModal(
-                emoji = previewEmoji!!,
-                count = previewEmojiCount,
-                onDismiss = { previewEmoji = null }
-            )
-        }
-
-        // ── Sticker Preview Modal ─────────────────────────────────
-        if (previewSticker != null) {
-            StickerPreviewModal(
-                fileName = previewSticker!!,
-                count = previewStickerCount,
-                onDismiss = { previewSticker = null }
-            )
-        }
-    } // fine Box
-}
-
-@Composable
-private fun DashboardStickerItem(fileName: String, count: Int) {
-    val context = LocalContext.current
-    val stickerPaths = listOf(
-        "/sdcard/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Stickers",
-        "/sdcard/WhatsApp/Media/WhatsApp Stickers"
-    )
-    val stickerFile = remember(fileName) {
-        stickerPaths.map { java.io.File(it, fileName) }.firstOrNull { it.exists() }
-    }
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(72.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            if (stickerFile != null) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context).data(stickerFile).crossfade(true).build(),
-                    contentDescription = fileName,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
-                )
-            } else {
-                Icon(
-                    Icons.Outlined.PhotoLibrary,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(32.dp)
-                )
             }
         }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "(%d)".format(count),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+
+        // ── Overlays ──────────────────────────────────────────
+        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
+            tutorialManager.currentStep?.let { step ->
+                tutorialManager.getTargetBounds(step.targetKey)?.let { bounds ->
+                    TutorialOverlay(
+                        step = step,
+                        targetBounds = bounds,
+                        arrowDirection = step.arrowDirection,
+                        isVisible = true,
+                        isLastStep = tutorialState.currentStepIndex >= tutorialState.steps.size - 1,
+                        onNext = { tutorialManager.nextStep() },
+                        onPrevious = { tutorialManager.previousStep() },
+                        onClose = { tutorialManager.closeTutorial() },
+                        onComplete = { tutorialManager.completeTutorial("dashboard") }
+                    )
+                }
+            }
+        }
+
+        previewEmoji?.let { emoji ->
+            EmojiPreviewModal(emoji = emoji, count = previewEmojiCount, onDismiss = { previewEmoji = null })
+        }
+
+        previewSticker?.let { sticker ->
+            StickerPreviewModal(fileName = sticker, count = previewStickerCount, onDismiss = { previewSticker = null })
+        }
     }
 }
 
 @Composable
 private fun SectionCard(
+    modifier: Modifier = Modifier,
     title: String,
     subtitle: String? = null,
     trailingContent: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -570,17 +532,12 @@ private fun SectionCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                     if (subtitle != null) {
-                        Text(
-                            subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
+                        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                if (trailingContent != null) { trailingContent() }
+                trailingContent?.invoke()
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
             content()
         }
     }

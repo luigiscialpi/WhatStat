@@ -78,6 +78,9 @@ dependencies {
 
     // ── Serialization ────────────────────────────────────────────
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("com.squareup.moshi:moshi:1.15.1")
+    implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
+    ksp("com.squareup.moshi:moshi-kotlin-codegen:1.15.1")
 
     // ── Coroutines ───────────────────────────────────────────────
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")

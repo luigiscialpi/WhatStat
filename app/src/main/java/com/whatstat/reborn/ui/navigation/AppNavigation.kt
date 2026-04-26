@@ -3,6 +3,7 @@ package com.whatstat.reborn.ui.navigation
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
@@ -23,6 +24,17 @@ import com.whatstat.reborn.ui.screen.media.MediaStatsScreen
 import com.whatstat.reborn.ui.screen.setup.SetupScreen
 import com.whatstat.reborn.ui.screen.wordsearch.WordSearchScreen
 import com.whatstat.reborn.ui.screen.history.GroupHistoryScreen
+import com.whatstat.reborn.ui.tutorial.TutorialManager
+import com.whatstat.reborn.ui.tutorial.tutorials.CallsTutorialSteps
+import com.whatstat.reborn.ui.tutorial.tutorials.ChatDetailTutorialSteps
+import com.whatstat.reborn.ui.tutorial.tutorials.ChatListTutorialSteps
+import com.whatstat.reborn.ui.tutorial.tutorials.DashboardTutorialSteps
+import com.whatstat.reborn.ui.tutorial.tutorials.MediaTutorialSteps
+import com.whatstat.reborn.ui.tutorial.tutorials.SetupTutorialSteps
+import com.whatstat.reborn.ui.tutorial.tutorials.WordSearchTutorialSteps
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.whatstat.reborn.ui.tutorial.LocalTutorialManager
+import com.whatstat.reborn.ui.tutorial.ProvideTutorialManager
 
 sealed class Screen(val route: String) {
     data object Setup : Screen("setup")
@@ -63,23 +75,47 @@ object NavGraphRoute {
 @Composable
 fun AppNavigation(
     navController: NavHostController,
-    repository: WhatsAppRepository
+    repository: WhatsAppRepository,
+    tutorialManager: TutorialManager = hiltViewModel()
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
     AppScaffold(
         navController = navController,
-        currentDestination = currentDestination
+        currentDestination = currentDestination,
+        onHelpClick = {
+            val currentScreen = when (currentDestination?.route) {
+                Screen.Dashboard.route -> "dashboard"
+                Screen.ChatList.route -> "chatlist"
+                Screen.MediaStats.route -> "media"
+                Screen.WordSearch.route -> "wordsearch"
+                Screen.CallsStats.route -> "calls"
+                else -> null
+            }
+            currentScreen?.let { screen ->
+                val stepsProvider = when (screen) {
+                    "dashboard" -> DashboardTutorialSteps
+                    "chatlist" -> ChatListTutorialSteps
+                    "media" -> MediaTutorialSteps
+                    "wordsearch" -> WordSearchTutorialSteps
+                    "calls" -> CallsTutorialSteps
+                    else -> null
+                }
+                stepsProvider?.let { tutorialManager.startTutorialForScreen(screen, it) }
+            }
+        }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = NavGraphRoute.Setup,
-            route = "root_graph",
-            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
-        ) {
-            setupGraph(navController)
-            mainGraph(navController, repository)
+        ProvideTutorialManager(tutorialManager = tutorialManager) {
+            NavHost(
+                navController = navController,
+                startDestination = NavGraphRoute.Setup,
+                route = "root_graph",
+                modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
+            ) {
+                setupGraph(navController)
+                mainGraph(navController, repository)
+            }
         }
     }
 }

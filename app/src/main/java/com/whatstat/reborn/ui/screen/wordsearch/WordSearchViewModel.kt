@@ -154,6 +154,10 @@ class WordSearchViewModel @Inject constructor(
         }
     }
 
+    fun applyCustomDateRange() {
+        startSearch()
+    }
+
     private fun search(query: String) {
         viewModelScope.launch {
             _isLoading.value = true

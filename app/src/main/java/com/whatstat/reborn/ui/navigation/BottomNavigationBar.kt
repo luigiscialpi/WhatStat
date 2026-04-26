@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
@@ -15,20 +16,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
-
-private data class BottomNavItem(
-    val graphRoute: String,
-    val destinationRoute: String,
-    val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
-)
 
 @Composable
 fun BottomNavigationBar(
     navController: NavHostController,
-    currentDestination: NavDestination?
+    currentDestination: NavDestination?,
+    onHelpClick: () -> Unit
 ) {
     val items = listOf(
         BottomNavItem(
@@ -93,5 +87,31 @@ fun BottomNavigationBar(
                 )
             )
         }
+
+        // Help button (not a navigation destination)
+        NavigationBarItem(
+            selected = false,
+            onClick = onHelpClick,
+            icon = {
+                Icon(Icons.Outlined.HelpOutline, contentDescription = "Aiuto")
+            },
+            label = {
+                Text("Aiuto")
+            },
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        )
     }
 }
+
+private data class BottomNavItem(
+    val graphRoute: String,
+    val destinationRoute: String,
+    val label: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)
+
+

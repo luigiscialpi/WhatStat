@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dashboard Tutorial -->
+    <string name="tutorial_dashboard_filters_title">Filtri temporali</string>
+    <string name="tutorial_dashboard_filters_desc">Seleziona il periodo di analisi: ultima settimana, mese, anno o intervallo personalizzato.</string>
+
+    <string name="tutorial_dashboard_statcard_title">Statistiche principali</string>
+    <string name="tutorial_dashboard_statcard_desc">Qui vedi il numero totale di messaggi, la media giorno e le statistiche sui file media.</string>
+
+    <string name="tutorial_dashboard_chart_title">Grafico attività</string>
+    <string name="tutorial_dashboard_chart_desc">Visualizza l\'>andamento orario, settimanale o mensile della tua attività.</string>
+
+    <string name="tutorial_dashboard_tabs_title">Seleziona visualizzazione</string>
+    <string name="tutorial_dashboard_tabs_desc">Passa tra ora, settimana, mese o anno per diversificare la visualizzazione.</string>
+
+    <string name="tutorial_dashboard_analyze_title">Analisi approfondita</string>
+    <string name="tutorial_dashboard_analyze_desc"> premi qui per analizzare ogni chat singolarmente e scoprire dettagli specifici.</string>
+
+    <string name="tutorial_dashboard_wordcloud_title">Analisi lessicale</string>
+    <string name="tutorial_dashboard_wordcloud_desc">Scopri le parole, emoji e sticker più usati nelle tue chat.</string>
+
+    <!-- Chat List Tutorial -->
+    <string name="tutorial_chatlist_search_title">Ricerca chat</string>
+    <string name="tutorial_chatlist_search_desc">Filtra le chat digitando il nome del contatto o del gruppo.</string>
+
+    <string name="tutorial_chatlist_list_title">Elenco chat</string>
+    <string name="tutorial_chatlist_list_desc">Qui sono visualizzate tutte le tue chat ordinate per numero di messaggi.</string>
+
+    <string name="tutorial_chatlist_item_title">Elemento chat</string>
+    <string name="tutorial_chatlist_item_desc">Ogni scheda mostra il nome della chat, il numero di messaggi e altre info.</string>
+
+    <string name="tutorial_chatlist_badge_title">Conteggio messaggi</string>
+    <string name="tutorial_chatlist_badge_desc">Il numero esatto di messaggi scambiati in quella chat.</string>
+
+    <!-- Chat Detail Tutorial -->
+    <string name="tutorial_chatdetail_filters_title">Filtri temporali</string>
+    <string name="tutorial_chatdetail_filters_desc">Analizza i dati di questa chat in un periodo specifico.</string>
+
+    <string name="tutorial_chatdetail_tabs_title">Navigazione sezioni</string>
+    <string name="tutorial_chatdetail_tabs_desc">Passa tra statistiche, parole/keyword e media condivisi.</string>
+
+    <string name="tutorial_chatdetail_stats_title">Statistiche chat</string>
+    <string name="tutorial_chatdetail_stats_desc">Messaggi inviati/ricevuti, rapporto di risposta e molto altro.</string>
+
+    <string name="tutorial_chatdetail_activity_title">Attività temporale</string>
+    <string name="tutorial_chatdetail_activity_desc">Grafico che mostra quando siete più attivi in questa chat.</string>
+
+    <string name="tutorial_chatdetail_wordcloud_title">Parole e emoji</string>
+    <string name="tutorial_chatdetail_wordcloud_desc">Le parole e le emoji più utilizzate in questa chat.</string>
+
+    <!-- Media Stats Tutorial -->
+    <string name="tutorial_media_filters_title">Filtri temporali</string>
+    <string name="tutorial_media_filters_desc">Scegli il periodo per visualizzare i media condivisi.</string>
+
+    <string name="tutorial_media_tabs_title">Tipo visualizzazione</string>
+    <string name="tutorial_media_tabs_desc">Passa tra griglia media e riepilogo per tipo.</string>
+
+    <string name="tutorial_media_grid_title">Griglia media</string>
+    <string name="tutorial_media_grid_desc">Anteprime di tutte le foto, video, audio e documenti.</string>
+
+    <string name="tutorial_media_filters_media_title">Filtri tipo</string>
+    <string name="tutorial_media_filters_media_desc">Filtra per foto, video, audio o documenti.</string>
+
+    <!-- Calls Stats Tutorial -->
+    <string name="tutorial_calls_filters_title">Filtri temporali</string>
+    <string name="tutorial_calls_filters_desc">Visualizza le chiamate in un periodo specifico.</string>
+
+    <string name="tutorial_calls_summary_title">Riepilogo chiamate</string>
+    <string name="tutorial_calls_summary_desc">Statistiche chiave: totale chiamate, durata media, tipo.</string>
+
+    <string name="tutorial_calls_list_title">Cronologia chiamate</string>
+    <string name="tutorial_calls_list_desc">Lista dettagliata di tutte le chiamate con info su tipo e durata.</string>
+
+    <string name="tutorial_calls_type_title">Tipo chiamata</string>
+    <string name="tutorial_calls_type_desc">Filtra tra chiamate vocali e video.</string>
+
+    <!-- Word Search (Radar) Tutorial -->
+    <string name="tutorial_wordsearch_search_title">Cerca parole</string>
+    <string name="tutorial_wordsearch_search_desc">Inserisci una parola per cercarla in tutte le tue chat.</string>
+
+    <string name="tutorial_wordsearch_results_title">Risultati</string>
+    <string name="tutorial_wordsearch_results_desc">Elenco delle chat in cui compare la parola cercata.</string>
+
+    <string name="tutorial_wordsearch_filters_title">Filtri avanzati</string>
+    <string name="tutorial_wordsearch_filters_desc">Perfila la ricerca per chat specifica o tipo di media.</string>
+
+    <!-- Setup Tutorial -->
+    <string name="tutorial_setup_button_title">Inizia analisi</string>
+    <string name="tutorial_setup_button_desc">Premi questo pulsante per avviare l\'>analisi del tuo database WhatsApp.</string>
+
+    <string name="tutorial_setup_status_title">Stato avanzamento</string>
+    <string name="tutorial_setup_status_desc">Questi indicatori mostrano il progresso: root, estrazione, decifratura, lettura contatti.</string>
+
+    <string name="tutorial_setup_privacy_title">Privacy garantita</string>
+    <string name="tutorial_setup_privacy_desc">Tutti i dati rimangono sul tuo dispositivo. Nulla viene inviato a server esterni.</string>
+
+    <!-- Common -->
+    <string name="tutorial_skip">Salta</string>
+    <string name="tutorial_next">Avanti</string>
+    <string name="tutorial_previous">Indietro</string>
+    <string name="tutorial_close">Chiudi</string>
+    <string name="tutorial_finish">Fine</string>
+
+    <!-- Help button in bottom bar -->
+    <string name="nav_help">Aiuto</string>
+
+    <!-- Tutorial not available message -->
+    <string name="tutorial_not_available">Tutorial non disponibile per questa schermata</string>
+</resources>

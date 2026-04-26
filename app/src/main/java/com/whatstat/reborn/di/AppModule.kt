@@ -12,6 +12,7 @@ import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.repository.WhatsAppRepository
 import com.whatstat.reborn.data.root.FileExtractor
 import com.whatstat.reborn.data.root.RootManager
+import com.whatstat.reborn.ui.tutorial.data.TutorialDataStoreManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -55,4 +56,10 @@ object AppModule {
         contactDao: ContactDao,
         cacheManager: CacheManager
     ): AnalyticsRepository = AnalyticsRepository(messageDao, chatDao, contactDao, cacheManager)
+
+    @Provides
+    @Singleton
+    fun provideTutorialDataStoreManager(
+        @ApplicationContext context: Context
+    ): TutorialDataStoreManager = TutorialDataStoreManager(context)
 }

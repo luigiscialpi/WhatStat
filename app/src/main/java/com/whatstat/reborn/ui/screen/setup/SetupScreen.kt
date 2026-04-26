@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Box
@@ -67,8 +68,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.whatstat.reborn.ui.tutorial.LocalTutorialManager
+import com.whatstat.reborn.ui.tutorial.TutorialOverlay
 
 @Composable
 fun SetupScreen(
@@ -76,6 +82,10 @@ fun SetupScreen(
     onSetupComplete: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+
+    // Tutorial integration
+    val tutorialManager = LocalTutorialManager.current
+    val tutorialState by tutorialManager.uiState.collectAsState()
 
     LaunchedEffect(state.isComplete) {
         if (state.isComplete) onSetupComplete()
@@ -165,163 +175,44 @@ fun SetupScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
+                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight,
+                modifier = Modifier.onGloballyPositioned {
+                    tutorialManager.setTargetBounds("setup_privacy_info", it.boundsInRoot())
+                }
             )
 
             Spacer(Modifier.height(48.dp))
 
-            // ── Step indicators ──────────────────────────────────
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(Modifier.padding(20.dp)) {
-                    SetupStep(
-                        label = "Accesso root",
-                        status = state.rootStatus,
-                        icon = Icons.Outlined.AdminPanelSettings
-                    )
-                    SetupStep(
-                        label = "Estrazione file",
-                        status = state.extractionStatus,
-                        icon = Icons.Outlined.FolderOpen
-                    )
-                    SetupStep(
-                        label = "Decifratura database",
-                        status = state.decryptionStatus,
-                        icon = Icons.Outlined.Key,
-                        progress = if (state.decryptionStatus == StepStatus.LOADING) state.decryptionProgress else null
-                    )
-                    SetupStep(
-                        label = "Lettura contatti",
-                        status = state.contactsStatus,
-                        icon = Icons.Outlined.Contacts
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // ── Error card & Manual Mode ───────────────────────────
-            AnimatedVisibility(
-                visible = state.error != null,
-                enter = fadeIn() + slideInVertically()
-            ) {
-                Column {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        SelectionContainer {
-                            Text(
-                                state.error ?: "",
-                                modifier = Modifier.padding(16.dp),
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    if (!state.isManualModeVisible) {
-                        Button(
-                            onClick = { viewModel.showManualMode() },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Seleziona File Manualmente")
-                        }
-                    }
-                }
-            }
-
-            AnimatedVisibility(
-                visible = state.isManualModeVisible,
-                enter = fadeIn() + slideInVertically()
-            ) {
-                var currentSelectionType by remember { mutableStateOf("") }
-                val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-                    if (uri != null && currentSelectionType.isNotEmpty()) {
-                        viewModel.handleManualFileSelected(uri, currentSelectionType)
-                    }
-                }
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text("Opzioni Manuali (No Root)", style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.height(16.dp))
-
-                        ManualFileButton(
-                            label = "File Chiave (key)",
-                            isLoaded = state.hasManualKey,
-                            onClick = { 
-                                currentSelectionType = FileExtractor.KEY_DEST
-                                launcher.launch("*/*") 
-                            }
-                        )
-                        ManualFileButton(
-                            label = "Database (msgstore.db.crypt14)",
-                            isLoaded = state.hasManualCrypt14,
-                            onClick = { 
-                                currentSelectionType = FileExtractor.CRYPT14_DEST
-                                launcher.launch("*/*") 
-                            }
-                        )
-                        ManualFileButton(
-                            label = "Database già decifrato (msgstore.db)",
-                            isLoaded = state.hasManualDbDecrypted,
-                            onClick = { 
-                                currentSelectionType = FileExtractor.DB_DECRYPTED_DEST
-                                launcher.launch("application/octet-stream") 
-                            }
-                        )
-                        ManualFileButton(
-                            label = "Contatti (wa.db) - Opzionale",
-                            isLoaded = state.hasManualWaDb,
-                            onClick = { 
-                                currentSelectionType = FileExtractor.WA_DB_DEST
-                                launcher.launch("*/*") 
-                            }
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // ── Action button ────────────────────────────────────
+            // ── Step indicators / Buttons ─────────────────────────
             if (state.isLoading) {
-                // Pulsante Cancel durante il caricamento
-                OutlinedButton(
-                    onClick = { viewModel.cancelSetup() },
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(56.dp)
+                        .clickable { viewModel.cancelSetup() }
+                        .onGloballyPositioned { tutorialManager.setTargetBounds("setup_cancel_button", it.boundsInRoot()) },
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
                     )
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = "Annulla",
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        "Annulla",
-                        style = MaterialTheme.typography.labelLarge
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Annulla",
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            "Annulla",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
             } else {
                 Button(
@@ -333,13 +224,14 @@ fun SetupScreen(
                         }
                     },
                     enabled = !state.isLoading && (
-        !state.isManualModeVisible || 
-        (state.hasManualKey && state.hasManualCrypt14) ||
-        (state.hasManualKey && state.hasManualDbDecrypted)
-    ),
+                        !state.isManualModeVisible || 
+                        (state.hasManualKey && state.hasManualCrypt14) ||
+                        (state.hasManualKey && state.hasManualDbDecrypted)
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(56.dp)
+                        .onGloballyPositioned { tutorialManager.setTargetBounds("setup_start_button", it.boundsInRoot()) },
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -350,6 +242,27 @@ fun SetupScreen(
                         if (state.isManualModeVisible) "Decifra Database"
                         else "Inizia analisi",
                         style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
+        }
+
+        // Tutorial Overlay
+        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "setup") {
+            val currentStep = tutorialManager.currentStep
+            if (currentStep != null) {
+                val targetBounds = tutorialManager.getTargetBounds(currentStep.targetKey)
+                if (targetBounds != null) {
+                    TutorialOverlay(
+                        step = currentStep,
+                        targetBounds = targetBounds,
+                        arrowDirection = currentStep.arrowDirection,
+                        isVisible = true,
+                        isLastStep = tutorialState.currentStepIndex >= tutorialState.steps.size - 1,
+                        onNext = { tutorialManager.nextStep() },
+                        onPrevious = { tutorialManager.previousStep() },
+                        onClose = { tutorialManager.closeTutorial() },
+                        onComplete = { tutorialManager.completeTutorial("setup") }
                     )
                 }
             }

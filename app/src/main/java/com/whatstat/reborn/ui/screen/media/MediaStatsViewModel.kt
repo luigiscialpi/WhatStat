@@ -191,7 +191,7 @@ class MediaStatsViewModel @Inject constructor(
         loadStats()
     }
 
-    private fun loadStats() {
+    internal fun loadStats() {
         viewModelScope.launch {
             _isLoading.value = true
             try {

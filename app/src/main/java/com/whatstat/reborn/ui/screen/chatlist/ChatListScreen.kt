@@ -52,6 +52,11 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.SimpleScreenHeader
+import com.whatstat.reborn.ui.tutorial.LocalTutorialManager
+import com.whatstat.reborn.ui.tutorial.TutorialOverlay
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
 
 @Composable
 fun ChatListScreen(
@@ -63,85 +68,138 @@ fun ChatListScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    Column(
+    // Tutorial integration
+    val tutorialManager = LocalTutorialManager.current
+    val tutorialState by tutorialManager.uiState.collectAsState()
+
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        // ── Header ───────────────────────────────────────────────
-        SimpleScreenHeader(
-            title = "Le tue chat",
-            onBack = onNavigateBack
-        )
-
-        // ── Search Bar ───────────────────────────────────────────
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { viewModel.onSearchQueryChange(it) },
-            placeholder = {
-                Text(
-                    "Cerca chat…",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    Icons.Outlined.Search,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            singleLine = true,
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
+            // ── Header ───────────────────────────────────────────────
+            SimpleScreenHeader(
+                title = "Le tue chat",
+                onBack = onNavigateBack
             )
-        )
 
-        Spacer(Modifier.height(12.dp))
+            // ── Search Bar ───────────────────────────────────────────
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.onSearchQueryChange(it) },
+                placeholder = {
+                    Text(
+                        "Cerca chat…",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Outlined.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .onGloballyPositioned {
+                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "chatlist") {
+                            tutorialManager.setTargetBounds("chatlist_search_field", it.boundsInRoot())
+                        }
+                    },
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                )
+            )
 
-        // ── Chat counter ─────────────────────────────────────────
-        Text(
-            "${chats.size} chat",
-            modifier = Modifier.padding(horizontal = 20.dp),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+            Spacer(Modifier.height(12.dp))
 
-        Spacer(Modifier.height(8.dp))
+            // ── Chat counter ─────────────────────────────────────────
+            Text(
+                "${chats.size} chat",
+                modifier = Modifier.padding(horizontal = 20.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
-        // ── Chat List ────────────────────────────────────────────
-        if (isLoading) {
-            ChatListSkeletonContent(modifier = Modifier.fillMaxSize())
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn() + slideInVertically { it / 3 }
-                    ) {
-                        ChatListItem(
-                            rank = index + 1,
-                            name = chat.displayName,
-                            jid = chat.jid,
-                            messageCount = chat.totalMessages,
-                            isGroup = chat.isGroup,
-                            avatarPath = chat.avatarPath,
-                            onClick = { onChatSelected(chat.chatId) }
-                        )
+            Spacer(Modifier.height(8.dp))
+
+            // ── Chat List ────────────────────────────────────────────
+            if (isLoading) {
+                ChatListSkeletonContent(modifier = Modifier.fillMaxSize())
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .onGloballyPositioned {
+                            if (tutorialState.isTutorialActive && tutorialState.currentScreen == "chatlist") {
+                                tutorialManager.setTargetBounds("chatlist_list", it.boundsInRoot())
+                            }
+                        },
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn() + slideInVertically { it / 3 }
+                        ) {
+                            ChatListItem(
+                                rank = index + 1,
+                                name = chat.displayName,
+                                jid = chat.jid,
+                                messageCount = chat.totalMessages,
+                                isGroup = chat.isGroup,
+                                avatarPath = chat.avatarPath,
+                                onClick = { onChatSelected(chat.chatId) },
+                                modifier = if (index == 0) Modifier
+                                    .onGloballyPositioned {
+                                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "chatlist") {
+                                            tutorialManager.setTargetBounds("chatlist_first_item", it.boundsInRoot())
+                                        }
+                                    } else Modifier,
+                                badgeModifier = if (index == 0) Modifier
+                                    .onGloballyPositioned {
+                                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "chatlist") {
+                                            tutorialManager.setTargetBounds("chatlist_message_count", it.boundsInRoot())
+                                        }
+                                    } else Modifier
+                            )
+                        }
                     }
                 }
+            }
+        }
 
-                item { Spacer(Modifier.height(32.dp)) }
+        // ── Tutorial Overlay ──────────────────────────────────────────
+        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "chatlist") {
+            val currentStep = tutorialManager.currentStep
+            if (currentStep != null) {
+                val targetBounds = tutorialManager.getTargetBounds(currentStep.targetKey)
+                if (targetBounds != null) {
+                    TutorialOverlay(
+                        step = currentStep,
+                        targetBounds = targetBounds,
+                        arrowDirection = currentStep.arrowDirection,
+                        isVisible = true,
+                        isLastStep = tutorialState.currentStepIndex >= tutorialState.steps.size - 1,
+                        onNext = { tutorialManager.nextStep() },
+                        onPrevious = { tutorialManager.previousStep() },
+                        onClose = { tutorialManager.closeTutorial() },
+                        onComplete = { tutorialManager.completeTutorial("chatlist") }
+                    )
+                }
             }
         }
     }
@@ -155,10 +213,12 @@ private fun ChatListItem(
     messageCount: Int,
     isGroup: Boolean,
     avatarPath: String?,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    badgeModifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
@@ -248,6 +308,7 @@ private fun ChatListItem(
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
                     .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .then(badgeModifier)
             ) {
                 Text(
                     "%,d".format(messageCount),

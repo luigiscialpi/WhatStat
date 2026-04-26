@@ -38,7 +38,8 @@ fun ActivityRecapCard(
     yearlyData: List<YearTrendCount>,
     dismissSignal: Int = 0,
     onPointClick: ((String, String) -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    tabsModifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Oraria", "Settimanale", "Giornaliera", "Mensile", "Annuale")
@@ -62,6 +63,7 @@ fun ActivityRecapCard(
     ) {
         Column(modifier = Modifier.padding(bottom = 16.dp)) {
             ScrollableTabRow(
+                modifier = tabsModifier,
                 selectedTabIndex = selectedTab,
                 containerColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.primary,
