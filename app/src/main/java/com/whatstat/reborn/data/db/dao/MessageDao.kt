@@ -1240,6 +1240,91 @@ class MessageDao @Inject constructor(
     }
 
     /**
+     * Restituisce i messaggi che contengono la parola cercata,
+     * filtrati per mittente (JID). Supporta filtro temporale e per chat.
+     * Ordinamento: timestamp DESC (messaggi piu' recenti prima).
+     */
+    fun searchWordMessages(
+        word: String,
+        senderJid: String,
+        chatId: Long? = null,
+        startTime: Long? = null,
+        endTime: Long? = null
+    ): List<com.whatstat.reborn.data.db.model.WordMessageResult> {
+        val searchWord = word.lowercase()
+        val conditions = mutableListOf("m.text_data IS NOT NULL", "m.message_type = 0")
+        val args = mutableListOf<String>()
+
+        conditions.add("m.text_data LIKE '%' || ? || '%'")
+        args.add(searchWord)
+
+        if (senderJid == "me@s.whatsapp.net") {
+            conditions.add("m.from_me = 1")
+        } else {
+            conditions.add("m.from_me = 0")
+            conditions.add("(rj.raw_string = ? OR sj.raw_string = ? OR cj.raw_string = ?)")
+            args.add(senderJid)
+            args.add(senderJid)
+            args.add(senderJid)
+        }
+
+        if (chatId != null) {
+            conditions.add("m.chat_row_id = ?")
+            args.add(chatId.toString())
+        }
+        if (startTime != null) {
+            conditions.add("m.timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            conditions.add("m.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+
+        val query = """
+            SELECT 
+                m.text_data, 
+                m.timestamp, 
+                m.chat_row_id,
+                COALESCE(cj.raw_string, '') AS chat_jid,
+                c.subject AS chat_subject
+            FROM message m
+            LEFT JOIN jid sj ON m.sender_jid_row_id = sj._id AND m.sender_jid_row_id > 0
+            LEFT JOIN jid_map jm ON jm.lid_row_id = sj._id
+            LEFT JOIN jid rj ON rj._id = jm.jid_row_id
+            LEFT JOIN chat c ON m.chat_row_id = c._id
+            LEFT JOIN jid cj ON c.jid_row_id = cj._id
+            WHERE ${conditions.joinToString(" AND ")}
+            ORDER BY m.timestamp DESC
+        """.trimIndent()
+
+        val results = mutableListOf<com.whatstat.reborn.data.db.model.WordMessageResult>()
+        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
+        
+        cursor.use { cur ->
+            while (cur.moveToNext()) {
+                val text = cur.getString(0) ?: continue
+                val timestamp = cur.getLong(1)
+                val chatRowId = cur.getLong(2)
+                val chatJid = cur.getString(3) ?: ""
+                val chatSubject = cur.getString(4)
+                
+                val displayName = chatSubject ?: chatJid
+
+                if (text.lowercase().contains(searchWord)) {
+                    results.add(com.whatstat.reborn.data.db.model.WordMessageResult(
+                        text = text,
+                        timestamp = timestamp,
+                        chatRowId = chatRowId,
+                        chatDisplayName = displayName
+                    ))
+                }
+            }
+        }
+        return results
+    }
+
+    /**
      * Estrazione statistiche chiamate (audio vs video, perse, durata).
      * Usa la tabella call_log dedicata.
      * Supporta filtro per jid (chat) e temporale opzionale.

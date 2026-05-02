@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.whatstat.reborn.data.db.model.DateRange
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.db.model.WordSearchResult
+import com.whatstat.reborn.data.db.model.WordMessageResult
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.root.FileExtractor
 import com.whatstat.reborn.ui.state.FilterStateHolder
@@ -55,6 +56,13 @@ class WordSearchViewModel @Inject constructor(
 
     private val _chatContextAvatarPath = MutableStateFlow<String?>(null)
     val chatContextAvatarPath: StateFlow<String?> = _chatContextAvatarPath.asStateFlow()
+
+    // Stato per la bottom sheet: (senderName, senderAvatarPath, lista messaggi)
+    private val _messagePreview = MutableStateFlow<Triple<String, String?, List<WordMessageResult>>?>(null)
+    val messagePreview: StateFlow<Triple<String, String?, List<WordMessageResult>>?> = _messagePreview.asStateFlow()
+
+    private val _isLoadingMessages = MutableStateFlow(false)
+    val isLoadingMessages: StateFlow<Boolean> = _isLoadingMessages.asStateFlow()
 
     private var searchJob: Job? = null
 
@@ -196,5 +204,47 @@ class WordSearchViewModel @Inject constructor(
                 _isSearching.value = false
             }
         }
+    }
+
+    /**
+     * Carica i messaggi contenenti la parola cercata per il mittente selezionato.
+     * Apre la bottom sheet con i risultati.
+     */
+    fun loadMessagesForSender(senderJid: String, senderName: String) {
+        viewModelScope.launch {
+            _isLoadingMessages.value = true
+            try {
+                val (startTime, endTime) = if (_selectedTimeRange.value == TimeRange.CUSTOM) {
+                    _customDateRange.value?.let {
+                        analyticsRepository.getDateRangeBounds(it)
+                    } ?: (null to null)
+                } else {
+                    analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
+                }
+                val messages = analyticsRepository.getWordMessages(
+                    word = _searchQuery.value,
+                    senderJid = senderJid,
+                    chatId = _chatId.value,
+                    startTime = startTime,
+                    endTime = endTime
+                )
+                _messagePreview.value = Triple(
+                    senderName,
+                    getAvatarPath(senderJid),
+                    messages
+                )
+            } catch (e: Exception) {
+                _messagePreview.value = null
+            } finally {
+                _isLoadingMessages.value = false
+            }
+        }
+    }
+
+    /**
+     * Chiude l'anteprima dei messaggi.
+     */
+    fun dismissMessagePreview() {
+        _messagePreview.value = null
     }
 }

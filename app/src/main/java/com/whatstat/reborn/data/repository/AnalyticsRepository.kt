@@ -558,6 +558,43 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
     }
 
     /**
+     * Recupera i messaggi contenenti la parola cercata per un mittente specifico.
+     * Risolve il nome della chat di appartenenza tramite wa.db (chat 1-a-1)
+     * oppure usa il subject del gruppo (gia' presente nel risultato DAO).
+     */
+    suspend fun getWordMessages(
+        word: String,
+        senderJid: String,
+        chatId: Long? = null,
+        startTime: Long? = null,
+        endTime: Long? = null
+    ): List<WordMessageResult> = withContext(Dispatchers.IO) {
+        val raw = messageDao.searchWordMessages(word, senderJid, chatId, startTime, endTime)
+        if (raw.isEmpty()) return@withContext emptyList()
+
+        // Raccoglie i JID di chat 1-a-1 che hanno bisogno di risoluzione nome
+        val jidsToResolve = raw
+            .filter { !it.chatDisplayName.endsWith("@g.us") }
+            .map { it.chatDisplayName }
+            .distinct()
+        
+        val chatNames = if (jidsToResolve.isNotEmpty()) {
+            contactDao.resolveContactNames(jidsToResolve)
+        } else emptyMap()
+
+        raw.map { msg ->
+            val resolvedName = if (msg.chatDisplayName.endsWith("@g.us")) {
+                // Per i gruppi, chatDisplayName contiene gia' il subject o il JID.
+                // Se e' un JID (fallback nel DAO), proviamo a risolverlo.
+                contactDao.resolveContactName(msg.chatDisplayName) ?: msg.chatDisplayName.substringBefore("@")
+            } else {
+                chatNames[msg.chatDisplayName] ?: msg.chatDisplayName.substringBefore("@")
+            }
+            msg.copy(chatDisplayName = resolvedName)
+        }
+    }
+
+    /**
      * Statistiche chiamate globali o per chat con filtro temporale.
      */
     suspend fun getCallStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<CallStat> = withContext(Dispatchers.IO) {

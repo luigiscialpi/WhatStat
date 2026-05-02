@@ -174,3 +174,11 @@ data class MediaStat(
     val mimeType: String,    // "image/jpeg", "video/mp4", ecc.
     val timestamp: Long      // timestamp del messaggio in ms
 )
+
+/** Singolo messaggio trovato dalla ricerca Radar */
+data class WordMessageResult(
+    val text: String,
+    val timestamp: Long,
+    val chatRowId: Long,
+    val chatDisplayName: String
+)
