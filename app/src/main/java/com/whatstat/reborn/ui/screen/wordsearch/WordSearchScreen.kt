@@ -28,6 +28,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,7 +42,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -81,6 +86,8 @@ fun WordSearchScreen(
     val customDateRange by viewModel.customDateRange.collectAsState()
     val chatContextName by viewModel.chatContextName.collectAsState()
     val chatContextAvatarPath by viewModel.chatContextAvatarPath.collectAsState()
+    val suggestions by viewModel.suggestions.collectAsState()
+    var showInfoDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(chatId) {
         viewModel.initialize(chatId)
@@ -140,7 +147,19 @@ fun WordSearchScreen(
                     ) 
                 },
                 shape = RoundedCornerShape(16.dp),
-                singleLine = true
+                singleLine = true,
+                trailingIcon = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                                Icon(Icons.Outlined.Clear, contentDescription = "Cancella")
+                            }
+                        }
+                        IconButton(onClick = { showInfoDialog = true }) {
+                            Icon(Icons.Outlined.Info, contentDescription = "Informazioni")
+                        }
+                    }
+                }
             )
             if (searchQuery.isNotEmpty()) {
                 FilledTonalButton(
@@ -166,6 +185,25 @@ fun WordSearchScreen(
                     Icon(
                         if (isSearching) Icons.Filled.Close else Icons.Filled.Search,
                         contentDescription = if (isSearching) "Annulla" else "Cerca"
+                    )
+                }
+            }
+        }
+
+        if (suggestions.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(suggestions) { suggestion ->
+                    SuggestionChip(
+                        onClick = {
+                            viewModel.onSearchQueryChange(suggestion)
+                            viewModel.startSearch()
+                        },
+                        label = { Text(suggestion) }
                     )
                 }
             }
@@ -279,5 +317,25 @@ fun WordSearchScreen(
                 )
             }
         }
+    }
+
+    if (showInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showInfoDialog = false },
+            title = { Text("Informazioni sulla Ricerca") },
+            text = {
+                Text("Il Radar analizza la frequenza delle parole nei messaggi.\n\n" +
+                     "• La ricerca trova tutte le occorrenze della parola, anche se inclusa in altre (es. 'casa' troverà anche 'casale').\n" +
+                     "• I suggerimenti appaiono dopo 3 caratteri e mostrano le parole più usate che iniziano con quello che stai scrivendo.")
+            },
+            confirmButton = {
+                TextButton(onClick = { showInfoDialog = false }) {
+                    Text("Ho capito")
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

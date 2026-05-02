@@ -20,8 +20,8 @@ Aggiungere un metodo per estrarre suggerimenti dall'indice in memoria o su disco
 
 *   **Metodo**: `getWordSuggestions(query: String, chatId: Long?): List<String>`
 *   **Logica**:
-    1.  Carica `WordFrequencyIndexData` (globale o per chat).
-    2.  Filtra le chiavi della mappa `wordFrequencies` che iniziano con la `query`.
+    1.  Carica `WordFrequencyIndexData` tramite `CacheManager` (`loadGlobalWordIndexFromDisk` o `loadChatWordIndexFromDisk`).
+    2.  Filtra le chiavi della mappa `wordFrequencies` che iniziano con la `query` (ignorando maiuscole/minuscole).
     3.  Ordina per frequenza (conteggio) decrescente.
     4.  Ritorna le prime 10 parole.
 

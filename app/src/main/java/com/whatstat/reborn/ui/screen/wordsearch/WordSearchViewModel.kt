@@ -39,6 +39,9 @@ class WordSearchViewModel @Inject constructor(
     private val _isSearching = MutableStateFlow(false)
     val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
 
+    private val _suggestions = MutableStateFlow<List<String>>(emptyList())
+    val suggestions: StateFlow<List<String>> = _suggestions.asStateFlow()
+
     private val _selectedTimeRange = MutableStateFlow(TimeRange.ALL_TIME)
     val selectedTimeRange: StateFlow<TimeRange> = _selectedTimeRange.asStateFlow()
 
@@ -101,10 +104,18 @@ class WordSearchViewModel @Inject constructor(
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
+        if (query.length >= 3) {
+            viewModelScope.launch {
+                _suggestions.value = analyticsRepository.getWordSuggestions(query, _chatId.value)
+            }
+        } else {
+            _suggestions.value = emptyList()
+        }
     }
 
     fun startSearch() {
         val query = _searchQuery.value
+        _suggestions.value = emptyList()
         if (query.length >= 2) {
             _isSearching.value = true
             searchDebounced(query)

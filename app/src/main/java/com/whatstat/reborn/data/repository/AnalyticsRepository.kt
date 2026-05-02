@@ -1070,4 +1070,26 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             wordFreqs to emojiFreqs
         }
     }
+
+    /**
+     * Ritorna suggerimenti di parole basati sull'indice lessicale esistente.
+     */
+    suspend fun getWordSuggestions(query: String, chatId: Long? = null): List<String> = withContext(Dispatchers.IO) {
+        val normalizedQuery = query.lowercase().trim()
+        if (normalizedQuery.length < 3) return@withContext emptyList()
+
+        val index = if (chatId != null) {
+            cacheManager.loadChatWordIndexFromDisk(chatId)
+        } else {
+            cacheManager.loadGlobalWordIndexFromDisk()
+        }
+
+        if (index == null) return@withContext emptyList()
+
+        index.wordFrequencies.entries
+            .filter { it.key.startsWith(normalizedQuery) }
+            .sortedByDescending { it.value }
+            .take(10)
+            .map { it.key }
+    }
 }
