@@ -197,9 +197,7 @@ fun DashboardScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .onGloballyPositioned {
-                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
-                            tutorialManager.setTargetBounds("dashboard_time_filter", it.boundsInRoot())
-                        }
+                        tutorialManager.setTargetBounds("dashboard_time_filter", it.boundsInRoot())
                     },
                 selectedRange = selectedRange,
                 onRangeSelected = { viewModel.setTimeRange(it) },
@@ -259,10 +257,8 @@ fun DashboardScreen(
                                             modifier = Modifier
                                                 .weight(1f)
                                                 .onGloballyPositioned {
-                                                    if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
                                                         tutorialManager.setTargetBounds("dashboard_stat_messages", it.boundsInRoot())
-                                                    }
-                                                },
+                                                    },
                                             label = "Messaggi totali",
                                             value = "%,d".format(s.totalMessages),
                                             icon = Icons.AutoMirrored.Outlined.Chat
@@ -299,10 +295,8 @@ fun DashboardScreen(
                         ActivityRecapCard(
                             modifier = Modifier
                                 .onGloballyPositioned {
-                                    if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
                                         tutorialManager.setTargetBounds("dashboard_activity_chart", it.boundsInRoot())
-                                    }
-                                },
+                                    },
                             hourlyData = hourlyData,
                             weeklyData = weeklyData,
                             dailyData = dailyData,
@@ -310,10 +304,8 @@ fun DashboardScreen(
                             yearlyData = yearlyData,
                             dismissSignal = chartDismissSignal,
                             tabsModifier = Modifier.onGloballyPositioned {
-                                if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
                                     tutorialManager.setTargetBounds("dashboard_analysis_tabs", it.boundsInRoot())
                                 }
-                            }
                         )
                     }
 
@@ -345,10 +337,8 @@ fun DashboardScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .onGloballyPositioned {
-                                            if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
                                                 tutorialManager.setTargetBounds("dashboard_analyze_button", it.boundsInRoot())
                                             }
-                                        }
                                 ) {
                                     Icon(
                                         Icons.Outlined.Search,
@@ -378,10 +368,8 @@ fun DashboardScreen(
                             SectionCard(
                                 modifier = Modifier
                                     .onGloballyPositioned {
-                                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "dashboard") {
                                             tutorialManager.setTargetBounds("dashboard_wordcloud", it.boundsInRoot())
-                                        }
-                                    },
+                                        },
                                 title = "Analisi testi",
                                 subtitle = "Parole, emoji e sticker più frequenti",
                                 trailingContent = {
@@ -491,6 +479,7 @@ fun DashboardScreen(
                         arrowDirection = step.arrowDirection,
                         isVisible = true,
                         isLastStep = tutorialState.currentStepIndex >= tutorialState.steps.size - 1,
+                        currentStepIndex = tutorialState.currentStepIndex,
                         onNext = { tutorialManager.nextStep() },
                         onPrevious = { tutorialManager.previousStep() },
                         onClose = { tutorialManager.closeTutorial() },

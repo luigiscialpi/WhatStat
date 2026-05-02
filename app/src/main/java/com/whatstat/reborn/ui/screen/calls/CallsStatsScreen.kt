@@ -138,9 +138,7 @@ fun CallsStatsScreen(
             TimeRangeFilterRow(
                 modifier = Modifier
                     .onGloballyPositioned {
-                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "calls") {
-                            tutorialManager.setTargetBounds("calls_time_filter", it.boundsInRoot())
-                        }
+                        tutorialManager.setTargetBounds("calls_time_filter", it.boundsInRoot())
                     },
                 selectedRange = selectedRange,
                 onRangeSelected = { viewModel.setTimeRange(it) },
@@ -219,9 +217,7 @@ fun CallsStatsScreen(
 
                 LazyColumn(
                     modifier = Modifier.onGloballyPositioned {
-                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "calls") {
-                            tutorialManager.setTargetBounds("calls_list", it.boundsInRoot())
-                        }
+                        tutorialManager.setTargetBounds("calls_list", it.boundsInRoot())
                     },
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -230,9 +226,7 @@ fun CallsStatsScreen(
                         CallSummaryCard(
                             totals = totals,
                             modifier = Modifier.onGloballyPositioned {
-                                if (tutorialState.isTutorialActive && tutorialState.currentScreen == "calls") {
-                                    tutorialManager.setTargetBounds("calls_summary_card", it.boundsInRoot())
-                                }
+                                tutorialManager.setTargetBounds("calls_summary_card", it.boundsInRoot())
                             }
                         )
                     }
@@ -267,6 +261,7 @@ fun CallsStatsScreen(
                         arrowDirection = currentStep.arrowDirection,
                         isVisible = true,
                         isLastStep = tutorialState.currentStepIndex >= tutorialState.steps.size - 1,
+                        currentStepIndex = tutorialState.currentStepIndex,
                         onNext = { tutorialManager.nextStep() },
                         onPrevious = { tutorialManager.previousStep() },
                         onClose = { tutorialManager.closeTutorial() },

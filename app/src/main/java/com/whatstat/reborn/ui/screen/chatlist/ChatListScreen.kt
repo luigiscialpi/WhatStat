@@ -111,9 +111,7 @@ fun ChatListScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
                     .onGloballyPositioned {
-                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "chatlist") {
-                            tutorialManager.setTargetBounds("chatlist_search_field", it.boundsInRoot())
-                        }
+                        tutorialManager.setTargetBounds("chatlist_search_field", it.boundsInRoot())
                     },
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -143,9 +141,7 @@ fun ChatListScreen(
                 LazyColumn(
                     modifier = Modifier
                         .onGloballyPositioned {
-                            if (tutorialState.isTutorialActive && tutorialState.currentScreen == "chatlist") {
-                                tutorialManager.setTargetBounds("chatlist_list", it.boundsInRoot())
-                            }
+                            tutorialManager.setTargetBounds("chatlist_list", it.boundsInRoot())
                         },
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -165,15 +161,11 @@ fun ChatListScreen(
                                 onClick = { onChatSelected(chat.chatId) },
                                 modifier = if (index == 0) Modifier
                                     .onGloballyPositioned {
-                                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "chatlist") {
-                                            tutorialManager.setTargetBounds("chatlist_first_item", it.boundsInRoot())
-                                        }
+                                        tutorialManager.setTargetBounds("chatlist_first_item", it.boundsInRoot())
                                     } else Modifier,
                                 badgeModifier = if (index == 0) Modifier
                                     .onGloballyPositioned {
-                                        if (tutorialState.isTutorialActive && tutorialState.currentScreen == "chatlist") {
-                                            tutorialManager.setTargetBounds("chatlist_message_count", it.boundsInRoot())
-                                        }
+                                        tutorialManager.setTargetBounds("chatlist_message_count", it.boundsInRoot())
                                     } else Modifier
                             )
                         }
@@ -194,6 +186,7 @@ fun ChatListScreen(
                         arrowDirection = currentStep.arrowDirection,
                         isVisible = true,
                         isLastStep = tutorialState.currentStepIndex >= tutorialState.steps.size - 1,
+                        currentStepIndex = tutorialState.currentStepIndex,
                         onNext = { tutorialManager.nextStep() },
                         onPrevious = { tutorialManager.previousStep() },
                         onClose = { tutorialManager.closeTutorial() },

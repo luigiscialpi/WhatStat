@@ -259,6 +259,7 @@ fun SetupScreen(
                         arrowDirection = currentStep.arrowDirection,
                         isVisible = true,
                         isLastStep = tutorialState.currentStepIndex >= tutorialState.steps.size - 1,
+                        currentStepIndex = tutorialState.currentStepIndex,
                         onNext = { tutorialManager.nextStep() },
                         onPrevious = { tutorialManager.previousStep() },
                         onClose = { tutorialManager.closeTutorial() },

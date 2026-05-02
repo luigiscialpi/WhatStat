@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Rect
@@ -21,14 +24,15 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.whatstat.reborn.ui.tutorial.data.ArrowDirection
 import com.whatstat.reborn.ui.tutorial.data.HighlightShape
 import com.whatstat.reborn.ui.tutorial.data.TutorialStep
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 @Composable
@@ -38,6 +42,7 @@ fun TutorialOverlay(
     arrowDirection: ArrowDirection,
     isVisible: Boolean,
     isLastStep: Boolean,
+    currentStepIndex: Int,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onClose: () -> Unit,
@@ -53,9 +58,28 @@ fun TutorialOverlay(
     val cornerRadiusPx = with(density) { 16.dp.toPx() }
     val arrowSizePx = with(density) { 24.dp.toPx() }
     val spacingPx = with(density) { 16.dp.toPx() }
-    val tooltipWidthPx = with(density) { 280.dp.toPx() }
-    val tooltipHeightPx = with(density) { 180.dp.toPx() }
+    // Stima iniziale per il primo frame — verrà sostituita dopo la prima misura
+    val tooltipWidthEstimatePx = with(density) { 280.dp.toPx() }
+    val tooltipHeightEstimatePx = with(density) { 220.dp.toPx() }
     val minMarginPx = with(density) { 8.dp.toPx() }
+
+    // Dimensioni reali del tooltip misurate dopo il primo layout pass
+    var tooltipSize by remember { mutableStateOf(IntSize.Zero) }
+
+    val measuredWidth = if (tooltipSize.width > 0) tooltipSize.width.toFloat() else tooltipWidthEstimatePx
+    val measuredHeight = if (tooltipSize.height > 0) tooltipSize.height.toFloat() else tooltipHeightEstimatePx
+
+    val tooltipOffset = calculateTooltipOffset(
+        targetBounds = targetBounds,
+        arrowDirection = arrowDirection,
+        screenWidth = screenWidthPx,
+        screenHeight = screenHeightPx,
+        tooltipWidth = measuredWidth,
+        tooltipHeight = measuredHeight,
+        arrowSize = arrowSizePx,
+        spacing = spacingPx,
+        minMargin = minMarginPx
+    )
 
     Box(
         modifier = modifier
@@ -76,18 +100,6 @@ fun TutorialOverlay(
             )
         }
 
-        val tooltipOffset = calculateTooltipOffset(
-            targetBounds = targetBounds,
-            arrowDirection = arrowDirection,
-            screenWidth = screenWidthPx,
-            screenHeight = screenHeightPx,
-            tooltipWidth = tooltipWidthPx,
-            tooltipHeight = tooltipHeightPx,
-            arrowSize = arrowSizePx,
-            spacing = spacingPx,
-            minMargin = minMarginPx
-        )
-
         AnimatedVisibility(
             visible = isVisible,
             enter = fadeIn(tween(350)),
@@ -103,10 +115,14 @@ fun TutorialOverlay(
                 step = step,
                 arrowDirection = arrowDirection,
                 isLastStep = isLastStep,
+                currentStepIndex = currentStepIndex,
                 onNext = onNext,
                 onPrevious = onPrevious,
                 onClose = {
                     if (isLastStep) onComplete() else onClose()
+                },
+                modifier = Modifier.onGloballyPositioned { coordinates ->
+                    tooltipSize = coordinates.size
                 }
             )
         }
@@ -200,27 +216,34 @@ private fun calculateTooltipOffset(
     var x = targetBounds.center.x - tooltipWidth / 2
     var y = targetBounds.center.y - tooltipHeight / 2
 
+    // Semantica corretta (dal piano sezione 6.1):
+    // TOP   = freccia punta in su  → tooltip SOTTO il target
+    // BOTTOM = freccia punta in giù → tooltip SOPRA il target
+    // LEFT  = freccia punta a sx   → tooltip A DESTRA del target
+    // RIGHT = freccia punta a dx   → tooltip A SINISTRA del target
     when (arrowDirection) {
         ArrowDirection.TOP -> {
-            y = targetBounds.top - tooltipHeight - arrowSize - spacing
-            x = targetBounds.center.x - tooltipWidth / 2
-        }
-        ArrowDirection.BOTTOM -> {
             y = targetBounds.bottom + arrowSize + spacing
             x = targetBounds.center.x - tooltipWidth / 2
         }
+        ArrowDirection.BOTTOM -> {
+            y = targetBounds.top - tooltipHeight - arrowSize - spacing
+            x = targetBounds.center.x - tooltipWidth / 2
+        }
         ArrowDirection.LEFT -> {
-            x = targetBounds.left - tooltipWidth - arrowSize - spacing
+            x = targetBounds.right + arrowSize + spacing
             y = targetBounds.center.y - tooltipHeight / 2
         }
         ArrowDirection.RIGHT -> {
-            x = targetBounds.right + arrowSize + spacing
+            x = targetBounds.left - tooltipWidth - arrowSize - spacing
             y = targetBounds.center.y - tooltipHeight / 2
         }
     }
 
-    x = x.coerceIn(minMargin, screenWidth - tooltipWidth - minMargin)
-    y = y.coerceIn(minMargin, screenHeight - tooltipHeight - minMargin)
+    val maxX = maxOf(minMargin, screenWidth - tooltipWidth - minMargin)
+    val maxY = maxOf(minMargin, screenHeight - tooltipHeight - minMargin)
+    x = x.coerceIn(minMargin, maxX)
+    y = y.coerceIn(minMargin, maxY)
 
     return androidx.compose.ui.geometry.Offset(x, y)
 }

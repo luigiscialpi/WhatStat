@@ -50,7 +50,7 @@ class TutorialManager @Inject constructor(
                 currentStepIndex = if (isCompleted) 0 else lastStepIndex,
                 steps = stepsProvider.steps,
                 isCompleted = isCompleted,
-                targetBounds = emptyMap()
+                targetBounds = _uiState.value.targetBounds  // preserva bounds già registrate
             )
         }
     }
@@ -60,11 +60,9 @@ class TutorialManager @Inject constructor(
      */
     fun setTargetBounds(key: String, bounds: Rect) {
         val current = _uiState.value
-        if (current.isTutorialActive) {
-            _uiState.value = current.copy(
-                targetBounds = current.targetBounds + (key to bounds)
-            )
-        }
+        _uiState.value = current.copy(
+            targetBounds = current.targetBounds + (key to bounds)
+        )
     }
 
     /**

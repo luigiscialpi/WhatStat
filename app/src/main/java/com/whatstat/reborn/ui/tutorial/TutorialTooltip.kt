@@ -46,6 +46,7 @@ fun TutorialTooltip(
     step: TutorialStep,
     arrowDirection: ArrowDirection,
     isLastStep: Boolean,
+    currentStepIndex: Int,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onClose: () -> Unit,
@@ -98,7 +99,7 @@ fun TutorialTooltip(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 // Previous button (hidden on first step)
-                if (arrowDirection != ArrowDirection.TOP) { // Only show on non-first or based on scheme
+                if (currentStepIndex > 0) {
                     Button(
                         onClick = onPrevious,
                         colors = ButtonDefaults.buttonColors(
@@ -119,7 +120,7 @@ fun TutorialTooltip(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
-                    modifier = Modifier.weight(if (arrowDirection != ArrowDirection.TOP) 1f else 1f)
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(text = if (isLastStep) "Fine" else "Avanti")
                 }
