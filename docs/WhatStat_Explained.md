@@ -294,14 +294,16 @@ L'invalidazione avviene automaticamente al cambio del database (SHA-256).
 
 ## 9. Radar Parole
 
-Funzione di ricerca che conta le occorrenze di una parola o frase in una chat specifica, con breakdown per mittente. Implementata in `searchWordFrequency` di `MessageDao`.
+Funzione di ricerca che conta le occorrenze di una parola o frase in una chat specifica (o globale), con breakdown per mittente. Implementata in `searchWordFrequency` di `MessageDao`.
 
-Caratteristiche principali:
+### Caratteristiche principali:
 
-- Supporta ricerche multifrase (es. "ci vediamo domani"), non solo singole parole.
-- La ricerca parte solo alla pressione esplicita del pulsante di ricerca, non in automatico durante la digitazione.
-- Ottimizzazione: pre-filtro SQL con `LIKE '%parola%'` prima del conteggio esatto, che riduce il numero di righe da processare in memoria di un fattore 10–100x.
-- La breakdown mostra il conteggio per ogni mittente, distinguendo `from_me=1` (l'utente) dal JID dell'interlocutore. Il mapping al nome del contatto avviene tramite `wa.db`.
+- **Suggerimenti intelligenti (v1.21)** — Mentre l'utente digita (da 3 caratteri in poi), appaiono suggerimenti basati sulle parole più frequenti nell'indice lessicale (globale o per-chat). Questo evita di dover digitare interamente parole lunghe o comuni.
+- **Supporto sottostringhe** — La ricerca trova tutte le occorrenze della parola digitata, anche se fa parte di una parola più lunga (es. "casa" troverà anche "casale").
+- **Icona informativa (v1.21)** — Una "i" nella barra di ricerca spiega chiaramente il funzionamento dei suggerimenti e la logica delle sottostringhe tramite un dialog dedicato.
+- **Ricerca esplicita** — La ricerca effettiva (con conteggio per mittente) parte solo alla pressione del pulsante di ricerca o al click su un suggerimento.
+- **Ottimizzazione performance** — Pre-filtro SQL con `LIKE '%parola%'` prima del conteggio esatto, che riduce il numero di righe da processare in memoria di un fattore 10–100x.
+- **Breakdown per mittente** — Mostra il conteggio per ogni partecipante, distinguendo `from_me=1` (l'utente) dal JID dell'interlocutore. Il mapping al nome del contatto avviene tramite `wa.db`.
 
 ---
 
@@ -453,6 +455,9 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 **v1.20 — Cronologia gruppi e tracking descrizione:**
 Introdotta la timeline della cronologia gruppi con visualizzazione stile chat di tutti gli eventi (join/leave/add/remove/promote/demote, cambi nome, cambi descrizione). Database e modelli dati aggiornati per tracciare anche le modifiche alla descrizione del gruppo. UI ottimizzata con risoluzione batch di nomi/avatar e allineamento differenziato per eventi informativi. Breaking change: modificati i costruttori di `GroupEventUiModel` e `ChatDetailScreen`.
 
+**v1.21 — Suggerimenti Radar e UI info:**
+Implementazione di suggerimenti testuali dinamici nella funzione Radar basati sull'indice lessicale (attivi da 3 caratteri). Aggiunta icona informativa nella barra di ricerca con dialog esplicativo sul funzionamento della ricerca (sottostringhe) e dei suggerimenti. Migliorata la UX con pulsante "Clear" integrato nella barra di ricerca e gestione stato per dialog informativo.
+
 ### Pianificato (non ancora implementato)
 
 - Confronto tra due periodi temporali
@@ -463,4 +468,4 @@ Introdotta la timeline della cronologia gruppi con visualizzazione stile chat di
 
 ---
 
-> Documento aggiornato alla versione **1.20**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
+> Documento aggiornato alla versione **1.21**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
