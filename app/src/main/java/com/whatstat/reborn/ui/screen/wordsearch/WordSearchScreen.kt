@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,6 +44,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ModalBottomSheet
@@ -85,6 +87,7 @@ import com.whatstat.reborn.data.db.model.WordMessageResult
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.text.style.TextDecoration
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -107,6 +110,11 @@ fun WordSearchScreen(
     val suggestions by viewModel.suggestions.collectAsState()
     val messagePreview by viewModel.messagePreview.collectAsState()
     val isLoadingMessages by viewModel.isLoadingMessages.collectAsState()
+    val isCaseSensitive by viewModel.isCaseSensitive.collectAsState()
+    val isExactMatch by viewModel.isExactMatch.collectAsState()
+    val onlyQuestions by viewModel.onlyQuestions.collectAsState()
+    val isMultiWord by viewModel.isMultiWord.collectAsState()
+    val multiWordMode by viewModel.multiWordMode.collectAsState()
     var showInfoDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(chatId) {
@@ -169,14 +177,9 @@ fun WordSearchScreen(
                 shape = RoundedCornerShape(16.dp),
                 singleLine = true,
                 trailingIcon = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                                Icon(Icons.Outlined.Clear, contentDescription = "Cancella")
-                            }
-                        }
-                        IconButton(onClick = { showInfoDialog = true }) {
-                            Icon(Icons.Outlined.Info, contentDescription = "Informazioni")
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                            Icon(Icons.Outlined.Clear, contentDescription = "Cancella")
                         }
                     }
                 }
@@ -210,6 +213,67 @@ fun WordSearchScreen(
             }
         }
 
+        // Riga opzioni di ricerca avanzata
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Chip Case Sensitive
+            FilterChip(
+                selected = isCaseSensitive,
+                onClick = { viewModel.toggleCaseSensitive() },
+                label = { Text("Aa") },
+                leadingIcon = null
+            )
+            // Chip Parola Esatta
+            FilterChip(
+                selected = isExactMatch,
+                onClick = { viewModel.toggleExactMatch() },
+                label = {
+                    Text(
+                        "ab",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                },
+                leadingIcon = null
+            )
+            // Chip Solo Domande
+            FilterChip(
+                selected = onlyQuestions,
+                onClick = { viewModel.toggleOnlyQuestions() },
+                label = { Text("?") },
+                leadingIcon = null
+            )
+            // Chip Multi-parola (Toggle a 3 stati)
+            FilterChip(
+                selected = multiWordMode != MultiWordMode.NONE,
+                onClick = { viewModel.cycleMultiWordMode() },
+                label = { 
+                    val label = when(multiWordMode) {
+                        MultiWordMode.NONE -> "Multi"
+                        MultiWordMode.AND -> "Multi: E"
+                        MultiWordMode.OR -> "Multi: O"
+                    }
+                    Text(label) 
+                },
+                leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null, modifier = Modifier.size(18.dp)) }
+            )
+            Spacer(Modifier.weight(1f))
+            // Icona informativa spostata qui
+            IconButton(onClick = { showInfoDialog = true }) {
+                Icon(
+                    Icons.Outlined.Info,
+                    contentDescription = "Informazioni",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
         if (suggestions.isNotEmpty()) {
             LazyRow(
                 modifier = Modifier
@@ -223,7 +287,17 @@ fun WordSearchScreen(
                             viewModel.onSearchQueryChange(suggestion)
                             viewModel.startSearch()
                         },
-                        label = { Text(suggestion) }
+                        label = { 
+                            Text(
+                                suggestion,
+                                style = MaterialTheme.typography.labelMedium
+                            ) 
+                        },
+                        border = null,
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                 }
             }
@@ -378,7 +452,8 @@ fun WordSearchScreen(
                 messages = messagePreview!!.third,
                 searchWord = searchQuery,
                 isLoading = isLoadingMessages,
-                isChatSpecific = isChatSpecific
+                isChatSpecific = isChatSpecific,
+                caseSensitive = isCaseSensitive
             )
         }
     }
@@ -389,8 +464,17 @@ fun WordSearchScreen(
             title = { Text("Informazioni sulla Ricerca") },
             text = {
                 Text("Il Radar analizza la frequenza delle parole nei messaggi.\n\n" +
+                     "Comportamento standard:\n" +
                      "• La ricerca trova tutte le occorrenze della parola, anche se inclusa in altre (es. 'casa' troverà anche 'casale').\n" +
-                     "• I suggerimenti appaiono dopo 3 caratteri e mostrano le parole più usate che iniziano con quello che stai scrivendo.")
+                     "• I suggerimenti appaiono dopo 3 caratteri e mostrano le parole più usate.\n\n" +
+                     "Opzioni di ricerca:\n" +
+                     "• Aa: Attiva la distinzione tra maiuscole e minuscole.\n" +
+                     "• ab: Cerca solo la parola esatta, ignorando i match parziali.\n" +
+                     "• ?: Mostra solo i messaggi che contengono un punto interrogativo.\n" +
+                     "• Multi: Clicca per cambiare modalità:\n" +
+                     "   - Multi: Cerca la frase esatta.\n" +
+                     "   - Multi: E: Cerca messaggi che contengono TUTTE le parole (AND).\n" +
+                     "   - Multi: O: Cerca messaggi che contengono ALMENO UNA parola (OR).")
             },
             confirmButton = {
                 TextButton(onClick = { showInfoDialog = false }) {
@@ -411,7 +495,8 @@ private fun WordMessageSheet(
     messages: List<WordMessageResult>,
     searchWord: String,
     isLoading: Boolean,
-    isChatSpecific: Boolean = false
+    isChatSpecific: Boolean = false,
+    caseSensitive: Boolean = false
 ) {
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.ITALIAN) }
     var sortAscending by remember { mutableStateOf(false) }
@@ -504,7 +589,8 @@ private fun WordMessageSheet(
                             message = msg,
                             searchWord = searchWord,
                             dateFormatter = dateFormatter,
-                            showChatName = !isChatSpecific
+                            showChatName = !isChatSpecific,
+                            caseSensitive = caseSensitive
                         )
                     }
                     // Pulsante "Carica altri" (paginazione client-side)
@@ -531,7 +617,8 @@ private fun MessagePreviewCard(
     message: WordMessageResult,
     searchWord: String,
     dateFormatter: SimpleDateFormat,
-    showChatName: Boolean = true
+    showChatName: Boolean = true,
+    caseSensitive: Boolean = false
 ) {
     Card(
         colors = CardDefaults.cardColors(
@@ -585,7 +672,8 @@ private fun MessagePreviewCard(
                 highlightStyle = SpanStyle(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
-                )
+                ),
+                caseSensitive = caseSensitive
             )
         }
     }
@@ -596,15 +684,16 @@ private fun HighlightedText(
     text: String,
     highlight: String,
     style: TextStyle,
-    highlightStyle: SpanStyle
+    highlightStyle: SpanStyle,
+    caseSensitive: Boolean = false
 ) {
-    val annotated = remember(text, highlight) {
+    val annotated = remember(text, highlight, caseSensitive) {
         buildAnnotatedString {
-            val lower = text.lowercase()
-            val searchLower = highlight.lowercase()
+            val haystack = if (caseSensitive) text else text.lowercase()
+            val needle = if (caseSensitive) highlight else highlight.lowercase()
             var idx = 0
             while (idx < text.length) {
-                val found = lower.indexOf(searchLower, idx)
+                val found = haystack.indexOf(needle, idx)
                 if (found == -1) {
                     append(text.substring(idx))
                     break

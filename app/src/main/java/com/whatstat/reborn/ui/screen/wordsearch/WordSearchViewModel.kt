@@ -21,6 +21,12 @@ import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 
+enum class MultiWordMode {
+    NONE, // 0: OFF
+    AND,  // 1: Tutte le parole
+    OR    // 2: Almeno una parola
+}
+
 @HiltViewModel
 class WordSearchViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
@@ -63,6 +69,21 @@ class WordSearchViewModel @Inject constructor(
 
     private val _isLoadingMessages = MutableStateFlow(false)
     val isLoadingMessages: StateFlow<Boolean> = _isLoadingMessages.asStateFlow()
+
+    private val _isCaseSensitive = MutableStateFlow(false)
+    val isCaseSensitive: StateFlow<Boolean> = _isCaseSensitive.asStateFlow()
+
+    private val _isExactMatch = MutableStateFlow(false)
+    val isExactMatch: StateFlow<Boolean> = _isExactMatch.asStateFlow()
+
+    private val _onlyQuestions = MutableStateFlow(false)
+    val onlyQuestions: StateFlow<Boolean> = _onlyQuestions.asStateFlow()
+
+    private val _isMultiWord = MutableStateFlow(false)
+    val isMultiWord: StateFlow<Boolean> = _isMultiWord.asStateFlow()
+
+    private val _multiWordMode = MutableStateFlow(MultiWordMode.NONE)
+    val multiWordMode: StateFlow<MultiWordMode> = _multiWordMode.asStateFlow()
 
     private var searchJob: Job? = null
 
@@ -135,6 +156,30 @@ class WordSearchViewModel @Inject constructor(
         _isSearching.value = false
     }
 
+    fun toggleCaseSensitive() {
+        _isCaseSensitive.value = !_isCaseSensitive.value
+    }
+
+    fun toggleExactMatch() {
+        _isExactMatch.value = !_isExactMatch.value
+    }
+
+    fun toggleOnlyQuestions() {
+        _onlyQuestions.value = !_onlyQuestions.value
+    }
+
+    fun toggleMultiWord() {
+        _isMultiWord.value = !_isMultiWord.value
+    }
+
+    fun cycleMultiWordMode() {
+        _multiWordMode.value = when (_multiWordMode.value) {
+            MultiWordMode.NONE -> MultiWordMode.AND
+            MultiWordMode.AND -> MultiWordMode.OR
+            MultiWordMode.OR -> MultiWordMode.NONE
+        }
+    }
+
     private fun searchDebounced(query: String) {
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
@@ -186,7 +231,10 @@ class WordSearchViewModel @Inject constructor(
                 }
                 // Try direct query first
                 try {
-                    val directResults = analyticsRepository.searchWordDirect(query, _chatId.value, startTime, endTime)
+                    val directResults = analyticsRepository.searchWordDirect(
+                        query, _chatId.value, startTime, endTime,
+                        _isCaseSensitive.value, _isExactMatch.value, _onlyQuestions.value, _multiWordMode.value.ordinal
+                    )
                     if (directResults.isNotEmpty()) {
                         _results.value = directResults.map { it.copy(avatarPath = getAvatarPath(it.jid)) }
                     }
@@ -195,7 +243,10 @@ class WordSearchViewModel @Inject constructor(
                 }
                 
                 // Then try via repository
-                val searchResults = analyticsRepository.searchWord(query, _chatId.value, startTime, endTime)
+                val searchResults = analyticsRepository.searchWord(
+                    query, _chatId.value, startTime, endTime,
+                    _isCaseSensitive.value, _isExactMatch.value, _onlyQuestions.value, _multiWordMode.value.ordinal
+                )
                 _results.value = searchResults.map { it.copy(avatarPath = getAvatarPath(it.jid)) }
             } catch (e: Exception) {
                 _results.value = emptyList()
@@ -226,7 +277,11 @@ class WordSearchViewModel @Inject constructor(
                     senderJid = senderJid,
                     chatId = _chatId.value,
                     startTime = startTime,
-                    endTime = endTime
+                    endTime = endTime,
+                    isCaseSensitive = _isCaseSensitive.value,
+                    isExactMatch = _isExactMatch.value,
+                    onlyQuestions = _onlyQuestions.value,
+                    multiWordMode = _multiWordMode.value.ordinal
                 )
                 _messagePreview.value = Triple(
                     senderName,

@@ -523,16 +523,34 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
     /**
      * Ricerca frequenza parola - versione diretta senza risoluzione nomi
      */
-    suspend fun searchWordDirect(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<WordSearchResult> = withContext(Dispatchers.IO) {
-        val results = messageDao.searchWordFrequency(word, chatId, startTime, endTime)
+    suspend fun searchWordDirect(
+        word: String,
+        chatId: Long? = null,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        isCaseSensitive: Boolean = false,
+        isExactMatch: Boolean = false,
+        onlyQuestions: Boolean = false,
+        multiWordMode: Int = 0
+    ): List<WordSearchResult> = withContext(Dispatchers.IO) {
+        val results = messageDao.searchWordFrequency(word, chatId, startTime, endTime, isCaseSensitive, isExactMatch, onlyQuestions, multiWordMode)
         results
     }
 
     /**
      * Ricerca frequenza parola con filtro temporale e opzionalmente per chat.
      */
-    suspend fun searchWord(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<WordSearchResult> = withContext(Dispatchers.IO) {
-        val results = messageDao.searchWordFrequency(word, chatId, startTime, endTime)
+    suspend fun searchWord(
+        word: String,
+        chatId: Long? = null,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        isCaseSensitive: Boolean = false,
+        isExactMatch: Boolean = false,
+        onlyQuestions: Boolean = false,
+        multiWordMode: Int = 0
+    ): List<WordSearchResult> = withContext(Dispatchers.IO) {
+        val results = messageDao.searchWordFrequency(word, chatId, startTime, endTime, isCaseSensitive, isExactMatch, onlyQuestions, multiWordMode)
         if (results.isEmpty()) return@withContext emptyList()
         
         val jids = results.map { it.jid }
@@ -567,9 +585,13 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         senderJid: String,
         chatId: Long? = null,
         startTime: Long? = null,
-        endTime: Long? = null
+        endTime: Long? = null,
+        isCaseSensitive: Boolean = false,
+        isExactMatch: Boolean = false,
+        onlyQuestions: Boolean = false,
+        multiWordMode: Int = 0
     ): List<WordMessageResult> = withContext(Dispatchers.IO) {
-        val raw = messageDao.searchWordMessages(word, senderJid, chatId, startTime, endTime)
+        val raw = messageDao.searchWordMessages(word, senderJid, chatId, startTime, endTime, isCaseSensitive, isExactMatch, onlyQuestions, multiWordMode)
         if (raw.isEmpty()) return@withContext emptyList()
 
         // Raccoglie i JID di chat 1-a-1 che hanno bisogno di risoluzione nome

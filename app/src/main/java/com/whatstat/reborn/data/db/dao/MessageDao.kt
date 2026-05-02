@@ -1132,21 +1132,96 @@ class MessageDao @Inject constructor(
     }
 
     /**
+     * Conta le occorrenze di [searchWord] in [text].
+     * Se [isCaseSensitive] è true, confronta rispettando maiuscole/minuscole.
+     * Se [isExactMatch] è true, conta solo parole intere (confini Unicode).
+     */
+    private fun countOccurrences(
+        text: String,
+        searchWord: String,
+        isCaseSensitive: Boolean,
+        isExactMatch: Boolean
+    ): Int {
+        if (isExactMatch) {
+            // Pattern con lookbehind/lookahead Unicode per word boundary
+            val flags = if (isCaseSensitive) 0 else java.util.regex.Pattern.CASE_INSENSITIVE or java.util.regex.Pattern.UNICODE_CASE
+            val pattern = java.util.regex.Pattern.compile("(?<!\\p{L})" + java.util.regex.Pattern.quote(searchWord) + "(?!\\p{L})", flags)
+            val matcher = pattern.matcher(text)
+            var count = 0
+            while (matcher.find()) count++
+            return count
+        } else {
+            val haystack = if (isCaseSensitive) text else text.lowercase()
+            val needle = if (isCaseSensitive) searchWord else searchWord.lowercase()
+            var count = 0
+            var index = 0
+            while (true) {
+                val found = haystack.indexOf(needle, index)
+                if (found == -1) break
+                count++
+                index = found + 1
+            }
+            return count
+        }
+    }
+
+    /**
+     * Verifica se [text] contiene [searchWord] rispettando le opzioni di ricerca.
+     */
+    private fun textContains(
+        text: String,
+        searchWord: String,
+        isCaseSensitive: Boolean,
+        isExactMatch: Boolean
+    ): Boolean {
+        return countOccurrences(text, searchWord, isCaseSensitive, isExactMatch) > 0
+    }
+
+    /**
      * Ricerca una parola e restituisce il conteggio OCCORRENZE ESATTE per mittente.
      * Usa from_me per distinguere i messaggi propri da quelli ricevuti,
      * poiché nelle chat 1-a-1 sender_jid_row_id è sempre 0.
      * Per i gruppi, usa sender_jid_row_id quando disponibile.
      * Conta solo occorrenze esatte della parola (non sottostringhe).
      */
-    fun searchWordFrequency(word: String, chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.WordSearchResult> {
-        val searchWord = word.lowercase()
+    fun searchWordFrequency(
+        word: String,
+        chatId: Long? = null,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        isCaseSensitive: Boolean = false,
+        isExactMatch: Boolean = false,
+        onlyQuestions: Boolean = false,
+        multiWordMode: Int = 0 // 0=OFF, 1=AND, 2=OR
+    ): List<com.whatstat.reborn.data.db.model.WordSearchResult> {
+        val isMulti = multiWordMode != 0
+        val terms = if (isMulti) {
+            word.split(" ").filter { it.isNotBlank() }
+        } else {
+            listOf(word)
+        }
         
+        if (terms.isEmpty()) return emptyList()
+
         val conditions = mutableListOf("m.text_data IS NOT NULL", "m.message_type = 0")
         val args = mutableListOf<String>()
         
-        // Pre-filtro SQL: carica solo messaggi che contengono la parola
-        conditions.add("m.text_data LIKE '%' || ? || '%'")
-        args.add(searchWord)
+        // Pre-filtro SQL
+        if (multiWordMode == 2) { // OR logic
+            val orConditions = mutableListOf<String>()
+            for (term in terms) {
+                val searchTerm = if (isCaseSensitive) term else term.lowercase()
+                orConditions.add("m.text_data LIKE '%' || ? || '%'")
+                args.add(searchTerm)
+            }
+            conditions.add("(" + orConditions.joinToString(" OR ") + ")")
+        } else { // OFF (single term) or AND logic
+            for (term in terms) {
+                val searchTerm = if (isCaseSensitive) term else term.lowercase()
+                conditions.add("m.text_data LIKE '%' || ? || '%'")
+                args.add(searchTerm)
+            }
+        }
         
         if (chatId != null) {
             conditions.add("m.chat_row_id = ?")
@@ -1187,7 +1262,7 @@ class MessageDao @Inject constructor(
             WHERE ${conditions.joinToString(" AND ")}
         """.trimIndent()
         
-        android.util.Log.d("WhatStat", "searchWordFrequency: chatId=$chatId, word=$searchWord")
+        android.util.Log.d("WhatStat", "searchWordFrequency: chatId=$chatId, word=$word")
         
         val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
         
@@ -1202,25 +1277,43 @@ class MessageDao @Inject constructor(
                 val otherName = cur.getString(2)
                 val text = cur.getString(3) ?: continue
                 
+                // Filtro "Solo Domande": se attivo, salta i messaggi senza "?"
+                if (onlyQuestions && !text.contains("?")) continue
+                
                 val sender = if (fromMe == 1) {
                     SenderInfo("me@s.whatsapp.net", "Tu")
                 } else {
                     SenderInfo(otherJid, otherName)
                 }
                 
-                // Conta occorrenze della frase nel testo (case-insensitive)
-                val textLower = text.lowercase()
-                var count = 0
-                var index = 0
-                while (true) {
-                    val found = textLower.indexOf(searchWord, index)
-                    if (found == -1) break
-                    count++
-                    index = found + 1
+                var totalOccurrences = 0
+                var matchFound = false
+                
+                if (multiWordMode == 2) { // OR logic: at least one term
+                    for (term in terms) {
+                        val count = countOccurrences(text, term, isCaseSensitive, isExactMatch)
+                        if (count > 0) {
+                            matchFound = true
+                            totalOccurrences += count
+                        }
+                    }
+                } else { // OFF or AND logic: all terms must be present
+                    var allTermsPresent = true
+                    for (term in terms) {
+                        val count = countOccurrences(text, term, isCaseSensitive, isExactMatch)
+                        if (count == 0) {
+                            allTermsPresent = false
+                            break
+                        }
+                        totalOccurrences += count
+                    }
+                    matchFound = allTermsPresent
                 }
                 
-                if (count > 0) {
-                    counts[sender] = (counts[sender] ?: 0) + count
+                if (matchFound && totalOccurrences > 0) {
+                    // In modalita' Multi (AND/OR), conta 1 per messaggio
+                    val increment = if (isMulti) 1 else totalOccurrences
+                    counts[sender] = (counts[sender] ?: 0) + increment
                 }
             }
         }
@@ -1249,14 +1342,40 @@ class MessageDao @Inject constructor(
         senderJid: String,
         chatId: Long? = null,
         startTime: Long? = null,
-        endTime: Long? = null
+        endTime: Long? = null,
+        isCaseSensitive: Boolean = false,
+        isExactMatch: Boolean = false,
+        onlyQuestions: Boolean = false,
+        multiWordMode: Int = 0
     ): List<com.whatstat.reborn.data.db.model.WordMessageResult> {
-        val searchWord = word.lowercase()
+        val isMulti = multiWordMode != 0
+        val terms = if (isMulti) {
+            word.split(" ").filter { it.isNotBlank() }
+        } else {
+            listOf(word)
+        }
+        
+        if (terms.isEmpty()) return emptyList()
+
         val conditions = mutableListOf("m.text_data IS NOT NULL", "m.message_type = 0")
         val args = mutableListOf<String>()
-
-        conditions.add("m.text_data LIKE '%' || ? || '%'")
-        args.add(searchWord)
+        
+        // Pre-filtro SQL
+        if (multiWordMode == 2) { // OR logic
+            val orConditions = mutableListOf<String>()
+            for (term in terms) {
+                val searchTerm = if (isCaseSensitive) term else term.lowercase()
+                orConditions.add("m.text_data LIKE '%' || ? || '%'")
+                args.add(searchTerm)
+            }
+            conditions.add("(" + orConditions.joinToString(" OR ") + ")")
+        } else { // OFF or AND logic
+            for (term in terms) {
+                val searchTerm = if (isCaseSensitive) term else term.lowercase()
+                conditions.add("m.text_data LIKE '%' || ? || '%'")
+                args.add(searchTerm)
+            }
+        }
 
         if (senderJid == "me@s.whatsapp.net") {
             conditions.add("m.from_me = 1")
@@ -1304,14 +1423,38 @@ class MessageDao @Inject constructor(
         cursor.use { cur ->
             while (cur.moveToNext()) {
                 val text = cur.getString(0) ?: continue
-                val timestamp = cur.getLong(1)
-                val chatRowId = cur.getLong(2)
-                val chatJid = cur.getString(3) ?: ""
-                val chatSubject = cur.getString(4)
                 
-                val displayName = chatSubject ?: chatJid
-
-                if (text.lowercase().contains(searchWord)) {
+                // Filtro "Solo Domande": se attivo, salta i messaggi senza "?"
+                if (onlyQuestions && !text.contains("?")) continue
+                
+                // Verifica presenza termini
+                var matchFound = false
+                if (multiWordMode == 2) { // OR
+                    for (term in terms) {
+                        if (textContains(text, term, isCaseSensitive, isExactMatch)) {
+                            matchFound = true
+                            break
+                        }
+                    }
+                } else { // OFF or AND
+                    var allTermsPresent = true
+                    for (term in terms) {
+                        if (!textContains(text, term, isCaseSensitive, isExactMatch)) {
+                            allTermsPresent = false
+                            break
+                        }
+                    }
+                    matchFound = allTermsPresent
+                }
+                
+                if (matchFound) {
+                    val timestamp = cur.getLong(1)
+                    val chatRowId = cur.getLong(2)
+                    val chatJid = cur.getString(3) ?: ""
+                    val chatSubject = cur.getString(4)
+                    
+                    val displayName = chatSubject ?: chatJid
+                    
                     results.add(com.whatstat.reborn.data.db.model.WordMessageResult(
                         text = text,
                         timestamp = timestamp,

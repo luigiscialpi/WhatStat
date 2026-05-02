@@ -309,6 +309,15 @@ Funzione di ricerca che conta le occorrenze di una parola o frase in una chat sp
     - **Paginazione**: Caricamento fluido in blocchi da 50 elementi con pulsante "Carica altri".
     - **Keyword Highlighting**: La parola cercata viene evidenziata in grassetto con il colore primario del tema.
     - **Context Awareness**: Visualizzazione automatica del nome della chat per i risultati in modalità globale; layout compatto per la modalità chat-specifica.
+- **Opzioni di ricerca avanzata (v1.24)** -- Riga di FilterChip sotto la barra di ricerca:
+    - **Aa (Case Sensitive)**: permette di distinguere tra maiuscole e minuscole nel conteggio e nell'highlighting.
+    - **ab sottolineato (Parola Esatta)**: utilizza confini di parola Unicode `(?<!\p{L})parola(?!\p{L})` per trovare solo termini isolati, escludendo le sottostringhe.
+    - **?**: filtra i risultati mostrando solo i messaggi che contengono un punto interrogativo (filtro in memoria).
+    - **Multi (Toggle a 3 stati - v1.26)**: cicla tra tre modalità di ricerca:
+        - *OFF*: ricerca della frase esatta.
+        - *E (AND)*: messaggi che contengono TUTTE le parole inserite.
+        - *O (OR)*: messaggi che contengono ALMENO UNA delle parole inserite.
+    - **Icona informativa**: spostata nella riga dei chip per decongestionare l'area di input.
 
 ---
 
@@ -460,11 +469,17 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 **v1.20 — Cronologia gruppi e tracking descrizione:**
 Introdotta la timeline della cronologia gruppi con visualizzazione stile chat di tutti gli eventi (join/leave/add/remove/promote/demote, cambi nome, cambi descrizione). Database e modelli dati aggiornati per tracciare anche le modifiche alla descrizione del gruppo. UI ottimizzata con risoluzione batch di nomi/avatar e allineamento differenziato per eventi informativi. Breaking change: modificati i costruttori di `GroupEventUiModel` e `ChatDetailScreen`.
 
-**v1.21 — Suggerimenti Radar e UI info:**
-Implementazione di suggerimenti testuali dinamici nella funzione Radar basati sull'indice lessicale (attivi da 3 caratteri). Aggiunta icona informativa nella barra di ricerca con dialog esplicativo sul funzionamento della ricerca (sottostringhe) e dei suggerimenti. Migliorata la UX con pulsante "Clear" integrato nella barra di ricerca e gestione stato per dialog informativo.
+**v1.23 — Ricerca avanzata Radar:**
+Aggiunti due toggle nella barra di ricerca del Radar Parole: "Aa" per la distinzione maiuscole/minuscole e "ab" sottolineato per la ricerca a parola esatta (confini Unicode). Il pre-filtro SQL LIKE rimane invariato per le performance; il filtraggio preciso avviene in memoria tramite helper dedicato nel DAO. Aggiornato l'highlighting dinamico e il dialog informativo.
 
-**v1.22 — Anteprima messaggi Radar:**
-Implementazione del drill-down nel Radar Parole tramite `ModalBottomSheet`. Visualizzazione dei singoli messaggi con keyword highlighting, ordinamento temporale toggleable e paginazione client-side (blocchi da 50). Risoluzione nomi chat per contesti globali e ottimizzazione layout per contesti specifici.
+**v1.24 — Refactor UX Radar e filtro Domande:**
+Spostati i toggle "Aa" e "ab" dalla barra di ricerca a una riga dedicata di FilterChip per decongestionare l'interfaccia. Aggiunto il chip "? Domande" che filtra in memoria i messaggi contenenti un punto interrogativo. L'icona informativa è ora nella riga dei chip.
+
+**v1.25 — Ricerca Multi-parola (AND) nel Radar:**
+Introdotto il chip "Multi" che abilita la logica AND nella ricerca. Il sistema divide la query in termini e restituisce i messaggi che li contengono tutti.
+
+**v1.26 — Evoluzione Multi (AND/OR):**
+Il chip "Multi" diventa un toggle a 3 stati. Aggiunta la modalità **OR** ("O") che permette di cercare messaggi che contengono almeno una delle parole fornite. Ottimizzato il conteggio per mostrare il numero di messaggi reali invece della somma delle occorrenze.
 
 ### Pianificato (non ancora implementato)
 
@@ -476,4 +491,4 @@ Implementazione del drill-down nel Radar Parole tramite `ModalBottomSheet`. Visu
 
 ---
 
-> Documento aggiornato alla versione **1.22**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
+> Documento aggiornato alla versione **1.25**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
