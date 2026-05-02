@@ -19,7 +19,8 @@
 11. [Gestione degli errori](#11-gestione-degli-errori)
 12. [Struttura dei dati sorgente](#12-struttura-dei-dati-sorgente)
 13. [Comportamenti noti e quirk del database](#13-comportamenti-noti-e-quirk-del-database)
-14. [Roadmap](#14-roadmap)
+14. [Struttura della navigazione](#14-struttura-della-navigazione)
+15. [Roadmap](#15-roadmap)
 
 ---
 
@@ -70,9 +71,11 @@ La cache è il meccanismo centrale per garantire aperture veloci. Usa `kotlinx.s
 
 **Cache Slow Stats globali** — Contiene le parole più usate e le emoji più usate a livello globale. Queste analisi sono più lente perché richiedono di scorrere i testi di tutti i messaggi. Vengono cachate dopo la prima analisi manuale (opt-in) e mostrate automaticamente alle riaperture.
 
-**Indice lessicale incrementale (v1.14)** — A partire da v1.14 le frequenze di parole ed emoji globali e per-chat vengono persistite su disco come file gzippati (`word_index_global.gz`, `word_index_chat_{id}.gz` in `filesDir`/`cacheDir`). Ogni file memorizza la mappa completa `parola → conteggio`, il timestamp dell'ultimo messaggio processato e il totale dei messaggi come sanity check. Quando il DB cambia (SHA-256 diverso), l'app esegue un **delta**: legge solo i messaggi con `timestamp > lastProcessedTimestamp`, unisce le frequenze e aggiorna il file. Il rebuild completo avviene solo al primo avvio o se il totale messaggi nel nuovo DB è inferiore a quello registrato nell'indice (cambio account/device).
+**Indice lessicale incrementale** — Le frequenze di parole ed emoji globali e per-chat vengono persistite su disco come file gzippati (`word_index_global.gz`, `word_index_chat_{id}.gz` in `filesDir`/`cacheDir`). Ogni file memorizza la mappa completa `parola → conteggio`, il timestamp dell'ultimo messaggio processato e il totale dei messaggi come sanity check. Quando il DB cambia (SHA-256 diverso), l'app esegue un **delta**: legge solo i messaggi con `timestamp > lastProcessedTimestamp`, unisce le frequenze e aggiorna il file. Il rebuild completo avviene solo al primo avvio o se il totale messaggi nel nuovo DB è inferiore a quello registrato nell'indice (cambio account/device).
 
-**Indice mensile (v1.14)** — Accanto all'indice globale viene mantenuto `word_index_monthly.gz` (in `filesDir`), che bucket-izza le frequenze per mese ("YYYY-MM"). Per query con filtri temporali che coprono ≥ 28 giorni e il cui `endTime` ricade entro 7 giorni dall'ultimo aggiornamento dell'indice, le parole/emoji vengono calcolate sommando i bucket mensili pertinenti in memoria — zero accessi a SQLite. Per range più brevi (es. Ultimi 7/30 giorni o range custom ravvicinati) continua ad essere usata la query SQL diretta.
+I modelli che strutturano l'indice sono `WordFrequencyIndexData` e `MonthlyWordIndexData`. Gli helper principali in `AnalyticsRepository` sono `buildOrUpdateGlobalWordIndex`, `buildOrUpdateChatWordIndex` e `computeFromMonthlyIndex`. I metodi DAO coinvolti in `MessageDao` sono `getTextsWithTimestamps`, `buildWordFrequencyMap`, `buildEmojiFrequencyMap`, `getGlobalTextMessageCount` e `getChatTextMessageCount`. La stop-word list è definita in `MessageDao.STOP_WORDS` (companion object).
+
+**Indice mensile** — Accanto all'indice globale viene mantenuto `word_index_monthly.gz` (in `filesDir`), che bucket-izza le frequenze per mese ("YYYY-MM"). Per query con filtri temporali che coprono ≥ 28 giorni e il cui `endTime` ricade entro 7 giorni dall'ultimo aggiornamento dell'indice, le parole/emoji vengono calcolate sommando i bucket mensili pertinenti in memoria — zero accessi a SQLite. Per range più brevi (es. Ultimi 7/30 giorni o range custom ravvicinati) continua ad essere usata la query SQL diretta.
 
 **Cache Quick Stats per chat** — Contiene distribuzioni orarie, settimanali, mensili e annuali per ogni singola chat, oltre ai conteggi base. Indicizzata per `chatId`. Garantisce l'apertura istantanea del dettaglio di una chat.
 
@@ -100,9 +103,9 @@ Tutte le schermate principali che espongono analisi temporali (Dashboard, Dettag
 
 Il `DateRangePicker` è un componente dedicato con un pulsante "Cerca" che diventa verde quando è attivo e rosso per annullare. I filtri rapidi e il date picker rimangono fissi in cima alla schermata mentre si scorre (sticky header).
 
-Dalla v1.15 lo stato dei filtri viene mantenuto in memoria tramite `FilterStateHolder` (`globalTimeRange/globalCustomRange` e `chatTimeRange/chatCustomRange`), così il range selezionato viene preservato quando si passa tra schermate globali e chat-specifiche. Dalla v1.16 l'UI dei filtri è stata centralizzata nel componente `TimeRangeFilterRow`, con auto-scroll del carosello al chip selezionato per rendere sempre visibile il filtro attivo. Dalla v1.17 è stato uniformato il comportamento visivo top-bar tra schermate (progress bar superiore coerente e spazio riservato per evitare layout shift durante i caricamenti). Dalla v1.18 il chip "Scegli" gestisce uno stato locale `showDatePicker` separato dal `selectedRange`: premere il chip mostra/nasconde il picker senza propagare alcuna chiamata a `setTimeRange()` e senza triggerare query al database.
+Lo stato dei filtri viene mantenuto in memoria tramite `FilterStateHolder` (singleton Hilt, con campi `globalTimeRange/globalCustomRange` e `chatTimeRange/chatCustomRange`), così il range selezionato viene preservato quando si passa tra schermate globali e chat-specifiche. L'UI dei filtri è centralizzata nel componente `TimeRangeFilterRow`, con auto-scroll del carosello al chip selezionato per rendere sempre visibile il filtro attivo. Una progress bar top coerente è presente su tutte le schermate con altezza riservata per ridurre i micro-spostamenti del layout durante i caricamenti. Il chip "Scegli" gestisce uno stato locale `showDatePicker` separato dal `selectedRange`: premere il chip mostra/nasconde il picker senza propagare alcuna chiamata a `setTimeRange()` e senza triggerare query al database.
 
-Il modello dati per i filtri è `TimeRange` (enum con valori: `ALL_TIME`, `LAST_30_DAYS`, `LAST_6_MONTHS`, `LAST_YEAR`, `CUSTOM`) e `DateRange` (con campi `startTime: Long?` e `endTime: Long?`, entrambi Unix timestamp in millisecondi). Il valore `LAST_7_DAYS` è stato rimosso dalla v1.18.
+Il modello dati per i filtri è `TimeRange` (enum con valori: `ALL_TIME`, `LAST_30_DAYS`, `LAST_6_MONTHS`, `LAST_YEAR`, `CUSTOM`) e `DateRange` (con campi `startTime: Long?` e `endTime: Long?`, entrambi Unix timestamp in millisecondi).
 
 ---
 
@@ -119,7 +122,7 @@ Le card mostrano i valori principali per il periodo selezionato:
 - Numero totale di chat
 - Numero totale di contatti
 - Numero totale di file multimediali scambiati
-- Media di messaggi al giorno — calcolata dividendo il totale di messaggi per il numero di giorni nell'intervallo selezionato, non per i giorni dal primo messaggio in assoluto (fix introdotto in v1.7)
+- Media di messaggi al giorno — calcolata dividendo il totale di messaggi per il numero di giorni nell'intervallo selezionato, non per i giorni dal primo messaggio in assoluto
 - Nome della chat più attiva (risolto tramite `wa.db`)
 - Ora del giorno in cui si scrive di più (0–23)
 - Giorno della settimana in cui si scrive di più (0 = domenica, 6 = sabato)
@@ -134,7 +137,7 @@ Quattro schede selezionabili, ciascuna con un grafico a barre con scrolling oriz
 - **Mensile** — barre per giorno del mese (1–31)
 - **Annuale** — una barra per ogni anno con dati
 
-I grafici sono interattivi: toccando una barra appare un popup di selezione inline con il valore esatto; toccare fuori dall'area del grafico chiude la selezione tramite il meccanismo `dismissSignal` (introdotto in v1.17).
+I grafici sono interattivi: toccando una barra appare un popup di selezione inline con il valore esatto; toccare fuori dall'area del grafico chiude la selezione tramite il meccanismo `dismissSignal`.
 
 ### Analisi testi — Sezione opt-in
 
@@ -159,7 +162,7 @@ Elenco di tutte le conversazioni ordinate per numero totale di messaggi in ordin
 - Avatar circolare del contatto o del gruppo. Gli avatar vengono estratti da `/data/user/{userId}/com.whatsapp/files/Avatars/` e caricati come immagini JPEG tramite la libreria Coil. Se non è disponibile un avatar, viene mostrata un'icona Person (per chat 1-a-1) o Group (per gruppi).
 - L'utente corrente viene identificato con il JID speciale `me@s.whatsapp.net`, il cui avatar è estratto come `me.jpg` dalla stessa directory.
 - Nome del contatto risolto tramite `wa.db` (non il numero di telefono grezzo da `jid.raw_string`).
-- Numero di telefono del contatto, dove disponibile, mostrato accanto al nome tramite il componente `ContactNameWithPhone`. **v1.11:** il nome supporta scrolling orizzontale automatico con animazione per nomi lunghi, evitando troncamenti.
+- Numero di telefono del contatto, dove disponibile, mostrato accanto al nome tramite il componente `ContactNameWithPhone`. Il nome supporta scrolling orizzontale automatico con animazione per nomi lunghi, evitando troncamenti.
 - Numero totale di messaggi.
 - Indicatore di posizione nel ranking.
 
@@ -174,11 +177,11 @@ L'apertura è istantanea grazie alla `QuickChatStats` cache per chat. Le statist
 
 ### Intestazione
 
-- Avatar del contatto cliccabile. Toccando l'avatar si apre una visualizzazione a schermo intero con overlay nero. Toccando di nuovo si chiude. **v1.10:** l'anteprima a schermo intero supporta pinch-to-zoom, rotazione a 90°, doppio tap e swipe-to-dismiss tramite `ZoomableImageViewer`.
-- Nome del contatto e numero di telefono (componente `ContactNameWithPhone`). **v1.11:** scrolling orizzontale automatico con animazione per nomi lunghi.
-- Periodo analizzato: data del primo e dell'ultimo messaggio nel filtro selezionato. **v1.12:** visualizzato tramite `DateRangeCard` con sfondo SurfaceVariant e scorrimento orizzontale.
+- Avatar del contatto cliccabile. Toccando l'avatar si apre una visualizzazione a schermo intero con overlay nero. Toccando di nuovo si chiude. L'anteprima a schermo intero supporta pinch-to-zoom, rotazione a 90°, doppio tap e swipe-to-dismiss tramite `ZoomableImageViewer`.
+- Nome del contatto e numero di telefono (componente `ContactNameWithPhone`). Il nome supporta scrolling orizzontale automatico con animazione per nomi lunghi.
+- Periodo analizzato: data del primo e dell'ultimo messaggio nel filtro selezionato, visualizzato tramite `DateRangeCard` con sfondo SurfaceVariant e scorrimento orizzontale.
 
-**v1.8.1:** L'intestazione viene caricata in anticipo (`HeaderInfo` state) con shimmer placeholder, fornendo feedback visivo immediato. Il nome e l'avatar sono recuperati in background in parallelo alle statistiche, migliorando la percezione delle prestazioni.
+L'intestazione viene caricata in anticipo (`HeaderInfo` state) con shimmer placeholder, fornendo feedback visivo immediato. Il nome e l'avatar sono recuperati in background in parallelo alle statistiche, migliorando la percezione delle prestazioni.
 
 ### Statistiche di base
 
@@ -197,9 +200,9 @@ Nota: nella sezione **Analisi testi → Per Persona** i chip di selezione mitten
 
 ### Chi inizia le conversazioni (`ConversationStarterBreakdown`)
 
-Donut chart analogo che conta quante volte ogni partecipante ha inviato il primo messaggio dopo almeno 3 ore di silenzio (10.800.000 ms). La logica usa `LAG()` sulla colonna `timestamp` ordinata per tempo: se la differenza con il messaggio precedente è nulla (primo messaggio in assoluto) o supera 3 ore, si conta come "inizio conversazione". **v1.13:** la spiegazione della definizione è mostrata in un `AlertDialog` modale accessibile tramite pulsante info, invece di un tooltip, migliorando la chiarezza. La breakdown è per mittente con nome e numero di telefono.
+Donut chart analogo che conta quante volte ogni partecipante ha inviato il primo messaggio dopo almeno 3 ore di silenzio (10.800.000 ms). La logica usa `LAG()` sulla colonna `timestamp` ordinata per tempo: se la differenza con il messaggio precedente è nulla (primo messaggio in assoluto) o supera 3 ore, si conta come "inizio conversazione". La spiegazione della definizione è mostrata in un `AlertDialog` modale accessibile tramite pulsante info. La breakdown è per mittente con nome e numero di telefono.
 
-Nota tecnica rilevante: il totale della breakdown viene calcolato sommando i valori della breakdown stessa, non con una query separata, per evitare discrepanze con i filtri temporali (fix in v1.2).
+Nota tecnica rilevante: il totale della breakdown viene calcolato sommando i valori della breakdown stessa, non con una query separata, per evitare discrepanze con i filtri temporali.
 
 ### Grafici di attività
 
@@ -238,7 +241,7 @@ Statistiche sui contenuti multimediali e sui link condivisi nella chat. Dati let
 
 ### Cronologia gruppi (Group History Timeline)
 
-**Novità v1.20:** Per le chat di gruppo è ora disponibile una timeline completa della cronologia del gruppo, accessibile tramite un nuovo pulsante nella schermata dettaglio. La timeline mostra in ordine cronologico tutti gli eventi rilevanti:
+Per le chat di gruppo è disponibile una timeline completa della cronologia del gruppo, accessibile tramite un pulsante nella schermata dettaglio. La timeline mostra in ordine cronologico tutti gli eventi rilevanti:
 
 - **Azioni sui partecipanti:** join, leave, add, remove, promote, demote
 - **Cambi nome gruppo**
@@ -246,14 +249,7 @@ Statistiche sui contenuti multimediali e sui link condivisi nella chat. Dati let
 
 Questi eventi sono estratti tramite query dedicate in `MessageDao` e consolidati in `AnalyticsRepository.getGroupHistory()`, che normalizza i timestamp e risolve i nomi/avatari dei partecipanti tramite batch JID resolution. La UI utilizza una `LazyColumn` a layout inverso per simulare la timeline chat, distinguendo visivamente tra eventi informativi (es. cambio descrizione) e azioni sui partecipanti tramite l'allineamento (`isLeftAligned`).
 
-**Modifiche ai modelli dati:**
-- La sealed class `GroupEvent` ora include i tipi `ParticipantAction`, `NameChange` e `DescriptionChange`.
-- Il modello `GroupParticipantHistoryEntity` ha una nuova colonna `textData` per tracciare le descrizioni.
-- Breaking change: i costruttori di `GroupEventUiModel` e `ChatDetailScreen` richiedono nuovi parametri (`userJid`, `isLeftAligned`, `onNavigateToHistory`).
-
-**Integrazione UI:**
-- La schermata dettaglio dei gruppi mostra ora un pulsante "Cronologia" (history) che apre la timeline.
-- La visualizzazione è ottimizzata per gruppi con molti eventi e supporta la risoluzione batch di nomi/avatar.
+**Modelli dati:** La sealed class `GroupEvent` include i tipi `ParticipantAction`, `NameChange` e `DescriptionChange`. Il modello `GroupParticipantHistoryEntity` ha una colonna `textData` per tracciare le descrizioni. I costruttori di `GroupEventUiModel` richiedono i parametri `userJid`, `isLeftAligned` e `onNavigateToHistory`.
 
 ---
 
@@ -272,17 +268,13 @@ Galleria multimediale per esplorare foto e video scambiati nelle chat, con acces
 - **Lazy loading** — Caricamento a blocchi di 100 elementi alla volta con `LazyVerticalGrid`.
 - **Anteprime video** — Supporto anteprime video tramite dipendenza `coil-video`.
 - **Tracking** — Barra di progresso e stato di caricamento visibili durante il fetch.
-- **Zoom immagini** — **v1.10:** anteprima a schermo intero con `ZoomableImageViewer` che supporta pinch-to-zoom, rotazione a 90°, doppio tap per zoom toggle e swipe-to-dismiss.
+- **Zoom immagini** — Anteprima a schermo intero con `ZoomableImageViewer` che supporta pinch-to-zoom, rotazione a 90°, doppio tap per zoom toggle e swipe-to-dismiss.
 
 ### Cache
 
-Le statistiche media hanno cache dedicata:
-- `media_global_v1` → `media_global_v2` (v1.8) → `media_global_v3` (v1.9)
-- `media_chat_v1` → `media_chat_v2` (v1.8) → `media_chat_v3` (v1.9)
+Le statistiche media hanno cache dedicata con chiavi `media_global_v3` e `media_chat_v3`. L'invalidazione avviene automaticamente al cambio del database (SHA-256).
 
-L'invalidazione avviene automaticamente al cambio del database (SHA-256).
-
-### Ottimizzazioni prestazionali (v1.9)
+### Ottimizzazioni prestazionali
 
 **Indice gzipped** — Un indice persistente e gzippato dei file multimediali viene salvato su disco. All'apertura della galleria, l'indice viene caricato in parallelo con la query SQL, eliminando completamente la scansione sequenziale del filesystem. Se l'indice non esiste o è obsoleto (mismatch SHA-256 del DB), viene eseguita una scansione one-time del filesystem per ricostruirlo.
 
@@ -298,22 +290,22 @@ Funzione di ricerca che conta le occorrenze di una parola o frase in una chat sp
 
 ### Caratteristiche principali:
 
-- **Suggerimenti intelligenti (v1.21)** — Mentre l'utente digita (da 3 caratteri in poi), appaiono suggerimenti basati sulle parole più frequenti nell'indice lessicale (globale o per-chat). Questo evita di dover digitare interamente parole lunghe o comuni.
+- **Suggerimenti intelligenti** — Mentre l'utente digita (da 3 caratteri in poi), appaiono suggerimenti basati sulle parole più frequenti nell'indice lessicale (globale o per-chat). Questo evita di dover digitare interamente parole lunghe o comuni.
 - **Supporto sottostringhe** — La ricerca trova tutte le occorrenze della parola digitata, anche se fa parte di una parola più lunga (es. "casa" troverà anche "casale").
-- **Icona informativa (v1.21)** — Una "i" nella barra di ricerca spiega chiaramente il funzionamento dei suggerimenti e la logica delle sottostringhe tramite un dialog dedicato.
+- **Icona informativa** — Una "i" nella barra di ricerca spiega chiaramente il funzionamento dei suggerimenti e la logica delle sottostringhe tramite un dialog dedicato.
 - **Ricerca esplicita** — La ricerca effettiva (con conteggio per mittente) parte solo alla pressione del pulsante di ricerca o al click su un suggerimento.
 - **Ottimizzazione performance** — Pre-filtro SQL con `LIKE '%parola%'` prima del conteggio esatto, che riduce il numero di righe da processare in memoria di un fattore 10–100x.
 - **Breakdown per mittente** — Mostra il conteggio per ogni partecipante, distinguendo `from_me=1` (l'utente) dal JID dell'interlocutore. Il mapping al nome del contatto avviene tramite `wa.db`.
-- **Anteprima Messaggi (v1.22)** — Toccando il conteggio messaggi di un mittente, si apre una `ModalBottomSheet` che mostra l'elenco completo dei messaggi contenenti la parola cercata.
+- **Anteprima Messaggi** — Toccando il conteggio messaggi di un mittente, si apre una `ModalBottomSheet` che mostra l'elenco completo dei messaggi contenenti la parola cercata.
     - **Ordinamento dinamico**: Toggle tra "Più recenti" (default) e "Meno recenti".
     - **Paginazione**: Caricamento fluido in blocchi da 50 elementi con pulsante "Carica altri".
     - **Keyword Highlighting**: La parola cercata viene evidenziata in grassetto con il colore primario del tema.
     - **Context Awareness**: Visualizzazione automatica del nome della chat per i risultati in modalità globale; layout compatto per la modalità chat-specifica.
-- **Opzioni di ricerca avanzata (v1.24)** -- Riga di FilterChip sotto la barra di ricerca:
+- **Opzioni di ricerca avanzata** — Riga di FilterChip sotto la barra di ricerca:
     - **Aa (Case Sensitive)**: permette di distinguere tra maiuscole e minuscole nel conteggio e nell'highlighting.
     - **ab sottolineato (Parola Esatta)**: utilizza confini di parola Unicode `(?<!\p{L})parola(?!\p{L})` per trovare solo termini isolati, escludendo le sottostringhe.
     - **?**: filtra i risultati mostrando solo i messaggi che contengono un punto interrogativo (filtro in memoria).
-    - **Multi (Toggle a 3 stati - v1.26)**: cicla tra tre modalità di ricerca:
+    - **Multi (Toggle a 3 stati)**: cicla tra tre modalità di ricerca:
         - *OFF*: ricerca della frase esatta.
         - *E (AND)*: messaggi che contengono TUTTE le parole inserite.
         - *O (OR)*: messaggi che contengono ALMENO UNA delle parole inserite.
@@ -420,66 +412,17 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ---
 
-## 14. Roadmap
+## 14. Struttura della navigazione
 
-### Rilasciato (v1.0 — v1.20)
+L'app utilizza una `BottomNavigationBar` Material 3 a 5 tab: **Panoramica**, **Chat**, **Media**, **Radar**, **Chiamate**. Ogni tab mantiene il proprio back stack indipendente tramite `saveState`/`restoreState`.
 
-**v1.0 — MVP:** Accesso root, estrazione file, decifratura crypt14, Dashboard globale e lista chat, statistiche base per chat (messaggi, orari, giorni).
+Il `NavHost` è strutturato con grafi annidati: un grafo Setup e un grafo Main contenente i 5 sotto-grafi per tab. Le schermate Radar, Chiamate e Media sono accessibili sia come radici di tab globali (senza `chatId`) sia come destinazioni chat-specifiche (con `chatId` nel path, es. `word_search/{chatId}`) all'interno del grafo Chat. Quando aperte da una chat, le schermate mostrano un header contestuale con nome chat, avatar e pulsante back tramite il componente `SimpleScreenHeader`. Il nome/avatar della chat è caricato da `AnalyticsRepository.getChatContextInfo(chatId)` e esposto come `StateFlow` nei rispettivi ViewModel (`WordSearchViewModel`, `CallsStatsViewModel`, `MediaStatsViewModel`).
 
-**v1.1 — Analytics avanzati:** Filtri temporali su tutte le schermate, word cloud interattiva con tooltip, Radar Parole con occorrenze per mittente, Log Chiamate (audio, video, perse, durata), Media & Link con link raggruppati per dominio, tempo medio di risposta, grafici di evoluzione mensile.
+Il `ChatDetailScreen` espone 3 card azione (Radar, Chiamate, Media) disposte in una riga orizzontale 1×3.
 
-**v1.2 — Donut chart, nomi contatti, performance:** Donut chart "Chi scrive di più" e "Chi inizia le conversazioni" con breakdown per mittente, espansione per gruppi con più di 10 membri, risoluzione nomi contatti tramite `wa.db`, 7 indici SQL compositi, WAL mode, 14 query parallelizzate, progressive loading.
+---
 
-**v1.3 — UX migliorata:** Distribuzione giornaliera/mensile/annuale, schede (tabs) per le metriche di attività, `InteractiveBarChart` con scrolling orizzontale, filtri temporali per tutte le query, estrazione domini per link, progress tracking con `LoadingSection`, icona launcher adattiva.
-
-**v1.4 — Cache intelligente:** Rilevamento cambio database tramite SHA-256, cache completa con `kotlinx.serialization`, cache Quick e Slow Stats globali e per singola chat, invalidazione automatica al cambio del database, analisi lessicale opt-in con pulsante, sticker più usati.
-
-**v1.5 — Emoji & Word Analytics:** Emoji Cloud con dimensione dinamica e filtri temporali, modalità aggregata e per-persona per emoji, selettore limite (3, 5, 10, 20, 30, 50), pool interno di 50 elementi pre-caricati, query unificate per parole ed emoji, lazy loading con progress indicator.
-
-**v1.6 — Avatar:** Estrazione avatar da `/data/user/*/com.whatsapp/files/Avatars/`, supporto profili multipli (XSpace), avatar in lista chat, dettaglio chat, log chiamate e media & link, zoom avatar a schermo intero con overlay, mapping utente corrente tramite `me@s.whatsapp.net` / `me.jpg`.
-
-**v1.7 — Statistiche avanzate e UX:** Sticker cloud interattivo con miniature e modal di anteprima, numero di telefono accanto al nome in tutte le schermate, ricerca multifrase nel Radar Parole, ricerca manuale su pressione pulsante (non automatica), `DateRangePicker` con pulsante "Cerca" con stati verde/rosso, correzione "Media/giorno" per usare l'intervallo selezionato, sticky header con filtri temporali nella Dashboard, skeleton loading su tutte le schermate principali (`ShimmerUtils`), modal light per emoji e sticker, tracking data ultima condivisione per ogni URL.
-
-**v1.8 — Media Gallery:** Galleria multimediale con accesso root a file protetti, risoluzione percorsi Scoped Storage (`/sdcard/Android/media/com.whatsapp/WhatsApp`, `/sdcard/WhatsApp`), lettura file tramite `SuFileInputStream` quando l'accesso diretto fallisce, griglia lazy con caricamento blocchi da 100, ordinamento per data (ascendente/discesa), cache keys aggiornate (`global_stats_v2→v3`, `chat_quick_v2→v3`, `media_global_v1→v2`, `media_chat_v1→v2`), supporto anteprime video via `coil-video`.
-
-**v1.8.1 — Chat Detail UX:** Caricamento anticipato dell'header (`HeaderInfo` state) con shimmer placeholder, query asincrona per nome contatto e avatar eseguita in parallelo alle statistiche, header visibile immediatamente quando disponibile, migliorata percezione delle prestazioni.
-
-**v1.9 — Media Index Cache:** Introdotto indice gzipped persistente su disco dei file multimediali, caricamento in parallelo con query database per eliminare scansione sequenziale, fallback a scansione filesystem one-time solo se indice mancante o stale, supporto variante `/Sent/` in `RootFileFetcher` per media inviati, tempo di caricamento galleria ridotto da secondi a millisecondi nelle riaperture.
-
-**v1.10 — Zoomable Image Viewer:** Introdotto componente `ZoomableImageViewer` con pinch-to-zoom, rotazione a 90° con snap, doppio tap per toggle zoom, swipe-to-dismiss. Sostituisce tutte le anteprime statiche di immagini in `MediaStatsScreen` e `ChatDetailScreen` con visualizzatore interattivo.
-
-**v1.11 — Contact name horizontal scroll:** Il componente `ContactNameWithPhone` supporta scrolling orizzontale automatico con animazione per nomi lunghi (dopo 3s scorre alla fine, attende 1.5s, poi ritorna all'inizio). Comportamento configurabile tramite parametro `enableHorizontalScroll`.
-
-**v1.12 — DateRangeCard:** Nuovo componente `DateRangeCard` con scrolling orizzontale per visualizzare intervalli di date (icona calendario, freccia separatore, timestamp inizio/fine). Sostituisce la `StatCard` nel dettaglio chat per mostrare il periodo di attività conversazione. Disabilita l'auto-scroll in `ContactNameWithPhone`commentando il blocco `LaunchedEffect`.
-
-**v1.13 — Conversation starter info dialog:** Il tooltip informativo nella sezione "Chi inizia le conversazioni" è sostituito da un `AlertDialog` modale con spiegazione più chiara della soglia di 3 ore di silenzio, migliorando l'usabilità.
-
-**v1.14 — Lexical Index (delta incrementale):** Indice lessicale persistente gzippato per parole ed emoji, globale e per-chat. Al cambio del database WhatsApp vengono processati solo i messaggi nuovi (delta da `lastProcessedTimestamp`) invece di rileggere tutto da zero. Indice mensile separato per query con filtri temporali ≥ 28 giorni. Tempo di ricalcolo dell'analisi lessicale ridotto da secondi a millisecondi nelle sessioni successive. Struttura: `WordFrequencyIndexData`, `MonthlyWordIndexData`; helper in `AnalyticsRepository` (`buildOrUpdateGlobalWordIndex`, `buildOrUpdateChatWordIndex`, `computeFromMonthlyIndex`); nuovi metodi in `MessageDao` (`getTextsWithTimestamps`, `buildWordFrequencyMap`, `buildEmojiFrequencyMap`, `getGlobalTextMessageCount`, `getChatTextMessageCount`). La stop-word list è ora in `MessageDao.STOP_WORDS` (companion object).
-
-**v1.15 — Persistenza filtri cross-screen:** Introdotto `FilterStateHolder` singleton (Hilt) per mantenere il filtro temporale attivo separatamente per contesto globale e contesto chat. Integrato in `DashboardViewModel`, `ChatDetailViewModel`, `CallsStatsViewModel`, `MediaStatsViewModel`, `WordSearchViewModel`.
-
-**v1.16 — UI filtri e header centralizzati:** Refactor dei componenti UI con `TimeRangeFilterRow` (carosello filtri + `DateRangePicker` con auto-scroll sul chip attivo) e `SimpleScreenHeader` (header standard riusabile per schermate secondarie). Aggiornati i filtri temporali: rimossi `TODAY`/`YESTERDAY`, aggiunto `LAST_6_MONTHS`.
-
-**v1.17 — Rifiniture visuali cross-screen:** Uniformata la UX di transizione tra Dashboard e schermate analitiche (es. Radar Parole) introducendo progress bar top coerente su Dashboard/Dettaglio chat/Log Chiamate/Media & Link/Radar Parole con altezza riservata per ridurre i micro-spostamenti del layout. In Dashboard il pulsante back rimane posizionato a destra. Sostituito il componente `ChartTooltip` (overlay statico) con un sistema di selezione basato su `Popup` in `InteractiveHourlyHeatmap`: introdotto meccanismo `dismissSignal` in `ActivityRecapCard` e `InteractiveHourlyHeatmap` che incrementa un contatore per propagare l'evento di dismiss ai grafici quando si tocca fuori dall'area; aggiunta pointer-input detection in `ChatDetailScreen` e `DashboardScreen` per catturare i tap esterni. Fix layout shift nelle barre di ricerca di `CallsStatsScreen` e `MediaStatsScreen`: il campo `OutlinedTextField` è avvolto in un `Box` ad altezza fissa che mantiene il layout stabile durante la transizione dallo stato di caricamento ai risultati.
-
-**v1.18 — Bottom Tab Navigation e header contestuali:** Refactor completo della navigazione con `AppScaffold` + `BottomNavigationBar` Material 3 a 5 tab (Panoramica, Chat, Media, Radar, Chiamate). Ogni tab mantiene il proprio back stack indipendente (`saveState`/`restoreState`). Il `NavHost` è strutturato con grafi annidati: un grafo Setup e un grafo Main contenente i 5 sotto-grafi per tab. Le schermate Radar, Chiamate e Media sono accessibili sia come radici di tab globali (senza `chatId`) sia come destinazioni chat-specifiche (con `chatId` nel path, es. `word_search/{chatId}`) all'interno del grafo Chat. Quando aperte da una chat, le schermate mostrano un header contestuale con nome chat, avatar e pulsante back tramite il componente `SimpleScreenHeader` potenziato. Il nome/avatar della chat è caricato da `AnalyticsRepository.getChatContextInfo(chatId)` e esposto come `StateFlow` nei rispettivi ViewModel (`WordSearchViewModel`, `CallsStatsViewModel`, `MediaStatsViewModel`). I 4 bottoni azione dalla Dashboard sono stati rimossi (la navigazione avviene esclusivamente via tab). Il `ChatDetailScreen` non ha più la card "Tutte le Chat"; le 3 card azione rimaste (Radar, Chiamate, Media) sono disposte in una riga orizzontale 1×3. Il `DateRangePicker` nel filtro "Scegli" è ora controllato da stato locale `showDatePicker` in `TimeRangeFilterRow` e non propaga `onRangeSelected(CUSTOM)` al tap del chip, eliminando reload indesiderati. Rimosso `LAST_7_DAYS` da `TimeRange`. Fix layout `LinkStatCard` in Media & Link: la sezione nome usa `weight(1f)` nella Row esterna (rimosso `SpaceBetween`), i pulsanti media/link restano fissi a destra senza sovrapporsi al nome scrollabile.
-
-**v1.19 — Theming navigazione e layout ActionCard:** Applicato `MaterialTheme` color scheme ai componenti `NavigationBarItem` della `BottomNavigationBar` per coerenza visiva con il design system dell'app. Aggiornati padding e tipografia di `ActionCard` in `ChatDetailScreen` per migliorare la leggibilità del testo su più righe. Rinnovata la palette colori del pie chart (donut chart) con un set di colori più vivaci e distinti per una migliore visualizzazione dei dati. Ordinamento mittenti e chip UX: il sort "Tu per primo" (`me@s.whatsapp.net`) è ora applicato esclusivamente ai chip di selezione nella sezione "Per Persona" dell'analisi testi — rimosso da `CacheManager.toDomain()` e `AnalyticsRepository.getSlowChatStats()` dove alterava anche la sezione "Chi scrive di più". Il `senderBreakdown` esposto dal data layer torna all'ordine naturale (volume decrescente). Aggiunto `enableHorizontalScroll = false` sui `FilterChip` dei mittenti in "Per Persona" per evitare layout inconsistenti nei chip.
-
-**v1.20 — Cronologia gruppi e tracking descrizione:**
-Introdotta la timeline della cronologia gruppi con visualizzazione stile chat di tutti gli eventi (join/leave/add/remove/promote/demote, cambi nome, cambi descrizione). Database e modelli dati aggiornati per tracciare anche le modifiche alla descrizione del gruppo. UI ottimizzata con risoluzione batch di nomi/avatar e allineamento differenziato per eventi informativi. Breaking change: modificati i costruttori di `GroupEventUiModel` e `ChatDetailScreen`.
-
-**v1.23 — Ricerca avanzata Radar:**
-Aggiunti due toggle nella barra di ricerca del Radar Parole: "Aa" per la distinzione maiuscole/minuscole e "ab" sottolineato per la ricerca a parola esatta (confini Unicode). Il pre-filtro SQL LIKE rimane invariato per le performance; il filtraggio preciso avviene in memoria tramite helper dedicato nel DAO. Aggiornato l'highlighting dinamico e il dialog informativo.
-
-**v1.24 — Refactor UX Radar e filtro Domande:**
-Spostati i toggle "Aa" e "ab" dalla barra di ricerca a una riga dedicata di FilterChip per decongestionare l'interfaccia. Aggiunto il chip "? Domande" che filtra in memoria i messaggi contenenti un punto interrogativo. L'icona informativa è ora nella riga dei chip.
-
-**v1.25 — Ricerca Multi-parola (AND) nel Radar:**
-Introdotto il chip "Multi" che abilita la logica AND nella ricerca. Il sistema divide la query in termini e restituisce i messaggi che li contengono tutti.
-
-**v1.26 — Evoluzione Multi (AND/OR):**
-Il chip "Multi" diventa un toggle a 3 stati. Aggiunta la modalità **OR** ("O") che permette di cercare messaggi che contengono almeno una delle parole fornite. Ottimizzato il conteggio per mostrare il numero di messaggi reali invece della somma delle occorrenze.
+## 15. Roadmap
 
 ### Pianificato (non ancora implementato)
 
@@ -491,4 +434,4 @@ Il chip "Multi" diventa un toggle a 3 stati. Aggiunta la modalità **OR** ("O") 
 
 ---
 
-> Documento aggiornato alla versione **1.25**. Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
+> Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
