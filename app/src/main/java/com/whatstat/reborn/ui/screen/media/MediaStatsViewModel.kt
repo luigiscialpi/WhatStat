@@ -128,12 +128,17 @@ class MediaStatsViewModel @Inject constructor(
     private var lastKnownCacheVersion = 0L
 
     init {
-        // In LiteMode, resetta initialized quando viene importato un nuovo ZIP
+        // In LiteMode, ricarica i dati quando viene importato un nuovo ZIP
         viewModelScope.launch {
             analyticsRepository.liteCacheVersion.collect { version ->
                 if (version > 0L && version != lastKnownCacheVersion) {
                     lastKnownCacheVersion = version
                     initialized = false
+                    // Ricarica immediatamente (LaunchedEffect non riscatta se chatId non cambia)
+                    _linkStats.value = emptyList()
+                    _linkStatsBySender.value = emptyList()
+                    _topDomains.value = emptyList()
+                    loadStats()
                 }
             }
         }

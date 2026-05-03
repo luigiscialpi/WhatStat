@@ -57,9 +57,13 @@ class AnalyticsRepository @Inject constructor(
         _isLiteMode.value = enabled
     }
 
-    /** Chiamato dopo ogni importazione riuscita: aggiorna il version stamp. */
+    /** Chiamato dopo ogni importazione riuscita: aggiorna il version stamp e invalida la cache. */
     fun notifyLiteImportDone() {
         _liteCacheVersion.value = System.currentTimeMillis()
+        // Invalida la cache DataStore per non restituire dati del precedente ZIP
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            cacheManager.clearCache()
+        }
     }
 
     /**
