@@ -106,6 +106,18 @@ class WordSearchViewModel @Inject constructor(
     }
 
     private var initialized = false
+    private var lastKnownCacheVersion = 0L
+
+    init {
+        viewModelScope.launch {
+            analyticsRepository.liteCacheVersion.collect { version ->
+                if (version > 0L && version != lastKnownCacheVersion) {
+                    lastKnownCacheVersion = version
+                    initialized = false
+                }
+            }
+        }
+    }
 
     fun initialize(chatId: Long?) {
         if (!initialized) {

@@ -49,8 +49,17 @@ class AnalyticsRepository @Inject constructor(
     private val _isLiteMode = kotlinx.coroutines.flow.MutableStateFlow(false)
     val isLiteMode: kotlinx.coroutines.flow.StateFlow<Boolean> = _isLiteMode.asStateFlow()
 
+    /** Timestamp dell'ultima importazione Lite. Cambia ad ogni nuovo ZIP importato. */
+    private val _liteCacheVersion = kotlinx.coroutines.flow.MutableStateFlow(0L)
+    val liteCacheVersion: kotlinx.coroutines.flow.StateFlow<Long> = _liteCacheVersion.asStateFlow()
+
     fun setLiteMode(enabled: Boolean) {
         _isLiteMode.value = enabled
+    }
+
+    /** Chiamato dopo ogni importazione riuscita: aggiorna il version stamp. */
+    fun notifyLiteImportDone() {
+        _liteCacheVersion.value = System.currentTimeMillis()
     }
 
     /**
@@ -71,6 +80,27 @@ class AnalyticsRepository @Inject constructor(
         }
     }
 
+    /** Helper: filtra i messaggi Lite per tempo (e opzionalmente per JID). */
+    private suspend fun filteredLiteMessages(
+        startTime: Long?,
+        endTime: Long?,
+        jid: String? = null
+    ): List<com.whatstat.reborn.data.lite.ParsedMessage> {
+        val ownerName = liteModeManager.getOwnerName()
+        return liteModeManager.getCachedMessages().filter { msg ->
+            val jidMatch = when {
+                jid == null -> true
+                jid == "me@s.whatsapp.net" -> msg.isCurrentUser
+                else -> msg.senderName.equals(jid, ignoreCase = true)
+            }
+            if (!jidMatch) return@filter false
+            val ts = try {
+                msg.timestamp.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+            } catch (e: Exception) { 0L }
+            (startTime == null || ts >= startTime) && (endTime == null || ts <= endTime)
+        }
+    }
+
     /**
      * Calcola le statistiche globali aggregate su tutte le chat.
      * Supporta filtro temporale opzionale.
@@ -86,7 +116,41 @@ class AnalyticsRepository @Inject constructor(
         if (liteStats != null) {
             android.util.Log.d("WhatStat", "GlobalStats from Lite Cache")
             onProgress(100)
-            return@withContext liteStats
+            // Per ALL_TIME restituiamo la cache precalcolata
+            if (timeRange == TimeRange.ALL_TIME) return@withContext liteStats
+            // Per filtri temporali, ricalcoliamo dalle statistiche slow (che filtrano i messaggi)
+            val (startTime, endTime) = if (timeRange == TimeRange.CUSTOM && customRange != null) {
+                getDateRangeBounds(customRange)
+            } else {
+                getTimeRangeBounds(timeRange, customRange)
+            }
+            val slowStats = com.whatstat.reborn.data.lite.LiteMetricsCalculator.calculateSlowStats(
+                messages = liteModeManager.getCachedMessages(),
+                mediaStats = liteModeManager.getCachedMedia(),
+                startTime = startTime,
+                endTime = endTime
+            )
+            // Costruisce un GlobalStats parziale con i dati filtrati
+            val filtered = filteredLiteMessages(startTime, endTime)
+            val hourly = IntArray(24)
+            val weekly = IntArray(7)
+            filtered.forEach { msg ->
+                val dt = msg.timestamp
+                hourly[dt.hour]++
+                val dow = if (dt.dayOfWeek.value == 7) 0 else dt.dayOfWeek.value
+                weekly[dow]++
+            }
+            return@withContext liteStats.copy(
+                totalMessages = filtered.size,
+                hourlyDistribution = hourly.mapIndexed { h, c -> com.whatstat.reborn.data.db.model.HourlyCount(h, c) },
+                weeklyDistribution = weekly.mapIndexed { d, c -> com.whatstat.reborn.data.db.model.DayCount(d, c) },
+                topWords = slowStats.topWords,
+                topEmojis = slowStats.topEmojis,
+                averageMessagesPerDay = if (startTime != null && endTime != null) {
+                    val days = ((endTime - startTime) / 86400000f).coerceAtLeast(1f)
+                    filtered.size / days
+                } else liteStats.averageMessagesPerDay
+            )
         }
 
         // Cache solo per ALL_TIME (il caso più comune)
@@ -760,7 +824,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
     suspend fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<LinkStat> = withContext(Dispatchers.IO) {
         // 0. Controllo Lite
         if (isLiteMode.value) {
-            val messages = liteModeManager.getCachedMessages()
+            val messages = filteredLiteMessages(startTime, endTime)
             val ownerName = liteModeManager.getOwnerName()
             return@withContext messages
                 .groupBy { it.senderName }
@@ -1013,10 +1077,10 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         messageDao.getTopWords(chatId, jid, startTime, endTime, limit)
     }
 
-    suspend fun getTopEmojis(chatId: Long?, limit: Int = 50): List<EmojiStat> = withContext(Dispatchers.IO) {
+    suspend fun getTopEmojis(chatId: Long?, startTime: Long? = null, endTime: Long? = null, limit: Int = 50): List<EmojiStat> = withContext(Dispatchers.IO) {
         // 0. Controllo Lite
         if (isLiteMode.value) {
-            val messages = liteModeManager.getCachedMessages()
+            val messages = filteredLiteMessages(startTime, endTime)
             val emojiCounts = mutableMapOf<String, Int>()
             messages.forEach { msg ->
                 extractEmojis(msg.content).forEach { emoji ->
@@ -1042,7 +1106,8 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
     ): List<com.whatstat.reborn.data.db.model.UserEmojiStat> = withContext(Dispatchers.IO) {
         // 0. Controllo Lite
         if (isLiteMode.value) {
-            val messages = liteModeManager.getCachedMessages()
+            val ownerName = liteModeManager.getOwnerName()
+            val messages = filteredLiteMessages(startTime, endTime)
             val grouped = messages.groupBy { it.senderName }
             return@withContext grouped.map { (sender, msgs) ->
                 val emojiCounts = mutableMapOf<String, Int>()
@@ -1058,7 +1123,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                     .map { com.whatstat.reborn.data.db.model.EmojiStat(it.key, it.value) }
                 com.whatstat.reborn.data.db.model.UserEmojiStat(
                     jid = sender,
-                    displayName = sender,
+                    displayName = if (sender == ownerName) "Tu" else sender,
                     totalEmojiCount = total,
                     topEmoji = topEmoji
                 )

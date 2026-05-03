@@ -132,6 +132,14 @@ class ChatDetailViewModel @Inject constructor(
     init {
         // We ALWAYS load stats. In Lite Mode, chatId might be -1L, but we need stats anyway.
         loadChatStats()
+        // In LiteMode, ricarica quando viene importato un nuovo ZIP
+        viewModelScope.launch {
+            var firstEmit = true
+            analyticsRepository.liteCacheVersion.collect { _ ->
+                if (firstEmit) { firstEmit = false; return@collect }
+                loadChatStats()
+            }
+        }
     }
 
     private fun loadChatStats() {

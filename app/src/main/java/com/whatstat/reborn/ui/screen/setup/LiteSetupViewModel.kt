@@ -57,6 +57,7 @@ class LiteSetupViewModel @Inject constructor(
                 .onSuccess {
                     // Notifica il repository principale che i dati sono pronti
                     analyticsRepository.setLiteMode(true)
+                    analyticsRepository.notifyLiteImportDone()
                     _state.update { it.copy(isLoading = false, isComplete = true) }
                 }
                 .onFailure { e ->

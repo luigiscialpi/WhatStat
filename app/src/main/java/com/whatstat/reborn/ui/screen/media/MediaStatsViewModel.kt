@@ -125,6 +125,19 @@ class MediaStatsViewModel @Inject constructor(
     }
 
     private var initialized = false
+    private var lastKnownCacheVersion = 0L
+
+    init {
+        // In LiteMode, resetta initialized quando viene importato un nuovo ZIP
+        viewModelScope.launch {
+            analyticsRepository.liteCacheVersion.collect { version ->
+                if (version > 0L && version != lastKnownCacheVersion) {
+                    lastKnownCacheVersion = version
+                    initialized = false
+                }
+            }
+        }
+    }
 
     fun initialize(chatId: Long?) {
         if (!initialized) {
