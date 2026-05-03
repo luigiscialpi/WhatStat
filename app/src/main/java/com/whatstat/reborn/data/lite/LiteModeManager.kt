@@ -33,15 +33,19 @@ class LiteModeManager @Inject constructor(
             val parseResult = parser.parse(txtFile, ownerName)
             val identifiedSenders = parseResult.messages.map { it.senderName }.distinct()
             
-            // 3. Analisi Media
-            val mediaStats = mediaManager.extractMediaFromFolder(folder)
+            // 3. Analisi Media (passiamo i messaggi per associare file → mittente e timestamp)
+            val mediaStats = mediaManager.extractMediaFromFolder(folder, parseResult.messages)
 
             // 4. Calcolo Statistiche Globali
-            val stats = calculateGlobalStats(parseResult.messages, mediaStats, folder.name)
+            // Puliamo il prefisso standard che WhatsApp aggiunge all'esportazione ("Chat WhatsApp con ")
+            val chatNameToSave = txtFile.nameWithoutExtension
+                .replace("Chat WhatsApp con ", "", ignoreCase = true)
+                .trim()
+            val stats = calculateGlobalStats(parseResult.messages, mediaStats, chatNameToSave)
 
             // 5. Salvataggio Cache
             val cacheData = LiteCacheData(
-                sourceFileName = folder.name,
+                sourceFileName = chatNameToSave,
                 lastModified = System.currentTimeMillis(),
                 totalLines = parseResult.messages.size,
                 ownerName = ownerName,
@@ -59,12 +63,20 @@ class LiteModeManager @Inject constructor(
         return cacheRepository.loadCache()?.globalStats
     }
 
+    suspend fun getOwnerName(): String? {
+        return cacheRepository.loadCache()?.ownerName
+    }
+
     suspend fun getCachedMessages(): List<ParsedMessage> {
         return cacheRepository.loadCache()?.messages ?: emptyList()
     }
 
     suspend fun getCachedMedia(): LiteMediaStats? {
         return cacheRepository.loadCache()?.mediaStats
+    }
+
+    suspend fun clearCache() {
+        cacheRepository.clearCache()
     }
 
     private fun calculateGlobalStats(

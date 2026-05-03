@@ -13,4 +13,8 @@ class MainViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository
 ) : ViewModel() {
     val isLiteMode: StateFlow<Boolean> = analyticsRepository.isLiteMode
+
+    fun resetLiteMode() {
+        analyticsRepository.resetLiteMode()
+    }
 }

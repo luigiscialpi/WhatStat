@@ -3,13 +3,21 @@ package com.whatstat.reborn.data.lite
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class LiteMediaManager @Inject constructor() {
 
-    suspend fun extractMediaFromFolder(folder: File): LiteMediaStats = withContext(Dispatchers.IO) {
+    /**
+     * Scansiona la cartella dello ZIP e associa ogni file al mittente e al timestamp
+     * del messaggio corrispondente, cercando il nome del file nel contenuto dei messaggi.
+     */
+    suspend fun extractMediaFromFolder(
+        folder: File,
+        messages: List<ParsedMessage> = emptyList()
+    ): LiteMediaStats = withContext(Dispatchers.IO) {
         val allFiles = mutableListOf<File>()
         
         fun walk(file: File) {
@@ -20,22 +28,43 @@ class LiteMediaManager @Inject constructor() {
             }
         }
         walk(folder)
-        
+
+        // Crea una mappa fileName → (senderName, epochMilli)
+        // partendo dai messaggi che contengono un allegato.
+        val fileNameToMsgInfo = mutableMapOf<String, Pair<String?, Long>>()
+        for (msg in messages) {
+            if (!msg.hasMedia || msg.content.isBlank()) continue
+            val ts = try {
+                msg.timestamp.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            } catch (e: Exception) { 0L }
+            val matches: Sequence<MatchResult> = LiteMetricsCalculator.MEDIA_FILENAME_REGEX.findAll(msg.content)
+            for (match in matches) {
+                val fullName = match.value
+                val nameNoExt = fullName.substringBeforeLast(".")
+                fileNameToMsgInfo[fullName] = msg.senderName to ts
+                fileNameToMsgInfo[nameNoExt] = msg.senderName to ts
+            }
+        }
+
         val mediaItems = allFiles.mapNotNull { file ->
             val type = when (file.extension.lowercase()) {
                 "jpg", "jpeg", "png", "gif", "webp" -> "IMAGE"
                 "mp4", "3gp", "mov", "m4v" -> "VIDEO"
                 "opus", "aac", "mp3", "m4a", "wav" -> "AUDIO"
-                "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "zip" -> "DOCUMENT"
+                "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip" -> "DOCUMENT"
                 else -> null
             }
-            
+
             if (type != null) {
+                // Cerca prima col nome completo, poi senza estensione
+                val msgInfo = fileNameToMsgInfo[file.name]
+                    ?: fileNameToMsgInfo[file.nameWithoutExtension]
                 LiteMediaItem(
                     fileName = file.name,
-                    relativePath = file.absolutePath, // Usiamo path assoluto per Coil/Player
+                    relativePath = file.absolutePath,
                     type = type,
-                    timestamp = file.lastModified() // Fallback timestamp
+                    timestamp = if (msgInfo != null && msgInfo.second > 0L) msgInfo.second else file.lastModified(),
+                    senderName = msgInfo?.first
                 )
             } else null
         }

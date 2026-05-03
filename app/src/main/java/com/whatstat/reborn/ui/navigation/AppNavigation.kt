@@ -88,7 +88,7 @@ fun AppNavigation(
             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
         ) {
             setupGraph(navController)
-            mainGraph(navController, repository)
+            mainGraph(navController, repository, onResetLite = { mainViewModel.resetLiteMode() })
         }
     }
 }
@@ -125,7 +125,8 @@ private fun NavGraphBuilder.setupGraph(navController: NavHostController) {
 
 private fun NavGraphBuilder.mainGraph(
     navController: NavHostController,
-    repository: WhatsAppRepository
+    repository: WhatsAppRepository,
+    onResetLite: () -> Unit = {}
 ) {
     navigation(
         startDestination = NavGraphRoute.Overview,
@@ -138,6 +139,9 @@ private fun NavGraphBuilder.mainGraph(
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
                     onNavigateBack = {
+                        // In LiteMode, resetLiteMode() azzera il flag _isLiteMode PRIMA di navigare,
+                        // così SetupViewModel non trova un flag "attivo" e non auto-naviga di nuovo.
+                        onResetLite()
                         repository.resetState()
                         navController.navigate(Screen.Setup.route) {
                             popUpTo(0) { inclusive = true }

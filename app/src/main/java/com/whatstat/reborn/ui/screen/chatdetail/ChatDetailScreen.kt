@@ -129,6 +129,7 @@ fun ChatDetailScreen(
         viewModel.syncFilterState()
         onPauseOrDispose { }
     }
+    val isLiteMode by viewModel.isLiteMode.collectAsState()
     val wordViewMode by viewModel.wordViewMode.collectAsState()
     val selectedSenderWords by viewModel.selectedSenderForWords.collectAsState()
     val topWordsLimit by viewModel.topWordsLimit.collectAsState()
@@ -720,9 +721,45 @@ fun ChatDetailScreen(
 
                         // ── Action Row ────────────────────────────────
                         item {
-                            if (stats?.isGroup == true) {
-                                // Layout 2x2 per i gruppi
-                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            if (!isLiteMode) {
+                                if (stats?.isGroup == true) {
+                                    // Layout 2x2 per i gruppi
+                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            ActionCard(
+                                                modifier = Modifier.weight(1f),
+                                                title = "Radar Parole",
+                                                subtitle = "Cerca parole frequenti",
+                                                icon = Icons.Outlined.Search,
+                                                onClick = onNavigateToWordSearch
+                                            )
+                                            ActionCard(
+                                                modifier = Modifier.weight(1f),
+                                                title = "Log Chiamate",
+                                                subtitle = "Audio, video, perse",
+                                                icon = Icons.Outlined.Call,
+                                                onClick = onNavigateToCalls
+                                            )
+                                        }
+                                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            ActionCard(
+                                                modifier = Modifier.weight(1f),
+                                                title = "Media & Link",
+                                                subtitle = "Documenti e URL",
+                                                icon = Icons.Outlined.Link,
+                                                onClick = onNavigateToMedia
+                                            )
+                                            ActionCard(
+                                                modifier = Modifier.weight(1f),
+                                                title = "Storico Gruppo",
+                                                subtitle = "Eventi del gruppo",
+                                                icon = Icons.Outlined.History,
+                                                onClick = onNavigateToHistory
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    // Layout 1x3 per le chat singole
                                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                         ActionCard(
                                             modifier = Modifier.weight(1f),
@@ -738,8 +775,6 @@ fun ChatDetailScreen(
                                             icon = Icons.Outlined.Call,
                                             onClick = onNavigateToCalls
                                         )
-                                    }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                         ActionCard(
                                             modifier = Modifier.weight(1f),
                                             title = "Media & Link",
@@ -747,39 +782,7 @@ fun ChatDetailScreen(
                                             icon = Icons.Outlined.Link,
                                             onClick = onNavigateToMedia
                                         )
-                                        ActionCard(
-                                            modifier = Modifier.weight(1f),
-                                            title = "Storico Gruppo",
-                                            subtitle = "Eventi del gruppo",
-                                            icon = Icons.Outlined.History,
-                                            onClick = onNavigateToHistory
-                                        )
                                     }
-                                }
-                            } else {
-                                // Layout 1x3 per le chat singole
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    ActionCard(
-                                        modifier = Modifier.weight(1f),
-                                        title = "Radar Parole",
-                                        subtitle = "Cerca parole frequenti",
-                                        icon = Icons.Outlined.Search,
-                                        onClick = onNavigateToWordSearch
-                                    )
-                                    ActionCard(
-                                        modifier = Modifier.weight(1f),
-                                        title = "Log Chiamate",
-                                        subtitle = "Audio, video, perse",
-                                        icon = Icons.Outlined.Call,
-                                        onClick = onNavigateToCalls
-                                    )
-                                    ActionCard(
-                                        modifier = Modifier.weight(1f),
-                                        title = "Media & Link",
-                                        subtitle = "Documenti e URL",
-                                        icon = Icons.Outlined.Link,
-                                        onClick = onNavigateToMedia
-                                    )
                                 }
                             }
                         }

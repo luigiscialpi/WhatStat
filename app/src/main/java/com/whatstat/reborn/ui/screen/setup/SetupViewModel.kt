@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.collectLatest
 class SetupViewModel @Inject constructor(
     private val repository: WhatsAppRepository,
     private val liteModeManager: com.whatstat.reborn.data.lite.LiteModeManager,
+    private val analyticsRepository: com.whatstat.reborn.data.repository.AnalyticsRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -34,8 +35,9 @@ class SetupViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            // Se c'è una cache per la Lite Mode, salta il setup
-            if (liteModeManager.getCachedStats() != null) {
+            // Se c'è una cache per la Lite Mode E il flag è ancora attivo (non si è appena fatto un reset),
+            // salta il setup. Il flag viene azzerato da resetLiteMode() prima di tornare al Setup.
+            if (analyticsRepository.isLiteMode.value && liteModeManager.getCachedStats() != null) {
                 _state.update { it.copy(isComplete = true, isCheckingCache = false) }
             }
             // Se il database root è già aperto (es. dopo rotazione schermo), skip del setup

@@ -53,6 +53,17 @@ class AnalyticsRepository @Inject constructor(
         _isLiteMode.value = enabled
     }
 
+    /**
+     * Resetta la modalità Lite: imposta il flag a false (sincrono) e cancella la cache su disco.
+     * Deve essere chiamato prima di tornare alla SetupScreen per evitare il loop di navigazione.
+     */
+    fun resetLiteMode() {
+        _isLiteMode.value = false
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            liteModeManager.clearCache()
+        }
+    }
+
     init {
         // Al caricamento, controlla se c'è una cache Lite valida
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
@@ -301,6 +312,21 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         endTime: Long? = null,
         onProgress: (Int) -> Unit = {}
     ): ChatStats = withContext(Dispatchers.IO) {
+        if (isLiteMode.value) {
+            val messages = liteModeManager.getCachedMessages()
+            val media = liteModeManager.getCachedMedia()
+            val chatName = liteModeManager.getCachedStats()?.mostActiveChat ?: "Chat Esportata"
+            val liteStats = com.whatstat.reborn.data.lite.LiteMetricsCalculator.calculateQuickStats(
+                messages = messages,
+                mediaStats = media,
+                chatName = chatName,
+                startTime = startTime,
+                endTime = endTime
+            )
+            onProgress(100)
+            return@withContext liteStats
+        }
+
         // Cache solo per ALL_TIME
         if (startTime == null && endTime == null) {
             val cached = cacheManager.getChatQuickStats(chatId)
@@ -397,6 +423,20 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         endTime: Long? = null,
         onProgress: (Int) -> Unit = {}
     ): SlowChatStats = withContext(Dispatchers.IO) {
+        if (isLiteMode.value) {
+            val messages = liteModeManager.getCachedMessages()
+            val media = liteModeManager.getCachedMedia()
+            
+            val liteStats = com.whatstat.reborn.data.lite.LiteMetricsCalculator.calculateSlowStats(
+                messages = messages,
+                mediaStats = media,
+                startTime = startTime,
+                endTime = endTime
+            )
+            onProgress(100)
+            return@withContext liteStats
+        }
+
         // Cache solo se nessun filtro temporale
         if (startTime == null && endTime == null) {
             val cached = cacheManager.getChatSlowStats(chatId)
@@ -721,12 +761,14 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         // 0. Controllo Lite
         if (isLiteMode.value) {
             val messages = liteModeManager.getCachedMessages()
+            val ownerName = liteModeManager.getOwnerName()
             return@withContext messages
                 .groupBy { it.senderName }
                 .map { (sender, msgs) ->
+                    val displayName = if (sender == ownerName) "Tu" else sender
                     LinkStat(
                         jid = sender,
-                        displayName = sender,
+                        displayName = displayName,
                         totalLinks = msgs.sumOf { it.linkCount },
                         mediaCount = msgs.count { it.hasMedia }
                     )
@@ -935,6 +977,39 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         endTime: Long? = null,
         limit: Int = 5
     ): List<WordFrequency> = withContext(Dispatchers.IO) {
+        // 0. Controllo Lite
+        if (isLiteMode.value) {
+            val messages = liteModeManager.getCachedMessages()
+            val filtered = messages.filter { msg ->
+                val jidMatch = if (jid != null) {
+                    if (jid == "me@s.whatsapp.net") msg.isCurrentUser
+                    else msg.senderName.equals(jid, ignoreCase = true)
+                } else true
+                val ts = try { msg.timestamp.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() } catch (e: Exception) { 0L }
+                val timeMatch = (startTime == null || ts >= startTime) && (endTime == null || ts <= endTime)
+                jidMatch && timeMatch
+            }
+            
+            val wordFreq = mutableMapOf<String, Int>()
+            val urlPattern = Regex("https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=]+")
+            
+            filtered.filter { !it.hasMedia }.map { it.content }.forEach { text ->
+                val cleanText = text.replace(urlPattern, "")
+                cleanText.lowercase()
+                    .replace(com.whatstat.reborn.data.lite.LiteMetricsCalculator.WORD_CLEANER, " ")
+                    .split(com.whatstat.reborn.data.lite.LiteMetricsCalculator.WORD_SPLITTER)
+                    .filter { it.length > 2 && it !in com.whatstat.reborn.data.lite.LiteMetricsCalculator.STOP_WORDS }
+                    .forEach { word ->
+                        val norm = word.replace(com.whatstat.reborn.data.lite.LiteMetricsCalculator.WORD_NORMALIZER, "$1$1")
+                        wordFreq[norm] = (wordFreq[norm] ?: 0) + 1
+                    }
+            }
+            return@withContext wordFreq.entries
+                .sortedByDescending { it.value }
+                .take(limit)
+                .map { WordFrequency(it.key, it.value) }
+        }
+
         messageDao.getTopWords(chatId, jid, startTime, endTime, limit)
     }
 
@@ -1025,6 +1100,32 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         endTime: Long? = null,
         limit: Int = 5
     ): List<EmojiStat> = withContext(Dispatchers.IO) {
+        // 0. Controllo Lite
+        if (isLiteMode.value) {
+            val messages = liteModeManager.getCachedMessages()
+            val filtered = messages.filter { msg ->
+                val jidMatch = if (jid != null) {
+                    if (jid == "me@s.whatsapp.net") msg.isCurrentUser
+                    else msg.senderName.equals(jid, ignoreCase = true)
+                } else true
+                val ts = try { msg.timestamp.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() } catch (e: Exception) { 0L }
+                val timeMatch = (startTime == null || ts >= startTime) && (endTime == null || ts <= endTime)
+                jidMatch && timeMatch
+            }
+            
+            val emojiCounts = mutableMapOf<String, Int>()
+            filtered.forEach { msg ->
+                com.whatstat.reborn.data.lite.LiteMetricsCalculator.extractEmojis(msg.content).forEach { emoji ->
+                    val base = com.whatstat.reborn.data.lite.LiteMetricsCalculator.stripSkinTone(emoji)
+                    emojiCounts[base] = emojiCounts.getOrDefault(base, 0) + 1
+                }
+            }
+            
+            return@withContext emojiCounts.map { EmojiStat(it.key, it.value) }
+                .sortedByDescending { it.count }
+                .take(limit)
+        }
+
         messageDao.getTopEmojis(chatId, jid, startTime, endTime, limit)
     }
 
@@ -1037,6 +1138,16 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         endTime: Long? = null,
         limit: Int = 10
     ): List<StickerStat> = withContext(Dispatchers.IO) {
+        // 0. Controllo Lite
+        if (isLiteMode.value) {
+            val liteMedia = liteModeManager.getCachedMedia() ?: return@withContext emptyList()
+            return@withContext liteMedia.mediaItems
+                .filter { it.type == "IMAGE" && it.relativePath.endsWith(".webp", ignoreCase = true) }
+                .groupBy { it.relativePath }
+                .map { (path, list) -> StickerStat(path, java.io.File(path).name, list.size) }
+                .sortedByDescending { it.count }
+                .take(limit)
+        }
         messageDao.getTopStickers(chatId, null, startTime, endTime, limit)
     }
 
@@ -1050,6 +1161,12 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         endTime: Long? = null,
         limit: Int = 10
     ): List<StickerStat> = withContext(Dispatchers.IO) {
+        // 0. Controllo Lite
+        if (isLiteMode.value) {
+            // In Lite mode, lo ZIP non associa gli sticker al singolo mittente.
+            // Pertanto, non mostriamo sticker "Per Persona".
+            return@withContext emptyList()
+        }
         messageDao.getTopStickers(chatId, jid, startTime, endTime, limit)
     }
 
@@ -1073,7 +1190,17 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                     // Filtro temporale
                     if (startTime != null && item.timestamp < startTime) return@mapNotNull null
                     if (endTime != null && item.timestamp > endTime) return@mapNotNull null
-                    
+
+                    // Filtro mittente: usa il senderName popolato in fase di importazione
+                    if (jid != null) {
+                        val isMe = jid == "me@s.whatsapp.net"
+                        val senderMatches = when {
+                            isMe -> item.senderName == null  // file senza match = inviato da noi (euristico)
+                            else -> item.senderName == jid
+                        }
+                        if (!senderMatches) return@mapNotNull null
+                    }
+
                     // Verifica esistenza file
                     val file = File(item.relativePath)
                     if (!file.exists()) return@mapNotNull null
@@ -1089,9 +1216,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                         timestamp = item.timestamp
                     )
                 }
-                // Se jid è presente (es. "Papà"), in Lite mode non possiamo filtrare con precisione
-                // perché lo ZIP non associa i file ai mittenti, ma restituiamo tutto per non bloccare la UI.
-                DebugLogManager.log("Found ${items.size} total media items in cache after filtering")
+                DebugLogManager.log("Found ${items.size} media items in LiteMode (jid=$jid)")
                 items
             } catch (e: Exception) {
                 DebugLogManager.log("Error in getMediaFiles Lite", e)
@@ -1398,6 +1523,28 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
     suspend fun getWordSuggestions(query: String, chatId: Long? = null): List<String> = withContext(Dispatchers.IO) {
         val normalizedQuery = query.lowercase().trim()
         if (normalizedQuery.length < 3) return@withContext emptyList()
+
+        if (isLiteMode.value) {
+            val messages = liteModeManager.getCachedMessages()
+            val urlPattern = com.whatstat.reborn.data.lite.LiteMetricsCalculator.run {
+                Regex("https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=]+")
+            }
+            val freq = mutableMapOf<String, Int>()
+            for (msg in messages) {
+                if (msg.hasMedia || msg.isSystemMessage) continue
+                val clean = msg.content.replace(urlPattern, "")
+                for (token in clean.lowercase().split(Regex("\\s+"))) {
+                    val word = token.filter { it.isLetter() }
+                    if (word.length > 2 && word.startsWith(normalizedQuery)) {
+                        freq[word] = (freq[word] ?: 0) + 1
+                    }
+                }
+            }
+            return@withContext freq.entries
+                .sortedByDescending { it.value }
+                .take(10)
+                .map { it.key }
+        }
 
         val index = if (chatId != null) {
             cacheManager.loadChatWordIndexFromDisk(chatId)

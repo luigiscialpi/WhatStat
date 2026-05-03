@@ -109,9 +109,9 @@ class TextChatParser @Inject constructor() {
                     .replace("<Media omesso>", "")
                     .trim()
 
-                // Se è un media, il "content" spesso contiene il nome del file (es. IMG-xxx.jpg)
-                // che non vogliamo nelle statistiche delle parole.
-                val finalContent = if (hasMedia) "" else cleanBody
+                // Manteniamo cleanBody anche per i media: il nome file (es. IMG-xxx.jpg) serve
+                // per associare il file fisico al mittente. La parola count già filtra hasMedia=true.
+                val finalContent = cleanBody
 
                 currentMsg = ParsedMessage(
                     timestamp = timestamp,

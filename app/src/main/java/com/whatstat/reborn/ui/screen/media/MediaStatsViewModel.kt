@@ -32,6 +32,8 @@ class MediaStatsViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
+    val isLiteMode = analyticsRepository.isLiteMode
+
     private val _linkStats = MutableStateFlow<List<LinkStat>>(emptyList())
     val linkStats: StateFlow<List<LinkStat>> = _linkStats.asStateFlow()
 
@@ -404,8 +406,9 @@ class MediaStatsViewModel @Inject constructor(
                 }
 
                 DebugLogManager.log("Loaded ${mediaFiles.size} media files for $jid")
-                // Aggiorna lo stato solo quando abbiamo i dati
-                _mediaGalleryState.value = Triple(name, avatarPath, mediaFiles)
+                // Aggiorna lo stato solo quando abbiamo i dati, filtrando quelli che non esistono più
+                val existingMediaFiles = mediaFiles.filter { java.io.File(it.filePath).exists() }
+                _mediaGalleryState.value = Triple(name, avatarPath, existingMediaFiles)
             } catch (e: Exception) {
                 DebugLogManager.log("Error loading media gallery", e)
                 _mediaGalleryState.value = null

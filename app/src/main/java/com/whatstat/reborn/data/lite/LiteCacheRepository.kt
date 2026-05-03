@@ -38,7 +38,8 @@ data class LiteMediaItem(
     val fileName: String,
     val relativePath: String,
     val type: String, // IMAGE, VIDEO, AUDIO, DOCUMENT
-    val timestamp: Long
+    val timestamp: Long,
+    val senderName: String? = null  // Nome mittente estratto dal messaggio corrispondente
 )
 
 @Singleton

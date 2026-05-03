@@ -22,12 +22,14 @@ import com.whatstat.reborn.data.db.model.WordFrequency
 import com.whatstat.reborn.data.db.model.SenderStat
 import com.whatstat.reborn.data.db.model.EmojiStat
 import com.whatstat.reborn.ui.state.FilterStateHolder
+import com.whatstat.reborn.data.lite.LiteModeManager
 import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class ChatDetailViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
+    private val liteModeManager: LiteModeManager,
     private val chatDao: ChatDao,
     private val contactDao: ContactDao,
     @ApplicationContext private val context: Context,
@@ -56,6 +58,8 @@ class ChatDetailViewModel @Inject constructor(
 
     private val _chatStats = MutableStateFlow<ChatStats?>(null)
     val chatStats: StateFlow<ChatStats?> = _chatStats.asStateFlow()
+    
+    val isLiteMode = analyticsRepository.isLiteMode
 
     // Nome + avatar caricati immediatamente prima delle stats complete
     data class HeaderInfo(val name: String, val jid: String, val isGroup: Boolean, val avatarPath: String?)
@@ -126,7 +130,8 @@ class ChatDetailViewModel @Inject constructor(
     private var stickerPool: List<com.whatstat.reborn.data.db.model.StickerStat> = emptyList()
 
     init {
-        if (chatId != -1L) loadChatStats()
+        // We ALWAYS load stats. In Lite Mode, chatId might be -1L, but we need stats anyway.
+        loadChatStats()
     }
 
     private fun loadChatStats() {
@@ -136,21 +141,31 @@ class ChatDetailViewModel @Inject constructor(
             _error.value = null
 
             try {
-                // Carica subito nome+avatar per l'header (query velocissima)
+                // Carica subito nome+avatar per l'header
                 if (_headerInfo.value == null) {
                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        val basic = chatDao.getChatBasicInfo(chatId)
-                        val name = if (basic.isGroup) {
-                            basic.subject ?: contactDao.resolveContactName(basic.jid) ?: basic.jid.substringBefore("@")
+                        if (chatId == -1L || analyticsRepository.isLiteMode.value) {
+                            val cachedStats = liteModeManager.getCachedStats()
+                            _headerInfo.value = HeaderInfo(
+                                name = cachedStats?.mostActiveChat ?: "Chat Esportata",
+                                jid = "",
+                                isGroup = false,
+                                avatarPath = null
+                            )
                         } else {
-                            contactDao.resolveContactName(basic.jid) ?: basic.jid.substringBefore("@")
+                            val basic = chatDao.getChatBasicInfo(chatId)
+                            val name = if (basic.isGroup) {
+                                basic.subject ?: contactDao.resolveContactName(basic.jid) ?: basic.jid.substringBefore("@")
+                            } else {
+                                contactDao.resolveContactName(basic.jid) ?: basic.jid.substringBefore("@")
+                            }
+                            _headerInfo.value = HeaderInfo(
+                                name = name,
+                                jid = basic.jid,
+                                isGroup = basic.isGroup,
+                                avatarPath = getAvatarPath(basic.jid)
+                            )
                         }
-                        _headerInfo.value = HeaderInfo(
-                            name = name,
-                            jid = basic.jid,
-                            isGroup = basic.isGroup,
-                            avatarPath = getAvatarPath(basic.jid)
-                        )
                     }
                 }
 

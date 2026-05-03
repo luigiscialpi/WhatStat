@@ -285,6 +285,7 @@ fun MediaStatsScreen(
                 }
 
                 else -> {
+                    val isLite = viewModel.isLiteMode.collectAsState().value
                     LazyColumn(
                         state = currentListState,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -343,6 +344,7 @@ fun MediaStatsScreen(
                                 when {
                                     isShowingBreakdown -> "Dettaglio per contatto"
                                     isChatDetail -> "Classifica link per persona"
+                                    isLite -> "Re delle condivisioni"
                                     else -> "Re dei Link"
                                 },
                                 style = MaterialTheme.typography.titleMedium,
