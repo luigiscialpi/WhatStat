@@ -102,8 +102,6 @@ class MediaStatsViewModel @Inject constructor(
     private val _loadingProgressMediaGallery = MutableStateFlow<Int?>(null)
     val loadingProgressMediaGallery: StateFlow<Int?> = _loadingProgressMediaGallery.asStateFlow()
 
-    var showDebugLogs by androidx.compose.runtime.mutableStateOf(false)
-
     fun setChatId(id: Long) {
         _chatId.value = id
         loadStats()
