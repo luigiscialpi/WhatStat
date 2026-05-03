@@ -1,5 +1,7 @@
 package com.whatstat.reborn.data.db.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * Modelli dati per i risultati delle query SQL.
  * Questi sono i DTO (Data Transfer Objects) usati dai DAO
@@ -26,6 +28,7 @@ data class DateRange(
 }
 
 /** Conteggio messaggi per singola chat */
+@Serializable
 data class ChatMessageCount(
     val chatId: Long,
     val jid: String,
@@ -35,43 +38,43 @@ data class ChatMessageCount(
     val received: Int
 )
 
-/** Conteggio per ora del giorno (0–23) */
+@Serializable
 data class HourlyCount(
     val hour: Int,
     val count: Int
 )
 
-/** Conteggio per giorno della settimana (0=domenica, 6=sabato) */
+@Serializable
 data class DayCount(
     val dayOfWeek: Int,
     val count: Int
 )
 
-/** Conteggio mensile (formato "YYYY-MM") - usato per i trend storici */
+@Serializable
 data class MonthlyCount(
     val month: String,
     val count: Int
 )
 
-/** Conteggio per giorno del mese (1-31) */
+@Serializable
 data class DayOfMonthCount(
     val day: Int,
     val count: Int
 )
 
-/** Conteggio per mese dell'anno (1-12) */
+@Serializable
 data class MonthOfYearCount(
     val month: Int,
     val count: Int
 )
 
-/** Conteggio per anno solare */
+@Serializable
 data class YearTrendCount(
     val year: Int,
     val count: Int
 )
 
-/** Frequenza di una parola */
+@Serializable
 data class WordFrequency(
     val word: String,
     val frequency: Int
@@ -148,6 +151,7 @@ data class SenderStat(
 )
 
 /** Frequenza di un singolo URL */
+@Serializable
 data class UrlFrequency(
     val url: String,
     val count: Int,
@@ -155,6 +159,7 @@ data class UrlFrequency(
 )
 
 /** Statistiche frequenza domini link */
+@Serializable
 data class DomainStat(
     val domain: String,
     val count: Int,
@@ -162,6 +167,7 @@ data class DomainStat(
 )
 
 /** Statistiche per singolo sticker */
+@Serializable
 data class StickerStat(
     val filePath: String, // "Media/WhatsApp Stickers/STK-20240406-WA0029.webp"
     val fileName: String, // "STK-20240406-WA0029.webp"
@@ -169,6 +175,7 @@ data class StickerStat(
 )
 
 /** Media file (foto/video) per galleria */
+@Serializable
 data class MediaStat(
     val filePath: String,    // percorso relativo dal DB (es. "Media/WhatsApp Images/IMG-xxx.jpg")
     val mimeType: String,    // "image/jpeg", "video/mp4", ecc.

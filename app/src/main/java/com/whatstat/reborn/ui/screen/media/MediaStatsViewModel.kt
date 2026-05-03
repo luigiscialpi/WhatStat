@@ -3,6 +3,8 @@ package com.whatstat.reborn.ui.screen.media
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import com.whatstat.reborn.data.cache.CacheManager
 import com.whatstat.reborn.data.db.model.DateRange
 import com.whatstat.reborn.data.db.model.DomainStat
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
+import com.whatstat.reborn.util.DebugLogManager
 
 @HiltViewModel
 class MediaStatsViewModel @Inject constructor(
@@ -98,6 +101,8 @@ class MediaStatsViewModel @Inject constructor(
 
     private val _loadingProgressMediaGallery = MutableStateFlow<Int?>(null)
     val loadingProgressMediaGallery: StateFlow<Int?> = _loadingProgressMediaGallery.asStateFlow()
+
+    var showDebugLogs by androidx.compose.runtime.mutableStateOf(false)
 
     fun setChatId(id: Long) {
         _chatId.value = id
@@ -309,7 +314,9 @@ class MediaStatsViewModel @Inject constructor(
                 val currentChatContext = _chatId.value ?: _breakdownChatId.value
                 val isGlobalList = currentChatContext == null
 
-                val targetChatId = if (isGlobalList) {
+                val targetChatId = if (analyticsRepository.isLiteMode.value) {
+                    null
+                } else if (isGlobalList) {
                     analyticsRepository.getChatIdByJid(jid)
                 } else {
                     currentChatContext
@@ -317,18 +324,26 @@ class MediaStatsViewModel @Inject constructor(
 
                 val targetJid = if (isGlobalList) null else jid
 
-                val domains = targetChatId?.let { cid ->
+                val domains = if (analyticsRepository.isLiteMode.value) {
                     analyticsRepository.getTopDomains(
-                        chatId = cid,
-                        jid = targetJid,
-                        startTime = startTime,
-                        endTime = endTime,
+                        chatId = null,
+                        jid = jid,
                         onProgress = { progress -> _loadingProgressDomains.value = progress }
                     )
-                } ?: emptyList()
+                } else {
+                    targetChatId?.let { cid ->
+                        analyticsRepository.getTopDomains(
+                            chatId = cid,
+                            jid = targetJid,
+                            startTime = startTime,
+                            endTime = endTime,
+                            onProgress = { progress -> _loadingProgressDomains.value = progress }
+                        )
+                    } ?: emptyList()
+                }
                 _contactDomainStats.value = Triple(name, avatarPath, domains)
             } catch (e: Exception) {
-                // Error handling
+                DebugLogManager.log("Error loading domains", e)
             } finally {
                 _isDomainLoading.value = false
                 _loadingProgressDomains.value = null
@@ -360,7 +375,9 @@ class MediaStatsViewModel @Inject constructor(
                 val currentChatContext = _chatId.value ?: _breakdownChatId.value
                 val isGlobalList = currentChatContext == null
 
-                val targetChatId = if (isGlobalList) {
+                val targetChatId = if (analyticsRepository.isLiteMode.value) {
+                    null
+                } else if (isGlobalList) {
                     analyticsRepository.getChatIdByJid(jid)
                 } else {
                     currentChatContext
@@ -368,18 +385,31 @@ class MediaStatsViewModel @Inject constructor(
 
                 val targetJid = if (isGlobalList) null else jid
 
-                val mediaFiles = targetChatId?.let { cid ->
+                val mediaFiles = if (analyticsRepository.isLiteMode.value) {
                     analyticsRepository.getMediaFiles(
-                        chatId = cid,
-                        jid = targetJid,
+                        chatId = null,
+                        jid = jid,
                         startTime = startTime,
                         endTime = endTime,
                         onProgress = { progress -> _loadingProgressMediaGallery.value = progress }
                     )
-                } ?: emptyList()
+                } else {
+                    targetChatId?.let { cid ->
+                        analyticsRepository.getMediaFiles(
+                            chatId = cid,
+                            jid = targetJid,
+                            startTime = startTime,
+                            endTime = endTime,
+                            onProgress = { progress -> _loadingProgressMediaGallery.value = progress }
+                        )
+                    } ?: emptyList()
+                }
 
+                DebugLogManager.log("Loaded ${mediaFiles.size} media files for $jid")
+                // Aggiorna lo stato solo quando abbiamo i dati
                 _mediaGalleryState.value = Triple(name, avatarPath, mediaFiles)
             } catch (e: Exception) {
+                DebugLogManager.log("Error loading media gallery", e)
                 _mediaGalleryState.value = null
             } finally {
                 _isMediaGalleryLoading.value = false

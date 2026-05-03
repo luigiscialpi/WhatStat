@@ -595,6 +595,63 @@ class MessageDao @Inject constructor(
         return words to emojis
     }
 
+    fun getEmojiStatsBySender(chatId: Long?): List<UserEmojiStat> {
+        val query = if (chatId != null) {
+            """
+            SELECT 
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    ELSE COALESCE(j.raw_string, 'unknown')
+                END AS jid,
+                m.text_data
+            FROM message m
+            LEFT JOIN jid j ON m.sender_jid_row_id = j._id
+            WHERE m.chat_row_id = ? AND m.message_type = 0 AND m.text_data IS NOT NULL
+            """.trimIndent()
+        } else {
+            """
+            SELECT 
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    ELSE COALESCE(j.raw_string, 'unknown')
+                END AS jid,
+                m.text_data
+            FROM message m
+            LEFT JOIN jid j ON m.sender_jid_row_id = j._id
+            WHERE m.message_type = 0 AND m.text_data IS NOT NULL
+            """.trimIndent()
+        }
+        val args = if (chatId != null) arrayOf(chatId.toString()) else null
+        val cursor = database.getMsgDb().rawQuery(query, args)
+        
+        val senderTexts = mutableMapOf<String, MutableList<String>>()
+        cursor.use {
+            while (it.moveToNext()) {
+                val jid = it.getString(0)
+                val text = it.getString(1)
+                if (!text.isNullOrBlank()) {
+                    senderTexts.getOrPut(jid) { mutableListOf() }.add(text)
+                }
+            }
+        }
+
+        return senderTexts.map { (jid, texts) ->
+            val emojiFreqs = buildEmojiFrequencyMap(texts)
+            val totalCount = emojiFreqs.values.sum()
+            val topEmoji = emojiFreqs.entries
+                .sortedByDescending { it.value }
+                .take(5)
+                .map { EmojiStat(it.key, it.value) }
+            
+            UserEmojiStat(
+                jid = jid,
+                displayName = null,
+                totalEmojiCount = totalCount,
+                topEmoji = topEmoji
+            )
+        }.filter { it.totalEmojiCount > 0 }
+    }
+
     fun guessUserJid(): String? {
         val query = """
             SELECT j.raw_string

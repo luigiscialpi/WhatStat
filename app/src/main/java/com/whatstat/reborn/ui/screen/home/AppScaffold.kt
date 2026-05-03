@@ -14,6 +14,7 @@ import com.whatstat.reborn.ui.navigation.NavGraphRoute
 fun AppScaffold(
     navController: NavHostController,
     currentDestination: NavDestination?,
+    isLiteMode: Boolean = false,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val showBottomBar = currentDestination
@@ -26,7 +27,8 @@ fun AppScaffold(
             if (showBottomBar) {
                 BottomNavigationBar(
                     navController = navController,
-                    currentDestination = currentDestination
+                    currentDestination = currentDestination,
+                    isLiteMode = isLiteMode
                 )
             }
         }

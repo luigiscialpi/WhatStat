@@ -21,11 +21,16 @@ import com.whatstat.reborn.ui.screen.dashboard.DashboardScreen
 import com.whatstat.reborn.ui.screen.home.AppScaffold
 import com.whatstat.reborn.ui.screen.media.MediaStatsScreen
 import com.whatstat.reborn.ui.screen.setup.SetupScreen
+import com.whatstat.reborn.ui.screen.setup.LiteSetupScreen
 import com.whatstat.reborn.ui.screen.wordsearch.WordSearchScreen
 import com.whatstat.reborn.ui.screen.history.GroupHistoryScreen
+import com.whatstat.reborn.ui.MainViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
 
 sealed class Screen(val route: String) {
     data object Setup : Screen("setup")
+    data object LiteSetup : Screen("lite_setup")
     data object Dashboard : Screen("dashboard")
     data object ChatList : Screen("chat_list")
 
@@ -67,10 +72,14 @@ fun AppNavigation(
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    
+    val mainViewModel: MainViewModel = hiltViewModel()
+    val isLiteMode by mainViewModel.isLiteMode.collectAsState()
 
     AppScaffold(
         navController = navController,
-        currentDestination = currentDestination
+        currentDestination = currentDestination,
+        isLiteMode = isLiteMode
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -92,6 +101,19 @@ private fun NavGraphBuilder.setupGraph(navController: NavHostController) {
         composable(Screen.Setup.route) {
             SetupScreen(
                 onSetupComplete = {
+                    navController.navigate(NavGraphRoute.Main) {
+                        popUpTo(NavGraphRoute.Setup) { inclusive = true }
+                    }
+                },
+                onNavigateToLite = {
+                    navController.navigate(Screen.LiteSetup.route)
+                }
+            )
+        }
+        composable(Screen.LiteSetup.route) {
+            LiteSetupScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onImportComplete = {
                     navController.navigate(NavGraphRoute.Main) {
                         popUpTo(NavGraphRoute.Setup) { inclusive = true }
                     }

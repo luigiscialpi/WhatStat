@@ -1,5 +1,7 @@
 package com.whatstat.reborn.domain.model
 
+import kotlinx.serialization.Serializable
+
 import com.whatstat.reborn.data.db.model.DayCount
 import com.whatstat.reborn.data.db.model.DayOfMonthCount
 import com.whatstat.reborn.data.db.model.EmojiStat
@@ -14,6 +16,7 @@ import com.whatstat.reborn.data.db.model.WordFrequency
 /**
  * Statistiche globali aggregate su tutte le chat.
  */
+@Serializable
 data class GlobalStats(
     val totalMessages: Int,
     val totalChats: Int,
@@ -32,7 +35,8 @@ data class GlobalStats(
     val yearTrendDistribution: List<YearTrendCount> = emptyList(),
     val topWords: List<WordFrequency> = emptyList(),
     val topEmojis: List<EmojiStat> = emptyList(),
-    val topStickers: List<StickerStat> = emptyList()
+    val topStickers: List<StickerStat> = emptyList(),
+    val isLiteMode: Boolean = false
 )
 
 /**

@@ -79,15 +79,21 @@ fun EmojiPreviewModal(
 fun StickerPreviewModal(
     fileName: String,
     count: Int,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    isLiteMode: Boolean = false,
+    litePath: String? = null
 ) {
     val context = LocalContext.current
     val stickerPaths = listOf(
         "/sdcard/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Stickers",
         "/sdcard/WhatsApp/Media/WhatsApp Stickers"
     )
-    val stickerFile = remember(fileName) {
-        stickerPaths.map { File(it, fileName) }.firstOrNull { it.exists() }
+    val stickerFile = remember(fileName, isLiteMode, litePath) {
+        if (isLiteMode && litePath != null) {
+            File(litePath)
+        } else {
+            stickerPaths.map { File(it, fileName) }.firstOrNull { it.exists() }
+        }
     }
 
     Dialog(onDismissRequest = onDismiss) {

@@ -15,11 +15,14 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 import java.net.URI
 import java.util.regex.Pattern
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.io.SuFile
+import com.whatstat.reborn.util.DebugLogManager
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,8 +42,22 @@ class AnalyticsRepository @Inject constructor(
     private val messageDao: MessageDao,
     private val chatDao: ChatDao,
     private val contactDao: ContactDao,
-    private val cacheManager: CacheManager
+    private val cacheManager: CacheManager,
+    private val liteModeManager: com.whatstat.reborn.data.lite.LiteModeManager
 ) {
+    private val _isLiteMode = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val isLiteMode: kotlinx.coroutines.flow.StateFlow<Boolean> = _isLiteMode.asStateFlow()
+
+    fun setLiteMode(enabled: Boolean) {
+        _isLiteMode.value = enabled
+    }
+
+    init {
+        // Al caricamento, controlla se c'è una cache Lite valida
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            _isLiteMode.value = liteModeManager.getCachedStats() != null
+        }
+    }
 
     /**
      * Calcola le statistiche globali aggregate su tutte le chat.
@@ -52,6 +69,14 @@ class AnalyticsRepository @Inject constructor(
         forceRefresh: Boolean = false,
         onProgress: (Int) -> Unit = {}
     ): GlobalStats = withContext(Dispatchers.IO) {
+        // 0. Controllo Modalità Lite
+        val liteStats = liteModeManager.getCachedStats()
+        if (liteStats != null) {
+            android.util.Log.d("WhatStat", "GlobalStats from Lite Cache")
+            onProgress(100)
+            return@withContext liteStats
+        }
+
         // Cache solo per ALL_TIME (il caso più comune)
         if (!forceRefresh && timeRange == TimeRange.ALL_TIME) {
             val cached = cacheManager.getGlobalStats()
@@ -164,6 +189,13 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         endTime: Long? = null,
         onProgress: (Int) -> Unit = {}
     ): GlobalStats = withContext(Dispatchers.IO) {
+
+        // 0. Controllo Modalità Lite
+        val liteStats = liteModeManager.getCachedStats()
+        if (liteStats != null) {
+            onProgress(100)
+            return@withContext liteStats
+        }
 
         if (startTime == null && endTime == null) {
             // ── ALL_TIME ─────────────────────────────────────────────────────
@@ -550,6 +582,30 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         onlyQuestions: Boolean = false,
         multiWordMode: Int = 0
     ): List<WordSearchResult> = withContext(Dispatchers.IO) {
+        // 0. Controllo Lite
+        val liteMessages = liteModeManager.getCachedMessages()
+        if (liteMessages.isNotEmpty()) {
+            return@withContext liteMessages
+                .filter { msg ->
+                    if (startTime != null && msg.timestamp.toInstant(java.time.ZoneOffset.UTC).toEpochMilli() < startTime) return@filter false
+                    if (endTime != null && msg.timestamp.toInstant(java.time.ZoneOffset.UTC).toEpochMilli() > endTime) return@filter false
+                    
+                    val content = if (isCaseSensitive) msg.content else msg.content.lowercase()
+                    val target = if (isCaseSensitive) word else word.lowercase()
+                    
+                    if (isExactMatch) {
+                        content.split(Regex("\\W+")).any { it == target }
+                    } else {
+                        content.contains(target)
+                    }
+                }
+                .groupBy { it.senderName }
+                .map { (sender, msgs) ->
+                    WordSearchResult(jid = sender, displayName = sender, count = msgs.size)
+                }
+                .sortedByDescending { it.count }
+        }
+
         val results = messageDao.searchWordFrequency(word, chatId, startTime, endTime, isCaseSensitive, isExactMatch, onlyQuestions, multiWordMode)
         if (results.isEmpty()) return@withContext emptyList()
         
@@ -591,6 +647,34 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         onlyQuestions: Boolean = false,
         multiWordMode: Int = 0
     ): List<WordMessageResult> = withContext(Dispatchers.IO) {
+        // 0. Controllo Lite
+        val liteMessages = liteModeManager.getCachedMessages()
+        if (liteMessages.isNotEmpty()) {
+            return@withContext liteMessages
+                .filter { msg ->
+                    if (msg.senderName != senderJid) return@filter false
+                    if (startTime != null && msg.timestamp.toInstant(java.time.ZoneOffset.UTC).toEpochMilli() < startTime) return@filter false
+                    if (endTime != null && msg.timestamp.toInstant(java.time.ZoneOffset.UTC).toEpochMilli() > endTime) return@filter false
+                    
+                    val content = if (isCaseSensitive) msg.content else msg.content.lowercase()
+                    val target = if (isCaseSensitive) word else word.lowercase()
+                    
+                    if (isExactMatch) {
+                        content.split(Regex("\\W+")).any { it == target }
+                    } else {
+                        content.contains(target)
+                    }
+                }
+                .map { msg ->
+                    WordMessageResult(
+                        text = msg.content,
+                        timestamp = msg.timestamp.toInstant(java.time.ZoneOffset.UTC).toEpochMilli(),
+                        chatRowId = 0,
+                        chatDisplayName = "Chat Importata"
+                    )
+                }
+        }
+
         val raw = messageDao.searchWordMessages(word, senderJid, chatId, startTime, endTime, isCaseSensitive, isExactMatch, onlyQuestions, multiWordMode)
         if (raw.isEmpty()) return@withContext emptyList()
 
@@ -615,10 +699,6 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             msg.copy(chatDisplayName = resolvedName)
         }
     }
-
-    /**
-     * Statistiche chiamate globali o per chat con filtro temporale.
-     */
     suspend fun getCallStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<CallStat> = withContext(Dispatchers.IO) {
         val callStats = messageDao.getCallStats(chatId, startTime, endTime)
         if (callStats.isEmpty()) return@withContext emptyList()
@@ -637,6 +717,23 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
      * Statistiche link globali o per chat con filtro temporale.
      */
     suspend fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<LinkStat> = withContext(Dispatchers.IO) {
+        // 0. Controllo Lite
+        if (isLiteMode.value) {
+            val messages = liteModeManager.getCachedMessages()
+            return@withContext messages
+                .groupBy { it.senderName }
+                .map { (sender, msgs) ->
+                    LinkStat(
+                        jid = sender,
+                        displayName = sender,
+                        totalLinks = msgs.sumOf { it.linkCount },
+                        mediaCount = msgs.count { it.hasMedia }
+                    )
+                }
+                .filter { it.totalLinks > 0 || it.mediaCount > 0 }
+                .sortedByDescending { it.mediaCount + it.totalLinks }
+        }
+
         val linkStats = messageDao.getLinkStats(chatId, startTime, endTime)
         if (linkStats.isEmpty()) return@withContext emptyList()
         
@@ -659,6 +756,10 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
      * Per gruppi: tutti i partecipanti.
      */
     suspend fun getLinkStatsBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<LinkStat> = withContext(Dispatchers.IO) {
+        // 0. Controllo Lite
+        if (isLiteMode.value) {
+            return@withContext getLinkStats(null, startTime, endTime)
+        }
         val linkStats = messageDao.getLinkStatsBySender(chatId, startTime, endTime)
         if (linkStats.isEmpty()) return@withContext emptyList()
         
@@ -729,6 +830,47 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         endTime: Long? = null,
         onProgress: (Int) -> Unit = {}
     ): List<DomainStat> = withContext(Dispatchers.IO) {
+        // 0. Controllo Lite
+        if (isLiteMode.value) {
+            DebugLogManager.log("getTopDomains Lite for jid=$jid")
+            val messages = liteModeManager.getCachedMessages()
+            // Filtro per JID e Tempo
+            val filtered = messages.filter { msg ->
+                val jidMatch = if (jid != null) {
+                    msg.senderName.trim().equals(jid.trim(), ignoreCase = true)
+                } else true
+                
+                val timeMatch = (startTime == null || msg.timestamp >= startTime) &&
+                                (endTime == null || msg.timestamp <= endTime)
+                
+                jidMatch && timeMatch
+            }
+            
+            DebugLogManager.log("Found ${filtered.size} messages for domain analysis (jid=$jid)")
+            val domainCounts = mutableMapOf<String, Int>()
+            val domainUrls = mutableMapOf<String, MutableMap<String, Int>>()
+            val urlPattern = Pattern.compile("https?://[\\w-.]+(?:\\.[\\w-.]+)+[\\w-./?%&=]*", Pattern.CASE_INSENSITIVE)
+            
+            filtered.forEach { msg ->
+                val matcher = urlPattern.matcher(msg.content)
+                while (matcher.find()) {
+                    val url = matcher.group()
+                    try {
+                        val host = URI(url).host?.lowercase() ?: continue
+                        val domain = if (host.startsWith("www.")) host.substring(4) else host
+                        domainCounts[domain] = domainCounts.getOrDefault(domain, 0) + 1
+                        val urlCounts = domainUrls.getOrPut(domain) { mutableMapOf() }
+                        urlCounts[url] = urlCounts.getOrDefault(url, 0) + 1
+                    } catch (e: Exception) {}
+                }
+            }
+            return@withContext domainCounts.map { (domain, count) ->
+                val topUrls = domainUrls[domain]?.map { (url, cnt) -> UrlFrequency(url, cnt, null) } ?: emptyList()
+                DomainStat(domain, count, topUrls)
+            }.sortedByDescending { it.count }.take(20)
+        }
+
+        onProgress(0)
         val texts = messageDao.getLinkTexts(chatId, jid, startTime, endTime)
         val domainCounts = mutableMapOf<String, Int>()
         val domainUrls = mutableMapOf<String, MutableMap<String, Int>>()
@@ -790,6 +932,65 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         messageDao.getTopWords(chatId, jid, startTime, endTime, limit)
     }
 
+    suspend fun getTopEmojis(chatId: Long?, limit: Int = 50): List<EmojiStat> = withContext(Dispatchers.IO) {
+        // 0. Controllo Lite
+        if (isLiteMode.value) {
+            val messages = liteModeManager.getCachedMessages()
+            val emojiCounts = mutableMapOf<String, Int>()
+            messages.forEach { msg ->
+                extractEmojis(msg.content).forEach { emoji ->
+                    emojiCounts[emoji] = emojiCounts.getOrDefault(emoji, 0) + 1
+                }
+            }
+            return@withContext emojiCounts.map { EmojiStat(it.key, it.value) }
+                .sortedByDescending { it.count }
+                .take(limit)
+        }
+        return@withContext if (chatId == null) {
+            messageDao.getGlobalTopEmojis(null, null, limit)
+        } else {
+            messageDao.getTopEmojis(chatId, null, null, null, limit)
+        }
+    }
+
+                    .sortedByDescending { it.count }
+                    .take(5)
+                UserEmojiStat(
+                    jid = sender,
+                    displayName = sender,
+                    totalEmojiCount = emojiCounts.values.sum(),
+                    topEmoji = topEmoji
+                )
+            }.filter { it.totalEmojiCount > 0 }.sortedByDescending { it.totalEmojiCount }
+        }
+        val raw = messageDao.getEmojiStatsBySender(chatId)
+        val jids = raw.map { it.jid }
+        val contactNames = contactDao.resolveContactNames(jids)
+        val lidJids = jids.filter { it.endsWith("@lid") }
+        val lidToReal = if (lidJids.isNotEmpty()) contactDao.resolveLidToRealJid(lidJids) else emptyMap()
+
+        val aggregated = mutableMapOf<String, UserEmojiStat>()
+        raw.forEach { stat ->
+            val canonicalJid = lidToReal[stat.jid] ?: stat.jid
+            val displayName = if (canonicalJid == "me@s.whatsapp.net") "Tu"
+                else contactNames[canonicalJid] ?: contactNames[stat.jid] ?: canonicalJid.substringBefore("@")
+            val existing = aggregated[canonicalJid]
+            if (existing != null) {
+                aggregated[canonicalJid] = existing.copy(
+                    totalEmojiCount = existing.totalEmojiCount + stat.totalEmojiCount,
+                    topEmoji = (existing.topEmoji + stat.topEmoji)
+                        .groupBy { it.emoji }
+                        .map { (emoji, stats) -> EmojiStat(emoji, stats.sumOf { it.count }) }
+                        .sortedByDescending { it.count }
+                        .take(5)
+                )
+            } else {
+                aggregated[canonicalJid] = stat.copy(jid = canonicalJid, displayName = displayName)
+            }
+        }
+        aggregated.values.toList().sortedByDescending { it.totalEmojiCount }
+    }
+
     suspend fun getTopEmojisBySender(
         chatId: Long,
         jid: String?,
@@ -837,6 +1038,40 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         endTime: Long? = null,
         onProgress: ((Int) -> Unit)? = null
     ): List<MediaStat> = withContext(Dispatchers.IO) {
+        // 0. Controllo Lite
+        if (isLiteMode.value) {
+            return@withContext try {
+                val liteMedia = liteModeManager.getCachedMedia() ?: return@withContext emptyList()
+                val items = liteMedia.mediaItems.mapNotNull { item ->
+                    // Filtro temporale
+                    if (startTime != null && item.timestamp < startTime) return@mapNotNull null
+                    if (endTime != null && item.timestamp > endTime) return@mapNotNull null
+                    
+                    // Verifica esistenza file
+                    val file = File(item.relativePath)
+                    if (!file.exists()) return@mapNotNull null
+
+                    MediaStat(
+                        filePath = item.relativePath,
+                        mimeType = when (item.type) {
+                            "IMAGE" -> "image/jpeg"
+                            "VIDEO" -> "video/mp4"
+                            "AUDIO" -> "audio/mpeg"
+                            else -> "application/octet-stream"
+                        },
+                        timestamp = item.timestamp
+                    )
+                }
+                // Se jid è presente (es. "Papà"), in Lite mode non possiamo filtrare con precisione
+                // perché lo ZIP non associa i file ai mittenti, ma restituiamo tutto per non bloccare la UI.
+                DebugLogManager.log("Found ${items.size} total media items in cache after filtering")
+                items
+            } catch (e: Exception) {
+                DebugLogManager.log("Error in getMediaFiles Lite", e)
+                emptyList()
+            }
+        }
+
         onProgress?.invoke(0)
 
         // Query SQL e scansione filesystem in parallelo.
@@ -1150,5 +1385,25 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             .sortedByDescending { it.value }
             .take(10)
             .map { it.key }
+    }
+
+    private fun extractEmojis(text: String): List<String> {
+        val emojis = mutableListOf<String>()
+        text.codePoints().forEach { cp ->
+            if (isEmoji(cp)) {
+                emojis.add(String(Character.toChars(cp)))
+            }
+        }
+        return emojis
+    }
+
+    private fun isEmoji(codePoint: Int): Boolean {
+        return codePoint in 0x1F600..0x1F64F || 
+               codePoint in 0x1F300..0x1F5FF || 
+               codePoint in 0x1F680..0x1F6FF || 
+               codePoint in 0x1F1E6..0x1F1FF || 
+               codePoint in 0x2600..0x26FF ||   
+               codePoint in 0x2700..0x27BF ||   
+               codePoint in 0x1F900..0x1F9FF    
     }
 }

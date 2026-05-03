@@ -11,6 +11,7 @@ import com.topjohnwu.superuser.io.SuFileInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.zip.ZipInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -342,25 +343,51 @@ class FileExtractor @Inject constructor(
         }
     }
 
-    /**
-     * Copia un file selezionato manualmente (tramite content uri) nello storage privato.
-     */
-    suspend fun copyFromUri(uri: Uri, destFileName: String): File = withContext(Dispatchers.IO) {
-        val destFile = File(workDir, destFileName)
-        
-        // Se il file esiste ma era stato creato da root, un log o delete normale fallirebbe per EACCES
-        if (destFile.exists()) {
-            if (!destFile.delete()) {
-                rootManager.execute("rm -f '${destFile.absolutePath}'")
-            }
-        }
-
+    suspend fun copyFromUri(uri: Uri, destFileName: String) = withContext(Dispatchers.IO) {
         context.contentResolver.openInputStream(uri)?.use { input ->
-            destFile.outputStream().use { output ->
+            val destFile = File(workDir, destFileName)
+            FileOutputStream(destFile).use { output ->
                 input.copyTo(output)
             }
-        } ?: throw IOException("Impossibile leggere il file selezionato: $uri")
-        destFile
+        } ?: throw IOException("Impossibile aprire l'URI: $uri")
+    }
+
+    /**
+     * Estrae l'intero contenuto dello ZIP esportato da WhatsApp in una sottocartella della cache.
+     * Mantiene la struttura dei file per permettere l'analisi dei media.
+     */
+    suspend fun extractFullChatFolder(zipUri: Uri): Result<File> = withContext(Dispatchers.IO) {
+        runCatching {
+            val inputStream = context.contentResolver.openInputStream(zipUri) 
+                ?: throw IOException("Impossibile aprire lo stream URI: $zipUri")
+            
+            // Crea una cartella stabile nella cache e la svuota se esiste
+            val destFolder = File(context.cacheDir, "lite_chat_extracted")
+            if (destFolder.exists()) {
+                destFolder.deleteRecursively()
+            }
+            destFolder.mkdirs()
+
+            ZipInputStream(inputStream).use { zis ->
+                var entry = zis.nextEntry
+                while (entry != null) {
+                    if (!entry.isDirectory) {
+                        val outFile = File(destFolder, entry.name)
+                        // Crea eventuali sottocartelle se presenti nello zip
+                        outFile.parentFile?.mkdirs()
+                        
+                        FileOutputStream(outFile).use { fos ->
+                            zis.copyTo(fos)
+                        }
+                    }
+                    zis.closeEntry()
+                    entry = zis.nextEntry
+                }
+            }
+            
+            android.util.Log.d("WhatStat", "ZIP estratto con successo in: ${destFolder.absolutePath}")
+            destFolder
+        }
     }
 }
 

@@ -1,5 +1,8 @@
 package com.whatstat.reborn.data.db.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class GroupParticipantHistoryEntity(
     val timestamp: Long,
     val gjid: String,
@@ -8,6 +11,7 @@ data class GroupParticipantHistoryEntity(
     val textData: String? = null
 )
 
+@Serializable
 data class GroupNameChangeEntity(
     val timestamp: Long,
     val oldData: String,

@@ -49,6 +49,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
@@ -66,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -88,6 +90,7 @@ import com.whatstat.reborn.ui.component.InteractiveStickerCloud
 import com.whatstat.reborn.ui.component.InteractiveWordCloud
 import com.whatstat.reborn.ui.component.EmojiPreviewModal
 import com.whatstat.reborn.ui.component.StickerPreviewModal
+import java.io.File
 
 @Composable
 fun DashboardScreen(
@@ -158,11 +161,28 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "Panoramica",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Column {
+                    Text(
+                        "Panoramica",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    if (s?.isLiteMode == true) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            shape = RoundedCornerShape(4.dp),
+                            modifier = Modifier.padding(top = 2.dp)
+                        ) {
+                            Text(
+                                "MODALITÀ LITE (ZIP)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
@@ -468,7 +488,8 @@ fun DashboardScreen(
                                             onStickerClick = { fileName, count ->
                                                 previewSticker = fileName
                                                 previewStickerCount = count
-                                            }
+                                            },
+                                            isLiteMode = s.isLiteMode
                                         )
                                     }
                                 }
@@ -497,21 +518,32 @@ fun DashboardScreen(
             StickerPreviewModal(
                 fileName = previewSticker!!,
                 count = previewStickerCount,
-                onDismiss = { previewSticker = null }
+                onDismiss = { previewSticker = null },
+                isLiteMode = s?.isLiteMode == true,
+                litePath = s?.topStickers?.find { it.fileName == previewSticker }?.filePath
             )
         }
     } // fine Box
 }
 
 @Composable
-private fun DashboardStickerItem(fileName: String, count: Int) {
+private fun DashboardStickerItem(
+    fileName: String, 
+    count: Int,
+    isLiteMode: Boolean = false,
+    litePath: String? = null
+) {
     val context = LocalContext.current
     val stickerPaths = listOf(
         "/sdcard/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Stickers",
         "/sdcard/WhatsApp/Media/WhatsApp Stickers"
     )
-    val stickerFile = remember(fileName) {
-        stickerPaths.map { java.io.File(it, fileName) }.firstOrNull { it.exists() }
+    val stickerFile = remember(fileName, isLiteMode, litePath) {
+        if (isLiteMode && litePath != null) {
+            File(litePath)
+        } else {
+            stickerPaths.map { java.io.File(it, fileName) }.firstOrNull { it.exists() }
+        }
     }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,

@@ -35,7 +35,8 @@ import java.io.File
 fun InteractiveStickerCloud(
     stickers: List<StickerStat>,
     modifier: Modifier = Modifier,
-    onStickerClick: ((String, Int) -> Unit)? = null
+    onStickerClick: ((String, Int) -> Unit)? = null,
+    isLiteMode: Boolean = false
 ) {
     if (stickers.isEmpty()) return
 
@@ -55,6 +56,8 @@ fun InteractiveStickerCloud(
                 fileName = sticker.fileName,
                 count = sticker.count,
                 size = size,
+                isLiteMode = isLiteMode,
+                litePath = sticker.filePath,
                 onClick = if (onStickerClick != null) {
                     { onStickerClick(sticker.fileName, sticker.count) }
                 } else null
@@ -68,15 +71,21 @@ private fun StickerCloudItem(
     fileName: String,
     count: Int,
     size: androidx.compose.ui.unit.Dp,
-    onClick: (() -> Unit)?
+    onClick: (() -> Unit)?,
+    isLiteMode: Boolean = false,
+    litePath: String? = null
 ) {
     val context = LocalContext.current
     val stickerPaths = listOf(
         "/sdcard/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Stickers",
         "/sdcard/WhatsApp/Media/WhatsApp Stickers"
     )
-    val stickerFile = remember(fileName) {
-        stickerPaths.map { File(it, fileName) }.firstOrNull { it.exists() }
+    val stickerFile = remember(fileName, isLiteMode, litePath) {
+        if (isLiteMode && litePath != null) {
+            File(litePath)
+        } else {
+            stickerPaths.map { File(it, fileName) }.firstOrNull { it.exists() }
+        }
     }
 
     Column(

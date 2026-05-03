@@ -28,7 +28,8 @@ private data class BottomNavItem(
 @Composable
 fun BottomNavigationBar(
     navController: NavHostController,
-    currentDestination: NavDestination?
+    currentDestination: NavDestination?,
+    isLiteMode: Boolean = false
 ) {
     val items = listOf(
         BottomNavItem(
@@ -64,7 +65,32 @@ fun BottomNavigationBar(
     )
 
     NavigationBar {
-        items.forEach { item ->
+        val filteredItems = if (isLiteMode) {
+            listOf(
+                BottomNavItem(
+                    graphRoute = NavGraphRoute.Overview,
+                    destinationRoute = Screen.Dashboard.route, // Usiamo Dashboard come Home Lite
+                    label = "Chat",
+                    icon = Icons.Outlined.Chat
+                ),
+                BottomNavItem(
+                    graphRoute = NavGraphRoute.Media,
+                    destinationRoute = Screen.MediaStats.route,
+                    label = "Media",
+                    icon = Icons.Outlined.Link
+                ),
+                BottomNavItem(
+                    graphRoute = NavGraphRoute.Radar,
+                    destinationRoute = Screen.WordSearch.route,
+                    label = "Radar",
+                    icon = Icons.Outlined.Search
+                )
+            )
+        } else {
+            items
+        }
+
+        filteredItems.forEach { item ->
             val selected = currentDestination
                 ?.hierarchy
                 ?.any { destination -> destination.route == item.graphRoute } == true

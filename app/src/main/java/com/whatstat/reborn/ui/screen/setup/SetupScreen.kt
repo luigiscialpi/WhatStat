@@ -73,7 +73,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun SetupScreen(
     viewModel: SetupViewModel = hiltViewModel(),
-    onSetupComplete: () -> Unit
+    onSetupComplete: () -> Unit,
+    onNavigateToLite: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -350,6 +351,23 @@ fun SetupScreen(
                         if (state.isManualModeVisible) "Decifra Database"
                         else "Inizia analisi",
                         style = MaterialTheme.typography.labelLarge
+                    )
+                }
+                
+                Spacer(Modifier.height(12.dp))
+                
+                OutlinedButton(
+                    onClick = onNavigateToLite,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                ) {
+                    Text(
+                        "Importa Chat da file Zip (No Root)",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }

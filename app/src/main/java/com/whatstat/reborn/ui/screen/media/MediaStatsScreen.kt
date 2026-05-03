@@ -136,7 +136,8 @@ fun MediaStatsScreen(
     val chatContextName by viewModel.chatContextName.collectAsState()
     val chatContextAvatarPath by viewModel.chatContextAvatarPath.collectAsState()
 
-    val sheetState = rememberModalBottomSheetState()
+    val domainSheetState = rememberModalBottomSheetState()
+    val mediaSheetState = rememberModalBottomSheetState()
 
     LaunchedEffect(chatId) {
         viewModel.initialize(chatId)
@@ -177,6 +178,15 @@ fun MediaStatsScreen(
                 subtitle = chatContextName,
                 avatarPath = chatContextAvatarPath
             ) {
+                // Bottone Debug (nuovo)
+                IconButton(onClick = { viewModel.showDebugLogs = true }) {
+                    Icon(
+                        Icons.Outlined.Search, // Usiamo un'icona temporanea
+                        contentDescription = "Debug Logs",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
                 IconButton(onClick = { showInfoDialog = true }) {
                     Icon(
                         Icons.Outlined.Info,
@@ -375,7 +385,7 @@ fun MediaStatsScreen(
         if (contactDomainStats != null) {
             ModalBottomSheet(
                 onDismissRequest = { viewModel.dismissContactDomains() },
-                sheetState = sheetState,
+                sheetState = domainSheetState,
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp,
                 dragHandle = {
@@ -405,7 +415,7 @@ fun MediaStatsScreen(
         if (mediaGalleryState != null) {
             ModalBottomSheet(
                 onDismissRequest = { viewModel.dismissMediaGallery() },
-                sheetState = sheetState,
+                sheetState = mediaSheetState,
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp,
                 dragHandle = {
@@ -432,6 +442,48 @@ fun MediaStatsScreen(
         }
 
     } // fine Box
+
+    // --- DIALOG DEBUG (Nuovo) ---
+    val debugLogs by com.whatstat.reborn.util.DebugLogManager.logs.collectAsState()
+    if (viewModel.showDebugLogs) {
+        AlertDialog(
+            onDismissRequest = { viewModel.showDebugLogs = false },
+            title = { 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Debug Logs (WhatStat)")
+                    TextButton(onClick = { com.whatstat.reborn.util.DebugLogManager.clear() }) {
+                        Text("Clear")
+                    }
+                }
+            },
+            text = {
+                Box(modifier = Modifier.height(400.dp)) {
+                    SelectionContainer {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(debugLogs) { log ->
+                                Text(
+                                    log,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                                Spacer(Modifier.height(1.dp).fillMaxWidth().background(Color.Gray.copy(alpha = 0.2f)))
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.showDebugLogs = false }) {
+                    Text("Chiudi")
+                }
+            }
+        )
+    }
 } // fine MediaStatsScreen
 
 @Composable
