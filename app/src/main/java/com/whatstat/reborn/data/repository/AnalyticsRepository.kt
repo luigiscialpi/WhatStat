@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 import java.net.URI
+import java.time.ZoneId
 import java.util.regex.Pattern
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.io.SuFile
@@ -840,8 +841,13 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                     msg.senderName.trim().equals(jid.trim(), ignoreCase = true)
                 } else true
                 
-                val timeMatch = (startTime == null || msg.timestamp >= startTime) &&
-                                (endTime == null || msg.timestamp <= endTime)
+                val ts = try {
+                    msg.timestamp.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                } catch (e: Exception) {
+                    0L
+                }
+                val timeMatch = (startTime == null || ts >= startTime) &&
+                                (endTime == null || ts <= endTime)
                 
                 jidMatch && timeMatch
             }
@@ -953,16 +959,37 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         }
     }
 
-                    .sortedByDescending { it.count }
+    suspend fun getEmojiStatsBySender(
+        chatId: Long?,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        limit: Int = 5
+    ): List<com.whatstat.reborn.data.db.model.UserEmojiStat> = withContext(Dispatchers.IO) {
+        // 0. Controllo Lite
+        if (isLiteMode.value) {
+            val messages = liteModeManager.getCachedMessages()
+            val grouped = messages.groupBy { it.senderName }
+            return@withContext grouped.map { (sender, msgs) ->
+                val emojiCounts = mutableMapOf<String, Int>()
+                msgs.forEach { m ->
+                    extractEmojis(m.content).forEach { emoji ->
+                        emojiCounts[emoji] = emojiCounts.getOrDefault(emoji, 0) + 1
+                    }
+                }
+                val total = emojiCounts.values.sum()
+                val topEmoji = emojiCounts.entries
+                    .sortedByDescending { it.value }
                     .take(5)
-                UserEmojiStat(
+                    .map { com.whatstat.reborn.data.db.model.EmojiStat(it.key, it.value) }
+                com.whatstat.reborn.data.db.model.UserEmojiStat(
                     jid = sender,
                     displayName = sender,
-                    totalEmojiCount = emojiCounts.values.sum(),
+                    totalEmojiCount = total,
                     topEmoji = topEmoji
                 )
             }.filter { it.totalEmojiCount > 0 }.sortedByDescending { it.totalEmojiCount }
         }
+
         val raw = messageDao.getEmojiStatsBySender(chatId)
         val jids = raw.map { it.jid }
         val contactNames = contactDao.resolveContactNames(jids)

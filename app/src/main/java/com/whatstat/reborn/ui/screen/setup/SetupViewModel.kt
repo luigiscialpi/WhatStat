@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.collectLatest
 @HiltViewModel
 class SetupViewModel @Inject constructor(
     private val repository: WhatsAppRepository,
+    private val liteModeManager: com.whatstat.reborn.data.lite.LiteModeManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -32,13 +33,18 @@ class SetupViewModel @Inject constructor(
     val state: StateFlow<SetupState> = _state.asStateFlow()
 
     init {
-        // Se il database è già aperto (es. dopo rotazione schermo), skip del setup
-        if (repository.isDatabaseReady()) {
-            _state.update { it.copy(isComplete = true) }
-        } else {
-            // Tenta di ripristinare la sessione salvata
-            viewModelScope.launch {
+        viewModelScope.launch {
+            // Se c'è una cache per la Lite Mode, salta il setup
+            if (liteModeManager.getCachedStats() != null) {
+                _state.update { it.copy(isComplete = true, isCheckingCache = false) }
+            }
+            // Se il database root è già aperto (es. dopo rotazione schermo), skip del setup
+            else if (repository.isDatabaseReady()) {
+                _state.update { it.copy(isComplete = true, isCheckingCache = false) }
+            } else {
+                // Tenta di ripristinare la sessione root salvata
                 repository.tryRestoreSession()
+                _state.update { it.copy(isCheckingCache = false) }
             }
         }
 
@@ -126,6 +132,7 @@ class SetupViewModel @Inject constructor(
 }
 
 data class SetupState(
+    val isCheckingCache: Boolean  = true, // Flag dedicato per la fase di avvio iniziale
     val isLoading: Boolean        = false,
     val isComplete: Boolean       = false,
     val error: String?            = null,
