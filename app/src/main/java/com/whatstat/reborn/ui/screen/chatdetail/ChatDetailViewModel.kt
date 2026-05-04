@@ -145,14 +145,7 @@ class ChatDetailViewModel @Inject constructor(
             _error.value = null
 
             try {
-                // 1. Risoluzione chatId per Lite Mode se necessario
-                if (chatId == -1L && analyticsRepository.isLiteMode.value) {
-                    chatId = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        chatDao.getFirstChatId()
-                    }
-                }
-
-                // 2. Carica subito nome+avatar per l'header
+                // 1. Carica subito nome+avatar per l'header
                 if (_headerInfo.value == null && chatId != -1L) {
                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                         val basic = chatDao.getChatBasicInfo(chatId)

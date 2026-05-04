@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.collectLatest
 @HiltViewModel
 class SetupViewModel @Inject constructor(
     private val repository: WhatsAppRepository,
-    private val liteModeManager: com.whatstat.reborn.data.lite.LiteModeManager,
     private val analyticsRepository: com.whatstat.reborn.data.repository.AnalyticsRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {

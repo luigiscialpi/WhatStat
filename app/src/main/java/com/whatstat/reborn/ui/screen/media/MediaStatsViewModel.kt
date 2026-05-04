@@ -332,33 +332,24 @@ class MediaStatsViewModel @Inject constructor(
                 val currentChatContext = _chatId.value ?: _breakdownChatId.value
                 val isGlobalList = currentChatContext == null
 
-                val targetChatId = if (analyticsRepository.isLiteMode.value) {
-                    null
-                } else if (isGlobalList) {
+                // In Lite Mode, ActiveDatabaseProvider instrada la query al DB Lite.
+                // Il chatId e' risolto direttamente: null se lista globale, altrimenti il contesto corrente.
+                val targetChatId = if (isGlobalList) {
                     analyticsRepository.getChatIdByJid(jid)
                 } else {
                     currentChatContext
                 }
-
                 val targetJid = if (isGlobalList) null else jid
 
-                val domains = if (analyticsRepository.isLiteMode.value) {
+                val domains = targetChatId?.let { cid ->
                     analyticsRepository.getTopDomains(
-                        chatId = null,
-                        jid = jid,
+                        chatId = cid,
+                        jid = targetJid,
+                        startTime = startTime,
+                        endTime = endTime,
                         onProgress = { progress -> _loadingProgressDomains.value = progress }
                     )
-                } else {
-                    targetChatId?.let { cid ->
-                        analyticsRepository.getTopDomains(
-                            chatId = cid,
-                            jid = targetJid,
-                            startTime = startTime,
-                            endTime = endTime,
-                            onProgress = { progress -> _loadingProgressDomains.value = progress }
-                        )
-                    } ?: emptyList()
-                }
+                } ?: emptyList()
                 _contactDomainStats.value = Triple(name, avatarPath, domains)
             } catch (e: Exception) {
                 DebugLogManager.log("Error loading domains", e)
@@ -389,42 +380,31 @@ class MediaStatsViewModel @Inject constructor(
                 } else {
                     analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                 }
-                
+
                 val currentChatContext = _chatId.value ?: _breakdownChatId.value
                 val isGlobalList = currentChatContext == null
 
-                val targetChatId = if (analyticsRepository.isLiteMode.value) {
-                    null
-                } else if (isGlobalList) {
+                // In Lite Mode, ActiveDatabaseProvider instrada la query al DB Lite.
+                // Il chatId e' risolto direttamente: null se lista globale, altrimenti il contesto corrente.
+                val targetChatId = if (isGlobalList) {
                     analyticsRepository.getChatIdByJid(jid)
                 } else {
                     currentChatContext
                 }
-
                 val targetJid = if (isGlobalList) null else jid
 
-                val mediaFiles = if (analyticsRepository.isLiteMode.value) {
+                val mediaFiles = targetChatId?.let { cid ->
                     analyticsRepository.getMediaFiles(
-                        chatId = null,
-                        jid = jid,
+                        chatId = cid,
+                        jid = targetJid,
                         startTime = startTime,
                         endTime = endTime,
                         onProgress = { progress -> _loadingProgressMediaGallery.value = progress }
                     )
-                } else {
-                    targetChatId?.let { cid ->
-                        analyticsRepository.getMediaFiles(
-                            chatId = cid,
-                            jid = targetJid,
-                            startTime = startTime,
-                            endTime = endTime,
-                            onProgress = { progress -> _loadingProgressMediaGallery.value = progress }
-                        )
-                    } ?: emptyList()
-                }
+                } ?: emptyList()
 
                 DebugLogManager.log("Loaded ${mediaFiles.size} media files for $jid")
-                // Aggiorna lo stato solo quando abbiamo i dati, filtrando quelli che non esistono più
+                // Aggiorna lo stato solo quando abbiamo i dati, filtrando quelli che non esistono piu'
                 val existingMediaFiles = mediaFiles.filter { java.io.File(it.filePath).exists() }
                 _mediaGalleryState.value = Triple(name, avatarPath, existingMediaFiles)
             } catch (e: Exception) {

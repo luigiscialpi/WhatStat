@@ -101,21 +101,6 @@ fun DashboardScreen(
     onNavigateToMedia: () -> Unit = {},
     onNavigateBack: () -> Unit
 ) {
-    val mainViewModel: com.whatstat.reborn.ui.MainViewModel = hiltViewModel()
-    val isLiteMode by mainViewModel.isLiteMode.collectAsState()
-
-    if (isLiteMode) {
-        com.whatstat.reborn.ui.screen.chatdetail.ChatDetailScreen(
-            chatId = -1L,
-            onNavigateBack = onNavigateBack,
-            onNavigateToWordSearch = onNavigateToWordSearch,
-            onNavigateToCalls = onNavigateToCalls,
-            onNavigateToMedia = onNavigateToMedia,
-            onNavigateToHistory = {} // Non supportato qui
-        )
-        return
-    }
-
     val stats by viewModel.globalStats.collectAsState()
     val hourlyData by viewModel.hourlyData.collectAsState()
     val weeklyData by viewModel.weeklyData.collectAsState()

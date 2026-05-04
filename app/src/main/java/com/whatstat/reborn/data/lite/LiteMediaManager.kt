@@ -10,6 +10,14 @@ import javax.inject.Singleton
 @Singleton
 class LiteMediaManager @Inject constructor() {
 
+    companion object {
+        /** Pattern per i nomi file allegati WhatsApp (es. IMG-20231015-WA0001.jpg). */
+        private val MEDIA_FILENAME_REGEX = Regex(
+            "(?:IMG|VID|AUD|PTT|DOC)-\\d{8}-WA\\d{4,}(?:\\.[a-z0-9]+)?",
+            RegexOption.IGNORE_CASE
+        )
+    }
+
     /**
      * Scansiona la cartella dello ZIP e associa ogni file al mittente e al timestamp
      * del messaggio corrispondente, cercando il nome del file nel contenuto dei messaggi.
@@ -37,7 +45,7 @@ class LiteMediaManager @Inject constructor() {
             val ts = try {
                 msg.timestamp.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
             } catch (e: Exception) { 0L }
-            val matches: Sequence<MatchResult> = LiteMetricsCalculator.MEDIA_FILENAME_REGEX.findAll(msg.content)
+            val matches: Sequence<MatchResult> = MEDIA_FILENAME_REGEX.findAll(msg.content)
             for (match in matches) {
                 val fullName = match.value
                 val nameNoExt = fullName.substringBeforeLast(".")
@@ -79,3 +87,20 @@ class LiteMediaManager @Inject constructor() {
         )
     }
 }
+
+data class LiteMediaItem(
+    val fileName: String,
+    val relativePath: String,
+    val type: String,
+    val timestamp: Long,
+    val senderName: String?
+)
+
+data class LiteMediaStats(
+    val totalCount: Int,
+    val images: Int,
+    val videos: Int,
+    val audioFiles: Int,
+    val documents: Int,
+    val mediaItems: List<LiteMediaItem>
+)
