@@ -203,6 +203,9 @@ private fun NavGraphBuilder.mainGraph(
                     },
                     onNavigateBack = {
                         navController.popBackStack()
+                    },
+                    onImportChat = {
+                        navController.navigate(Screen.LiteSetup.route)
                     }
                 )
             }

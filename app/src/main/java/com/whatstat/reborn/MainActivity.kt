@@ -79,9 +79,11 @@ class MainActivity : ComponentActivity() {
             ?: return
 
         if (isLikelyZip(intent.type, uri)) {
-            // Se eravamo già in Lite Mode, resetta prima di rientrare nel flusso Lite.
-            // Questo impedisce a SetupViewModel.init di auto-navigare al Main root.
-            mainViewModel.resetLiteMode()
+            // Se non siamo in Lite Mode, resettiamo (impedisce a SetupViewModel di auto-navigare al Main root).
+            // Se siamo già in Lite Mode, aggiungiamo la chat senza toccare il DB.
+            if (!mainViewModel.isLiteMode.value) {
+                mainViewModel.resetLiteMode()
+            }
             mainViewModel.setIncomingZipUri(uri.toString())
         }
     }

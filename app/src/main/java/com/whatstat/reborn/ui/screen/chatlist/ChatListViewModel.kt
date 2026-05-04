@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.whatstat.reborn.data.db.dao.ChatDao
 import com.whatstat.reborn.data.db.dao.ContactDao
 import com.whatstat.reborn.data.db.model.ChatListItem
+import com.whatstat.reborn.data.lite.LiteDbWriter
+import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.root.FileExtractor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -24,8 +26,12 @@ import javax.inject.Inject
 class ChatListViewModel @Inject constructor(
     private val chatDao: ChatDao,
     private val contactDao: ContactDao,
+    private val liteDbWriter: LiteDbWriter,
+    private val analyticsRepository: AnalyticsRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    val isLiteMode: StateFlow<Boolean> = analyticsRepository.isLiteMode
 
     private val _allChats = MutableStateFlow<List<ChatListItem>>(emptyList())
     private val _searchQuery = MutableStateFlow("")
@@ -101,5 +107,16 @@ class ChatListViewModel @Inject constructor(
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
+    }
+
+    fun reloadChats() {
+        loadChats()
+    }
+
+    fun deleteChat(chatId: Long) {
+        viewModelScope.launch {
+            liteDbWriter.deleteChat(chatId)
+            loadChats()
+        }
     }
 }
