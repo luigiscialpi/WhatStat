@@ -37,7 +37,7 @@ class SetupViewModel @Inject constructor(
         viewModelScope.launch {
             // Se c'è una cache per la Lite Mode E il flag è ancora attivo (non si è appena fatto un reset),
             // salta il setup. Il flag viene azzerato da resetLiteMode() prima di tornare al Setup.
-            if (analyticsRepository.isLiteMode.value && liteModeManager.getCachedStats() != null) {
+            if (analyticsRepository.isLiteMode.value) {
                 _state.update { it.copy(isComplete = true, isCheckingCache = false) }
             }
             // Se il database root è già aperto (es. dopo rotazione schermo), skip del setup

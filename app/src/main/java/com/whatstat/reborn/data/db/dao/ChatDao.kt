@@ -1,6 +1,7 @@
 package com.whatstat.reborn.data.db.dao
 
-import com.whatstat.reborn.data.db.WhatsAppDatabase
+import android.database.Cursor
+import com.whatstat.reborn.data.db.DatabaseProvider
 import com.whatstat.reborn.data.db.model.ChatBasicInfo
 import com.whatstat.reborn.data.db.model.ChatListItem
 import javax.inject.Inject
@@ -12,7 +13,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class ChatDao @Inject constructor(
-    private val database: WhatsAppDatabase
+    private val database: DatabaseProvider
 ) {
 
     /** Conta le chat totali. */
@@ -21,6 +22,12 @@ class ChatDao @Inject constructor(
             "SELECT COUNT(*) FROM chat WHERE hidden = 0 OR hidden IS NULL", null
         )
         return cursor.use { if (it.moveToFirst()) it.getInt(0) else 0 }
+    }
+
+    /** Ritorna l'ID della prima chat trovata (usato in Lite mode). */
+    fun getFirstChatId(): Long {
+        val cursor = database.getMsgDb().rawQuery("SELECT _id FROM chat LIMIT 1", null)
+        return cursor.use { if (it.moveToFirst()) it.getLong(0) else -1L }
     }
 
     /** Ritorna le info base di una chat. */
@@ -56,7 +63,7 @@ class ChatDao @Inject constructor(
             FROM chat c
             JOIN jid j ON c.jid_row_id = j._id
             JOIN message m ON m.chat_row_id = c._id
-            WHERE m.message_type = 0
+            WHERE m.message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf<String>()
         
@@ -90,7 +97,7 @@ class ChatDao @Inject constructor(
                 MAX(m.timestamp) AS last_message_ts
             FROM chat c
             JOIN jid j ON c.jid_row_id = j._id
-            LEFT JOIN message m ON m.chat_row_id = c._id AND m.message_type = 0
+            LEFT JOIN message m ON m.chat_row_id = c._id AND m.message_type NOT IN (7, 15, 90)
             WHERE (c.hidden = 0 OR c.hidden IS NULL)
             GROUP BY c._id
             HAVING total_messages > 0

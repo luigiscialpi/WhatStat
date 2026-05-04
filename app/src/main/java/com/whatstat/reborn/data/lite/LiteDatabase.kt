@@ -111,6 +111,60 @@ class LiteDatabase @Inject constructor(
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_chat_type_from ON message (chat_row_id, message_type, from_me)")
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_sender_jid ON message (sender_jid_row_id)")
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_media_row ON message_media (message_row_id)")
+
+        // Stub tables per evitare crash DAO root
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS call_log (
+                _id INTEGER PRIMARY KEY, 
+                jid_row_id INTEGER, 
+                from_me INTEGER, 
+                timestamp INTEGER, 
+                video_call INTEGER, 
+                duration INTEGER, 
+                call_result INTEGER, 
+                group_jid_row_id INTEGER DEFAULT 0
+            )
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS call_log_participant_v2 (
+                _id INTEGER PRIMARY KEY, 
+                call_log_row_id INTEGER, 
+                jid_row_id INTEGER, 
+                call_result INTEGER
+            )
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS message_system (
+                message_row_id INTEGER PRIMARY KEY, 
+                action_type INTEGER, 
+                is_me_joined INTEGER DEFAULT 0
+            )
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS message_system_chat_participant (
+                message_row_id INTEGER, 
+                user_jid_row_id INTEGER
+            )
+        """.trimIndent())
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS message_system_value_change (
+                message_row_id INTEGER PRIMARY KEY, 
+                old_data TEXT, 
+                new_data TEXT
+            )
+        """.trimIndent())
+    }
+
+    fun hasChatData(): Boolean {
+        val db = getOrCreate()
+        val cursor = db.rawQuery("SELECT COUNT(*) FROM chat LIMIT 1", null)
+        return cursor.use {
+            if (it.moveToFirst()) it.getInt(0) > 0 else false
+        }
     }
 
     fun close() {

@@ -24,7 +24,9 @@ class LiteModeManager @Inject constructor(
     private val fileExtractor: FileExtractor,
     private val parser: TextChatParser,
     private val mediaManager: LiteMediaManager,
-    private val cacheRepository: LiteCacheRepository
+    private val cacheRepository: LiteCacheRepository,
+    private val liteDbWriter: LiteDbWriter,
+    private val liteDatabase: LiteDatabase
 ) {
 
     private val _importProgress = MutableStateFlow(LiteImportProgress(0f, ""))
@@ -46,20 +48,32 @@ class LiteModeManager @Inject constructor(
             val parseResult = parser.parse(txtFile, ownerName)
             val identifiedSenders = parseResult.messages.map { it.senderName }.distinct()
 
-            // 3. Analisi Media (passiamo i messaggi per associare file → mittente e timestamp)
-            _importProgress.value = LiteImportProgress(0.55f, "Analisi media...")
+            // 3. Analisi Media
+            _importProgress.value = LiteImportProgress(0.40f, "Analisi media...")
             val mediaStats = mediaManager.extractMediaFromFolder(folder, parseResult.messages)
 
-            // 4. Calcolo Statistiche Globali
-            _importProgress.value = LiteImportProgress(0.80f, "Calcolo statistiche...")
-            // Puliamo il prefisso standard che WhatsApp aggiunge all'esportazione ("Chat WhatsApp con ")
+            // 4. Scrittura su SQLite (Nuovo)
+            _importProgress.value = LiteImportProgress(0.60f, "Salvataggio database...")
             val chatNameToSave = txtFile.nameWithoutExtension
                 .replace("Chat WhatsApp con ", "", ignoreCase = true)
                 .trim()
+            
+            liteDbWriter.writeChat(
+                chatName = chatNameToSave,
+                ownerName = ownerName,
+                isGroup = identifiedSenders.size > 2,
+                messages = parseResult.messages,
+                mediaItems = mediaStats.mediaItems
+            ) { progress ->
+                _importProgress.value = LiteImportProgress(0.60f + (progress * 0.30f), "Scrittura DB: ${(progress * 100).toInt()}%")
+            }
+
+            // 5. Calcolo Statistiche (per UI immediata)
+            _importProgress.value = LiteImportProgress(0.90f, "Finalizzazione...")
             val stats = calculateGlobalStats(parseResult.messages, mediaStats, chatNameToSave)
 
-            // 5. Salvataggio Cache
-            _importProgress.value = LiteImportProgress(0.95f, "Salvataggio...")
+            // Mantieni JSON cache per compatibilità temporanea se necessario, 
+            // ma l'obiettivo è SQLite.
             val cacheData = LiteCacheData(
                 sourceFileName = chatNameToSave,
                 lastModified = System.currentTimeMillis(),
@@ -70,6 +84,7 @@ class LiteModeManager @Inject constructor(
                 mediaStats = mediaStats
             )
             cacheRepository.saveCache(cacheData)
+            
             _importProgress.value = LiteImportProgress(1f, "Completato")
 
             ImportResult(stats, identifiedSenders)
@@ -94,22 +109,23 @@ class LiteModeManager @Inject constructor(
 
     suspend fun clearCache() {
         cacheRepository.clearCache()
+        liteDatabase.deleteAll()
     }
 
     /**
      * Dopo il primo import "preliminare", aggiorna solo ownerName e isCurrentUser
-     * senza rieseguire estrazione/parsing/media scan.
+     * sia in cache JSON che in SQLite.
      */
     suspend fun finalizeOwnerSelection(ownerName: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            _importProgress.value = LiteImportProgress(0.96f, "Finalizzazione...")
+            _importProgress.value = LiteImportProgress(0.90f, "Finalizzazione mittente...")
             val cache = cacheRepository.loadCache()
                 ?: throw Exception("Cache Lite non disponibile")
 
+            // 1. Aggiorna cache JSON
             val updatedMessages = cache.messages.map { msg ->
                 msg.copy(isCurrentUser = msg.senderName == ownerName)
             }
-
             cacheRepository.saveCache(
                 cache.copy(
                     ownerName = ownerName,
@@ -117,6 +133,24 @@ class LiteModeManager @Inject constructor(
                     messages = updatedMessages
                 )
             )
+
+            // 2. Aggiorna SQLite (from_me)
+            val db = liteDatabase.getOrCreate()
+            val jidRowIdCursor = db.query("jid", arrayOf("_id"), "raw_string = ?", arrayOf(ownerName), null, null, null)
+            val jidRowId = jidRowIdCursor.use { if (it.moveToFirst()) it.getLong(0) else -1L }
+            
+            if (jidRowId != -1L) {
+                db.beginTransaction()
+                try {
+                    // Reset tutti a 0
+                    db.execSQL("UPDATE message SET from_me = 0")
+                    // Imposta il mittente scelto a 1
+                    db.execSQL("UPDATE message SET from_me = 1 WHERE sender_jid_row_id = ?", arrayOf(jidRowId))
+                    db.setTransactionSuccessful()
+                } finally {
+                    db.endTransaction()
+                }
+            }
 
             _importProgress.value = LiteImportProgress(1f, "Completato")
         }

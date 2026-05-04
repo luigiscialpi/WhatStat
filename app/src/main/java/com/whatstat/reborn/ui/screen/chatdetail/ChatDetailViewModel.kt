@@ -22,14 +22,12 @@ import com.whatstat.reborn.data.db.model.WordFrequency
 import com.whatstat.reborn.data.db.model.SenderStat
 import com.whatstat.reborn.data.db.model.EmojiStat
 import com.whatstat.reborn.ui.state.FilterStateHolder
-import com.whatstat.reborn.data.lite.LiteModeManager
 import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class ChatDetailViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
-    private val liteModeManager: LiteModeManager,
     private val chatDao: ChatDao,
     private val contactDao: ContactDao,
     @ApplicationContext private val context: Context,
@@ -40,7 +38,7 @@ class ChatDetailViewModel @Inject constructor(
     enum class WordViewMode { AGGREGATED, INDIVIDUAL }
     enum class EmojiViewMode { AGGREGATED, INDIVIDUAL }
 
-    private val chatId: Long = savedStateHandle["chatId"] ?: -1L
+    private var chatId: Long = savedStateHandle["chatId"] ?: -1L
 
     private val avatarDir: File by lazy {
         File(context.filesDir, FileExtractor.AVATAR_DIR_DEST)
@@ -130,13 +128,11 @@ class ChatDetailViewModel @Inject constructor(
     private var stickerPool: List<com.whatstat.reborn.data.db.model.StickerStat> = emptyList()
 
     init {
-        // We ALWAYS load stats. In Lite Mode, chatId might be -1L, but we need stats anyway.
-        loadChatStats()
         // In LiteMode, ricarica quando viene importato un nuovo ZIP
         viewModelScope.launch {
             var firstEmit = true
             analyticsRepository.liteCacheVersion.collect { _ ->
-                if (firstEmit) { firstEmit = false; return@collect }
+                if (firstEmit) { firstEmit = false; loadChatStats(); return@collect }
                 loadChatStats()
             }
         }
@@ -149,31 +145,28 @@ class ChatDetailViewModel @Inject constructor(
             _error.value = null
 
             try {
-                // Carica subito nome+avatar per l'header
-                if (_headerInfo.value == null) {
+                // 1. Risoluzione chatId per Lite Mode se necessario
+                if (chatId == -1L && analyticsRepository.isLiteMode.value) {
+                    chatId = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        chatDao.getFirstChatId()
+                    }
+                }
+
+                // 2. Carica subito nome+avatar per l'header
+                if (_headerInfo.value == null && chatId != -1L) {
                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        if (chatId == -1L || analyticsRepository.isLiteMode.value) {
-                            val cachedStats = liteModeManager.getCachedStats()
-                            _headerInfo.value = HeaderInfo(
-                                name = cachedStats?.mostActiveChat ?: "Chat Esportata",
-                                jid = "",
-                                isGroup = false,
-                                avatarPath = null
-                            )
+                        val basic = chatDao.getChatBasicInfo(chatId)
+                        val name = if (basic.isGroup) {
+                            basic.subject ?: contactDao.resolveContactName(basic.jid) ?: basic.jid.substringBefore("@")
                         } else {
-                            val basic = chatDao.getChatBasicInfo(chatId)
-                            val name = if (basic.isGroup) {
-                                basic.subject ?: contactDao.resolveContactName(basic.jid) ?: basic.jid.substringBefore("@")
-                            } else {
-                                contactDao.resolveContactName(basic.jid) ?: basic.jid.substringBefore("@")
-                            }
-                            _headerInfo.value = HeaderInfo(
-                                name = name,
-                                jid = basic.jid,
-                                isGroup = basic.isGroup,
-                                avatarPath = getAvatarPath(basic.jid)
-                            )
+                            contactDao.resolveContactName(basic.jid) ?: basic.jid.substringBefore("@")
                         }
+                        _headerInfo.value = HeaderInfo(
+                            name = name,
+                            jid = basic.jid,
+                            isGroup = basic.isGroup,
+                            avatarPath = getAvatarPath(basic.jid)
+                        )
                     }
                 }
 
