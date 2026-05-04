@@ -1,6 +1,7 @@
 package com.whatstat.reborn.ui.screen.setup
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -33,6 +34,9 @@ fun LiteSetupScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
+    // Blocca il tasto Back durante l'elaborazione
+    BackHandler(enabled = state.isLoading) { /* inert — impedisce chiusura accidentale */ }
+
     LaunchedEffect(state.isComplete) {
         if (state.isComplete) onImportComplete()
     }
@@ -55,8 +59,11 @@ fun LiteSetupScreen(
             TopAppBar(
                 title = { Text("Importa Chat ZIP") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Indietro")
+                    // Disabilita il tasto indietro durante l'elaborazione
+                    if (!state.isLoading) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Indietro")
+                        }
                     }
                 }
             )
@@ -110,9 +117,23 @@ fun LiteSetupScreen(
                 Spacer(Modifier.height(48.dp))
                 
                 if (state.isLoading) {
-                    CircularProgressIndicator()
-                    Spacer(Modifier.height(16.dp))
-                    Text("Elaborazione in corso...")
+                    val progressPercent = (state.progressPercent * 100).toInt()
+                    Text(
+                        text = if (state.progressLabel.isNotEmpty()) state.progressLabel else "Elaborazione in corso...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    LinearProgressIndicator(
+                        progress = { state.progressPercent },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "$progressPercent%",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 } else {
                     Button(
                         onClick = { zipLauncher.launch("application/zip") },

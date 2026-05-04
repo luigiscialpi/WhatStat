@@ -5,11 +5,19 @@ import com.whatstat.reborn.data.db.model.*
 import com.whatstat.reborn.data.root.FileExtractor
 import com.whatstat.reborn.domain.model.GlobalStats
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.ZoneOffset
 import javax.inject.Inject
 import javax.inject.Singleton
+
+data class LiteImportProgress(
+    val percent: Float,   // 0f..1f
+    val label: String
+)
 
 @Singleton
 class LiteModeManager @Inject constructor(
@@ -19,24 +27,31 @@ class LiteModeManager @Inject constructor(
     private val cacheRepository: LiteCacheRepository
 ) {
 
+    private val _importProgress = MutableStateFlow(LiteImportProgress(0f, ""))
+    val importProgress: StateFlow<LiteImportProgress> = _importProgress.asStateFlow()
+
     /**
      * Processa lo ZIP importato, esegue il parsing e salva in cache.
      */
     suspend fun importAndProcess(zipUri: Uri, ownerName: String): Result<ImportResult> = withContext(Dispatchers.IO) {
         runCatching {
             // 1. Estrazione ZIP
+            _importProgress.value = LiteImportProgress(0.05f, "Estrazione ZIP...")
             val folder = fileExtractor.extractFullChatFolder(zipUri).getOrThrow()
-            val txtFile = folder.listFiles()?.firstOrNull { it.extension == "txt" } 
+            val txtFile = folder.listFiles()?.firstOrNull { it.extension == "txt" }
                 ?: throw Exception("Nessun file .txt trovato nello ZIP")
 
             // 2. Parsing Testo
+            _importProgress.value = LiteImportProgress(0.20f, "Lettura messaggi...")
             val parseResult = parser.parse(txtFile, ownerName)
             val identifiedSenders = parseResult.messages.map { it.senderName }.distinct()
-            
+
             // 3. Analisi Media (passiamo i messaggi per associare file → mittente e timestamp)
+            _importProgress.value = LiteImportProgress(0.55f, "Analisi media...")
             val mediaStats = mediaManager.extractMediaFromFolder(folder, parseResult.messages)
 
             // 4. Calcolo Statistiche Globali
+            _importProgress.value = LiteImportProgress(0.80f, "Calcolo statistiche...")
             // Puliamo il prefisso standard che WhatsApp aggiunge all'esportazione ("Chat WhatsApp con ")
             val chatNameToSave = txtFile.nameWithoutExtension
                 .replace("Chat WhatsApp con ", "", ignoreCase = true)
@@ -44,6 +59,7 @@ class LiteModeManager @Inject constructor(
             val stats = calculateGlobalStats(parseResult.messages, mediaStats, chatNameToSave)
 
             // 5. Salvataggio Cache
+            _importProgress.value = LiteImportProgress(0.95f, "Salvataggio...")
             val cacheData = LiteCacheData(
                 sourceFileName = chatNameToSave,
                 lastModified = System.currentTimeMillis(),
@@ -54,7 +70,8 @@ class LiteModeManager @Inject constructor(
                 mediaStats = mediaStats
             )
             cacheRepository.saveCache(cacheData)
-            
+            _importProgress.value = LiteImportProgress(1f, "Completato")
+
             ImportResult(stats, identifiedSenders)
         }
     }
@@ -77,6 +94,32 @@ class LiteModeManager @Inject constructor(
 
     suspend fun clearCache() {
         cacheRepository.clearCache()
+    }
+
+    /**
+     * Dopo il primo import "preliminare", aggiorna solo ownerName e isCurrentUser
+     * senza rieseguire estrazione/parsing/media scan.
+     */
+    suspend fun finalizeOwnerSelection(ownerName: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            _importProgress.value = LiteImportProgress(0.96f, "Finalizzazione...")
+            val cache = cacheRepository.loadCache()
+                ?: throw Exception("Cache Lite non disponibile")
+
+            val updatedMessages = cache.messages.map { msg ->
+                msg.copy(isCurrentUser = msg.senderName == ownerName)
+            }
+
+            cacheRepository.saveCache(
+                cache.copy(
+                    ownerName = ownerName,
+                    lastModified = System.currentTimeMillis(),
+                    messages = updatedMessages
+                )
+            )
+
+            _importProgress.value = LiteImportProgress(1f, "Completato")
+        }
     }
 
     private fun calculateGlobalStats(

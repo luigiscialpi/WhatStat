@@ -98,10 +98,7 @@ fun AppNavigation(
             snapshotFlow { navController.currentBackStackEntry }
                 .filterNotNull()
                 .first()
-            
-            if (isLiteMode) {
-                mainViewModel.resetLiteMode()
-            }
+
             navController.navigate(Screen.LiteSetup.createRoute(uri)) {
                 popUpTo(0) { inclusive = true }
             }
