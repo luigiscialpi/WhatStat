@@ -21,6 +21,7 @@
 13. [Comportamenti noti e quirk del database](#13-comportamenti-noti-e-quirk-del-database)
 14. [Struttura della navigazione](#14-struttura-della-navigazione)
 15. [Roadmap](#15-roadmap)
+16. [Modalità Lite (non-root)](#16-modalità-lite-non-root)
 
 ---
 
@@ -435,3 +436,315 @@ Il `ChatDetailScreen` espone 3 card azione (Radar, Chiamate, Media) disposte in 
 ---
 
 > Se WhatsApp rilascia un aggiornamento che modifica il formato del database o i percorsi dei file, verificare i DAO in `data/db/dao/` e il `FileExtractor` in `data/root/`.
+
+---
+
+## 16. Modalità Lite (non-root)
+
+La **Modalità Lite** è l'alternativa a WhatsApp root-access che permette di analizzare una singola chat senza bisogno di permessi root. Invece di leggere il database `msgstore.db`, l'utente importa uno **ZIP di esportazione WhatsApp** (generato da WhatsApp con "Esporta chat → Includi media").
+
+Questa sezione descrive in dettaglio tutta l'architettura Lite, poiché è separata dalla pipeline Root Mode e deve essere compresa autonomamente.
+
+---
+
+### 16.1 — Panoramica del flusso dati
+
+```
+Utente tocca "Importa ZIP"
+        ↓
+LiteSetupScreen
+        ↓
+LiteSetupViewModel.onZipSelected(uri)
+        ↓  (run 1: parsing preliminare con ownerName temporaneo)
+LiteModeManager.importAndProcess(uri, "Guest")
+        ↓
+FileExtractor.extractFullChatFolder(zipUri)  →  cacheDir/lite_chat_extracted/
+        ↓
+TextChatParser.parse(txtFile, ownerName)  →  ParseResult(messages, groupEvents)
+        ↓
+LiteMediaManager.extractMediaFromFolder(folder, messages)  →  LiteMediaStats
+        ↓
+LiteModeManager.calculateGlobalStats(messages, mediaStats)  →  GlobalStats
+        ↓
+LiteCacheRepository.saveCache(LiteCacheData)  →  cacheDir/lite_chat_cache.json
+        ↓  (risposta: identifiedSenders → UI mostra il picker "Chi sei tu?")
+Utente sceglie il proprio nome dal picker
+        ↓
+LiteSetupViewModel.onSenderSelected(name)
+        ↓  (run 2: re-processing con ownerName definitivo)
+LiteModeManager.importAndProcess(uri, name)
+        ↓  (pipeline identica a sopra, sovrascrive la cache)
+analyticsRepository.setLiteMode(true)
+analyticsRepository.notifyLiteImportDone()   ← invalida DataStore + bumpa liteCacheVersion
+        ↓
+Navigazione a NavGraphRoute.Main (DashboardScreen mostra ChatDetailScreen con chatId = -1L)
+```
+
+**Nota importante**: il processing viene eseguito due volte. La prima con `ownerName = "Guest"` serve solo per estrarre l'elenco dei mittenti e presentarli all'utente. La seconda, con il nome reale scelto, è quella definitiva e sovrascrive la cache con `isCurrentUser` calcolato correttamente.
+
+---
+
+### 16.2 — Struttura dello ZIP WhatsApp
+
+WhatsApp esporta la chat come ZIP con questa struttura piatta:
+
+```
+Chat WhatsApp con Mario Rossi.zip
+├── Chat WhatsApp con Mario Rossi.txt   ← export testuale
+├── IMG-20240101-WA0001.jpg             ← media allegati
+├── VID-20240215-WA0003.mp4
+├── AUD-20240310-WA0007.opus
+├── PTT-20240401-WA0002.opus            ← messaggi vocali
+├── DOC-20240501-WA0001.pdf
+└── ...
+```
+
+Il file `.txt` contiene una riga per ogni messaggio nel formato:
+```
+DD/MM/YY, HH:MM - NomeMittente: testo del messaggio
+```
+o, per messaggi con media:
+```
+28/07/24, 16:35 - Mario Rossi: IMG-20240728-WA0003.jpg (file allegato)
+28/07/24, 16:35 - Mario Rossi: ‎<Media omesso>
+```
+
+Lo ZIP viene estratto da `FileExtractor.extractFullChatFolder()` in `cacheDir/lite_chat_extracted/` (cartella svuotata e ricreata a ogni importazione).
+
+---
+
+### 16.3 — Parsing del file di testo (`TextChatParser`)
+
+**File**: `data/lite/TextChatParser.kt`
+
+Il parser usa due regex principali:
+
+| Regex | Scopo |
+|-------|-------|
+| `headerRegex` | Riga inizio messaggio: `DD/MM/YY, HH:MM - Mittente: body` |
+| `systemEventRegex` | Evento di sistema senza due punti (es. "Mario ha lasciato il gruppo") |
+
+**Rilevamento media** (`hasMedia`): un messaggio è considerato multimediale se il `body` contiene una delle seguenti stringhe (formato italiano):
+- `"omesso"` / `"omessi"` (‎<Media omesso>)
+- `"allegato"` (file allegato)
+- `"<Media"`
+- `"PTE-"` (messaggi vocali con alcune versioni WhatsApp)
+
+**Punto critico**: il campo `content` è sempre popolato con `cleanBody` anche per i messaggi media. Questo è fondamentale per permettere a `LiteMediaManager` di recuperare il nome file (es. `IMG-20240728-WA0003.jpg`) dal testo del messaggio per associare il file fisico al mittente corretto.
+
+**Modello `ParsedMessage`**:
+```kotlin
+@Serializable
+data class ParsedMessage(
+    val timestamp: LocalDateTime,
+    val senderName: String,        // nome grezzo dall'export, es. "Mario Rossi"
+    val content: String,           // testo (o nome file per i media)
+    val isCurrentUser: Boolean,    // true se senderName == ownerName
+    val isSystemMessage: Boolean,
+    val linkCount: Int,
+    val emojiCount: Int,
+    val hasMedia: Boolean
+)
+```
+
+Il `senderName` viene ripulito dal carattere Unicode LTR Mark (`\u200E`) che WhatsApp inserisce. Il campo `isCurrentUser` è calcolato confrontando `cleanSender == ownerName`.
+
+**Righe multi-riga**: le righe che non corrispondono all'`headerRegex` vengono accodate al messaggio corrente tramite `appendToCurrent()`.
+
+---
+
+### 16.4 — Associazione media → mittente (`LiteMediaManager`)
+
+**File**: `data/lite/LiteMediaManager.kt`
+
+Questo componente scansiona tutti i file nella cartella estratta dallo ZIP e, per ciascuno, cerca il messaggio corrispondente nell'elenco dei messaggi parsati.
+
+**Algoritmo di associazione**:
+1. Per ogni `ParsedMessage`, `MEDIA_FILENAME_REGEX` viene applicata al campo `content` per trovare il nome del file media menzionato.
+2. Viene costruita una mappa `fileNameToMsgInfo: Map<String, Pair<senderName?, timestamp>>` con due chiavi per ogni match: nome completo (con estensione) e nome senza estensione.
+3. Quando si itera sui file fisici nella cartella estratta, il nome del file (con e senza estensione) viene cercato nella mappa.
+4. Se trovato: `senderName` e `timestamp` provengono dal messaggio corrispondente.
+5. Se non trovato: `senderName = null`, `timestamp = file.lastModified()` (fallback).
+
+**`MEDIA_FILENAME_REGEX`** (definita in `LiteMetricsCalculator`):
+```kotlin
+Regex("(?:IMG|VID|AUD|PTT|DOC)-\\d{8}-WA\\d{4,}(?:\\.[a-z0-9]+)?", RegexOption.IGNORE_CASE)
+```
+
+**Classificazione tipo media**:
+
+| Estensione file | Tipo |
+|-----------------|------|
+| `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` | `IMAGE` |
+| `.mp4`, `.3gp`, `.mkv`, `.avi`, `.mov` | `VIDEO` |
+| `.opus`, `.mp3`, `.aac`, `.m4a`, `.ogg` | `AUDIO` |
+| altro | `DOCUMENT` |
+
+**Nota sticker**: gli sticker esportati hanno estensione `.webp` e vengono classificati come `IMAGE`. In `GlobalStats.topStickers` vengono inseriti i file `.webp`, ma il conteggio per sticker è sempre 1 (non tiene conto delle ripetizioni tra import diversi).
+
+**Modello `LiteMediaItem`**:
+```kotlin
+@Serializable
+data class LiteMediaItem(
+    val fileName: String,
+    val relativePath: String,
+    val type: String,          // "IMAGE", "VIDEO", "AUDIO", "DOCUMENT"
+    val timestamp: Long,       // epoch millis dal messaggio (o da file.lastModified se non trovato)
+    val senderName: String?    // null se non associabile a un messaggio
+)
+```
+
+---
+
+### 16.5 — Cache Lite (`LiteCacheRepository`)
+
+**File**: `data/lite/LiteCacheRepository.kt`
+
+La cache è un singolo file JSON in `context.cacheDir/lite_chat_cache.json`, serializzato con `kotlinx.serialization`.
+
+**Modello `LiteCacheData`**:
+```kotlin
+@Serializable
+data class LiteCacheData(
+    val sourceFileName: String,       // nome chat (es. "Mario Rossi") senza prefisso WhatsApp
+    val lastModified: Long,           // timestamp dell'importazione
+    val totalLines: Int,              // numero di messaggi
+    val ownerName: String,            // nome scelto dall'utente (es. "Luca") → visualizzato come "Tu"
+    val globalStats: GlobalStats,     // statistiche aggregate calcolate all'import
+    val messages: List<ParsedMessage>,// tutti i messaggi, necessari per i filtri temporali
+    val mediaStats: LiteMediaStats?   // null se nessun media nello ZIP
+)
+```
+
+**Operazioni**:
+- `saveCache(data)` — serializza e scrive il file; sovrascrive senza controllo versione
+- `loadCache()` — deserializza il file; ritorna `null` se non esiste o in caso di errore di parsing
+- `clearCache()` — elimina il file fisico
+
+---
+
+### 16.6 — Coordinatore (`LiteModeManager`)
+
+**File**: `data/lite/LiteModeManager.kt`
+
+Singleton Hilt che orchestra l'intero flusso di importazione. Metodi principali:
+
+| Metodo | Descrizione |
+|--------|-------------|
+| `importAndProcess(zipUri, ownerName)` | Pipeline completa: estrazione → parsing → media → stats → cache |
+| `getCachedStats()` | Ritorna `GlobalStats` dalla cache (o `null`) |
+| `getOwnerName()` | Ritorna `ownerName` dalla cache — usato per la mappatura "Tu" |
+| `getCachedMessages()` | Ritorna la lista completa di `ParsedMessage` dalla cache |
+| `getCachedMedia()` | Ritorna `LiteMediaStats` dalla cache |
+| `clearCache()` | Delega a `LiteCacheRepository.clearCache()` |
+
+Il calcolo delle `GlobalStats` avviene interamente in memoria in `calculateGlobalStats()`: distribuzione oraria, settimanale, mensile, annuale, top 50 parole (> 3 lettere, dopo pulizia LTR), top 50 emoji, sticker `.webp`.
+
+---
+
+### 16.7 — Integrazione in `AnalyticsRepository`
+
+**File**: `data/repository/AnalyticsRepository.kt`
+
+`AnalyticsRepository` è il punto di integrazione tra Root Mode e Lite Mode. Ogni metodo pubblico ha un branch `if (isLiteMode.value)` che reindirizza la logica alla cache Lite invece che al database.
+
+**Flag di stato**:
+```kotlin
+private val _isLiteMode = MutableStateFlow(false)
+val isLiteMode: StateFlow<Boolean>
+
+private val _liteCacheVersion = MutableStateFlow(0L)
+val liteCacheVersion: StateFlow<Long>   // bumped a ogni import, ascoltato dai ViewModel
+```
+
+**Helper centrale**:
+```kotlin
+private suspend fun filteredLiteMessages(
+    startTime: Long?, endTime: Long?, jid: String? = null
+): List<ParsedMessage>
+```
+Filtra i messaggi cached per intervallo temporale e, opzionalmente, per mittente. Il `jid` passato dalla Root Mode (es. `"me@s.whatsapp.net"`) non esiste in Lite Mode: la distinzione usa invece `msg.isCurrentUser` (per il mittente corrente) o `msg.senderName == jid` per gli altri.
+
+**Metodi chiave con branch Lite**:
+
+| Metodo | Comportamento Lite |
+|--------|--------------------|
+| `getQuickGlobalStats(chatId, startTime, endTime)` | Per intervalli non-ALL_TIME: ricalcola da `filteredLiteMessages` invece di ritornare la cache grezza |
+| `getMediaFiles(chatId, jid, startTime, endTime)` | Filtra `LiteMediaItem` per `senderName == jid` (o `senderName == null` per il mittente corrente) |
+| `getLinkStats(chatId, jid, startTime, endTime)` | Usa `filteredLiteMessages`; mappa `ownerName → "Tu"` |
+| `getTopEmojis(chatId, startTime, endTime, limit)` | Usa `filteredLiteMessages` |
+| `getEmojiStatsBySender(chatId, startTime, endTime)` | Usa `filteredLiteMessages`; mappa `ownerName → "Tu"` |
+| `getWordSuggestions(chatId, prefix)` | Scansiona in-memory i messaggi cached cercando parole che iniziano con `prefix` |
+
+**Mappatura `ownerName → "Tu"**: ogni metodo che restituisce breakdown per mittente deve confrontare il `senderName` con `liteModeManager.getOwnerName()` e sostituirlo con `"Tu"` prima di restituire i dati alla UI.
+
+**Invalidazione cache**:
+```kotlin
+fun notifyLiteImportDone() {
+    _liteCacheVersion.value = System.currentTimeMillis()
+    CoroutineScope(Dispatchers.IO).launch { cacheManager.clearCache() }  // svuota DataStore
+}
+
+fun resetLiteMode() {
+    _isLiteMode.value = false           // sincrono — SetupViewModel lo legge subito
+    CoroutineScope(Dispatchers.IO).launch { liteModeManager.clearCache() }
+}
+```
+
+---
+
+### 16.8 — Invalidazione e ricarica dei ViewModel
+
+Quando viene importato un nuovo ZIP, `notifyLiteImportDone()` bumpa `liteCacheVersion`. Ogni ViewModel che consuma dati Lite osserva questa `StateFlow` nel proprio `init` block e reagisce:
+
+| ViewModel | Reazione al bump di `liteCacheVersion` |
+|-----------|----------------------------------------|
+| `ChatDetailViewModel` | Chiama `loadChatStats()` direttamente (skippa la prima emissione per evitare doppio carico) |
+| `MediaStatsViewModel` | Resetta `initialized = false` e chiama subito `loadStats()` |
+| `WordSearchViewModel` | Resetta `initialized = false` (la `LaunchedEffect` richiamerà `initialize()` alla prossima navigazione) |
+
+---
+
+### 16.9 — Navigazione in Lite Mode
+
+**File**: `ui/navigation/AppNavigation.kt`, `ui/screen/dashboard/DashboardScreen.kt`
+
+- **Dopo l'import**: `LiteSetupViewModel` imposta `isComplete = true` → la navigazione usa `popUpTo(0) { inclusive = true }` per svuotare tutto il back stack e portare a `NavGraphRoute.Main`.
+- **Dashboard in Lite Mode**: `DashboardScreen` rileva `isLiteMode == true` e renderizza direttamente `ChatDetailScreen` con `chatId = -1L` (sentinella per Lite). Non mostra la lista chat.
+- **Tasto back dal Dashboard**: `BackHandler` chiama `onNavigateBack()` → `mainViewModel.resetLiteMode()` (imposta `_isLiteMode = false` + cancella cache) → naviga a Setup con `popUpTo(0) { inclusive = true }`.
+- **`SetupViewModel` all'avvio**: controlla `analyticsRepository.isLiteMode.value && liteModeManager.getCachedStats() != null`. Poiché `resetLiteMode()` ha già impostato `_isLiteMode = false` in modo sincrono, questa condizione è `false` e non scatta l'auto-navigazione al Main, evitando il loop.
+
+---
+
+### 16.10 — Limitazioni rispetto alla Root Mode
+
+| Funzionalità | Root Mode | Lite Mode |
+|--------------|-----------|-----------|
+| Numero di chat analizzabili | Tutte | Solo 1 per import |
+| Risoluzione nomi contatti | Sì (da `contacts.db`) | No (nome grezzo dell'export) |
+| Query al database SQLite | Sì | No (tutto in-memory) |
+| Filtro media per mittente | Esatto (jid) | Euristico (basato su filename-match) |
+| Timestamp media | Esatto (db) | Derivato dal messaggio; fallback a `file.lastModified()` |
+| Sticker (conteggio ripetizioni) | Sì | No (sempre 1 per item) |
+| Chiamate | Sì | No (nessun dato nel `.txt`) |
+| `isCurrentUser` per "me@s.whatsapp.net" | Sì | No — usa `ownerName` scelto dall'utente |
+| Supporto emoji con skin tone | Sì | Sì (via `LiteMetricsCalculator.stripSkinTone()`) |
+| Supporto lingue export | Italiano | Solo italiano (keyword `"omesso"`, `"allegato"`, ecc.) |
+
+---
+
+### 16.11 — File coinvolti (riepilogo)
+
+| File | Ruolo |
+|------|-------|
+| `data/lite/TextChatParser.kt` | Parsing del file `.txt` WhatsApp |
+| `data/lite/LiteMediaManager.kt` | Scansione media e associazione file → mittente |
+| `data/lite/LiteMetricsCalculator.kt` | Helper per metriche (emoji, parole, `MEDIA_FILENAME_REGEX`) |
+| `data/lite/LiteCacheRepository.kt` | Serializzazione JSON della cache su disco |
+| `data/lite/LiteModeManager.kt` | Coordinatore del flusso di importazione |
+| `data/root/FileExtractor.kt` | Estrazione ZIP (condiviso con Root) |
+| `data/repository/AnalyticsRepository.kt` | Branch Lite in ogni metodo dati pubblico |
+| `ui/screen/setup/LiteSetupScreen.kt` | UI onboarding Lite |
+| `ui/screen/setup/LiteSetupViewModel.kt` | Logica onboarding (double-processing) |
+| `ui/screen/dashboard/DashboardScreen.kt` | Renderizza `ChatDetailScreen` con `chatId = -1L` |
+| `ui/navigation/AppNavigation.kt` | Navigazione post-import e back-to-setup |

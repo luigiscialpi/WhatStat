@@ -3,7 +3,10 @@ package com.whatstat.reborn.ui.navigation
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -13,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import android.net.Uri
 import com.whatstat.reborn.data.repository.WhatsAppRepository
 import com.whatstat.reborn.ui.screen.calls.CallsStatsScreen
 import com.whatstat.reborn.ui.screen.chatdetail.ChatDetailScreen
@@ -25,12 +29,23 @@ import com.whatstat.reborn.ui.screen.setup.LiteSetupScreen
 import com.whatstat.reborn.ui.screen.wordsearch.WordSearchScreen
 import com.whatstat.reborn.ui.screen.history.GroupHistoryScreen
 import com.whatstat.reborn.ui.MainViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.delay
 
 sealed class Screen(val route: String) {
     data object Setup : Screen("setup")
-    data object LiteSetup : Screen("lite_setup")
+    data object LiteSetup : Screen("lite_setup") {
+        fun createRoute(zipUri: String? = null): String {
+            return if (zipUri != null) {
+                "lite_setup?zipUri=${Uri.encode(zipUri)}"
+            } else {
+                route
+            }
+        }
+    }
     data object Dashboard : Screen("dashboard")
     data object ChatList : Screen("chat_list")
 
@@ -68,13 +83,31 @@ object NavGraphRoute {
 @Composable
 fun AppNavigation(
     navController: NavHostController,
-    repository: WhatsAppRepository
+    repository: WhatsAppRepository,
+    mainViewModel: MainViewModel
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     
-    val mainViewModel: MainViewModel = hiltViewModel()
     val isLiteMode by mainViewModel.isLiteMode.collectAsState()
+    val incomingZipUri by mainViewModel.incomingZipUri.collectAsState()
+
+    LaunchedEffect(incomingZipUri, navController) {
+        incomingZipUri?.let { uri ->
+            // Attendi che il NavHost sia completamente inizializzato
+            snapshotFlow { navController.currentBackStackEntry }
+                .filterNotNull()
+                .first()
+            
+            if (isLiteMode) {
+                mainViewModel.resetLiteMode()
+            }
+            navController.navigate(Screen.LiteSetup.createRoute(uri)) {
+                popUpTo(0) { inclusive = true }
+            }
+            mainViewModel.setIncomingZipUri(null)
+        }
+    }
 
     AppScaffold(
         navController = navController,
@@ -110,8 +143,21 @@ private fun NavGraphBuilder.setupGraph(navController: NavHostController) {
                 }
             )
         }
-        composable(Screen.LiteSetup.route) {
+        composable(
+            route = "lite_setup?zipUri={zipUri}",
+            arguments = listOf(
+                navArgument("zipUri") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val zipUri = backStackEntry.arguments?.getString("zipUri")?.let { 
+                Uri.decode(it) 
+            }
             LiteSetupScreen(
+                incomingZipUri = zipUri,
                 onNavigateBack = { navController.popBackStack() },
                 onImportComplete = {
                     navController.navigate(NavGraphRoute.Main) {
@@ -139,8 +185,6 @@ private fun NavGraphBuilder.mainGraph(
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
                     onNavigateBack = {
-                        // In LiteMode, resetLiteMode() azzera il flag _isLiteMode PRIMA di navigare,
-                        // così SetupViewModel non trova un flag "attivo" e non auto-naviga di nuovo.
                         onResetLite()
                         repository.resetState()
                         navController.navigate(Screen.Setup.route) {

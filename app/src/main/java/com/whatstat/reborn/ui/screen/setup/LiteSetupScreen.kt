@@ -1,5 +1,6 @@
 package com.whatstat.reborn.ui.screen.setup
 
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -25,6 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LiteSetupScreen(
+    incomingZipUri: String?,
     viewModel: LiteSetupViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onImportComplete: () -> Unit
@@ -33,6 +35,13 @@ fun LiteSetupScreen(
 
     LaunchedEffect(state.isComplete) {
         if (state.isComplete) onImportComplete()
+    }
+
+    // Se arriva un URI dall'intent, avvia automaticamente l'import
+    LaunchedEffect(incomingZipUri) {
+        incomingZipUri?.let { uriString ->
+            viewModel.onZipSelected(Uri.parse(uriString))
+        }
     }
 
     val zipLauncher = rememberLauncherForActivityResult(
