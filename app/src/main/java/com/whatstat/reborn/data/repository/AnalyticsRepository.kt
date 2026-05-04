@@ -44,7 +44,6 @@ class AnalyticsRepository @Inject constructor(
     private val chatDao: ChatDao,
     private val contactDao: ContactDao,
     private val cacheManager: CacheManager,
-    private val liteModeManager: com.whatstat.reborn.data.lite.LiteModeManager,
     private val liteDatabase: com.whatstat.reborn.data.lite.LiteDatabase,
     private val activeDatabaseProvider: com.whatstat.reborn.data.db.ActiveDatabaseProvider
 ) {
@@ -78,7 +77,7 @@ class AnalyticsRepository @Inject constructor(
     fun resetLiteMode() {
         setLiteMode(false)
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-            liteModeManager.clearCache()
+            liteDatabase.deleteAll()
         }
     }
 

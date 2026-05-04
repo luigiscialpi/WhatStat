@@ -4,33 +4,10 @@ import java.io.File
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
 
-object LocalDateTimeSerializer : KSerializer<LocalDateTime> {
-    private val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
-
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("LocalDateTime", PrimitiveKind.STRING)
-
-    override fun serialize(encoder: Encoder, value: LocalDateTime) {
-        encoder.encodeString(value.format(formatter))
-    }
-
-    override fun deserialize(decoder: Decoder): LocalDateTime {
-        return LocalDateTime.parse(decoder.decodeString(), formatter)
-    }
-}
-
-@Serializable
 data class ParsedMessage(
-    @Serializable(with = LocalDateTimeSerializer::class)
     val timestamp: LocalDateTime,
     val senderName: String,
     val content: String,

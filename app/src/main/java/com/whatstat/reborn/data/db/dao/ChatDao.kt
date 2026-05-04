@@ -24,12 +24,6 @@ class ChatDao @Inject constructor(
         return cursor.use { if (it.moveToFirst()) it.getInt(0) else 0 }
     }
 
-    /** Ritorna l'ID della prima chat trovata (usato in Lite mode). */
-    fun getFirstChatId(): Long {
-        val cursor = database.getMsgDb().rawQuery("SELECT _id FROM chat LIMIT 1", null)
-        return cursor.use { if (it.moveToFirst()) it.getLong(0) else -1L }
-    }
-
     /** Ritorna le info base di una chat. */
     fun getChatBasicInfo(chatId: Long): ChatBasicInfo {
         val query = """
