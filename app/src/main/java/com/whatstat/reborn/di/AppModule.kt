@@ -4,6 +4,8 @@ import android.content.Context
 import com.whatstat.reborn.data.cache.CacheManager
 import com.whatstat.reborn.data.crypto.Crypt14Decryptor
 import com.whatstat.reborn.data.crypto.KeyReader
+import com.whatstat.reborn.data.db.ActiveDatabaseProvider
+import com.whatstat.reborn.data.db.DatabaseProvider
 import com.whatstat.reborn.data.db.WhatsAppDatabase
 import com.whatstat.reborn.data.db.dao.ChatDao
 import com.whatstat.reborn.data.db.dao.ContactDao
@@ -12,6 +14,7 @@ import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.repository.WhatsAppRepository
 import com.whatstat.reborn.data.root.FileExtractor
 import com.whatstat.reborn.data.root.RootManager
+import com.whatstat.reborn.data.lite.LiteDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,20 +34,27 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideActiveDatabaseProvider(
+        whatsAppDatabase: WhatsAppDatabase,
+        liteDatabase: LiteDatabase
+    ): ActiveDatabaseProvider = ActiveDatabaseProvider(whatsAppDatabase, liteDatabase)
+
+    @Provides
+    @Singleton
     fun provideMessageDao(
-        database: WhatsAppDatabase
+        database: ActiveDatabaseProvider
     ): MessageDao = MessageDao(database)
 
     @Provides
     @Singleton
     fun provideChatDao(
-        database: WhatsAppDatabase
+        database: ActiveDatabaseProvider
     ): ChatDao = ChatDao(database)
 
     @Provides
     @Singleton
     fun provideContactDao(
-        database: WhatsAppDatabase
+        database: ActiveDatabaseProvider
     ): ContactDao = ContactDao(database)
 
     @Provides
@@ -54,6 +64,7 @@ object AppModule {
         chatDao: ChatDao,
         contactDao: ContactDao,
         cacheManager: CacheManager,
-        liteModeManager: com.whatstat.reborn.data.lite.LiteModeManager
-    ): AnalyticsRepository = AnalyticsRepository(messageDao, chatDao, contactDao, cacheManager, liteModeManager)
+        liteModeManager: com.whatstat.reborn.data.lite.LiteModeManager,
+        activeDatabaseProvider: ActiveDatabaseProvider
+    ): AnalyticsRepository = AnalyticsRepository(messageDao, chatDao, contactDao, cacheManager, liteModeManager, activeDatabaseProvider)
 }

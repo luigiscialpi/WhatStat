@@ -20,7 +20,7 @@ import javax.inject.Singleton
 @Singleton
 class WhatsAppDatabase @Inject constructor(
     @ApplicationContext private val context: Context
-) {
+) : DatabaseProvider {
     private var msgDb: SQLiteDatabase? = null
     private var waDb: SQLiteDatabase? = null
 
@@ -102,18 +102,18 @@ class WhatsAppDatabase @Inject constructor(
      * Ritorna il database messaggi (msgstore.db).
      * @throws IllegalStateException se il database non è stato aperto
      */
-    fun getMsgDb(): SQLiteDatabase = msgDb
+    override fun getMsgDb(): SQLiteDatabase = msgDb
         ?: throw IllegalStateException("Database msgstore.db non aperto. Chiama open() prima.")
 
     /**
      * Ritorna il database contatti (wa.db).
      * @throws IllegalStateException se il database non è stato aperto
      */
-    fun getWaDb(): SQLiteDatabase = waDb
+    override fun getWaDb(): SQLiteDatabase = waDb
         ?: throw IllegalStateException("Database wa.db non aperto. Chiama open() prima.")
 
     /**
      * Verifica se i database sono aperti e accessibili.
      */
-    fun isOpen(): Boolean = msgDb?.isOpen == true && waDb?.isOpen == true
+    override fun isOpen(): Boolean = msgDb?.isOpen == true && waDb?.isOpen == true
 }

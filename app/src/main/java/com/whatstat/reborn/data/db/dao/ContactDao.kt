@@ -1,6 +1,7 @@
 package com.whatstat.reborn.data.db.dao
 
-import com.whatstat.reborn.data.db.WhatsAppDatabase
+import android.database.Cursor
+import com.whatstat.reborn.data.db.DatabaseProvider
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,7 +14,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class ContactDao @Inject constructor(
-    private val database: WhatsAppDatabase
+    private val database: DatabaseProvider
 ) {
 
     /** Conta i contatti nel database wa.db. */

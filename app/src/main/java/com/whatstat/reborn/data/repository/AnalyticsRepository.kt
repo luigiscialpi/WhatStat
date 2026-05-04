@@ -44,7 +44,8 @@ class AnalyticsRepository @Inject constructor(
     private val chatDao: ChatDao,
     private val contactDao: ContactDao,
     private val cacheManager: CacheManager,
-    private val liteModeManager: com.whatstat.reborn.data.lite.LiteModeManager
+    private val liteModeManager: com.whatstat.reborn.data.lite.LiteModeManager,
+    private val activeDatabaseProvider: com.whatstat.reborn.data.db.ActiveDatabaseProvider
 ) {
     private val _isLiteMode = kotlinx.coroutines.flow.MutableStateFlow(false)
     val isLiteMode: kotlinx.coroutines.flow.StateFlow<Boolean> = _isLiteMode.asStateFlow()
@@ -55,6 +56,7 @@ class AnalyticsRepository @Inject constructor(
 
     fun setLiteMode(enabled: Boolean) {
         _isLiteMode.value = enabled
+        activeDatabaseProvider.isLiteMode = enabled
     }
 
     /** Chiamato dopo ogni importazione riuscita: aggiorna il version stamp e invalida la cache. */
@@ -72,6 +74,7 @@ class AnalyticsRepository @Inject constructor(
      */
     fun resetLiteMode() {
         _isLiteMode.value = false
+        activeDatabaseProvider.isLiteMode = false
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
             liteModeManager.clearCache()
         }
