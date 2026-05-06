@@ -1,6 +1,7 @@
 package com.whatstat.reborn.data.db.dao
 
 import android.database.Cursor
+import com.whatstat.reborn.data.db.ActiveDatabaseProvider
 import com.whatstat.reborn.data.db.DatabaseProvider
 import com.whatstat.reborn.data.db.model.ChatBasicInfo
 import com.whatstat.reborn.data.db.model.ChatListItem
@@ -81,7 +82,11 @@ class ChatDao @Inject constructor(
      * Include il nome visualizzato (da jid.user, chat.subject, o wa.db).
      */
     fun getChatList(): List<ChatListItem> {
-        val query = """
+        val isLite = database is ActiveDatabaseProvider && (database as ActiveDatabaseProvider).isLiteMode
+        // import_timestamp esiste solo nel DB Lite — usare due query distinte evita
+        // "no such column" su Root che farebbe restituire lista vuota.
+        val query = if (isLite) {
+            """
             SELECT
                 c._id AS chat_id,
                 j.raw_string AS jid,
@@ -97,7 +102,26 @@ class ChatDao @Inject constructor(
             GROUP BY c._id
             HAVING total_messages > 0
             ORDER BY total_messages DESC
-        """.trimIndent()
+            """.trimIndent()
+        } else {
+            """
+            SELECT
+                c._id AS chat_id,
+                j.raw_string AS jid,
+                COALESCE(c.subject, j.raw_string) AS display_name,
+                CASE WHEN c.group_type = 1 OR j.server = 'g.us' THEN 1 ELSE 0 END AS is_group,
+                COUNT(m._id) AS total_messages,
+                MAX(m.timestamp) AS last_message_ts,
+                NULL AS import_ts
+            FROM chat c
+            JOIN jid j ON c.jid_row_id = j._id
+            LEFT JOIN message m ON m.chat_row_id = c._id AND m.message_type NOT IN (7, 15, 90)
+            WHERE (c.hidden = 0 OR c.hidden IS NULL)
+            GROUP BY c._id
+            HAVING total_messages > 0
+            ORDER BY total_messages DESC
+            """.trimIndent()
+        }
 
         val cursor = database.getMsgDb().rawQuery(query, null)
         return cursor.use {
