@@ -31,6 +31,8 @@ class DashboardViewModel @Inject constructor(
     private val _globalStats = MutableStateFlow<GlobalStats?>(null)
     val globalStats: StateFlow<GlobalStats?> = _globalStats.asStateFlow()
 
+    val isLiteMode = analyticsRepository.isLiteMode
+
     private val _hourlyData = MutableStateFlow<List<HourlyCount>>(emptyList())
     val hourlyData: StateFlow<List<HourlyCount>> = _hourlyData.asStateFlow()
 
@@ -70,7 +72,7 @@ class DashboardViewModel @Inject constructor(
     private val _slowStatsRequested = MutableStateFlow(false)
     val slowStatsRequested: StateFlow<Boolean> = _slowStatsRequested.asStateFlow()
 
-    private val _selectedLimit = MutableStateFlow(30)
+    private val _selectedLimit = MutableStateFlow(if (analyticsRepository.isLiteMode.value) 30 else 20)
     val selectedLimit: StateFlow<Int> = _selectedLimit.asStateFlow()
 
     private var loadJob: Job? = null

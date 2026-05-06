@@ -112,6 +112,8 @@ fun DashboardScreen(
     val isLoadingSlow by viewModel.isLoadingSlow.collectAsState()
     val progressSlow by viewModel.loadingProgressSlow.collectAsState()
     val error by viewModel.error.collectAsState()
+    val isLiteMode by viewModel.isLiteMode.collectAsState()
+    
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
 
@@ -379,7 +381,8 @@ fun DashboardScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    listOf(10, 20, 30, 50).forEach { limit ->
+                                    val limits = if (isLiteMode) listOf(10, 20, 30, 50) else listOf(5, 10, 20)
+                                    limits.forEach { limit ->
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(6.dp))

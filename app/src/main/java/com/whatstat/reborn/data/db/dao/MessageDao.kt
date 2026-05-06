@@ -160,7 +160,7 @@ class MessageDao @Inject constructor(
         return cursor.use { parseHourlyCount(it) }
     }
 
-    fun getGlobalTopEmojis(startTime: Long? = null, endTime: Long? = null, limit: Int = 30): List<EmojiStat> {
+    fun getGlobalTopEmojis(startTime: Long? = null, endTime: Long? = null, limit: Int = 20): List<EmojiStat> {
         val queryBuilder = StringBuilder("""
             SELECT text_data FROM message WHERE message_type = 0 AND text_data IS NOT NULL
         """.trimIndent())
@@ -192,8 +192,8 @@ class MessageDao @Inject constructor(
     fun getGlobalWordsAndEmojis(
         startTime: Long? = null,
         endTime: Long? = null,
-        wordsLimit: Int = 30,
-        emojisLimit: Int = 30
+        wordsLimit: Int = 20,
+        emojisLimit: Int = 20
     ): Pair<List<WordFrequency>, List<EmojiStat>> {
         val queryBuilder = StringBuilder("""
             SELECT text_data FROM message WHERE message_type = 0 AND text_data IS NOT NULL
@@ -434,7 +434,7 @@ class MessageDao @Inject constructor(
      * Parole più frequenti in una chat (esclude stop words italiane e inglesi).
      * Supporta filtro temporale opzionale.
      */
-    fun getTopWords(chatId: Long, jid: String? = null, startTime: Long? = null, endTime: Long? = null, limit: Int = 50): List<WordFrequency> {
+    fun getTopWords(chatId: Long, jid: String? = null, startTime: Long? = null, endTime: Long? = null, limit: Int = 20): List<WordFrequency> {
         val conditions = mutableListOf<String>()
         val args = mutableListOf<String>()
         
@@ -486,7 +486,7 @@ class MessageDao @Inject constructor(
         return countWords(texts, limit)
     }
 
-    fun getTopEmojis(chatId: Long, jid: String? = null, startTime: Long? = null, endTime: Long? = null, limit: Int = 50): List<EmojiStat> {
+    fun getTopEmojis(chatId: Long, jid: String? = null, startTime: Long? = null, endTime: Long? = null, limit: Int = 20): List<EmojiStat> {
         val conditions = mutableListOf<String>()
         val args = mutableListOf<String>()
         
@@ -543,8 +543,8 @@ class MessageDao @Inject constructor(
         jid: String? = null,
         startTime: Long? = null,
         endTime: Long? = null,
-        wordsLimit: Int = 30,
-        emojisLimit: Int = 30
+        wordsLimit: Int = 20,
+        emojisLimit: Int = 20
     ): Pair<List<WordFrequency>, List<EmojiStat>> {
         val conditions = mutableListOf<String>()
         val args = mutableListOf<String>()
@@ -1250,7 +1250,8 @@ class MessageDao @Inject constructor(
         isCaseSensitive: Boolean = false,
         isExactMatch: Boolean = false,
         onlyQuestions: Boolean = false,
-        multiWordMode: Int = 0 // 0=OFF, 1=AND, 2=OR
+        multiWordMode: Int = 0,
+        limit: Int = 20
     ): List<com.whatstat.reborn.data.db.model.WordSearchResult> {
         val isMulti = multiWordMode != 0
         val terms = if (isMulti) {
@@ -1380,7 +1381,7 @@ class MessageDao @Inject constructor(
         
         return counts.entries
             .sortedByDescending { it.value }
-            .take(50)
+            .take(limit)
             .map { (sender, count) ->
                 com.whatstat.reborn.data.db.model.WordSearchResult(
                     jid = sender.jid,
@@ -1531,7 +1532,7 @@ class MessageDao @Inject constructor(
      * Supporta filtro per jid (chat) e temporale opzionale.
      * Per una chat specifica, splitta per from_me (Tu vs Altro).
      */
-    fun getCallStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.CallStat> {
+    fun getCallStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null, limit: Int = 20): List<com.whatstat.reborn.data.db.model.CallStat> {
         val conditions = mutableListOf<String>()
         val args = mutableListOf<String>()
         
@@ -1595,7 +1596,7 @@ class MessageDao @Inject constructor(
                 $whereClause
                 GROUP BY cl.jid_row_id
                 ORDER BY total_calls DESC
-                LIMIT 50
+                LIMIT $limit
             """.trimIndent()
             val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
             return cursor.use { parseCallStats(it) }
@@ -1611,7 +1612,7 @@ class MessageDao @Inject constructor(
      * Estrazione statistiche link E media.
      * Raggruppa per chat - mostra link e media per ogni conversazione.
      */
-    fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> {
+    fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null, limit: Int = 20): List<com.whatstat.reborn.data.db.model.LinkStat> {
         val conditions = mutableListOf<String>("m.message_type != 7")
         val args = mutableListOf<String>()
         
@@ -1647,7 +1648,7 @@ class MessageDao @Inject constructor(
             GROUP BY j.raw_string
             HAVING total_links > 0 OR media_count > 0
             ORDER BY (total_links + media_count) DESC
-            LIMIT 50
+            LIMIT $limit
         """.trimIndent()
         
         val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())

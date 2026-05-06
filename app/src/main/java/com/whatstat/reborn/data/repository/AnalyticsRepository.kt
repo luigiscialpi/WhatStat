@@ -240,11 +240,12 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             val (wordFreqs, emojiFreqs) = buildOrUpdateGlobalWordIndex(currentMsgCount)
             onProgress(80)
 
-            val topWords  = wordFreqs.entries.sortedByDescending  { it.value }.take(50).map { WordFrequency(it.key, it.value) }
-            val topEmojis = emojiFreqs.entries.sortedByDescending { it.value }.take(50).map { EmojiStat(it.key, it.value) }
+            val limit = if (activeDatabaseProvider.isLiteMode) 50 else 20
+            val topWords  = wordFreqs.entries.sortedByDescending  { it.value }.take(limit).map { WordFrequency(it.key, it.value) }
+            val topEmojis = emojiFreqs.entries.sortedByDescending { it.value }.take(limit).map { EmojiStat(it.key, it.value) }
 
             val topStickers = try {
-                messageDao.getTopStickers(chatId = -1L, jid = null, startTime = null, endTime = null, limit = 50, globalQuery = true)
+                messageDao.getTopStickers(chatId = -1L, jid = null, startTime = null, endTime = null, limit = limit, globalQuery = true)
             } catch (e: Exception) {
                 android.util.Log.w("WhatStat", "getGlobalTopStickers failed: ${e.message}")
                 emptyList()
@@ -281,9 +282,9 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 topWords  = mw
                 topEmojis = me
             } else {
-                // Fallback SQL
+                val limit = if (activeDatabaseProvider.isLiteMode) 50 else 20
                 val (tw, te) = try {
-                    messageDao.getGlobalWordsAndEmojis(startTime, endTime, 50, 50)
+                    messageDao.getGlobalWordsAndEmojis(startTime, endTime, limit, limit)
                 } catch (e: Exception) {
                     android.util.Log.w("WhatStat", "getGlobalWordsAndEmojis failed: ${e.message}")
                     Pair(emptyList(), emptyList())
@@ -294,7 +295,8 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             onProgress(80)
 
             val topStickers = try {
-                messageDao.getTopStickers(chatId = -1L, jid = null, startTime = startTime, endTime = endTime, limit = 50, globalQuery = true)
+                val stickLimit = if (activeDatabaseProvider.isLiteMode) 50 else 20
+                messageDao.getTopStickers(chatId = -1L, jid = null, startTime = startTime, endTime = endTime, limit = stickLimit, globalQuery = true)
             } catch (e: Exception) {
                 android.util.Log.w("WhatStat", "getGlobalTopStickers failed: ${e.message}")
                 emptyList()
@@ -435,17 +437,20 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 dWordsAndEmojis = async {
                     val count = messageDao.getChatTextMessageCount(chatId)
                     val (wf, ef) = buildOrUpdateChatWordIndex(chatId, count)
-                    val words  = wf.entries.sortedByDescending { it.value }.take(50).map { WordFrequency(it.key, it.value) }
-                    val emojis = ef.entries.sortedByDescending { it.value }.take(50).map { EmojiStat(it.key, it.value) }
+                    val limit = if (activeDatabaseProvider.isLiteMode) 50 else 20
+                    val words  = wf.entries.sortedByDescending { it.value }.take(limit).map { WordFrequency(it.key, it.value) }
+                    val emojis = ef.entries.sortedByDescending { it.value }.take(limit).map { EmojiStat(it.key, it.value) }
                     words to emojis
                 }
             } else {
                 dWordsAndEmojis = async {
-                    messageDao.getWordsAndEmojis(chatId = chatId, startTime = startTime, endTime = endTime, wordsLimit = 50, emojisLimit = 50)
+                    val limit = if (activeDatabaseProvider.isLiteMode) 50 else 20
+                    messageDao.getWordsAndEmojis(chatId = chatId, startTime = startTime, endTime = endTime, wordsLimit = limit, emojisLimit = limit)
                 }
             }
 
-            val dStickers   = async { messageDao.getTopStickers(chatId, null, startTime, endTime, 50) }
+            val stickLimit = if (activeDatabaseProvider.isLiteMode) 50 else 20
+            val dStickers   = async { messageDao.getTopStickers(chatId, null, startTime, endTime, stickLimit) }
             val dStarters   = async { messageDao.getConversationStarters(chatId) }
             val dAvgResp    = async { messageDao.getAverageResponseTime(chatId) }
             val dSenders    = async { messageDao.getMessageCountBySender(chatId, startTime, endTime) }
@@ -603,7 +608,8 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         multiWordMode: Int = 0
     ): List<WordSearchResult> = withContext(Dispatchers.IO) {
 
-        val results = messageDao.searchWordFrequency(word, chatId, startTime, endTime, isCaseSensitive, isExactMatch, onlyQuestions, multiWordMode)
+        val limit = if (activeDatabaseProvider.isLiteMode) 50 else 20
+        val results = messageDao.searchWordFrequency(word, chatId, startTime, endTime, isCaseSensitive, isExactMatch, onlyQuestions, multiWordMode, limit)
         if (results.isEmpty()) return@withContext emptyList()
         
         val jids = results.map { it.jid }
@@ -670,7 +676,8 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         }
     }
     suspend fun getCallStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<CallStat> = withContext(Dispatchers.IO) {
-        val callStats = messageDao.getCallStats(chatId, startTime, endTime)
+        val limit = if (activeDatabaseProvider.isLiteMode) 50 else 20
+        val callStats = messageDao.getCallStats(chatId, startTime, endTime, limit)
         if (callStats.isEmpty()) return@withContext emptyList()
         
         val jids = callStats.map { it.jid }
@@ -687,7 +694,8 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
      * Statistiche link globali o per chat con filtro temporale.
      */
     suspend fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<LinkStat> = withContext(Dispatchers.IO) {
-        val linkStats = messageDao.getLinkStats(chatId, startTime, endTime)
+        val limit = if (activeDatabaseProvider.isLiteMode) 50 else 20
+        val linkStats = messageDao.getLinkStats(chatId, startTime, endTime, limit)
         if (linkStats.isEmpty()) return@withContext emptyList()
         
         val jids = linkStats.map { it.jid }

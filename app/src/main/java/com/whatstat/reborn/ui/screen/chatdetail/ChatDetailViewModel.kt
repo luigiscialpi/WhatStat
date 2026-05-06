@@ -91,7 +91,7 @@ class ChatDetailViewModel @Inject constructor(
     private val _selectedSenderForWords = MutableStateFlow<SenderStat?>(null)
     val selectedSenderForWords: StateFlow<SenderStat?> = _selectedSenderForWords.asStateFlow()
 
-    private val _topWordsLimit = MutableStateFlow(30) // Default 30 per "Tutti"
+    private val _topWordsLimit = MutableStateFlow(if (isLiteMode.value) 30 else 20) // Default 20 per Root, 30 per Lite
     val topWordsLimit: StateFlow<Int> = _topWordsLimit.asStateFlow()
 
     private val _senderTopWords = MutableStateFlow<List<WordFrequency>>(emptyList())
@@ -104,7 +104,7 @@ class ChatDetailViewModel @Inject constructor(
     val emojiViewMode: StateFlow<EmojiViewMode> = _emojiViewMode.asStateFlow()
     private val _selectedSenderForEmojis = MutableStateFlow<SenderStat?>(null)
     val selectedSenderForEmojis: StateFlow<SenderStat?> = _selectedSenderForEmojis.asStateFlow()
-    private val _topEmojiLimit = MutableStateFlow(30)
+    private val _topEmojiLimit = MutableStateFlow(if (isLiteMode.value) 30 else 20)
     val topEmojiLimit: StateFlow<Int> = _topEmojiLimit.asStateFlow()
     private val _senderTopEmojis = MutableStateFlow<List<EmojiStat>>(emptyList())
     val senderTopEmojis: StateFlow<List<EmojiStat>> = _senderTopEmojis.asStateFlow()
@@ -266,7 +266,7 @@ class ChatDetailViewModel @Inject constructor(
                 _selectedSenderForWords.value = SenderStat("me@s.whatsapp.net", "Tu", 0)
             }
         } else {
-            _topWordsLimit.value = 30 // Default per tutti
+            _topWordsLimit.value = if (isLiteMode.value) 30 else 20 // Default per tutti
         }
         loadSenderTopWords()
     }
@@ -325,7 +325,7 @@ class ChatDetailViewModel @Inject constructor(
                 _selectedSenderForEmojis.value = SenderStat("me@s.whatsapp.net", "Tu", 0)
             }
         } else {
-            _topEmojiLimit.value = 30
+            _topEmojiLimit.value = if (isLiteMode.value) 30 else 20
         }
         loadSenderTopEmojis()
     }
