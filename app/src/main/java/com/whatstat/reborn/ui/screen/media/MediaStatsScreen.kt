@@ -429,7 +429,8 @@ fun MediaStatsScreen(
                     avatarPath = mediaGalleryState!!.second,
                     mediaFiles = mediaGalleryState!!.third,
                     isLoading = isMediaGalleryLoading,
-                    progress = progressMediaGallery
+                    progress = progressMediaGallery,
+                    isLiteMode = viewModel.isLiteMode.collectAsState().value
                 )
             }
         }
@@ -443,9 +444,23 @@ private fun MediaGallerySheet(
     avatarPath: String?,
     mediaFiles: List<MediaStat>,
     isLoading: Boolean,
-    progress: Int?
+    progress: Int?,
+    isLiteMode: Boolean = false
 ) {
-    var displayedCount by remember { mutableIntStateOf(100) }
+    // In Lite mode separiamo sticker (image/webp = STK-*.webp) dal resto.
+    // Il tab è visibile solo se ci sono effettivamente sticker.
+    val stickers = remember(mediaFiles, isLiteMode) {
+        if (isLiteMode) mediaFiles.filter { it.mimeType == "image/webp" } else emptyList()
+    }
+    val galleryFiles = remember(mediaFiles, isLiteMode) {
+        if (isLiteMode) mediaFiles.filter { it.mimeType != "image/webp" } else mediaFiles
+    }
+    val showStickerTab = isLiteMode && stickers.isNotEmpty()
+    // 0 = Galleria, 1 = Sticker
+    var activeTab by remember(showStickerTab) { mutableIntStateOf(0) }
+    val currentFiles = if (activeTab == 1) stickers else galleryFiles
+
+    var displayedCount by remember(activeTab) { mutableIntStateOf(100) }
     var sortAscending by remember { mutableStateOf(false) }
     var selectedImageForPreview by remember { mutableStateOf<MediaStat?>(null) }
     val context = LocalContext.current
@@ -459,16 +474,18 @@ private fun MediaGallerySheet(
             .build()
     }
 
-    val sortedAll = remember(mediaFiles, sortAscending) {
-        if (sortAscending) mediaFiles.sortedBy { it.timestamp }
-        else mediaFiles.sortedByDescending { it.timestamp }
+    val sortedAll = remember(currentFiles, sortAscending) {
+        if (sortAscending) currentFiles.sortedBy { it.timestamp }
+        else currentFiles.sortedByDescending { it.timestamp }
     }
     val visibleItems = sortedAll.take(displayedCount)
     val hasMore = displayedCount < sortedAll.size
 
-    val photoCount = mediaFiles.count { it.mimeType.startsWith("image/") }
-    val videoCount = mediaFiles.count { it.mimeType.startsWith("video/") }
-    val audioCount = mediaFiles.count { it.mimeType.startsWith("audio/") }
+    // Contatori basati sui file della tab attiva
+    val photoCount = currentFiles.count { it.mimeType.startsWith("image/") && it.mimeType != "image/webp" }
+    val videoCount = currentFiles.count { it.mimeType.startsWith("video/") }
+    val audioCount = currentFiles.count { it.mimeType.startsWith("audio/") }
+    val stickerCount = stickers.size
 
     Column(
         modifier = Modifier
@@ -507,6 +524,41 @@ private fun MediaGallerySheet(
         }
         Spacer(Modifier.height(16.dp))
 
+        // ── Tab Galleria / Sticker (solo Lite mode quando ci sono sticker) ────
+        if (showStickerTab) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                    .background(androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                listOf(0 to "Galleria (${galleryFiles.size})", 1 to "Sticker ($stickerCount)").forEach { (idx, label) ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                            .background(
+                                if (activeTab == idx) MaterialTheme.colorScheme.primary
+                                else Color.Transparent
+                            )
+                            .clickable { activeTab = idx; displayedCount = 100 }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (activeTab == idx) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+
         // Contatori e toggle ordinamento
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -515,7 +567,8 @@ private fun MediaGallerySheet(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "${photoCount} foto · $videoCount video" + if(audioCount > 0) " · $audioCount audio" else "",
+                    if (activeTab == 1) "$stickerCount sticker"
+                    else "${photoCount} foto · $videoCount video" + if (audioCount > 0) " · $audioCount audio" else "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -563,10 +616,10 @@ private fun MediaGallerySheet(
 
         // Contenuto
         when {
-            isLoading && mediaFiles.isEmpty() -> {
+            isLoading && currentFiles.isEmpty() -> {
                 LoadingSection(progress = progress)
             }
-            mediaFiles.isEmpty() -> {
+            currentFiles.isEmpty() -> {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

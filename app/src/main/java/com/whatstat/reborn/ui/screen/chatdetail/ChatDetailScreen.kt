@@ -54,6 +54,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.Composable
@@ -483,9 +484,11 @@ fun ChatDetailScreen(
                         }
 
                         // ── Analisi Testi (Parole / Emoji / Sticker) ──────
+                        // In Lite mode lo Sticker tab viene nascosto.
                         item {
-                            val tabs = listOf("Parole", "Emoji", "Sticker")
+                            val tabs = if (isLiteMode) listOf("Parole", "Emoji") else listOf("Parole", "Emoji", "Sticker")
                             var selectedTab by remember { mutableIntStateOf(0) }
+                            if (selectedTab >= tabs.size) selectedTab = 0
 
                             SectionCard(
                                 title = "Analisi testi",
@@ -532,28 +535,40 @@ fun ChatDetailScreen(
                                     }
                                 }
                             ) {
-                                ScrollableTabRow(
-                                    selectedTabIndex = selectedTab,
-                                    containerColor = Color.Transparent,
-                                    contentColor = MaterialTheme.colorScheme.primary,
-                                    edgePadding = 0.dp,
-                                    divider = {},
-                                    modifier = Modifier.padding(bottom = 12.dp),
-                                    indicator = { tabPositions ->
-                                        if (selectedTab < tabPositions.size) {
-                                            TabRowDefaults.SecondaryIndicator(
-                                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
+                                val sharedIndicator: @Composable (List<androidx.compose.material3.TabPosition>) -> Unit = { tabPositions ->
+                                    if (selectedTab < tabPositions.size) {
+                                        TabRowDefaults.SecondaryIndicator(
+                                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                if (isLiteMode) {
+                                    TabRow(
+                                        selectedTabIndex = selectedTab,
+                                        containerColor = Color.Transparent,
+                                        contentColor = MaterialTheme.colorScheme.primary,
+                                        divider = {},
+                                        modifier = Modifier.padding(bottom = 12.dp),
+                                        indicator = sharedIndicator
+                                    ) {
+                                        tabs.forEachIndexed { index, title ->
+                                            Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(title, fontSize = 12.sp) })
                                         }
                                     }
-                                ) {
-                                    tabs.forEachIndexed { index, title ->
-                                        Tab(
-                                            selected = selectedTab == index,
-                                            onClick = { selectedTab = index },
-                                            text = { Text(title, fontSize = 12.sp) }
-                                        )
+                                } else {
+                                    ScrollableTabRow(
+                                        selectedTabIndex = selectedTab,
+                                        containerColor = Color.Transparent,
+                                        contentColor = MaterialTheme.colorScheme.primary,
+                                        edgePadding = 0.dp,
+                                        divider = {},
+                                        modifier = Modifier.padding(bottom = 12.dp),
+                                        indicator = sharedIndicator
+                                    ) {
+                                        tabs.forEachIndexed { index, title ->
+                                            Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(title, fontSize = 12.sp) })
+                                        }
                                     }
                                 }
 
