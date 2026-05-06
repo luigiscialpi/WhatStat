@@ -70,6 +70,7 @@ class SetupService : Service() {
     private fun cancelSetup() {
         repository.cancelOperation()
         serviceScope.cancel()
+        stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
@@ -82,6 +83,7 @@ class SetupService : Service() {
                         updateNotification(state.decryptionProgress)
                     }
                     if (state.isComplete || state.error != null) {
+                        stopForeground(STOP_FOREGROUND_REMOVE)
                         stopSelf()
                     }
                 }
@@ -94,6 +96,7 @@ class SetupService : Service() {
             }
             
             progressJob.cancel()
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
     }

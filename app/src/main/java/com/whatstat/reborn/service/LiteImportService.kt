@@ -54,7 +54,10 @@ class LiteImportService : Service() {
                     observeProgress()
                 }
             }
-            ACTION_STOP -> stopSelf()
+            ACTION_STOP -> {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
         }
         return START_NOT_STICKY
     }
