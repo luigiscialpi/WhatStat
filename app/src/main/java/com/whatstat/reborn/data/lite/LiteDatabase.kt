@@ -58,11 +58,13 @@ class LiteDatabase @Inject constructor(
                 display_message_row_id INTEGER,
                 last_message_row_id    INTEGER,
                 unseen_message_count   INTEGER DEFAULT 0,
-                group_type          INTEGER DEFAULT 0
+                group_type          INTEGER DEFAULT 0,
+                import_timestamp    INTEGER
             )
         """.trimIndent())
 
         ensureColumnExists(db, "chat", "import_key", "TEXT")
+        ensureColumnExists(db, "chat", "import_timestamp", "INTEGER")
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_import_key ON chat (import_key)")
 
         // Tabella message

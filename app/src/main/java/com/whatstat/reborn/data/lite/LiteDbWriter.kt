@@ -25,6 +25,7 @@ class LiteDbWriter @Inject constructor(
         isGroup: Boolean,
         messages: List<ParsedMessage>,
         mediaItems: List<LiteMediaItem>,
+        importTimestamp: Long? = null,
         progressCallback: (Float) -> Unit = {}
     ): Long = withContext(Dispatchers.IO) {
         val db = liteDatabase.getOrCreate()
@@ -38,7 +39,7 @@ class LiteDbWriter @Inject constructor(
 
         // 2. Crea entry chat (o recupera esistente per re-import)
         val chatJidId = getOrInsertJid(db, chatName, if (isGroup) "g.us" else "s.whatsapp.net")
-        val upsertResult = insertOrUpdateChat(db, chatJidId, chatName, chatImportKey, isGroup)
+        val upsertResult = insertOrUpdateChat(db, chatJidId, chatName, chatImportKey, isGroup, importTimestamp)
         val chatId = upsertResult.chatId
 
         // 3. Inserisci messaggi in batch (transaction)
@@ -96,7 +97,8 @@ class LiteDbWriter @Inject constructor(
         jidRowId: Long,
         subject: String,
         importKey: String,
-        isGroup: Boolean
+        isGroup: Boolean,
+        importTimestamp: Long? = null
     ): ChatUpsertResult {
         val existingId = db.query(
             "chat",
@@ -124,6 +126,7 @@ class LiteDbWriter @Inject constructor(
                 put("subject", subject)
                 put("group_type", if (isGroup) 1 else 0)
                 put("import_key", importKey)
+                if (importTimestamp != null) put("import_timestamp", importTimestamp)
             }
             db.update("chat", updateValues, "_id = ?", arrayOf(existingId.toString()))
             // Pulizia per re-import
@@ -137,6 +140,7 @@ class LiteDbWriter @Inject constructor(
             put("subject", subject)
             put("group_type", if (isGroup) 1 else 0)
             put("import_key", importKey)
+            if (importTimestamp != null) put("import_timestamp", importTimestamp)
         }
         val chatId = db.insert("chat", null, values)
         return ChatUpsertResult(

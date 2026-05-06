@@ -110,6 +110,7 @@ data class ChatListItem(
     val isGroup: Boolean,
     val totalMessages: Int,
     val lastMessageTimestamp: Long,
+    val importTimestamp: Long? = null,
     val avatarPath: String? = null
 )
 

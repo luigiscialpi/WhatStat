@@ -88,7 +88,8 @@ class ChatDao @Inject constructor(
                 COALESCE(c.subject, j.raw_string) AS display_name,
                 CASE WHEN c.group_type = 1 OR j.server = 'g.us' THEN 1 ELSE 0 END AS is_group,
                 COUNT(m._id) AS total_messages,
-                MAX(m.timestamp) AS last_message_ts
+                MAX(m.timestamp) AS last_message_ts,
+                c.import_timestamp AS import_ts
             FROM chat c
             JOIN jid j ON c.jid_row_id = j._id
             LEFT JOIN message m ON m.chat_row_id = c._id AND m.message_type NOT IN (7, 15, 90)
@@ -108,7 +109,8 @@ class ChatDao @Inject constructor(
                         displayName         = it.getString(it.getColumnIndexOrThrow("display_name")) ?: "Sconosciuto",
                         isGroup             = it.getInt(it.getColumnIndexOrThrow("is_group")) == 1,
                         totalMessages       = it.getInt(it.getColumnIndexOrThrow("total_messages")),
-                        lastMessageTimestamp = it.getLong(it.getColumnIndexOrThrow("last_message_ts"))
+                        lastMessageTimestamp = it.getLong(it.getColumnIndexOrThrow("last_message_ts")),
+                        importTimestamp      = it.getLong(it.getColumnIndexOrThrow("import_ts")).takeIf { ts -> ts > 0 }
                     ))
                 }
             }

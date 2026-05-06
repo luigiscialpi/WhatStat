@@ -70,13 +70,15 @@ class LiteModeManager @Inject constructor(
 
             // 4. Scrittura su SQLite
             _importProgress.value = LiteImportProgress(0.60f, "Salvataggio database...")
+            val importTimestamp = getFileTimestamp(zipUri)
             val chatId = liteDbWriter.writeChat(
                 chatName = chatDescriptor.displayName,
                 chatImportKey = chatDescriptor.importKey,
                 ownerName = ownerName,
                 isGroup = isGroup,
                 messages = parseResult.messages,
-                mediaItems = mediaStats.mediaItems
+                mediaItems = mediaStats.mediaItems,
+                importTimestamp = importTimestamp
             ) { progress ->
                 _importProgress.value = LiteImportProgress(0.60f + (progress * 0.30f), "Scrittura DB: ${(progress * 100).toInt()}%")
             }
@@ -152,6 +154,29 @@ class LiteModeManager @Inject constructor(
             }
         }
         return uri.path?.let { java.io.File(it).name }
+    }
+
+    private fun getFileTimestamp(uri: Uri): Long? {
+        if (uri.scheme == "content") {
+            try {
+                liteDatabase.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val index = cursor.getColumnIndex(android.provider.DocumentsContract.Document.COLUMN_LAST_MODIFIED)
+                        if (index != -1) return cursor.getLong(index)
+                    }
+                }
+            } catch (e: Exception) {
+                // Fallback a MediaStore
+                try {
+                    liteDatabase.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { _ ->
+                        // Alcuni provider non espongono last_modified via query standard
+                    }
+                } catch (e2: Exception) {}
+            }
+        } else if (uri.scheme == "file") {
+            return uri.path?.let { java.io.File(it).lastModified() }
+        }
+        return System.currentTimeMillis() // Fallback a "ora"
     }
 
     private fun resolveChatDescriptor(

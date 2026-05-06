@@ -169,6 +169,7 @@ fun ChatListScreen(
                                 messageCount = chat.totalMessages,
                                 isGroup = chat.isGroup,
                                 avatarPath = chat.avatarPath,
+                                importTimestamp = chat.importTimestamp,
                                 isLiteMode = isLiteMode,
                                 onDelete = { chatToDelete = chat },
                                 onClick = { onChatSelected(chat.chatId) }
@@ -239,6 +240,7 @@ private fun ChatListItem(
     messageCount: Int,
     isGroup: Boolean,
     avatarPath: String?,
+    importTimestamp: Long? = null,
     isLiteMode: Boolean = false,
     onDelete: () -> Unit = {},
     onClick: () -> Unit
@@ -321,6 +323,15 @@ private fun ChatListItem(
                         fontWeight = FontWeight.Medium
                     )
                 )
+                if (importTimestamp != null) {
+                    val sdf = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+                    val dateStr = sdf.format(java.util.Date(importTimestamp))
+                    Text(
+                        text = "Esportata il: $dateStr",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                    )
+                }
                 Text(
                     "%,d messaggi".format(messageCount),
                     style = MaterialTheme.typography.bodySmall,
