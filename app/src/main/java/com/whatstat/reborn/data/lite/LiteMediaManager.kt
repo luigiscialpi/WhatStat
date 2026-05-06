@@ -69,7 +69,7 @@ class LiteMediaManager @Inject constructor() {
                     ?: fileNameToMsgInfo[file.nameWithoutExtension]
                 LiteMediaItem(
                     fileName = file.name,
-                    relativePath = file.toRelativeString(folder),
+                    relativePath = file.toRelativeString(folder.parentFile!!),
                     type = type,
                     timestamp = if (msgInfo != null && msgInfo.second > 0L) msgInfo.second else file.lastModified(),
                     senderName = msgInfo?.first,

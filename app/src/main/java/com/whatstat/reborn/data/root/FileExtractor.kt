@@ -361,11 +361,11 @@ class FileExtractor @Inject constructor(
             val inputStream = context.contentResolver.openInputStream(zipUri) 
                 ?: throw IOException("Impossibile aprire lo stream URI: $zipUri")
             
-            // Crea una cartella stabile nella cache e la svuota se esiste
-            val destFolder = File(context.cacheDir, "lite_chat_extracted")
-            if (destFolder.exists()) {
-                destFolder.deleteRecursively()
-            }
+            // Crea una cartella unica nei file interni (non cache) per persistenza multi-chat
+            val mediaRoot = File(context.filesDir, "lite_media")
+            if (!mediaRoot.exists()) mediaRoot.mkdirs()
+            
+            val destFolder = File(mediaRoot, "lite_chat_${System.currentTimeMillis()}")
             destFolder.mkdirs()
 
             ZipInputStream(inputStream).use { zis ->

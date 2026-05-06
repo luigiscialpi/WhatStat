@@ -20,6 +20,7 @@ import com.whatstat.reborn.data.repository.WhatsAppRepository
 import com.whatstat.reborn.ui.MainViewModel
 import com.whatstat.reborn.ui.navigation.AppNavigation
 import com.whatstat.reborn.ui.theme.WhatStatTheme
+import com.whatstat.reborn.util.DebugLogManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -28,6 +29,8 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var repository: WhatsAppRepository
     private lateinit var mainViewModel: MainViewModel
+    private var lastHandledIncomingUri: String? = null
+    private var lastHandledIncomingAtMs: Long = 0L
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
@@ -35,6 +38,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
+        DebugLogManager.log("MainActivity.onCreate | action=${intent?.action ?: "-"} type=${intent?.type ?: "-"}")
         
         enableEdgeToEdge()
 
@@ -61,6 +65,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
+        DebugLogManager.log("MainActivity.onNewIntent | action=${intent.action ?: "-"} type=${intent.type ?: "-"}")
         handleIncomingIntent(intent)
     }
 
@@ -78,13 +84,20 @@ class MainActivity : ComponentActivity() {
             ?: intent.clipData?.getItemAt(0)?.uri
             ?: return
 
+        DebugLogManager.log("MainActivity.handleIncomingIntent | action=${intent.action} type=${intent.type ?: "-"} uri=$uri isLite=${mainViewModel.isLiteMode.value}")
         if (isLikelyZip(intent.type, uri)) {
-            // Se non siamo in Lite Mode, resettiamo (impedisce a SetupViewModel di auto-navigare al Main root).
-            // Se siamo già in Lite Mode, aggiungiamo la chat senza toccare il DB.
-            if (!mainViewModel.isLiteMode.value) {
-                mainViewModel.resetLiteMode()
+            val uriString = uri.toString()
+            val now = System.currentTimeMillis()
+            if (lastHandledIncomingUri == uriString && (now - lastHandledIncomingAtMs) < 8000L) {
+                DebugLogManager.log("MainActivity.handleIncomingIntent | duplicate ignored uri=$uriString")
+                return
             }
+            lastHandledIncomingUri = uriString
+            lastHandledIncomingAtMs = now
             mainViewModel.setIncomingZipUri(uri.toString())
+            DebugLogManager.log("MainActivity.handleIncomingIntent | accepted zip uri")
+        } else {
+            DebugLogManager.log("MainActivity.handleIncomingIntent | ignored non-zip uri")
         }
     }
 

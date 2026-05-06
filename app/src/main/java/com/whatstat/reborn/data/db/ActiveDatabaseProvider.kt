@@ -8,22 +8,25 @@ import javax.inject.Singleton
 @Singleton
 class ActiveDatabaseProvider @Inject constructor(
     private val whatsAppDatabase: WhatsAppDatabase,
-    private val liteDatabase: LiteDatabase
+    private val liteDatabase: LiteDatabase,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : DatabaseProvider {
     
-    @Volatile
-    var isLiteMode: Boolean = false
+    private val prefs = context.getSharedPreferences("whatstat_lite_prefs", android.content.Context.MODE_PRIVATE)
 
-    override fun getMsgDb(): SQLiteDatabase {
+    var isLiteMode: Boolean
+        get() = prefs.getBoolean("is_lite_mode", false)
+        set(value) = prefs.edit().putBoolean("is_lite_mode", value).apply()
+
+    override fun getMsgDb(): android.database.sqlite.SQLiteDatabase {
         return if (isLiteMode) liteDatabase.getOrCreate() else whatsAppDatabase.getMsgDb()
     }
 
-    override fun getWaDb(): SQLiteDatabase {
+    override fun getWaDb(): android.database.sqlite.SQLiteDatabase {
         return if (isLiteMode) liteDatabase.getWaDb() else whatsAppDatabase.getWaDb()
     }
 
     override fun isOpen(): Boolean {
-        // Se in LiteMode diamo per scontato che sia aperto o lo apriamo on-demand.
         return if (isLiteMode) true else whatsAppDatabase.isOpen()
     }
 }

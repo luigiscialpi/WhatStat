@@ -3,6 +3,7 @@ package com.whatstat.reborn.data.lite
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import dagger.hilt.android.qualifiers.ApplicationContext
+import com.whatstat.reborn.util.DebugLogManager
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,6 +17,7 @@ class LiteDatabase @Inject constructor(
 
     val filesDir: File get() = context.filesDir
     val cacheDir: File get() = context.cacheDir
+    val contentResolver get() = context.contentResolver
 
     fun getOrCreate(): SQLiteDatabase {
         if (db?.isOpen == true) return db!!
@@ -50,6 +52,7 @@ class LiteDatabase @Inject constructor(
             CREATE TABLE IF NOT EXISTS chat (
                 _id                 INTEGER PRIMARY KEY AUTOINCREMENT,
                 jid_row_id          INTEGER UNIQUE,
+                import_key          TEXT,
                 hidden              INTEGER DEFAULT 0,
                 subject             TEXT,
                 sort_timestamp      INTEGER,
@@ -59,6 +62,9 @@ class LiteDatabase @Inject constructor(
                 group_type          INTEGER DEFAULT 0
             )
         """.trimIndent())
+
+        ensureColumnExists(db, "chat", "import_key", "TEXT")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_import_key ON chat (import_key)")
 
         // Tabella message
         db.execSQL("""
@@ -162,6 +168,28 @@ class LiteDatabase @Inject constructor(
         """.trimIndent())
     }
 
+    private fun ensureColumnExists(
+        db: SQLiteDatabase,
+        tableName: String,
+        columnName: String,
+        definition: String
+    ) {
+        val columnExists = db.rawQuery("PRAGMA table_info($tableName)", null).use { cursor ->
+            var found = false
+            while (cursor.moveToNext()) {
+                if (cursor.getString(cursor.getColumnIndexOrThrow("name")) == columnName) {
+                    found = true
+                    break
+                }
+            }
+            found
+        }
+
+        if (!columnExists) {
+            db.execSQL("ALTER TABLE $tableName ADD COLUMN $columnName $definition")
+        }
+    }
+
     fun hasChatData(): Boolean {
         val db = getOrCreate()
         val cursor = db.rawQuery("SELECT COUNT(*) FROM chat LIMIT 1", null)
@@ -178,6 +206,7 @@ class LiteDatabase @Inject constructor(
     }
 
     fun deleteAll() {
+        DebugLogManager.log("LiteDatabase.deleteAll invoked | dbExists=${File(context.filesDir, "lite_msgstore.db").exists()} waExists=${File(context.filesDir, "lite_wa.db").exists()}")
         close()
         File(context.filesDir, "lite_msgstore.db").delete()
         File(context.filesDir, "lite_wa.db").delete()

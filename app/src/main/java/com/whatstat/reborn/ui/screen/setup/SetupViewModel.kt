@@ -21,6 +21,7 @@ import android.content.Intent
 import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.delay
 
 @HiltViewModel
 class SetupViewModel @Inject constructor(
@@ -34,18 +35,22 @@ class SetupViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            // Se c'è una cache per la Lite Mode E il flag è ancora attivo (non si è appena fatto un reset),
-            // salta il setup. Il flag viene azzerato da resetLiteMode() prima di tornare al Setup.
-            if (analyticsRepository.isLiteMode.value) {
-                _state.update { it.copy(isComplete = true, isCheckingCache = false) }
-            }
-            // Se il database root è già aperto (es. dopo rotazione schermo), skip del setup
-            else if (repository.isDatabaseReady()) {
-                _state.update { it.copy(isComplete = true, isCheckingCache = false) }
-            } else {
-                // Tenta di ripristinare la sessione root salvata
-                repository.tryRestoreSession()
-                _state.update { it.copy(isCheckingCache = false) }
+            // Tenta di ripristinare la sessione root salvata
+            repository.tryRestoreSession()
+            
+            // Osserva lo stato di LiteMode e RootDatabase
+            analyticsRepository.isLiteMode.collectLatest { isLite ->
+                if (isLite) {
+                    _state.update { it.copy(isComplete = true, isCheckingCache = false) }
+                } else if (repository.isDatabaseReady()) {
+                    _state.update { it.copy(isComplete = true, isCheckingCache = false) }
+                } else {
+                    // Aspettiamo un attimo per essere sicuri che non ci sia una sessione root in arrivo
+                    delay(500)
+                    if (!repository.isDatabaseReady() && !analyticsRepository.isLiteMode.value) {
+                        _state.update { it.copy(isCheckingCache = false) }
+                    }
+                }
             }
         }
 

@@ -36,8 +36,9 @@ object AppModule {
     @Singleton
     fun provideActiveDatabaseProvider(
         whatsAppDatabase: WhatsAppDatabase,
-        liteDatabase: LiteDatabase
-    ): ActiveDatabaseProvider = ActiveDatabaseProvider(whatsAppDatabase, liteDatabase)
+        liteDatabase: LiteDatabase,
+        @ApplicationContext context: Context
+    ): ActiveDatabaseProvider = ActiveDatabaseProvider(whatsAppDatabase, liteDatabase, context)
 
     @Provides
     @Singleton

@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -30,10 +29,9 @@ import com.whatstat.reborn.ui.screen.wordsearch.WordSearchScreen
 import com.whatstat.reborn.ui.screen.history.GroupHistoryScreen
 import com.whatstat.reborn.ui.MainViewModel
 import androidx.compose.runtime.collectAsState
+import com.whatstat.reborn.util.DebugLogManager
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.delay
 
 sealed class Screen(val route: String) {
     data object Setup : Screen("setup")
@@ -48,6 +46,15 @@ sealed class Screen(val route: String) {
     }
     data object Dashboard : Screen("dashboard")
     data object ChatList : Screen("chat_list")
+    data object LiteSetupAdd : Screen("lite_setup_add") {
+        fun createRoute(zipUri: String? = null): String {
+            return if (zipUri != null) {
+                "lite_setup_add?zipUri=${Uri.encode(zipUri)}"
+            } else {
+                route
+            }
+        }
+    }
 
     data object ChatDetail : Screen("chat_detail/{chatId}") {
         fun createRoute(chatId: Long) = "chat_detail/$chatId"
@@ -99,8 +106,14 @@ fun AppNavigation(
                 .filterNotNull()
                 .first()
 
-            navController.navigate(Screen.LiteSetup.createRoute(uri)) {
-                popUpTo(0) { inclusive = true }
+            val targetRoute = if (isLiteMode) {
+                Screen.LiteSetupAdd.createRoute(uri)
+            } else {
+                Screen.LiteSetup.createRoute(uri)
+            }
+            DebugLogManager.log("AppNavigation incoming zip route | isLite=$isLiteMode target=$targetRoute")
+            navController.navigate(targetRoute) {
+                launchSingleTop = true
             }
             mainViewModel.setIncomingZipUri(null)
         }
@@ -182,6 +195,7 @@ private fun NavGraphBuilder.mainGraph(
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
                     onNavigateBack = {
+                        DebugLogManager.log("Dashboard onNavigateBack invoked")
                         onResetLite()
                         repository.resetState()
                         navController.navigate(Screen.Setup.route) {
@@ -205,8 +219,28 @@ private fun NavGraphBuilder.mainGraph(
                         navController.popBackStack()
                     },
                     onImportChat = {
-                        navController.navigate(Screen.LiteSetup.route)
+                        navController.navigate(Screen.LiteSetupAdd.createRoute())
                     }
+                )
+            }
+
+            composable(
+                route = "lite_setup_add?zipUri={zipUri}",
+                arguments = listOf(
+                    navArgument("zipUri") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val zipUri = backStackEntry.arguments?.getString("zipUri")?.let {
+                    Uri.decode(it)
+                }
+                LiteSetupScreen(
+                    incomingZipUri = zipUri,
+                    onNavigateBack = { navController.popBackStack() },
+                    onImportComplete = { navController.popBackStack() }
                 )
             }
 

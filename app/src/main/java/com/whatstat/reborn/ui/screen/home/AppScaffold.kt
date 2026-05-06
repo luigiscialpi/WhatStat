@@ -17,9 +17,11 @@ fun AppScaffold(
     isLiteMode: Boolean = false,
     content: @Composable (PaddingValues) -> Unit
 ) {
+    val route = currentDestination?.route.orEmpty()
+    val isLiteImportRoute = route.contains("lite_setup")
     val showBottomBar = currentDestination
         ?.hierarchy
-        ?.any { destination -> destination.route == NavGraphRoute.Main } == true
+        ?.any { destination -> destination.route == NavGraphRoute.Main } == true && !isLiteImportRoute
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),

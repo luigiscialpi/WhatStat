@@ -64,8 +64,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstat.reborn.data.db.model.ChatListItem
+import com.whatstat.reborn.ui.component.LiteDebugLogCard
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.SimpleScreenHeader
+import com.whatstat.reborn.util.DebugLogManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,6 +81,7 @@ fun ChatListScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isLiteMode by viewModel.isLiteMode.collectAsState()
+    val debugLogs by DebugLogManager.logs.collectAsState()
 
     // Dialogo di conferma eliminazione
     var chatToDelete by remember { mutableStateOf<ChatListItem?>(null) }
@@ -92,7 +95,7 @@ fun ChatListScreen(
             // ── Header ───────────────────────────────────────────────
             SimpleScreenHeader(
                 title = "Le tue chat",
-                onBack = onNavigateBack
+                onBack = if (isLiteMode) null else onNavigateBack
             )
 
             // ── Search Bar ───────────────────────────────────────────
@@ -137,6 +140,15 @@ fun ChatListScreen(
 
             Spacer(Modifier.height(8.dp))
 
+            if (isLiteMode && debugLogs.isNotEmpty()) {
+                LiteDebugLogCard(
+                    logs = debugLogs,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    onClear = { DebugLogManager.clear() }
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+
             // ── Chat List ────────────────────────────────────────────
             if (isLoading) {
                 ChatListSkeletonContent(modifier = Modifier.fillMaxSize())
@@ -165,15 +177,21 @@ fun ChatListScreen(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .clip(RoundedCornerShape(14.dp))
-                                            .background(MaterialTheme.colorScheme.errorContainer),
+                                            .background(
+                                                if (dismissState.targetValue != SwipeToDismissBoxValue.Settled)
+                                                    MaterialTheme.colorScheme.errorContainer
+                                                else androidx.compose.ui.graphics.Color.Transparent
+                                            ),
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
-                                        Icon(
-                                            Icons.Outlined.Delete,
-                                            contentDescription = "Elimina chat",
-                                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                                            modifier = Modifier.padding(end = 20.dp)
-                                        )
+                                        if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
+                                            Icon(
+                                                Icons.Outlined.Delete,
+                                                contentDescription = "Elimina chat",
+                                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                                modifier = Modifier.padding(end = 20.dp)
+                                            )
+                                        }
                                     }
                                 }
                             ) {
@@ -273,7 +291,7 @@ private fun ChatListItem(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         shape = RoundedCornerShape(14.dp)
     ) {

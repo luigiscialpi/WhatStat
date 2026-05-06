@@ -31,7 +31,7 @@ class ChatDao @Inject constructor(
                 c._id AS chat_id,
                 j.raw_string AS jid,
                 c.subject AS name,
-                CASE WHEN j.server = 'g.us' THEN 1 ELSE 0 END AS is_group,
+                CASE WHEN c.group_type = 1 OR j.server = 'g.us' THEN 1 ELSE 0 END AS is_group,
                 c.subject
             FROM chat c
             JOIN jid j ON c.jid_row_id = j._id
@@ -53,7 +53,7 @@ class ChatDao @Inject constructor(
     /** Ritorna il nome della chat più attiva (più messaggi) filtrata per data. */
     fun getMostActiveChat(startTime: Long? = null, endTime: Long? = null): String {
         val queryBuilder = StringBuilder("""
-            SELECT j.raw_string AS jid
+            SELECT COALESCE(c.subject, j.raw_string) AS display_name
             FROM chat c
             JOIN jid j ON c.jid_row_id = j._id
             JOIN message m ON m.chat_row_id = c._id
@@ -86,7 +86,7 @@ class ChatDao @Inject constructor(
                 c._id AS chat_id,
                 j.raw_string AS jid,
                 COALESCE(c.subject, j.raw_string) AS display_name,
-                CASE WHEN j.server = 'g.us' THEN 1 ELSE 0 END AS is_group,
+                CASE WHEN c.group_type = 1 OR j.server = 'g.us' THEN 1 ELSE 0 END AS is_group,
                 COUNT(m._id) AS total_messages,
                 MAX(m.timestamp) AS last_message_ts
             FROM chat c

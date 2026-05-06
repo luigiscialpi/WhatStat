@@ -5,6 +5,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,6 +25,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.whatstat.reborn.ui.component.LiteDebugLogCard
+import com.whatstat.reborn.util.DebugLogManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,17 +37,23 @@ fun LiteSetupScreen(
     onImportComplete: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val debugLogs by DebugLogManager.logs.collectAsState()
 
-    // Blocca il tasto Back durante l'elaborazione
-    BackHandler(enabled = state.isLoading) { /* inert — impedisce chiusura accidentale */ }
+    // Blocca il tasto Back durante elaborazione o selezione mittente:
+    // uscire ora lascerebbe la chat in stato "non finalizzato".
+    BackHandler(enabled = state.isLoading || state.showSenderSelection) { /* inert */ }
 
     LaunchedEffect(state.isComplete) {
-        if (state.isComplete) onImportComplete()
+        if (state.isComplete) {
+            onImportComplete()
+            viewModel.consumeImportComplete()
+        }
     }
 
     // Se arriva un URI dall'intent, avvia automaticamente l'import
     LaunchedEffect(incomingZipUri) {
         incomingZipUri?.let { uriString ->
+            DebugLogManager.log("Lite setup opened from shared ZIP | uri=$uriString")
             viewModel.onZipSelected(Uri.parse(uriString))
         }
     }
@@ -51,7 +61,10 @@ fun LiteSetupScreen(
     val zipLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let { viewModel.onZipSelected(it) }
+        uri?.let {
+            DebugLogManager.log("Lite setup opened from picker ZIP | uri=$it")
+            viewModel.onZipSelected(it)
+        }
     }
 
     Scaffold(
@@ -60,7 +73,7 @@ fun LiteSetupScreen(
                 title = { Text("Importa Chat ZIP") },
                 navigationIcon = {
                     // Disabilita il tasto indietro durante l'elaborazione
-                    if (!state.isLoading) {
+                    if (!state.isLoading && !state.showSenderSelection) {
                         IconButton(onClick = onNavigateBack) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Indietro")
                         }
@@ -85,7 +98,8 @@ fun LiteSetupScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
                     .padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -149,6 +163,15 @@ fun LiteSetupScreen(
                 state.error?.let {
                     Spacer(Modifier.height(16.dp))
                     Text(it, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                }
+
+                if (debugLogs.isNotEmpty()) {
+                    Spacer(Modifier.height(24.dp))
+                    LiteDebugLogCard(
+                        logs = debugLogs,
+                        initiallyExpanded = true,
+                        onClear = { DebugLogManager.clear() }
+                    )
                 }
             }
         }

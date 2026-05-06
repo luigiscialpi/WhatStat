@@ -9,6 +9,7 @@ import com.whatstat.reborn.data.db.model.ChatListItem
 import com.whatstat.reborn.data.lite.LiteDbWriter
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.root.FileExtractor
+import com.whatstat.reborn.util.DebugLogManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
@@ -70,6 +72,12 @@ class ChatListViewModel @Inject constructor(
 
     init {
         loadChats()
+        // Ricarica la lista ogni volta che viene completata una nuova importazione Lite
+        viewModelScope.launch {
+            analyticsRepository.liteCacheVersion.drop(1).collect {
+                loadChats()
+            }
+        }
     }
 
     private fun loadChats() {
@@ -97,8 +105,16 @@ class ChatListViewModel @Inject constructor(
                 }
 
                 _allChats.value = enrichedChats
+                if (analyticsRepository.isLiteMode.value) {
+                    DebugLogManager.log(
+                        "ChatList load complete | count=${enrichedChats.size} chats=${enrichedChats.joinToString(" | ") { "#${it.chatId}:${it.displayName}(${it.totalMessages})" }}"
+                    )
+                }
             } catch (e: Exception) {
                 _allChats.value = emptyList()
+                if (analyticsRepository.isLiteMode.value) {
+                    DebugLogManager.log("ChatList load failed", e)
+                }
             } finally {
                 _isLoading.value = false
             }
@@ -116,6 +132,9 @@ class ChatListViewModel @Inject constructor(
     fun deleteChat(chatId: Long) {
         viewModelScope.launch {
             liteDbWriter.deleteChat(chatId)
+            if (analyticsRepository.isLiteMode.value) {
+                DebugLogManager.log("ChatList delete chat | chatId=$chatId")
+            }
             loadChats()
         }
     }

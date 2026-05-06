@@ -598,15 +598,19 @@ class CacheManager @Inject constructor(
 
     // ── Invalidazione ────────────────────────────────────────────
 
-    suspend fun clearCache() {
+    suspend fun clearCache(resetWordIndexes: Boolean = false) {
         dataStore.edit { it.clear() }
         mediaFileIndex = null
         mediaIndexFile.delete()
-        // I file degli indici lessicali NON vengono eliminati:
-        // supportano il delta update quando il DB cambia.
-        // Azzeriamo solo le referenze in-memory; i file restano su disco.
         globalWordIndex = null
         monthlyWordIndex = null
         chatWordIndexCache.clear()
+        if (resetWordIndexes) {
+            globalWordIndexFile.delete()
+            monthlyWordIndexFile.delete()
+            context.cacheDir.listFiles()
+                ?.filter { it.name.startsWith("word_index_chat_") && it.name.endsWith(".gz") }
+                ?.forEach { it.delete() }
+        }
     }
 }

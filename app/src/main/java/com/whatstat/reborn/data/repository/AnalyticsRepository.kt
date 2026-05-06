@@ -47,7 +47,7 @@ class AnalyticsRepository @Inject constructor(
     private val liteDatabase: com.whatstat.reborn.data.lite.LiteDatabase,
     private val activeDatabaseProvider: com.whatstat.reborn.data.db.ActiveDatabaseProvider
 ) {
-    private val _isLiteMode = kotlinx.coroutines.flow.MutableStateFlow(false)
+    private val _isLiteMode = kotlinx.coroutines.flow.MutableStateFlow(activeDatabaseProvider.isLiteMode)
     val isLiteMode: kotlinx.coroutines.flow.StateFlow<Boolean> = _isLiteMode.asStateFlow()
 
     /** Timestamp dell'ultima importazione Lite. Cambia ad ogni nuovo ZIP importato. */
@@ -60,25 +60,30 @@ class AnalyticsRepository @Inject constructor(
     }
 
     /** Chiamato dopo ogni importazione riuscita: aggiorna il version stamp e invalida la cache. */
-    fun notifyLiteImportDone() {
+    suspend fun notifyLiteImportDone() {
+        // Pulisci la cache DataStore PRIMA di notificare i collector.
+        // Se la pulizia fallisce, proseguiamo comunque con il version bump
+        // per forzare il refresh a runtime.
+        runCatching {
+            cacheManager.clearCache(resetWordIndexes = true)
+        }.onFailure {
+            DebugLogManager.log("Lite import cache clear failed", it)
+        }
         _liteCacheVersion.value = System.currentTimeMillis()
         // Impostiamo la modalità lite attiva nel provider
         setLiteMode(true)
-        // Invalida la cache DataStore per non restituire dati del precedente ZIP
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-            cacheManager.clearCache()
-        }
+        DebugLogManager.log("Lite import cache invalidated | version=${_liteCacheVersion.value}")
     }
 
     /**
-     * Resetta la modalità Lite: imposta il flag a false (sincrono) e cancella la cache su disco.
-     * Deve essere chiamato prima di tornare alla SetupScreen per evitare il loop di navigazione.
+     * Resetta solo il flag di modalità Lite.
+     * I DB Lite restano intatti per evitare perdita dati in caso di reset di navigazione.
      */
     fun resetLiteMode() {
+        DebugLogManager.log("AnalyticsRepository.resetLiteMode invoked")
         setLiteMode(false)
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-            liteDatabase.deleteAll()
-        }
+        // Non cancelliamo più i DB Lite in reset di navigazione.
+        // La cancellazione esplicita dei dati va fatta solo da un'azione utente dedicata.
     }
 
     init {
@@ -108,6 +113,11 @@ class AnalyticsRepository @Inject constructor(
             val cached = cacheManager.getGlobalStats()
             if (cached != null) {
                 android.util.Log.d("WhatStat", "Quick GlobalStats from cache")
+                if (_isLiteMode.value) {
+                    DebugLogManager.log(
+                        "Global stats cache hit | range=$timeRange totalChats=${cached.totalChats} totalMessages=${cached.totalMessages} mostActive=${cached.mostActiveChat}"
+                    )
+                }
                 onProgress(100)
                 return@withContext cached
             }
@@ -191,6 +201,11 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             // Salva in cache solo per ALL_TIME
             if (timeRange == TimeRange.ALL_TIME) {
                 cacheManager.saveGlobalStats(stats)
+            }
+            if (_isLiteMode.value) {
+                DebugLogManager.log(
+                    "Global stats computed | range=$timeRange forceRefresh=$forceRefresh totalChats=$totalChats totalMessages=$totalMessages media=$mediaCount mostActive=$mostActiveChatName"
+                )
             }
             stats
         }
@@ -347,7 +362,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             val displayName = if (basicInfo.isGroup) {
                 basicInfo.subject ?: contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")
             } else {
-                contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")
+                basicInfo.subject ?: basicInfo.name ?: contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")
             }
 
             onProgress(15)
@@ -938,7 +953,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         // (cachedMediaIndex): dalla seconda apertura è istantanea.
         val isLite = activeDatabaseProvider.isLiteMode
         val base = if (isLite) {
-            File(liteDatabase.cacheDir, "lite_chat_extracted").absolutePath
+            File(liteDatabase.filesDir, "lite_media").absolutePath
         } else {
             detectWhatsAppBase()
         }
