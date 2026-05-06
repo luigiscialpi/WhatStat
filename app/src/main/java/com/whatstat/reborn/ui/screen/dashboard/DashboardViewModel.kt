@@ -12,7 +12,6 @@ import com.whatstat.reborn.data.db.model.YearTrendCount
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.domain.model.GlobalStats
 import com.whatstat.reborn.ui.state.FilterStateHolder
-import com.whatstat.reborn.util.DebugLogManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -119,11 +118,6 @@ class DashboardViewModel @Inject constructor(
                     _dayOfMonthData.value = quickStats.dayOfMonthDistribution
                     _monthOfYearData.value = quickStats.monthOfYearDistribution
                     _yearTrendData.value = quickStats.yearTrendDistribution
-                    if (analyticsRepository.isLiteMode.value) {
-                        DebugLogManager.log(
-                            "Dashboard load complete | totalChats=${quickStats.totalChats} totalMessages=${quickStats.totalMessages} mostActive=${quickStats.mostActiveChat}"
-                        )
-                    }
                 }
 
                 _isLoading.value = false
@@ -137,9 +131,6 @@ class DashboardViewModel @Inject constructor(
                 // Ricerca annullata dall'utente, ignoriamo l'errore
             } catch (e: Exception) {
                 _error.value = "Errore: ${e.message}"
-                if (analyticsRepository.isLiteMode.value) {
-                    DebugLogManager.log("Dashboard load failed", e)
-                }
             } finally {
                 _isLoading.value = false
                 _loadingProgress.value = null

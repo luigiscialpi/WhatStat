@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
-import com.whatstat.reborn.util.DebugLogManager
 
 @HiltViewModel
 class MediaStatsViewModel @Inject constructor(
@@ -235,11 +234,6 @@ class MediaStatsViewModel @Inject constructor(
                     if (cached != null) {
                         _linkStats.value = cached.first.map { it.copy(avatarPath = getAvatarPath(it.jid)) }
                         _topDomains.value = cached.second
-                        if (analyticsRepository.isLiteMode.value) {
-                            DebugLogManager.log(
-                                "Media stats cache hit | chatId=${cid ?: -1L} links=${_linkStats.value.size} domains=${_topDomains.value.size}"
-                            )
-                        }
                         _isLoading.value = false
                         _loadingProgress.value = null
                         return@launch
@@ -271,17 +265,9 @@ class MediaStatsViewModel @Inject constructor(
                     if (cid != null) cacheManager.saveChatMediaStats(cid, statsToCache, _topDomains.value)
                     else cacheManager.saveGlobalMediaStats(statsToCache, _topDomains.value)
                 }
-                if (analyticsRepository.isLiteMode.value) {
-                    DebugLogManager.log(
-                        "Media stats computed | chatId=${cid ?: -1L} links=${_linkStats.value.size} domains=${_topDomains.value.size}"
-                    )
-                }
                 
             } catch (e: Exception) {
                 _linkStats.value = emptyList()
-                if (analyticsRepository.isLiteMode.value) {
-                    DebugLogManager.log("Media stats load failed", e)
-                }
             } finally {
                 _isLoading.value = false
                 _loadingProgress.value = null
@@ -365,7 +351,6 @@ class MediaStatsViewModel @Inject constructor(
                 } ?: emptyList()
                 _contactDomainStats.value = Triple(name, avatarPath, domains)
             } catch (e: Exception) {
-                DebugLogManager.log("Error loading domains", e)
             } finally {
                 _isDomainLoading.value = false
                 _loadingProgressDomains.value = null
@@ -416,12 +401,10 @@ class MediaStatsViewModel @Inject constructor(
                     )
                 } ?: emptyList()
 
-                DebugLogManager.log("Loaded ${mediaFiles.size} media files for $jid")
                 // Aggiorna lo stato solo quando abbiamo i dati, filtrando quelli che non esistono piu'
                 val existingMediaFiles = mediaFiles.filter { java.io.File(it.filePath).exists() }
                 _mediaGalleryState.value = Triple(name, avatarPath, existingMediaFiles)
             } catch (e: Exception) {
-                DebugLogManager.log("Error loading media gallery", e)
                 _mediaGalleryState.value = null
             } finally {
                 _isMediaGalleryLoading.value = false

@@ -3,7 +3,6 @@ package com.whatstat.reborn.data.lite
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import dagger.hilt.android.qualifiers.ApplicationContext
-import com.whatstat.reborn.util.DebugLogManager
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -230,7 +229,6 @@ class LiteDatabase @Inject constructor(
     }
 
     fun deleteAll() {
-        DebugLogManager.log("LiteDatabase.deleteAll invoked | dbExists=${File(context.filesDir, "lite_msgstore.db").exists()} waExists=${File(context.filesDir, "lite_wa.db").exists()}")
         close()
         File(context.filesDir, "lite_msgstore.db").delete()
         File(context.filesDir, "lite_wa.db").delete()

@@ -64,10 +64,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstat.reborn.data.db.model.ChatListItem
-import com.whatstat.reborn.ui.component.LiteDebugLogCard
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.SimpleScreenHeader
-import com.whatstat.reborn.util.DebugLogManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,7 +79,6 @@ fun ChatListScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isLiteMode by viewModel.isLiteMode.collectAsState()
-    val debugLogs by DebugLogManager.logs.collectAsState()
 
     // Dialogo di conferma eliminazione
     var chatToDelete by remember { mutableStateOf<ChatListItem?>(null) }
@@ -139,15 +136,6 @@ fun ChatListScreen(
             )
 
             Spacer(Modifier.height(8.dp))
-
-            if (isLiteMode && debugLogs.isNotEmpty()) {
-                LiteDebugLogCard(
-                    logs = debugLogs,
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                    onClear = { DebugLogManager.clear() }
-                )
-                Spacer(Modifier.height(12.dp))
-            }
 
             // ── Chat List ────────────────────────────────────────────
             if (isLoading) {

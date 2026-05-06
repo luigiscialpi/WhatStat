@@ -10,7 +10,6 @@ import com.whatstat.reborn.data.lite.LiteModeManager
 import com.whatstat.reborn.data.repository.WhatsAppRepository
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.service.LiteImportService
-import com.whatstat.reborn.util.DebugLogManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -48,12 +47,10 @@ class LiteSetupViewModel @Inject constructor(
         val uriString = uri.toString()
         val now = System.currentTimeMillis()
         if (_state.value.isLoading && lastRequestedUri == uriString && (now - lastRequestedAtMs) < 5000L) {
-            DebugLogManager.log("Lite setup zip ignored duplicate while loading | uri=$uriString")
             return
         }
         lastRequestedUri = uriString
         lastRequestedAtMs = now
-        DebugLogManager.log("Lite setup zip selected | uri=$uri")
         _state.update {
             it.copy(
                 selectedZipUri = uri,
@@ -84,10 +81,8 @@ class LiteSetupViewModel @Inject constructor(
                 .onSuccess { result ->
                     progressJob?.cancel()
                     stopForegroundService()
-                    DebugLogManager.log("Lite setup sender selection ready | senders=${result.identifiedSenders.joinToString(", ")}")
                     val rememberedOwner = prefs.getString(LAST_OWNER_KEY, null)
                     if (!rememberedOwner.isNullOrBlank() && result.identifiedSenders.contains(rememberedOwner)) {
-                        DebugLogManager.log("Lite setup auto owner match | owner=$rememberedOwner")
                         _state.update {
                             it.copy(
                                 isLoading = false,
@@ -107,7 +102,6 @@ class LiteSetupViewModel @Inject constructor(
                 .onFailure { e ->
                     progressJob?.cancel()
                     stopForegroundService()
-                    DebugLogManager.log("Lite setup import failed", e)
                     _state.update { it.copy(isLoading = false, error = e.message) }
                 }
         }
@@ -115,7 +109,6 @@ class LiteSetupViewModel @Inject constructor(
 
     fun onSenderSelected(name: String) {
         if (_state.value.isLoading) {
-            DebugLogManager.log("Lite setup sender selection ignored while already finalizing | owner=$name")
             return
         }
         _state.update {
@@ -128,7 +121,6 @@ class LiteSetupViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            DebugLogManager.log("Lite setup sender selected | owner=$name")
             val finalizeResult = withContext(NonCancellable) {
                 liteModeManager.finalizeOwnerSelection(name)
             }
@@ -138,12 +130,9 @@ class LiteSetupViewModel @Inject constructor(
                     analyticsRepository.notifyLiteImportDone()
                 }
                 prefs.edit().putString(LAST_OWNER_KEY, name).apply()
-                DebugLogManager.log("Lite setup cache notify complete | owner=$name")
-                DebugLogManager.log("Lite setup import complete | owner=$name")
                 _state.update { it.copy(isLoading = false, isComplete = true) }
             } else {
                 val error = finalizeResult.exceptionOrNull()
-                DebugLogManager.log("Lite setup finalize failed", error)
                 _state.update { it.copy(isLoading = false, error = error?.message) }
             }
         }

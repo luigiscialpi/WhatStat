@@ -79,7 +79,6 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.reborn.ui.component.LoadingSection
-import com.whatstat.reborn.ui.component.LiteDebugLogCard
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.TimeRangeFilterRow
@@ -91,7 +90,6 @@ import com.whatstat.reborn.ui.component.InteractiveStickerCloud
 import com.whatstat.reborn.ui.component.InteractiveWordCloud
 import com.whatstat.reborn.ui.component.EmojiPreviewModal
 import com.whatstat.reborn.ui.component.StickerPreviewModal
-import com.whatstat.reborn.util.DebugLogManager
 import java.io.File
 
 @Composable
@@ -116,7 +114,6 @@ fun DashboardScreen(
     val error by viewModel.error.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
-    val debugLogs by DebugLogManager.logs.collectAsState()
 
     LifecycleResumeEffect(Unit) {
         viewModel.syncFilterState()
@@ -236,15 +233,6 @@ fun DashboardScreen(
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                if (s?.isLiteMode == true && debugLogs.isNotEmpty()) {
-                    item {
-                        LiteDebugLogCard(
-                            logs = debugLogs,
-                            onClear = { DebugLogManager.clear() }
-                        )
-                    }
-                }
-
                 if (error != null) {
                     item {
                         Card(

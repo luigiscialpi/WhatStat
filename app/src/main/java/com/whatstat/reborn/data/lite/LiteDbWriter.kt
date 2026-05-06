@@ -2,7 +2,6 @@ package com.whatstat.reborn.data.lite
 
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
-import com.whatstat.reborn.util.DebugLogManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -130,9 +129,6 @@ class LiteDbWriter @Inject constructor(
             // Pulizia per re-import
             db.delete("message_media", "message_row_id IN (SELECT _id FROM message WHERE chat_row_id = ?)", arrayOf(existingId.toString()))
             db.delete("message", "chat_row_id = ?", arrayOf(existingId.toString()))
-            DebugLogManager.log(
-                "Lite DB upsert | reusedChatId=$existingId importKey=$importKey subject=$subject removedMediaFolders=${obsoleteMediaFolders.size}"
-            )
             return ChatUpsertResult(existingId, obsoleteMediaFolders)
         }
 
@@ -143,7 +139,6 @@ class LiteDbWriter @Inject constructor(
             put("import_key", importKey)
         }
         val chatId = db.insert("chat", null, values)
-        DebugLogManager.log("Lite DB upsert | newChatId=$chatId importKey=$importKey subject=$subject")
         return ChatUpsertResult(
             chatId = chatId,
             obsoleteMediaFolders = emptySet()

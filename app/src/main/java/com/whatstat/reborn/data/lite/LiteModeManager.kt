@@ -2,7 +2,6 @@ package com.whatstat.reborn.data.lite
 
 import android.net.Uri
 import com.whatstat.reborn.data.root.FileExtractor
-import com.whatstat.reborn.util.DebugLogManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,8 +42,6 @@ class LiteModeManager @Inject constructor(
      */
     suspend fun importAndProcess(zipUri: Uri, ownerName: String): Result<ImportResult> = withContext(Dispatchers.IO) {
         runCatching {
-            DebugLogManager.log("Lite import start | uri=$zipUri placeholderOwner=$ownerName")
-
             // 1. Estrazione ZIP
             _importProgress.value = LiteImportProgress(0.05f, "Estrazione ZIP...")
             val folder = fileExtractor.extractFullChatFolder(zipUri).getOrThrow()
@@ -62,9 +59,6 @@ class LiteModeManager @Inject constructor(
 
             val zipDisplayName = getFileName(zipUri)
             val isGroup = identifiedSenders.size > 2
-            DebugLogManager.log(
-                "Lite import parsed | zipName=${zipDisplayName ?: "-"} txtName=${txtFile.nameWithoutExtension} messages=${parseResult.messages.size} media=${mediaStats.mediaItems.size} senders=${identifiedSenders.joinToString(", ")}"
-            )
 
             val chatDescriptor = resolveChatDescriptor(
                 zipDisplayName = zipDisplayName,
@@ -72,9 +66,6 @@ class LiteModeManager @Inject constructor(
                 ownerName = ownerName,
                 senders = identifiedSenders,
                 isGroup = isGroup
-            )
-            DebugLogManager.log(
-                "Lite import descriptor | displayName=${chatDescriptor.displayName} importKey=${chatDescriptor.importKey} isGroup=$isGroup"
             )
 
             // 4. Scrittura su SQLite
@@ -91,7 +82,6 @@ class LiteModeManager @Inject constructor(
             }
 
             lastImportedChatId = chatId
-            logDatabaseSnapshot(stage = "Lite import write complete", focusChatId = chatId)
             _importProgress.value = LiteImportProgress(0.92f, "Seleziona il tuo nome...")
             ImportResult(identifiedSenders)
         }
@@ -118,7 +108,6 @@ class LiteModeManager @Inject constructor(
             ).use { cursor ->
                 if (cursor.moveToFirst()) cursor.getLong(0) else -1L
             }
-            DebugLogManager.log("Lite owner finalize start | chatId=$chatId owner=$ownerName jidRowId=$jidRowId")
 
             db.beginTransaction()
             try {
@@ -142,7 +131,6 @@ class LiteModeManager @Inject constructor(
                 db.endTransaction()
             }
 
-            logDatabaseSnapshot(stage = "Lite owner finalize complete", focusChatId = chatId)
             _importProgress.value = LiteImportProgress(1f, "Completato")
         }
     }
@@ -239,71 +227,6 @@ class LiteModeManager @Inject constructor(
             .ifBlank { "chat" }
     }
 
-    private fun logDatabaseSnapshot(stage: String, focusChatId: Long? = null) {
-        runCatching {
-            val db = liteDatabase.getOrCreate()
-            val totalChats = db.rawQuery("SELECT COUNT(*) FROM chat", null).use {
-                if (it.moveToFirst()) it.getInt(0) else 0
-            }
-            val totalMessages = db.rawQuery("SELECT COUNT(*) FROM message", null).use {
-                if (it.moveToFirst()) it.getInt(0) else 0
-            }
-            val totalMedia = db.rawQuery("SELECT COUNT(*) FROM message_media", null).use {
-                if (it.moveToFirst()) it.getInt(0) else 0
-            }
-            val focusSummary = focusChatId?.let { chatId ->
-                db.rawQuery(
-                    """
-                    SELECT COUNT(*),
-                           COALESCE(SUM(CASE WHEN from_me = 1 THEN 1 ELSE 0 END), 0)
-                    FROM message
-                    WHERE chat_row_id = ?
-                    """.trimIndent(),
-                    arrayOf(chatId.toString())
-                ).use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        val total = cursor.getInt(0)
-                        val sent = cursor.getInt(1)
-                        " focusChat=$chatId total=$total sent=$sent received=${(total - sent).coerceAtLeast(0)}"
-                    } else {
-                        " focusChat=$chatId total=0 sent=0 received=0"
-                    }
-                }
-            } ?: ""
-
-            val chatSnapshot = db.rawQuery(
-                """
-                SELECT c._id,
-                       COALESCE(c.subject, j.raw_string, ''),
-                       COUNT(m._id),
-                       COALESCE(SUM(CASE WHEN m.from_me = 1 THEN 1 ELSE 0 END), 0)
-                FROM chat c
-                LEFT JOIN jid j ON j._id = c.jid_row_id
-                LEFT JOIN message m ON m.chat_row_id = c._id
-                GROUP BY c._id, COALESCE(c.subject, j.raw_string, '')
-                ORDER BY c.sort_timestamp DESC, c._id DESC
-                LIMIT 10
-                """.trimIndent(),
-                null
-            ).use { cursor ->
-                buildList {
-                    while (cursor.moveToNext()) {
-                        val chatId = cursor.getLong(0)
-                        val name = cursor.getString(1).orEmpty().ifBlank { "(senza nome)" }
-                        val total = cursor.getInt(2)
-                        val sent = cursor.getInt(3)
-                        add("#$chatId:$name total=$total sent=$sent recv=${(total - sent).coerceAtLeast(0)}")
-                    }
-                }
-            }
-
-            DebugLogManager.log(
-                "$stage | chats=$totalChats messages=$totalMessages media=$totalMedia$focusSummary | snapshot=${chatSnapshot.joinToString(" | ")}"
-            )
-        }.onFailure {
-            DebugLogManager.log("$stage | snapshot-error=${it.message}", it)
-        }
-    }
 }
 
 data class ImportResult(

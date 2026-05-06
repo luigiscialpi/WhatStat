@@ -29,7 +29,6 @@ import com.whatstat.reborn.ui.screen.wordsearch.WordSearchScreen
 import com.whatstat.reborn.ui.screen.history.GroupHistoryScreen
 import com.whatstat.reborn.ui.MainViewModel
 import androidx.compose.runtime.collectAsState
-import com.whatstat.reborn.util.DebugLogManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.filterNotNull
 
@@ -111,7 +110,6 @@ fun AppNavigation(
             } else {
                 Screen.LiteSetup.createRoute(uri)
             }
-            DebugLogManager.log("AppNavigation incoming zip route | isLite=$isLiteMode target=$targetRoute")
             navController.navigate(targetRoute) {
                 launchSingleTop = true
             }
@@ -200,7 +198,6 @@ private fun NavGraphBuilder.mainGraph(
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
                     onNavigateBack = {
-                        DebugLogManager.log("Dashboard onNavigateBack invoked")
                         onResetLite()
                         repository.resetState()
                         navController.navigate(Screen.Setup.route) {

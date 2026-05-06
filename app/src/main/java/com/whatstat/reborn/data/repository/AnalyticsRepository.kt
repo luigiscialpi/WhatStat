@@ -23,7 +23,6 @@ import java.time.ZoneId
 import java.util.regex.Pattern
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.io.SuFile
-import com.whatstat.reborn.util.DebugLogManager
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -66,13 +65,10 @@ class AnalyticsRepository @Inject constructor(
         // per forzare il refresh a runtime.
         runCatching {
             cacheManager.clearCache(resetWordIndexes = true)
-        }.onFailure {
-            DebugLogManager.log("Lite import cache clear failed", it)
         }
         _liteCacheVersion.value = System.currentTimeMillis()
         // Impostiamo la modalità lite attiva nel provider
         setLiteMode(true)
-        DebugLogManager.log("Lite import cache invalidated | version=${_liteCacheVersion.value}")
     }
 
     /**
@@ -80,7 +76,6 @@ class AnalyticsRepository @Inject constructor(
      * I DB Lite restano intatti per evitare perdita dati in caso di reset di navigazione.
      */
     fun resetLiteMode() {
-        DebugLogManager.log("AnalyticsRepository.resetLiteMode invoked")
         setLiteMode(false)
         // Non cancelliamo più i DB Lite in reset di navigazione.
         // La cancellazione esplicita dei dati va fatta solo da un'azione utente dedicata.
@@ -113,11 +108,6 @@ class AnalyticsRepository @Inject constructor(
             val cached = cacheManager.getGlobalStats()
             if (cached != null) {
                 android.util.Log.d("WhatStat", "Quick GlobalStats from cache")
-                if (_isLiteMode.value) {
-                    DebugLogManager.log(
-                        "Global stats cache hit | range=$timeRange totalChats=${cached.totalChats} totalMessages=${cached.totalMessages} mostActive=${cached.mostActiveChat}"
-                    )
-                }
                 onProgress(100)
                 return@withContext cached
             }
@@ -201,11 +191,6 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             // Salva in cache solo per ALL_TIME
             if (timeRange == TimeRange.ALL_TIME) {
                 cacheManager.saveGlobalStats(stats)
-            }
-            if (_isLiteMode.value) {
-                DebugLogManager.log(
-                    "Global stats computed | range=$timeRange forceRefresh=$forceRefresh totalChats=$totalChats totalMessages=$totalMessages media=$mediaCount mostActive=$mostActiveChatName"
-                )
             }
             stats
         }
