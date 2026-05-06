@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
@@ -70,11 +69,14 @@ class ChatListViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
+        val baselineVersion = analyticsRepository.liteCacheVersion.value
         loadChats()
         // Ricarica la lista ogni volta che viene completata una nuova importazione Lite
         viewModelScope.launch {
-            analyticsRepository.liteCacheVersion.drop(1).collect {
-                loadChats()
+            analyticsRepository.liteCacheVersion.collect { version ->
+                if (version > baselineVersion) {
+                    loadChats()
+                }
             }
         }
     }

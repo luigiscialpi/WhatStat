@@ -33,16 +33,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -73,12 +72,19 @@ fun ChatListScreen(
     viewModel: ChatListViewModel = hiltViewModel(),
     onChatSelected: (Long) -> Unit,
     onNavigateBack: () -> Unit,
-    onImportChat: () -> Unit = {}
+    onImportChat: (String) -> Unit = {}
 ) {
     val chats by viewModel.filteredChats.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isLiteMode by viewModel.isLiteMode.collectAsState()
+
+    // Apre il file picker; quando lo ZIP è selezionato naviga direttamente con l'URI
+    val zipLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { onImportChat(it.toString()) }
+    }
 
     // Dialogo di conferma eliminazione
     var chatToDelete by remember { mutableStateOf<ChatListItem?>(null) }
@@ -146,73 +152,21 @@ fun ChatListScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
-                        if (isLiteMode) {
-                            // Swipe-to-delete solo in Lite Mode
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { value ->
-                                    if (value == SwipeToDismissBoxValue.EndToStart) {
-                                        chatToDelete = chat
-                                    }
-                                    false // non scartare subito, aspettiamo conferma
-                                }
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn() + slideInVertically { it / 3 }
+                        ) {
+                            ChatListItem(
+                                rank = index + 1,
+                                name = chat.displayName,
+                                jid = chat.jid,
+                                messageCount = chat.totalMessages,
+                                isGroup = chat.isGroup,
+                                avatarPath = chat.avatarPath,
+                                isLiteMode = isLiteMode,
+                                onDelete = { chatToDelete = chat },
+                                onClick = { onChatSelected(chat.chatId) }
                             )
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                enableDismissFromStartToEnd = false,
-                                enableDismissFromEndToStart = true,
-                                backgroundContent = {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(14.dp))
-                                            .background(
-                                                if (dismissState.targetValue != SwipeToDismissBoxValue.Settled)
-                                                    MaterialTheme.colorScheme.errorContainer
-                                                else androidx.compose.ui.graphics.Color.Transparent
-                                            ),
-                                        contentAlignment = Alignment.CenterEnd
-                                    ) {
-                                        if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) {
-                                            Icon(
-                                                Icons.Outlined.Delete,
-                                                contentDescription = "Elimina chat",
-                                                tint = MaterialTheme.colorScheme.onErrorContainer,
-                                                modifier = Modifier.padding(end = 20.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            ) {
-                                AnimatedVisibility(
-                                    visible = true,
-                                    enter = fadeIn() + slideInVertically { it / 3 }
-                                ) {
-                                    ChatListItem(
-                                        rank = index + 1,
-                                        name = chat.displayName,
-                                        jid = chat.jid,
-                                        messageCount = chat.totalMessages,
-                                        isGroup = chat.isGroup,
-                                        avatarPath = chat.avatarPath,
-                                        onClick = { onChatSelected(chat.chatId) }
-                                    )
-                                }
-                            }
-                        } else {
-                            AnimatedVisibility(
-                                visible = true,
-                                enter = fadeIn() + slideInVertically { it / 3 }
-                            ) {
-                                ChatListItem(
-                                    rank = index + 1,
-                                    name = chat.displayName,
-                                    jid = chat.jid,
-                                    messageCount = chat.totalMessages,
-                                    isGroup = chat.isGroup,
-                                    avatarPath = chat.avatarPath,
-                                    onClick = { onChatSelected(chat.chatId) }
-                                )
-                            }
                         }
                     }
 
@@ -221,21 +175,28 @@ fun ChatListScreen(
             }
         }
 
-        // ── FAB "Importa chat" — solo Lite Mode ──────────────────
+        // ── FAB "Aggiungi ZIP" — solo Lite Mode ──────────────────
         if (isLiteMode) {
-            FloatingActionButton(
-                onClick = onImportChat,
+            ExtendedFloatingActionButton(
+                onClick = { zipLauncher.launch("application/zip") },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 20.dp, bottom = 24.dp),
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(
-                    Icons.Outlined.Add,
-                    contentDescription = "Importa chat",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
+                containerColor = MaterialTheme.colorScheme.primary,
+                icon = {
+                    Icon(
+                        Icons.Outlined.Add,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                },
+                text = {
+                    Text(
+                        "Aggiungi ZIP",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            )
         }
     }
 
@@ -272,6 +233,8 @@ private fun ChatListItem(
     messageCount: Int,
     isGroup: Boolean,
     avatarPath: String?,
+    isLiteMode: Boolean = false,
+    onDelete: () -> Unit = {},
     onClick: () -> Unit
 ) {
     Card(
@@ -286,7 +249,7 @@ private fun ChatListItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = if (isLiteMode) 4.dp else 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Rank badge
@@ -359,19 +322,29 @@ private fun ChatListItem(
                 )
             }
 
-            // Message count pill
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    "%,d".format(messageCount),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            // Destra: cestino in Lite mode, pill conteggio in Root mode
+            if (isLiteMode) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Outlined.Delete,
+                        contentDescription = "Elimina chat",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        "%,d".format(messageCount),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }

@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -61,6 +62,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -73,6 +75,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
@@ -84,14 +90,46 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun SetupScreen(
     viewModel: SetupViewModel = hiltViewModel(),
     liteViewModel: LiteSetupViewModel = hiltViewModel(),
+    incomingZipUri: String? = null,
+    onUriConsumed: () -> Unit = {},
     onSetupComplete: () -> Unit,
     onNavigateToDashboard: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
     val liteState by liteViewModel.state.collectAsState()
 
-    LaunchedEffect(state.isComplete) {
-        if (state.isComplete) onSetupComplete()
+    // Se c'è un URI in ingresso al momento della prima composizione, blocchiamo
+    // la navigazione automatica (state.isComplete) finché il Lite import non è
+    // davvero completato (liteState.isComplete). Senza questo flag, Compose può
+    // eseguire il LaunchedEffect di navigazione prima che onZipSelected() abbia
+    // avuto il tempo di impostare isLoading=true nella composizione successiva.
+    val awaitLiteImport = remember { incomingZipUri != null }
+
+    // Se arriva un URI dall'intent (cold start / condivisione da WhatsApp),
+    // avviamo l'import direttamente dal tab Lite senza navigare a LiteSetupScreen.
+    LaunchedEffect(incomingZipUri) {
+        if (incomingZipUri != null) {
+            liteViewModel.onZipSelected(android.net.Uri.parse(incomingZipUri))
+            onUriConsumed()
+        }
+    }
+
+    // Navigazione automatica verso Main:
+    // - se stiamo aspettando il completamento di un import URI, lo gestiamo
+    //   solo con liteState.isComplete (via il LaunchedEffect sotto)
+    // - altrimenti: quando il setup generico è completo e non c'è un import in corso
+    LaunchedEffect(state.isComplete, liteState.isLoading, liteState.showSenderSelection) {
+        if (awaitLiteImport) return@LaunchedEffect
+        if (state.isComplete && !liteState.isLoading && !liteState.showSenderSelection) {
+            onSetupComplete()
+        }
+    }
+
+    // Quando un import avviato da URI è completato, naviga verso Main.
+    LaunchedEffect(liteState.isComplete) {
+        if (awaitLiteImport && liteState.isComplete) {
+            onSetupComplete()
+        }
     }
 
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -304,6 +342,50 @@ fun SetupScreen(
             senders = liteState.identifiedSenders,
             onSenderSelected = { liteViewModel.onSenderSelected(it) }
         )
+    }
+}
+
+@Composable
+fun SenderSelectionDialog(
+    senders: List<String>,
+    onSenderSelected: (String) -> Unit
+) {
+    Dialog(onDismissRequest = { /* Obbligatorio selezionare */ }) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 400.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(Modifier.padding(24.dp)) {
+                Text(
+                    "Chi sei tu?",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Seleziona il tuo nome dalla lista per distinguere i messaggi inviati da quelli ricevuti.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(16.dp))
+
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(senders) { sender ->
+                        Text(
+                            text = sender,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSenderSelected(sender) }
+                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                }
+            }
+        }
     }
 }
 

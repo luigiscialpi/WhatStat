@@ -1,7 +1,14 @@
 package com.whatstat.reborn.ui.navigation
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,7 +31,8 @@ import com.whatstat.reborn.ui.screen.dashboard.DashboardScreen
 import com.whatstat.reborn.ui.screen.home.AppScaffold
 import com.whatstat.reborn.ui.screen.media.MediaStatsScreen
 import com.whatstat.reborn.ui.screen.setup.SetupScreen
-import com.whatstat.reborn.ui.screen.setup.LiteSetupScreen
+import com.whatstat.reborn.ui.screen.setup.LiteSetupViewModel
+import com.whatstat.reborn.ui.screen.setup.SenderSelectionDialog
 import com.whatstat.reborn.ui.screen.wordsearch.WordSearchScreen
 import com.whatstat.reborn.ui.screen.history.GroupHistoryScreen
 import com.whatstat.reborn.ui.MainViewModel
@@ -100,20 +108,18 @@ fun AppNavigation(
 
     LaunchedEffect(incomingZipUri, navController) {
         incomingZipUri?.let { uri ->
-            // Attendi che il NavHost sia completamente inizializzato
-            snapshotFlow { navController.currentBackStackEntry }
-                .filterNotNull()
-                .first()
-
-            val targetRoute = if (isLiteMode) {
-                Screen.LiteSetupAdd.createRoute(uri)
-            } else {
-                Screen.LiteSetup.createRoute(uri)
+            if (isLiteMode) {
+                // App già in Lite Mode: aggiunge un'altra chat dalla ChatList
+                snapshotFlow { navController.currentBackStackEntry }
+                    .filterNotNull()
+                    .first()
+                navController.navigate(Screen.LiteSetupAdd.createRoute(uri)) {
+                    launchSingleTop = true
+                }
+                mainViewModel.setIncomingZipUri(null)
             }
-            navController.navigate(targetRoute) {
-                launchSingleTop = true
-            }
-            mainViewModel.setIncomingZipUri(null)
+            // isLiteMode=false: la SetupScreen consumerà l'URI direttamente
+            // tramite il suo LiteSetupViewModel senza navigare altrove.
         }
     }
 
@@ -128,48 +134,31 @@ fun AppNavigation(
             route = "root_graph",
             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
         ) {
-            setupGraph(navController)
+            setupGraph(navController, incomingZipUri, onUriConsumed = { mainViewModel.setIncomingZipUri(null) })
             mainGraph(navController, repository, onResetLite = { mainViewModel.resetLiteMode() })
         }
     }
 }
 
-private fun NavGraphBuilder.setupGraph(navController: NavHostController) {
+private fun NavGraphBuilder.setupGraph(
+    navController: NavHostController,
+    incomingZipUri: String?,
+    onUriConsumed: () -> Unit
+) {
     navigation(
         startDestination = Screen.Setup.route,
         route = NavGraphRoute.Setup
     ) {
         composable(Screen.Setup.route) {
             SetupScreen(
+                incomingZipUri = incomingZipUri,
+                onUriConsumed = onUriConsumed,
                 onSetupComplete = {
                     navController.navigate(NavGraphRoute.Main) {
                         popUpTo(NavGraphRoute.Setup) { inclusive = true }
                     }
                 },
                 onNavigateToDashboard = {
-                    navController.navigate(NavGraphRoute.Main) {
-                        popUpTo(NavGraphRoute.Setup) { inclusive = true }
-                    }
-                }
-            )
-        }
-        composable(
-            route = "lite_setup?zipUri={zipUri}",
-            arguments = listOf(
-                navArgument("zipUri") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            val zipUri = backStackEntry.arguments?.getString("zipUri")?.let { 
-                Uri.decode(it) 
-            }
-            LiteSetupScreen(
-                incomingZipUri = zipUri,
-                onNavigateBack = { navController.popBackStack() },
-                onImportComplete = {
                     navController.navigate(NavGraphRoute.Main) {
                         popUpTo(NavGraphRoute.Setup) { inclusive = true }
                     }
@@ -217,8 +206,8 @@ private fun NavGraphBuilder.mainGraph(
                     onNavigateBack = {
                         navController.popBackStack()
                     },
-                    onImportChat = {
-                        navController.navigate(Screen.LiteSetupAdd.createRoute())
+                    onImportChat = { uriString ->
+                        navController.navigate(Screen.LiteSetupAdd.createRoute(uriString))
                     }
                 )
             }
@@ -236,7 +225,7 @@ private fun NavGraphBuilder.mainGraph(
                 val zipUri = backStackEntry.arguments?.getString("zipUri")?.let {
                     Uri.decode(it)
                 }
-                LiteSetupScreen(
+                AddChatZipScreen(
                     incomingZipUri = zipUri,
                     onNavigateBack = { navController.popBackStack() },
                     onImportComplete = { navController.popBackStack() }
@@ -346,5 +335,108 @@ private fun NavGraphBuilder.mainGraph(
                 )
             }
         }
+    }
+}
+
+// ── Schermata di aggiunta ZIP dalla ChatList ────────────────────────────────────
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun AddChatZipScreen(
+    incomingZipUri: String? = null,
+    viewModel: LiteSetupViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
+    onNavigateBack: () -> Unit,
+    onImportComplete: () -> Unit
+) {
+    val state by viewModel.state.collectAsState()
+
+    androidx.activity.compose.BackHandler(enabled = state.isLoading || state.showSenderSelection) {}
+
+    androidx.compose.runtime.LaunchedEffect(state.isComplete) {
+        if (state.isComplete) {
+            onImportComplete()
+            viewModel.consumeImportComplete()
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(incomingZipUri) {
+        incomingZipUri?.let { viewModel.onZipSelected(android.net.Uri.parse(it)) }
+    }
+
+    val zipLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri -> uri?.let { viewModel.onZipSelected(it) } }
+
+    androidx.compose.material3.Scaffold(
+        topBar = {
+            androidx.compose.material3.TopAppBar(
+                title = { androidx.compose.material3.Text("Aggiungi ZIP") },
+                navigationIcon = {
+                    if (!state.isLoading && !state.showSenderSelection) {
+                        androidx.compose.material3.IconButton(onClick = onNavigateBack) {
+                            androidx.compose.material3.Icon(
+                                androidx.compose.material.icons.Icons.Default.ArrowBack,
+                                contentDescription = "Indietro"
+                            )
+                        }
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        androidx.compose.foundation.layout.Box(
+            modifier = androidx.compose.ui.Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = androidx.compose.ui.Alignment.Center
+        ) {
+            androidx.compose.foundation.layout.Column(
+                modifier = androidx.compose.ui.Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
+            ) {
+                if (state.isLoading) {
+                    androidx.compose.material3.Text(
+                        text = state.progressLabel.ifEmpty { "Elaborazione in corso..." },
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    androidx.compose.material3.LinearProgressIndicator(
+                        progress = { state.progressPercent },
+                        modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+                    )
+                    androidx.compose.material3.Text(
+                        text = "${(state.progressPercent * 100).toInt()}%",
+                        style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    androidx.compose.material3.Button(
+                        onClick = { zipLauncher.launch("application/zip") },
+                        modifier = androidx.compose.ui.Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                    ) {
+                        androidx.compose.material3.Text("SELEZIONA FILE ZIP")
+                    }
+                }
+                state.error?.let {
+                    androidx.compose.material3.Text(
+                        it,
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+    }
+
+    if (state.showSenderSelection) {
+        SenderSelectionDialog(
+            senders = state.identifiedSenders,
+            onSenderSelected = { viewModel.onSenderSelected(it) }
+        )
     }
 }

@@ -76,12 +76,20 @@ class DashboardViewModel @Inject constructor(
     private var loadJob: Job? = null
 
     init {
-        loadStats()
-        // Ricarica le statistiche aggregate ogni volta che viene importata una nuova chat Lite
+        // Usa il valore corrente di liteCacheVersion come baseline:
+        // se al momento della creazione del ViewModel c'è già una versione > 0
+        // significa che un import è già avvenuto → loadStats deve essere forceRefresh.
+        val baselineVersion = analyticsRepository.liteCacheVersion.value
+        loadStats(forceRefresh = baselineVersion > 0L)
+
+        // Ricarica ogni volta che viene completata una nuova importazione Lite
         viewModelScope.launch {
-            analyticsRepository.liteCacheVersion.drop(1).collect {
-                loadStats(forceRefresh = true)
-            }
+            analyticsRepository.liteCacheVersion
+                .collect { version ->
+                    if (version > baselineVersion) {
+                        loadStats(forceRefresh = true)
+                    }
+                }
         }
     }
 
