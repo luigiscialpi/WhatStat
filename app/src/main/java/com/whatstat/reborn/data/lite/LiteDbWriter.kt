@@ -176,6 +176,7 @@ class LiteDbWriter @Inject constructor(
             content.contains("AUD-") || content.contains("PTT-") -> 2
             content.contains("VID-") -> 3
             content.contains("DOC-") -> 9
+            content.contains("STK-") -> 20
             else -> 0
         }
     }
@@ -201,6 +202,10 @@ class LiteDbWriter @Inject constructor(
                         put("file_path", item.relativePath)
                         put("mime_type", getMimeType(item.type))
                         put("file_size", item.fileSize)
+                        // Per gli sticker usiamo il nome file come pseudo-hash:
+                        // consente a getTopStickers (GROUP BY file_hash) di raggruppare
+                        // correttamente anche in Lite mode dove non abbiamo hash reali.
+                        if (item.type == "STICKER") put("file_hash", item.fileName)
                     }
                     db.insertWithOnConflict("message_media", null, values, SQLiteDatabase.CONFLICT_REPLACE)
                 }
@@ -214,6 +219,7 @@ class LiteDbWriter @Inject constructor(
     private fun getMimeType(type: String): String {
         return when (type) {
             "IMAGE" -> "image/jpeg"
+            "STICKER" -> "image/webp"
             "VIDEO" -> "video/mp4"
             "AUDIO" -> "audio/ogg"
             "DOCUMENT" -> "application/pdf"

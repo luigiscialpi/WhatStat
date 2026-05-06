@@ -11,9 +11,9 @@ import javax.inject.Singleton
 class LiteMediaManager @Inject constructor() {
 
     companion object {
-        /** Pattern per i nomi file allegati WhatsApp (es. IMG-20231015-WA0001.jpg). */
+        /** Pattern per i nomi file allegati WhatsApp (es. IMG-20231015-WA0001.jpg, STK-20250709-WA0005.webp). */
         private val MEDIA_FILENAME_REGEX = Regex(
-            "(?:IMG|VID|AUD|PTT|DOC)-\\d{8}-WA\\d{4,}(?:\\.[a-z0-9]+)?",
+            "(?:IMG|VID|AUD|PTT|DOC|STK)-\\d{8}-WA\\d{4,}(?:\\.[a-z0-9]+)?",
             RegexOption.IGNORE_CASE
         )
     }
@@ -56,7 +56,9 @@ class LiteMediaManager @Inject constructor() {
 
         val mediaItems = allFiles.mapNotNull { file ->
             val type = when (file.extension.lowercase()) {
-                "jpg", "jpeg", "png", "gif", "webp" -> "IMAGE"
+                // I file STK-*.webp sono sticker, gli altri .webp sono immagini normali
+                "webp" -> if (file.name.startsWith("STK-", ignoreCase = true)) "STICKER" else "IMAGE"
+                "jpg", "jpeg", "png", "gif" -> "IMAGE"
                 "mp4", "3gp", "mov", "m4v" -> "VIDEO"
                 "opus", "aac", "mp3", "m4a", "wav" -> "AUDIO"
                 "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip" -> "DOCUMENT"
