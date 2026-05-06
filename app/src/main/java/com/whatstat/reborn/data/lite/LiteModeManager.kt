@@ -205,16 +205,30 @@ class LiteModeManager @Inject constructor(
 
     private fun normalizeExportName(rawName: String?): String? {
         if (rawName.isNullOrBlank()) return null
-        return rawName
-            .replace("Chat WhatsApp con ", "", ignoreCase = true)
-            .replace("Chat WhatsApp with ", "", ignoreCase = true)
-            .replace("WhatsApp Chat - ", "", ignoreCase = true)
-            .replace("WhatsApp Chat with ", "", ignoreCase = true)
-            .removeSuffix(".zip")
-            .removeSuffix(".txt")
-            .trim()
-            .ifBlank { null }
+        
+        // Rimuove l'estensione (es. .zip o .txt) in modo case-insensitive
+        val name = if (rawName.contains(".")) {
+            rawName.substringBeforeLast(".")
+        } else {
+            rawName
+        }
+
+        // Pattern: Regex per prefissi comuni in varie lingue
+        // Cerca l'ultima occorrenza di congiunzioni comuni seguite da spazio (con, with, de, mit, ecc.)
+        val prefixRegex = Regex(".*(con|with|avec|mit|de|z|s|o|con la|with the|od|z użytkownikiem|z grupą)\\s+", RegexOption.IGNORE_CASE)
+        val match = prefixRegex.find(name)
+        
+        if (match != null) {
+            val cleanName = name.substring(match.range.last + 1).trim()
+            if (cleanName.isNotBlank()) {
+                return cleanName
+            }
+        }
+
+        // Se non trova il pattern linguistico, restituisce il nome originale pulito dagli spazi
+        return name.trim().ifBlank { null }
     }
+
 
     private fun isGenericChatName(name: String): Boolean {
         val compact = name
