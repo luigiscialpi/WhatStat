@@ -146,9 +146,6 @@ private fun NavGraphBuilder.setupGraph(navController: NavHostController) {
                         popUpTo(NavGraphRoute.Setup) { inclusive = true }
                     }
                 },
-                onNavigateToLite = {
-                    navController.navigate(Screen.LiteSetup.route)
-                },
                 onNavigateToDashboard = {
                     navController.navigate(NavGraphRoute.Main) {
                         popUpTo(NavGraphRoute.Setup) { inclusive = true }

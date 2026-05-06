@@ -117,7 +117,7 @@ fun LiteSetupScreen(
                 Spacer(Modifier.height(8.dp))
                 
                 Text(
-                    "Seleziona il file .zip esportato da WhatsApp.\nL'app estrarrà i messaggi e i media localmente.",
+                    "Seleziona il file .zip esportato da WhatsApp.\nL'app estrarrà i messaggi e i media localmente.\nIn base alla quantità di messaggi e/o media, potrebbe durare anche dei minuti!",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center

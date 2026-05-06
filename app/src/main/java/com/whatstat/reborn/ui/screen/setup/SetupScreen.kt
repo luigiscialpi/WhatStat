@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.whatstat.reborn.data.root.FileExtractor
@@ -82,11 +83,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun SetupScreen(
     viewModel: SetupViewModel = hiltViewModel(),
+    liteViewModel: LiteSetupViewModel = hiltViewModel(),
     onSetupComplete: () -> Unit,
-    onNavigateToLite: () -> Unit,
     onNavigateToDashboard: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val liteState by liteViewModel.state.collectAsState()
 
     LaunchedEffect(state.isComplete) {
         if (state.isComplete) onSetupComplete()
@@ -114,6 +116,13 @@ fun SetupScreen(
 
     // 0 = Lite (No Root), 1 = Root
     var selectedTab by remember { mutableIntStateOf(0) }
+    val zipLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { liteViewModel.onZipSelected(it) }
+    }
+
+    BackHandler(enabled = liteState.isLoading || liteState.showSenderSelection) {}
 
     Box(
         modifier = Modifier
@@ -200,7 +209,11 @@ fun SetupScreen(
                     SecondaryTabRow(selectedTabIndex = selectedTab) {
                         Tab(
                             selected = selectedTab == 0,
-                            onClick = { selectedTab = 0 },
+                            onClick = {
+                                if (!liteState.isLoading && !liteState.showSenderSelection) {
+                                    selectedTab = 0
+                                }
+                            },
                             text = { Text("Lite") },
                             icon = {
                                 Icon(
@@ -212,7 +225,11 @@ fun SetupScreen(
                         )
                         Tab(
                             selected = selectedTab == 1,
-                            onClick = { selectedTab = 1 },
+                            onClick = {
+                                if (!liteState.isLoading && !liteState.showSenderSelection) {
+                                    selectedTab = 1
+                                }
+                            },
                             text = { Text("Root") },
                             icon = {
                                 Icon(
@@ -228,11 +245,15 @@ fun SetupScreen(
                     AnimatedVisibility(visible = selectedTab == 0) {
                         LiteTabContent(
                             hasLiteDb = state.hasLiteDb,
+                            isLoading = liteState.isLoading,
+                            progressPercent = liteState.progressPercent,
+                            progressLabel = liteState.progressLabel,
+                            error = liteState.error,
                             onNavigateToDashboard = {
                                 viewModel.activateLiteMode()
                                 onNavigateToDashboard()
                             },
-                            onNavigateToLite = onNavigateToLite
+                            onImportZip = { zipLauncher.launch("application/zip") }
                         )
                     }
 
@@ -277,6 +298,13 @@ fun SetupScreen(
             }
         }
     }
+
+    if (liteState.showSenderSelection) {
+        SenderSelectionDialog(
+            senders = liteState.identifiedSenders,
+            onSenderSelected = { liteViewModel.onSenderSelected(it) }
+        )
+    }
 }
 
 // ── Tab Lite ─────────────────────────────────────────────────────────────────
@@ -284,8 +312,12 @@ fun SetupScreen(
 @Composable
 private fun LiteTabContent(
     hasLiteDb: Boolean,
+    isLoading: Boolean,
+    progressPercent: Float,
+    progressLabel: String,
+    error: String?,
     onNavigateToDashboard: () -> Unit,
-    onNavigateToLite: () -> Unit
+    onImportZip: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -296,7 +328,7 @@ private fun LiteTabContent(
         // Hint contestuale
         Text(
             text = if (hasLiteDb)
-                "Dati precedentemente importati trovati. Puoi accedere direttamente alla dashboard."
+                "Dati precedentemente importati trovati. Puoi accedere alla dashboard o importare un'altra chat ZIP."
             else
                 "Nessun dato importato. Carica una chat WhatsApp esportata come file ZIP.",
             style = MaterialTheme.typography.bodySmall,
@@ -327,29 +359,54 @@ private fun LiteTabContent(
             Text("Vai alla dashboard", style = MaterialTheme.typography.labelLarge)
         }
 
-        // Pulsante importa ZIP
-        OutlinedButton(
-            onClick = onNavigateToLite,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(16.dp),
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-            )
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.FolderZip,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.width(10.dp))
+        if (isLoading) {
+            val progressInt = (progressPercent * 100).toInt()
             Text(
-                "Importa Chat da file ZIP",
+                text = if (progressLabel.isNotEmpty()) progressLabel else "Elaborazione in corso...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            LinearProgressIndicator(
+                progress = { progressPercent },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                text = "$progressInt%",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
+            )
+        } else {
+            OutlinedButton(
+                onClick = onImportZip,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.FolderZip,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "Importa Chat da file ZIP",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        if (!error.isNullOrBlank()) {
+            Text(
+                text = error,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
             )
         }
     }
