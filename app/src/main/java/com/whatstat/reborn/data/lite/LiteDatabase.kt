@@ -191,7 +191,31 @@ class LiteDatabase @Inject constructor(
     }
 
     fun hasChatData(): Boolean {
-        val db = getOrCreate()
+        db?.takeIf { it.isOpen }?.let { openDb ->
+            return hasChatRows(openDb)
+        }
+
+        val file = File(context.filesDir, "lite_msgstore.db")
+        if (!file.exists() || file.length() == 0L) return false
+
+        val readOnlyDb = runCatching {
+            SQLiteDatabase.openDatabase(
+                file.absolutePath,
+                null,
+                SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS
+            )
+        }.getOrElse {
+            return false
+        }
+
+        return try {
+            hasChatRows(readOnlyDb)
+        } finally {
+            readOnlyDb.close()
+        }
+    }
+
+    private fun hasChatRows(db: SQLiteDatabase): Boolean {
         val cursor = db.rawQuery("SELECT COUNT(*) FROM chat LIMIT 1", null)
         return cursor.use {
             if (it.moveToFirst()) it.getInt(0) > 0 else false

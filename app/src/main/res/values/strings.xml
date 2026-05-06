@@ -5,7 +5,7 @@
     <!-- Setup Screen -->
     <string name="setup_title">WhatStat Reborn</string>
     <string name="setup_subtitle">L\'app accede al database di WhatsApp sul tuo dispositivo.\nTutti i dati rimangono locali, nulla viene inviato.</string>
-    <string name="setup_btn_start">Inizia analisi</string>
+    <string name="setup_btn_start">Inizia analisi (Root)</string>
     <string name="setup_btn_loading">Elaborazione…</string>
     <string name="setup_step_root">Accesso root</string>
     <string name="setup_step_extraction">Estrazione file</string>

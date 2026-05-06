@@ -2,8 +2,6 @@ package com.whatstat.reborn.ui.screen.setup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.whatstat.reborn.data.repository.AppErrorException
-import com.whatstat.reborn.data.repository.SetupStep
 import com.whatstat.reborn.data.repository.WhatsAppRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,11 +20,15 @@ import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.whatstat.reborn.data.lite.LiteDatabase
 
 @HiltViewModel
 class SetupViewModel @Inject constructor(
     private val repository: WhatsAppRepository,
     private val analyticsRepository: com.whatstat.reborn.data.repository.AnalyticsRepository,
+    private val liteDatabase: LiteDatabase,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -40,15 +42,28 @@ class SetupViewModel @Inject constructor(
             
             // Osserva lo stato di LiteMode e RootDatabase
             analyticsRepository.isLiteMode.collectLatest { isLite ->
+                val hasLiteDb = withContext(Dispatchers.IO) { liteDatabase.hasChatData() }
                 if (isLite) {
-                    _state.update { it.copy(isComplete = true, isCheckingCache = false) }
+                    _state.update {
+                        it.copy(
+                            isComplete = true,
+                            isCheckingCache = false,
+                            hasLiteDb = hasLiteDb
+                        )
+                    }
                 } else if (repository.isDatabaseReady()) {
-                    _state.update { it.copy(isComplete = true, isCheckingCache = false) }
+                    _state.update {
+                        it.copy(
+                            isComplete = true,
+                            isCheckingCache = false,
+                            hasLiteDb = hasLiteDb
+                        )
+                    }
                 } else {
                     // Aspettiamo un attimo per essere sicuri che non ci sia una sessione root in arrivo
                     delay(500)
                     if (!repository.isDatabaseReady() && !analyticsRepository.isLiteMode.value) {
-                        _state.update { it.copy(isCheckingCache = false) }
+                        _state.update { it.copy(isCheckingCache = false, hasLiteDb = hasLiteDb) }
                     }
                 }
             }
@@ -135,6 +150,11 @@ class SetupViewModel @Inject constructor(
         }
         context.startService(intent)
     }
+
+    fun activateLiteMode() {
+        analyticsRepository.setLiteMode(true)
+        _state.update { it.copy(hasLiteDb = true) }
+    }
 }
 
 data class SetupState(
@@ -147,6 +167,7 @@ data class SetupState(
     val decryptionStatus: StepStatus = StepStatus.IDLE,
     val contactsStatus: StepStatus   = StepStatus.IDLE,
     val decryptionProgress: Float    = 0f,
+    val hasLiteDb: Boolean           = false,
     
     // UI State per la modalità manuale
     val isManualModeVisible: Boolean = false,

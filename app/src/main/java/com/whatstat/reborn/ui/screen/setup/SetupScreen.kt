@@ -32,7 +32,6 @@ import com.whatstat.reborn.data.root.FileExtractor
 import android.Manifest
 import android.os.Build
 import android.widget.Toast
-import androidx.activity.compose.ManagedActivityResultLauncher
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -43,21 +42,29 @@ import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.outlined.FolderZip
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -71,11 +78,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetupScreen(
     viewModel: SetupViewModel = hiltViewModel(),
     onSetupComplete: () -> Unit,
-    onNavigateToLite: () -> Unit
+    onNavigateToLite: () -> Unit,
+    onNavigateToDashboard: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -88,7 +97,11 @@ fun SetupScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (!isGranted) {
-            Toast.makeText(context, "Il permesso notifiche è necessario per seguire il progresso in background", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                context,
+                "Il permesso notifiche è necessario per seguire il progresso in background",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -98,6 +111,9 @@ fun SetupScreen(
         }
         if (isManual) viewModel.startManualSetup() else viewModel.startSetup()
     }
+
+    // 0 = Lite (No Root), 1 = Root
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     Box(
         modifier = Modifier
@@ -170,9 +186,9 @@ fun SetupScreen(
                 lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
             )
 
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.height(32.dp))
 
-            // ── Step indicators ──────────────────────────────────
+            // ── Secondary Tabs ───────────────────────────────────
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -180,201 +196,64 @@ fun SetupScreen(
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Column(Modifier.padding(20.dp)) {
-                    SetupStep(
-                        label = "Accesso root",
-                        status = state.rootStatus,
-                        icon = Icons.Outlined.AdminPanelSettings
-                    )
-                    SetupStep(
-                        label = "Estrazione file",
-                        status = state.extractionStatus,
-                        icon = Icons.Outlined.FolderOpen
-                    )
-                    SetupStep(
-                        label = "Decifratura database",
-                        status = state.decryptionStatus,
-                        icon = Icons.Outlined.Key,
-                        progress = if (state.decryptionStatus == StepStatus.LOADING) state.decryptionProgress else null
-                    )
-                    SetupStep(
-                        label = "Lettura contatti",
-                        status = state.contactsStatus,
-                        icon = Icons.Outlined.Contacts
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // ── Error card & Manual Mode ───────────────────────────
-            AnimatedVisibility(
-                visible = state.error != null,
-                enter = fadeIn() + slideInVertically()
-            ) {
                 Column {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        SelectionContainer {
-                            Text(
-                                state.error ?: "",
-                                modifier = Modifier.padding(16.dp),
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    if (!state.isManualModeVisible) {
-                        Button(
-                            onClick = { viewModel.showManualMode() },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Seleziona File Manualmente")
-                        }
-                    }
-                }
-            }
-
-            AnimatedVisibility(
-                visible = state.isManualModeVisible,
-                enter = fadeIn() + slideInVertically()
-            ) {
-                var currentSelectionType by remember { mutableStateOf("") }
-                val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-                    if (uri != null && currentSelectionType.isNotEmpty()) {
-                        viewModel.handleManualFileSelected(uri, currentSelectionType)
-                    }
-                }
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text("Opzioni Manuali (No Root)", style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.height(16.dp))
-
-                        ManualFileButton(
-                            label = "File Chiave (key)",
-                            isLoaded = state.hasManualKey,
-                            onClick = { 
-                                currentSelectionType = FileExtractor.KEY_DEST
-                                launcher.launch("*/*") 
+                    SecondaryTabRow(selectedTabIndex = selectedTab) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = { Text("Lite") },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.PhoneAndroid,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         )
-                        ManualFileButton(
-                            label = "Database (msgstore.db.crypt14)",
-                            isLoaded = state.hasManualCrypt14,
-                            onClick = { 
-                                currentSelectionType = FileExtractor.CRYPT14_DEST
-                                launcher.launch("*/*") 
-                            }
-                        )
-                        ManualFileButton(
-                            label = "Database già decifrato (msgstore.db)",
-                            isLoaded = state.hasManualDbDecrypted,
-                            onClick = { 
-                                currentSelectionType = FileExtractor.DB_DECRYPTED_DEST
-                                launcher.launch("application/octet-stream") 
-                            }
-                        )
-                        ManualFileButton(
-                            label = "Contatti (wa.db) - Opzionale",
-                            isLoaded = state.hasManualWaDb,
-                            onClick = { 
-                                currentSelectionType = FileExtractor.WA_DB_DEST
-                                launcher.launch("*/*") 
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = { Text("Root") },
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Terminal,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         )
                     }
-                }
-            }
 
-            Spacer(Modifier.height(24.dp))
+                    // ── Tab 0: Lite ──────────────────────────────
+                    AnimatedVisibility(visible = selectedTab == 0) {
+                        LiteTabContent(
+                            hasLiteDb = state.hasLiteDb,
+                            onNavigateToDashboard = {
+                                viewModel.activateLiteMode()
+                                onNavigateToDashboard()
+                            },
+                            onNavigateToLite = onNavigateToLite
+                        )
+                    }
 
-            // ── Action button ────────────────────────────────────
-            if (state.isLoading) {
-                // Pulsante Cancel durante il caricamento
-                OutlinedButton(
-                    onClick = { viewModel.cancelSetup() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = "Annulla",
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        "Annulla",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            } else {
-                Button(
-                    onClick = { 
-                        if (state.isManualModeVisible) {
-                            checkAndStart(true)
-                        } else {
-                            checkAndStart(false) 
-                        }
-                    },
-                    enabled = !state.isLoading && (
-        !state.isManualModeVisible || 
-        (state.hasManualKey && state.hasManualCrypt14) ||
-        (state.hasManualKey && state.hasManualDbDecrypted)
-    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Text(
-                        if (state.isManualModeVisible) "Decifra Database"
-                        else "Inizia analisi",
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-                
-                Spacer(Modifier.height(12.dp))
-                
-                OutlinedButton(
-                    onClick = onNavigateToLite,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-                ) {
-                    Text(
-                        "Importa Chat da file Zip (No Root)",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    // ── Tab 1: Root ──────────────────────────────
+                    AnimatedVisibility(visible = selectedTab == 1) {
+                        RootTabContent(
+                            state = state,
+                            onCheckAndStart = { checkAndStart(false) },
+                            onCheckAndStartManual = { checkAndStart(true) },
+                            onShowManualMode = { viewModel.showManualMode() },
+                            onCancelSetup = { viewModel.cancelSetup() },
+                            onManualFileSelected = { uri, type ->
+                                viewModel.handleManualFileSelected(uri, type)
+                            }
+                        )
+                    }
                 }
             }
         }
 
-        // Overlay di caricamento iniziale (es. quando l'app controlla la cache Lite)
+        // ── Overlay cache check ──────────────────────────────────
         if (state.isCheckingCache) {
             Box(
                 modifier = Modifier
@@ -399,6 +278,266 @@ fun SetupScreen(
         }
     }
 }
+
+// ── Tab Lite ─────────────────────────────────────────────────────────────────
+
+@Composable
+private fun LiteTabContent(
+    hasLiteDb: Boolean,
+    onNavigateToDashboard: () -> Unit,
+    onNavigateToLite: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Hint contestuale
+        Text(
+            text = if (hasLiteDb)
+                "Dati precedentemente importati trovati. Puoi accedere direttamente alla dashboard."
+            else
+                "Nessun dato importato. Carica una chat WhatsApp esportata come file ZIP.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(Modifier.height(4.dp))
+
+        // Pulsante dashboard (abilitato solo se il db lite esiste)
+        Button(
+            onClick = onNavigateToDashboard,
+            enabled = hasLiteDb,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Dashboard,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(10.dp))
+            Text("Vai alla dashboard", style = MaterialTheme.typography.labelLarge)
+        }
+
+        // Pulsante importa ZIP
+        OutlinedButton(
+            onClick = onNavigateToLite,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.FolderZip,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                "Importa Chat da file ZIP",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+// ── Tab Root ──────────────────────────────────────────────────────────────────
+
+@Composable
+private fun RootTabContent(
+    state: SetupState,
+    onCheckAndStart: () -> Unit,
+    onCheckAndStartManual: () -> Unit,
+    onShowManualMode: () -> Unit,
+    onCancelSetup: () -> Unit,
+    onManualFileSelected: (android.net.Uri, String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // ── Step indicators ──────────────────────────────────────
+        SetupStep(
+            label = "Accesso root",
+            status = state.rootStatus,
+            icon = Icons.Outlined.AdminPanelSettings
+        )
+        SetupStep(
+            label = "Estrazione file",
+            status = state.extractionStatus,
+            icon = Icons.Outlined.FolderOpen
+        )
+        SetupStep(
+            label = "Decifratura database",
+            status = state.decryptionStatus,
+            icon = Icons.Outlined.Key,
+            progress = if (state.decryptionStatus == StepStatus.LOADING) state.decryptionProgress else null
+        )
+        SetupStep(
+            label = "Lettura contatti",
+            status = state.contactsStatus,
+            icon = Icons.Outlined.Contacts
+        )
+
+        // ── Error card & Manual Mode ─────────────────────────────
+        AnimatedVisibility(
+            visible = state.error != null,
+            enter = fadeIn() + slideInVertically()
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    SelectionContainer {
+                        Text(
+                            state.error ?: "",
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                if (!state.isManualModeVisible) {
+                    Button(
+                        onClick = onShowManualMode,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Seleziona File Manualmente")
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = state.isManualModeVisible,
+            enter = fadeIn() + slideInVertically()
+        ) {
+            var currentSelectionType by remember { mutableStateOf("") }
+            val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+                if (uri != null && currentSelectionType.isNotEmpty()) {
+                    onManualFileSelected(uri, currentSelectionType)
+                }
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Opzioni Manuali (No Root)", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(16.dp))
+
+                    ManualFileButton(
+                        label = "File Chiave (key)",
+                        isLoaded = state.hasManualKey,
+                        onClick = {
+                            currentSelectionType = FileExtractor.KEY_DEST
+                            launcher.launch("*/*")
+                        }
+                    )
+                    ManualFileButton(
+                        label = "Database (msgstore.db.crypt14)",
+                        isLoaded = state.hasManualCrypt14,
+                        onClick = {
+                            currentSelectionType = FileExtractor.CRYPT14_DEST
+                            launcher.launch("*/*")
+                        }
+                    )
+                    ManualFileButton(
+                        label = "Database già decifrato (msgstore.db)",
+                        isLoaded = state.hasManualDbDecrypted,
+                        onClick = {
+                            currentSelectionType = FileExtractor.DB_DECRYPTED_DEST
+                            launcher.launch("application/octet-stream")
+                        }
+                    )
+                    ManualFileButton(
+                        label = "Contatti (wa.db) - Opzionale",
+                        isLoaded = state.hasManualWaDb,
+                        onClick = {
+                            currentSelectionType = FileExtractor.WA_DB_DEST
+                            launcher.launch("*/*")
+                        }
+                    )
+                }
+            }
+        }
+
+        // ── Action button ────────────────────────────────────────
+        Spacer(Modifier.height(4.dp))
+
+        if (state.isLoading) {
+            OutlinedButton(
+                onClick = onCancelSetup,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Annulla",
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Text("Annulla", style = MaterialTheme.typography.labelLarge)
+            }
+        } else {
+            Button(
+                onClick = {
+                    if (state.isManualModeVisible) onCheckAndStartManual()
+                    else onCheckAndStart()
+                },
+                enabled = !state.isLoading && (
+                    !state.isManualModeVisible ||
+                    (state.hasManualKey && state.hasManualCrypt14) ||
+                    (state.hasManualKey && state.hasManualDbDecrypted)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(
+                    if (state.isManualModeVisible) "Decifra Database" else "Inizia analisi",
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
+    }
+}
+
+// ── Componenti condivisi ──────────────────────────────────────────────────────
 
 @Composable
 private fun ManualFileButton(
@@ -490,7 +629,7 @@ private fun SetupStep(
                 )
             }
         }
-        
+
         if (progress != null) {
             Row(
                 modifier = Modifier
@@ -500,7 +639,9 @@ private fun SetupStep(
             ) {
                 LinearProgressIndicator(
                     progress = progress,
-                    modifier = Modifier.weight(1f).height(4.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(4.dp),
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.primaryContainer
                 )
