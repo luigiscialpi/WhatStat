@@ -12,6 +12,10 @@ local.properties
 # App build output
 /app/build
 
+# Keystore files (NEVER commit these)
+*.jks
+*.keystore
+
 # Decrypted databases (NEVER commit these)
 *.db
 *.db-journal
