@@ -69,10 +69,11 @@ class LiteMediaManager @Inject constructor() {
                     ?: fileNameToMsgInfo[file.nameWithoutExtension]
                 LiteMediaItem(
                     fileName = file.name,
-                    relativePath = file.absolutePath,
+                    relativePath = file.toRelativeString(folder),
                     type = type,
                     timestamp = if (msgInfo != null && msgInfo.second > 0L) msgInfo.second else file.lastModified(),
-                    senderName = msgInfo?.first
+                    senderName = msgInfo?.first,
+                    fileSize = file.length()
                 )
             } else null
         }
@@ -93,7 +94,8 @@ data class LiteMediaItem(
     val relativePath: String,
     val type: String,
     val timestamp: Long,
-    val senderName: String?
+    val senderName: String?,
+    val fileSize: Long = 0L
 )
 
 data class LiteMediaStats(

@@ -1,8 +1,9 @@
 package com.whatstat.reborn.data.db.dao
 
 import android.database.Cursor
-import com.whatstat.reborn.data.db.WhatsAppDatabase
+import com.whatstat.reborn.data.db.DatabaseProvider
 import com.whatstat.reborn.data.db.model.*
+import java.util.regex.Pattern
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,7 +13,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class MessageDao @Inject constructor(
-    private val database: WhatsAppDatabase
+    private val database: DatabaseProvider
 ) {
 
     companion object {
@@ -43,7 +44,7 @@ class MessageDao @Inject constructor(
     /** Conta i messaggi totali nel database. */
     fun getTotalMessageCount(): Int {
         val cursor = database.getMsgDb().rawQuery(
-            "SELECT COUNT(*) FROM message WHERE message_type = 0", null
+            "SELECT COUNT(*) FROM message WHERE message_type NOT IN (7, 15, 90)", null
         )
         return cursor.use { if (it.moveToFirst()) it.getInt(0) else 0 }
     }
@@ -59,7 +60,7 @@ class MessageDao @Inject constructor(
                 SUM(CASE WHEN from_me = 1 THEN 1 ELSE 0 END) AS sent,
                 SUM(CASE WHEN from_me = 0 THEN 1 ELSE 0 END) AS received
             FROM message
-            WHERE chat_row_id = ? AND message_type = 0
+            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf(chatId.toString(), chatId.toString())
         
@@ -101,7 +102,7 @@ class MessageDao @Inject constructor(
             FROM message m
             JOIN chat c ON m.chat_row_id = c._id
             JOIN jid j  ON c.jid_row_id  = j._id
-            WHERE m.message_type = 0
+            WHERE m.message_type NOT IN (7, 15, 90)
             GROUP BY c._id
             ORDER BY total DESC
         """.trimIndent()
@@ -117,7 +118,7 @@ class MessageDao @Inject constructor(
                 CAST(strftime('%H', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS hour,
                 COUNT(*) AS count
             FROM message
-            WHERE chat_row_id = ? AND message_type = 0
+            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf(chatId.toString())
         
@@ -142,7 +143,7 @@ class MessageDao @Inject constructor(
                 CAST(strftime('%H', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS hour,
                 COUNT(*) AS count
             FROM message
-            WHERE message_type = 0
+            WHERE message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf<String>()
         if (startTime != null) {
@@ -227,7 +228,7 @@ class MessageDao @Inject constructor(
                 CAST(strftime('%d', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
                 COUNT(*) AS count
             FROM message
-            WHERE message_type = 0
+            WHERE message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf<String>()
         if (startTime != null) {
@@ -251,7 +252,7 @@ class MessageDao @Inject constructor(
                 CAST(strftime('%m', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS month,
                 COUNT(*) AS count
             FROM message
-            WHERE message_type = 0
+            WHERE message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf<String>()
         if (startTime != null) {
@@ -275,7 +276,7 @@ class MessageDao @Inject constructor(
                 CAST(strftime('%Y', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS year,
                 COUNT(*) AS count
             FROM message
-            WHERE message_type = 0
+            WHERE message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf<String>()
         if (startTime != null) {
@@ -299,7 +300,7 @@ class MessageDao @Inject constructor(
                 CAST(strftime('%w', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
                 COUNT(*) AS count
             FROM message
-            WHERE chat_row_id = ? AND message_type = 0
+            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf(chatId.toString())
         
@@ -324,7 +325,7 @@ class MessageDao @Inject constructor(
                 CAST(strftime('%w', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
                 COUNT(*) AS count
             FROM message
-            WHERE message_type = 0
+            WHERE message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf<String>()
         if (startTime != null) {
@@ -348,7 +349,7 @@ class MessageDao @Inject constructor(
                 CAST(strftime('%d', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
                 COUNT(*) AS count
             FROM message
-            WHERE chat_row_id = ? AND message_type = 0
+            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf(chatId.toString())
         if (startTime != null) {
@@ -372,7 +373,7 @@ class MessageDao @Inject constructor(
                 CAST(strftime('%m', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS month,
                 COUNT(*) AS count
             FROM message
-            WHERE chat_row_id = ? AND message_type = 0
+            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf(chatId.toString())
         if (startTime != null) {
@@ -396,7 +397,7 @@ class MessageDao @Inject constructor(
                 CAST(strftime('%Y', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS year,
                 COUNT(*) AS count
             FROM message
-            WHERE chat_row_id = ? AND message_type = 0
+            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf(chatId.toString())
         if (startTime != null) {
@@ -420,7 +421,7 @@ class MessageDao @Inject constructor(
                 strftime('%Y-%m', datetime(timestamp / 1000, 'unixepoch')) AS month,
                 COUNT(*) AS count
             FROM message
-            WHERE chat_row_id = ? AND message_type = 0
+            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
             GROUP BY month
             ORDER BY month
         """.trimIndent()
@@ -906,7 +907,7 @@ class MessageDao @Inject constructor(
      * Usa from_me + sender_jid per distinguere correttamente in chat 1-a-1 e gruppi.
      */
     fun getMessageCountBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.SenderStat> {
-        val conditions = mutableListOf("m.chat_row_id = ?", "m.message_type = 0")
+        val conditions = mutableListOf("m.chat_row_id = ?", "m.message_type NOT IN (7, 15, 90)")
         val args = mutableListOf(chatId.toString())
 
         if (startTime != null) {
@@ -973,7 +974,7 @@ class MessageDao @Inject constructor(
                     timestamp,
                     LAG(timestamp) OVER (ORDER BY timestamp) AS prev_timestamp
                 FROM message
-                WHERE chat_row_id = ? AND message_type = 0
+                WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
             )
             WHERE prev_timestamp IS NULL
                OR (timestamp - prev_timestamp) > 10800000
@@ -1026,7 +1027,7 @@ class MessageDao @Inject constructor(
                 LEFT JOIN jid rj ON rj._id = jm.jid_row_id
                 LEFT JOIN chat c ON m.chat_row_id = c._id
                 LEFT JOIN jid cj ON c.jid_row_id = cj._id
-                WHERE m.chat_row_id = ? AND m.message_type = 0 $timeFilter
+                WHERE m.chat_row_id = ? AND m.message_type NOT IN (7, 15, 90) $timeFilter
             )
             WHERE prev_timestamp IS NULL
                OR (timestamp - prev_timestamp) > 10800000
@@ -1078,7 +1079,7 @@ class MessageDao @Inject constructor(
     /** Timestamp del messaggio più vecchio (ms). */
     fun getOldestTimestamp(): Long {
         val cursor = database.getMsgDb().rawQuery(
-            "SELECT MIN(timestamp) FROM message WHERE message_type = 0 AND timestamp > 0", null
+            "SELECT MIN(timestamp) FROM message WHERE message_type NOT IN (7, 15, 90) AND timestamp > 0", null
         )
         return cursor.use { if (it.moveToFirst()) it.getLong(0) else 0L }
     }
@@ -1086,7 +1087,7 @@ class MessageDao @Inject constructor(
     /** Timestamp del primo messaggio di una chat. */
     fun getFirstMessageTimestamp(chatId: Long): Long {
         val cursor = database.getMsgDb().rawQuery(
-            "SELECT MIN(timestamp) FROM message WHERE chat_row_id = ? AND message_type = 0 AND timestamp > 0",
+            "SELECT MIN(timestamp) FROM message WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90) AND timestamp > 0",
             arrayOf(chatId.toString())
         )
         return cursor.use { if (it.moveToFirst()) it.getLong(0) else 0L }
@@ -1095,7 +1096,7 @@ class MessageDao @Inject constructor(
     /** Timestamp dell'ultimo messaggio di una chat. */
     fun getLastMessageTimestamp(chatId: Long): Long {
         val cursor = database.getMsgDb().rawQuery(
-            "SELECT MAX(timestamp) FROM message WHERE chat_row_id = ? AND message_type = 0",
+            "SELECT MAX(timestamp) FROM message WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)",
             arrayOf(chatId.toString())
         )
         return cursor.use { if (it.moveToFirst()) it.getLong(0) else 0L }
@@ -1131,7 +1132,7 @@ class MessageDao @Inject constructor(
         val queryBuilder = StringBuilder("""
             SELECT DISTINCT CAST(timestamp / 86400000 AS INTEGER) AS epoch_day
             FROM message
-            WHERE message_type = 0 AND timestamp > 0
+            WHERE message_type NOT IN (7, 15, 90) AND timestamp > 0
         """.trimIndent())
         val args = mutableListOf<String>()
         if (startTime != null) {
@@ -1160,7 +1161,7 @@ class MessageDao @Inject constructor(
                     from_me,
                     LAG(from_me) OVER (ORDER BY timestamp) AS prev_from_me
                 FROM message
-                WHERE chat_row_id = ? AND message_type = 0
+                WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
             )
             WHERE prev_from_me IS NOT NULL AND from_me != prev_from_me
               AND response_time > 0 AND response_time < 86400000
@@ -1174,7 +1175,7 @@ class MessageDao @Inject constructor(
      * Conta i messaggi totali nel database con filtro temporale opzionale.
      */
     fun getTotalMessageCount(startTime: Long? = null, endTime: Long? = null): Int {
-        val queryBuilder = StringBuilder("SELECT COUNT(*) FROM message WHERE message_type = 0")
+        val queryBuilder = StringBuilder("SELECT COUNT(*) FROM message WHERE message_type NOT IN (7, 15, 90)")
         val args = mutableListOf<String>()
         if (startTime != null) {
             queryBuilder.append(" AND timestamp >= ?")
@@ -1902,14 +1903,23 @@ class MessageDao @Inject constructor(
      */
     fun buildWordFrequencyMap(texts: List<String>): Map<String, Int> {
         val freq = mutableMapOf<String, Int>()
+        // Match both http(s):// and www. and common domain paths
+        val urlPattern = Pattern.compile("(https?://\\S+|www\\.\\S+|\\S+\\.(com|it|org|net|me)/\\S+)", Pattern.CASE_INSENSITIVE)
+        
         texts.forEach { text ->
-            text.lowercase()
-                .replace(WORD_CLEANER, "")
+            // 1. Rimuovi URL prima di pulire i caratteri
+            val textWithoutUrls = urlPattern.matcher(text).replaceAll(" ")
+            
+            // 2. Normalizza e conta
+            textWithoutUrls.lowercase()
+                .replace(WORD_CLEANER, " ") // Sostituisci con spazio invece di stringa vuota per evitare fusioni
                 .split(WORD_SPLITTER)
                 .filter { it.length > 2 && it !in STOP_WORDS }
                 .forEach { word ->
                     val norm = word.replace(WORD_NORMALIZER, "$1$1")
-                    freq[norm] = (freq[norm] ?: 0) + 1
+                    if (norm.isNotBlank()) {
+                        freq[norm] = (freq[norm] ?: 0) + 1
+                    }
                 }
         }
         return freq

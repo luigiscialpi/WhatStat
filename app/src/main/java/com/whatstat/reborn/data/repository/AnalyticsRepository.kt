@@ -936,14 +936,22 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         // La scansione è lenta perché le directory WhatsApp contengono i file
         // di TUTTE le chat, ma viene eseguita una sola volta per sessione
         // (cachedMediaIndex): dalla seconda apertura è istantanea.
-        val base = detectWhatsAppBase()
+        val isLite = activeDatabaseProvider.isLiteMode
+        val base = if (isLite) {
+            File(liteDatabase.cacheDir, "lite_chat_extracted").absolutePath
+        } else {
+            detectWhatsAppBase()
+        }
+
         lateinit var rawList: List<com.whatstat.reborn.data.db.model.MediaStat>
-        lateinit var existingFiles: Set<String>
+        var existingFiles: Set<String>? = null
+
         coroutineScope {
             val rawDeferred = async { messageDao.getMediaFiles(chatId, jid, startTime, endTime) }
-            val indexDeferred = async { getOrBuildMediaIndex(base) }
+            val indexDeferred = if (!isLite) async { getOrBuildMediaIndex(base) } else null
+            
             rawList = rawDeferred.await()
-            existingFiles = indexDeferred.await()
+            existingFiles = indexDeferred?.await()
         }
         onProgress?.invoke(90)
 
@@ -954,18 +962,27 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
 
         val result = mutableListOf<com.whatstat.reborn.data.db.model.MediaStat>()
         for (stat in rawList) {
-            val direct = "$base/${stat.filePath}"
-            val sent = if (stat.filePath.contains("Media/") && !stat.filePath.contains("/Sent/")) {
-                val relDir = stat.filePath.substringBeforeLast("/", "")
-                val fileName = stat.filePath.substringAfterLast("/")
-                "$base/$relDir/Sent/$fileName"
-            } else null
-            val found = when {
-                direct in existingFiles -> direct
-                sent != null && sent in existingFiles -> sent
-                else -> null
+            if (isLite) {
+                // Supporta sia path relativi (nuovo import) che assoluti (vecchio import)
+                val file = if (stat.filePath.startsWith("/")) File(stat.filePath) else File(base, stat.filePath)
+                if (file.exists()) {
+                    result.add(stat.copy(filePath = file.absolutePath))
+                }
+            } else {
+                val direct = "$base/${stat.filePath}"
+                val sent = if (stat.filePath.contains("Media/") && !stat.filePath.contains("/Sent/")) {
+                    val relDir = stat.filePath.substringBeforeLast("/", "")
+                    val fileName = stat.filePath.substringAfterLast("/")
+                    "$base/$relDir/Sent/$fileName"
+                } else null
+                
+                val found = when {
+                    existingFiles != null && direct in existingFiles -> direct
+                    existingFiles != null && sent != null && sent in existingFiles -> sent
+                    else -> null
+                }
+                if (found != null) result.add(stat.copy(filePath = found))
             }
-            if (found != null) result.add(stat.copy(filePath = found))
         }
 
         onProgress?.invoke(100)

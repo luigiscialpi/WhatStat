@@ -152,6 +152,7 @@ class LiteDbWriter @Inject constructor(
                         put("message_row_id", messageId)
                         put("file_path", item.relativePath)
                         put("mime_type", getMimeType(item.type))
+                        put("file_size", item.fileSize)
                     }
                     db.insertWithOnConflict("message_media", null, values, SQLiteDatabase.CONFLICT_REPLACE)
                 }

@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -124,6 +125,7 @@ fun ChatDetailScreen(
     val progressSlow by viewModel.loadingProgressSlow.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val errorMsg by viewModel.error.collectAsState()
 
     LifecycleResumeEffect(Unit) {
         viewModel.syncFilterState()
@@ -338,6 +340,17 @@ fun ChatDetailScreen(
 
             if (isLoading) {
                 ChatDetailSkeletonContent(modifier = Modifier.fillMaxSize())
+            } else if (errorMsg != null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    SelectionContainer {
+                        Text(
+                            text = errorMsg ?: "Errore sconosciuto",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
             } else if (stats != null) {
                 val s = stats!!
                 LazyColumn(

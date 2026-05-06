@@ -14,6 +14,9 @@ class LiteDatabase @Inject constructor(
     private var db: SQLiteDatabase? = null
     private var waDb: SQLiteDatabase? = null
 
+    val filesDir: File get() = context.filesDir
+    val cacheDir: File get() = context.cacheDir
+
     fun getOrCreate(): SQLiteDatabase {
         if (db?.isOpen == true) return db!!
         val file = File(context.filesDir, "lite_msgstore.db")
@@ -79,7 +82,7 @@ class LiteDatabase @Inject constructor(
                 message_row_id  INTEGER PRIMARY KEY,
                 file_path       TEXT,
                 mime_type       TEXT,
-                file_length     INTEGER DEFAULT 0,
+                file_size       INTEGER DEFAULT 0,
                 file_hash       TEXT
             )
         """.trimIndent())
@@ -102,7 +105,7 @@ class LiteDatabase @Inject constructor(
                 chat_row_id          INTEGER,
                 file_path            TEXT,
                 mime_type            TEXT,
-                file_length          INTEGER
+                file_size            INTEGER DEFAULT 0
             )
         """.trimIndent())
 
