@@ -122,10 +122,27 @@ class ChatListViewModel @Inject constructor(
         loadChats()
     }
 
+    private val _shouldNavigateToSetup = MutableStateFlow(false)
+    val shouldNavigateToSetup: StateFlow<Boolean> = _shouldNavigateToSetup.asStateFlow()
+
     fun deleteChat(chatId: Long) {
         viewModelScope.launch {
             liteDbWriter.deleteChat(chatId)
-            loadChats()
+            // Dopo la cancellazione ricarichiamo la lista; se è vuota reset completo.
+            val remaining = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                chatDao.getChatList()
+            }
+            if (remaining.isEmpty()) {
+                analyticsRepository.fullResetLiteMode()
+                _shouldNavigateToSetup.value = true
+            } else {
+                _allChats.value = remaining
+                _isLoading.value = false
+            }
         }
+    }
+
+    fun consumeNavigateToSetup() {
+        _shouldNavigateToSetup.value = false
     }
 }

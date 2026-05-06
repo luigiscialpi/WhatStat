@@ -81,6 +81,16 @@ class AnalyticsRepository @Inject constructor(
         // La cancellazione esplicita dei dati va fatta solo da un'azione utente dedicata.
     }
 
+    /**
+     * Cancellazione completa: elimina i file DB Lite, svuota la cache e disattiva la Lite mode.
+     * Da chiamare solo quando l'utente ha eliminato l'ultima chat rimasta.
+     */
+    suspend fun fullResetLiteMode() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        runCatching { cacheManager.clearCache(resetWordIndexes = true) }
+        liteDatabase.deleteAll()
+        setLiteMode(false)
+    }
+
     init {
         // Al caricamento, controlla se c'è una cache Lite valida nel DB
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
@@ -437,20 +447,17 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 dWordsAndEmojis = async {
                     val count = messageDao.getChatTextMessageCount(chatId)
                     val (wf, ef) = buildOrUpdateChatWordIndex(chatId, count)
-                    val limit = if (activeDatabaseProvider.isLiteMode) 50 else 20
-                    val words  = wf.entries.sortedByDescending { it.value }.take(limit).map { WordFrequency(it.key, it.value) }
-                    val emojis = ef.entries.sortedByDescending { it.value }.take(limit).map { EmojiStat(it.key, it.value) }
+                    val words  = wf.entries.sortedByDescending { it.value }.take(50).map { WordFrequency(it.key, it.value) }
+                    val emojis = ef.entries.sortedByDescending { it.value }.take(50).map { EmojiStat(it.key, it.value) }
                     words to emojis
                 }
             } else {
                 dWordsAndEmojis = async {
-                    val limit = if (activeDatabaseProvider.isLiteMode) 50 else 20
-                    messageDao.getWordsAndEmojis(chatId = chatId, startTime = startTime, endTime = endTime, wordsLimit = limit, emojisLimit = limit)
+                    messageDao.getWordsAndEmojis(chatId = chatId, startTime = startTime, endTime = endTime, wordsLimit = 50, emojisLimit = 50)
                 }
             }
 
-            val stickLimit = if (activeDatabaseProvider.isLiteMode) 50 else 20
-            val dStickers   = async { messageDao.getTopStickers(chatId, null, startTime, endTime, stickLimit) }
+            val dStickers   = async { messageDao.getTopStickers(chatId, null, startTime, endTime, 50) }
             val dStarters   = async { messageDao.getConversationStarters(chatId) }
             val dAvgResp    = async { messageDao.getAverageResponseTime(chatId) }
             val dSenders    = async { messageDao.getMessageCountBySender(chatId, startTime, endTime) }

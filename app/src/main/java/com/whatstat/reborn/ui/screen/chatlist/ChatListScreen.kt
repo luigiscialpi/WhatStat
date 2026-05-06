@@ -72,19 +72,25 @@ fun ChatListScreen(
     viewModel: ChatListViewModel = hiltViewModel(),
     onChatSelected: (Long) -> Unit,
     onNavigateBack: () -> Unit,
-    onImportChat: (String) -> Unit = {}
+    onImportChat: () -> Unit = {},
+    onAllChatsDeleted: () -> Unit = {}
 ) {
     val chats by viewModel.filteredChats.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isLiteMode by viewModel.isLiteMode.collectAsState()
+    val shouldNavigateToSetup by viewModel.shouldNavigateToSetup.collectAsState()
 
-    // Apre il file picker; quando lo ZIP è selezionato naviga direttamente con l'URI
-    val zipLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { onImportChat(it.toString()) }
+    LaunchedEffect(shouldNavigateToSetup) {
+        if (shouldNavigateToSetup) {
+            viewModel.consumeNavigateToSetup()
+            onAllChatsDeleted()
+        }
     }
+
+    // In Lite mode il FAB apre AddChatZipScreen senza passare l'URI nel route.
+    // Il picker viene lanciato direttamente da AddChatZipScreen, evitando la
+    // serializzazione dell'URI che causa Permission Denial sui provider Downloads.
 
     // Dialogo di conferma eliminazione
     var chatToDelete by remember { mutableStateOf<ChatListItem?>(null) }
@@ -178,7 +184,7 @@ fun ChatListScreen(
         // ── FAB "Aggiungi ZIP" — solo Lite Mode ──────────────────
         if (isLiteMode) {
             ExtendedFloatingActionButton(
-                onClick = { zipLauncher.launch("application/zip") },
+                onClick = { onImportChat() },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 20.dp, bottom = 24.dp),

@@ -206,8 +206,13 @@ private fun NavGraphBuilder.mainGraph(
                     onNavigateBack = {
                         navController.popBackStack()
                     },
-                    onImportChat = { uriString ->
-                        navController.navigate(Screen.LiteSetupAdd.createRoute(uriString))
+                    onImportChat = {
+                        navController.navigate(Screen.LiteSetupAdd.route)
+                    },
+                    onAllChatsDeleted = {
+                        navController.navigate(Screen.Setup.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 )
             }
@@ -359,13 +364,17 @@ private fun AddChatZipScreen(
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(incomingZipUri) {
-        incomingZipUri?.let { viewModel.onZipSelected(android.net.Uri.parse(it)) }
-    }
-
+    // Lancia il picker automaticamente all'apertura della schermata.
+    // L'URI rimane nell'Activity context — nessuna serializzazione nel route.
     val zipLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+        contract = androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let { viewModel.onZipSelected(it) } }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (incomingZipUri == null && !viewModel.state.value.isLoading) {
+            zipLauncher.launch(arrayOf("application/zip"))
+        }
+    }
 
     androidx.compose.material3.Scaffold(
         topBar = {
@@ -414,7 +423,7 @@ private fun AddChatZipScreen(
                     )
                 } else {
                     androidx.compose.material3.Button(
-                        onClick = { zipLauncher.launch("application/zip") },
+                        onClick = { zipLauncher.launch(arrayOf("application/zip")) },
                         modifier = androidx.compose.ui.Modifier
                             .fillMaxWidth()
                             .height(56.dp),
