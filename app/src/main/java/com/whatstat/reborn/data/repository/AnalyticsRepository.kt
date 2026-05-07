@@ -1058,34 +1058,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         return "${cal.get(java.util.Calendar.YEAR)}-${String.format("%02d", cal.get(java.util.Calendar.MONTH) + 1)}"
     }
 
-    /**
-     * Costruisce o aggiorna l'indice mensile aggiungendo i testi con timestamp forniti.
-     * Carica l'indice esistente dal disco, aggiunge i nuovi bucket mensili, salva.
-     */
-    private fun buildOrUpdateMonthlyIndex(textsWithTs: List<Pair<String, Long>>) {
-        if (textsWithTs.isEmpty()) return
-        val existing = cacheManager.loadMonthlyWordIndexFromDisk()
-        val mWords  = existing?.monthlyWords
-            ?.map { (k, v) -> k to v.toMutableMap() }
-            ?.toMap(mutableMapOf()) ?: mutableMapOf()
-        val mEmojis = existing?.monthlyEmojis
-            ?.map { (k, v) -> k to v.toMutableMap() }
-            ?.toMap(mutableMapOf()) ?: mutableMapOf()
 
-        val byMonth = textsWithTs.groupBy { (_, ts) -> timestampToYearMonth(ts) }
-        byMonth.forEach { (month, pairs) ->
-            val texts = pairs.map { it.first }
-            val wDelta = messageDao.buildWordFrequencyMap(texts)
-            val eDelta = messageDao.buildEmojiFrequencyMap(texts)
-            val mw = mWords.getOrPut(month)  { mutableMapOf() }
-            val me = mEmojis.getOrPut(month) { mutableMapOf() }
-            wDelta.forEach { (w, c) -> mw[w] = (mw[w] ?: 0) + c }
-            eDelta.forEach { (e, c) -> me[e] = (me[e] ?: 0) + c }
-        }
-
-        val lastTs = textsWithTs.maxOf { it.second }
-        cacheManager.saveMonthlyWordIndexToDisk(MonthlyWordIndexData(mWords, mEmojis, lastTs))
-    }
 
     private var cachedMyJid: String? = null
 
@@ -1181,40 +1154,48 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
     private fun buildOrUpdateGlobalWordIndex(currentMsgCount: Int): Pair<Map<String, Int>, Map<String, Int>> {
         val existing = cacheManager.loadGlobalWordIndexFromDisk()
 
-        return if (existing != null && currentMsgCount >= existing.totalMessageCount) {
-            // Delta: solo messaggi nuovi
-            android.util.Log.d("WhatStat", "Word index global: delta from ts=${existing.lastProcessedTimestamp}")
-            val newTexts = messageDao.getTextsWithTimestamps(sinceTimestamp = existing.lastProcessedTimestamp)
-            if (newTexts.isEmpty()) {
-                android.util.Log.d("WhatStat", "Word index global: no new messages")
-                existing.wordFrequencies to existing.emojiFrequencies
-            } else {
-                val deltaWords  = messageDao.buildWordFrequencyMap(newTexts.map { it.first })
-                val deltaEmojis = messageDao.buildEmojiFrequencyMap(newTexts.map { it.first })
-                val merged = mergeFrequencyMaps(existing.wordFrequencies, deltaWords) to
-                             mergeFrequencyMaps(existing.emojiFrequencies, deltaEmojis)
-                buildOrUpdateMonthlyIndex(newTexts)
-                val maxTs = newTexts.maxOf { it.second }
-                cacheManager.saveGlobalWordIndexToDisk(
-                    WordFrequencyIndexData(merged.first, merged.second, maxTs, currentMsgCount)
-                )
-                merged
-            }
+        val sinceTs = if (existing != null && currentMsgCount >= existing.totalMessageCount) {
+            existing.lastProcessedTimestamp
         } else {
-            // Full rebuild
-            android.util.Log.d("WhatStat", "Word index global: full rebuild (count=$currentMsgCount)")
-            val textsWithTs = messageDao.getTextsWithTimestamps()
-            val wordFreqs   = messageDao.buildWordFrequencyMap(textsWithTs.map { it.first })
-            val emojiFreqs  = messageDao.buildEmojiFrequencyMap(textsWithTs.map { it.first })
-            if (textsWithTs.isNotEmpty()) {
-                buildOrUpdateMonthlyIndex(textsWithTs)
-                val maxTs = textsWithTs.maxOf { it.second }
-                cacheManager.saveGlobalWordIndexToDisk(
-                    WordFrequencyIndexData(wordFreqs, emojiFreqs, maxTs, currentMsgCount)
-                )
-            }
-            wordFreqs to emojiFreqs
+            0L // Full rebuild
         }
+
+        if (sinceTs > 0L) {
+            android.util.Log.d("WhatStat", "Word index global: delta from ts=$sinceTs")
+        } else {
+            android.util.Log.d("WhatStat", "Word index global: full rebuild (count=$currentMsgCount)")
+        }
+
+        val delta = messageDao.buildLexicalDeltaStream(sinceTimestamp = sinceTs)
+
+        if (delta.maxTimestamp == 0L && sinceTs > 0L) {
+            android.util.Log.d("WhatStat", "Word index global: no new messages")
+            return existing!!.wordFrequencies to existing.emojiFrequencies
+        }
+
+        val mergedWords = if (existing != null && sinceTs > 0L) mergeFrequencyMaps(existing.wordFrequencies, delta.words) else delta.words
+        val mergedEmojis = if (existing != null && sinceTs > 0L) mergeFrequencyMaps(existing.emojiFrequencies, delta.emojis) else delta.emojis
+
+        // Update Monthly Index
+        val existingMonthly = if (sinceTs > 0L) cacheManager.loadMonthlyWordIndexFromDisk() else null
+        val mWords = existingMonthly?.monthlyWords?.map { (k, v) -> k to v.toMutableMap() }?.toMap(mutableMapOf()) ?: mutableMapOf()
+        val mEmojis = existingMonthly?.monthlyEmojis?.map { (k, v) -> k to v.toMutableMap() }?.toMap(mutableMapOf()) ?: mutableMapOf()
+
+        delta.monthlyWords.forEach { (month, wDelta) ->
+            val mw = mWords.getOrPut(month) { mutableMapOf() }
+            wDelta.forEach { (w, c) -> mw[w] = (mw[w] ?: 0) + c }
+        }
+        delta.monthlyEmojis.forEach { (month, eDelta) ->
+            val me = mEmojis.getOrPut(month) { mutableMapOf() }
+            eDelta.forEach { (e, c) -> me[e] = (me[e] ?: 0) + c }
+        }
+
+        val maxTs = if (delta.maxTimestamp > 0) delta.maxTimestamp else sinceTs
+
+        cacheManager.saveMonthlyWordIndexToDisk(MonthlyWordIndexData(mWords, mEmojis, maxTs))
+        cacheManager.saveGlobalWordIndexToDisk(WordFrequencyIndexData(mergedWords, mergedEmojis, maxTs, currentMsgCount))
+
+        return mergedWords to mergedEmojis
     }
 
     /**
@@ -1224,35 +1205,34 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
     private fun buildOrUpdateChatWordIndex(chatId: Long, currentMsgCount: Int): Pair<Map<String, Int>, Map<String, Int>> {
         val existing = cacheManager.loadChatWordIndexFromDisk(chatId)
 
-        return if (existing != null && currentMsgCount >= existing.totalMessageCount) {
-            android.util.Log.d("WhatStat", "Word index chat #$chatId: delta from ts=${existing.lastProcessedTimestamp}")
-            val newTexts = messageDao.getTextsWithTimestamps(chatId = chatId, sinceTimestamp = existing.lastProcessedTimestamp)
-            if (newTexts.isEmpty()) {
-                existing.wordFrequencies to existing.emojiFrequencies
-            } else {
-                val deltaWords  = messageDao.buildWordFrequencyMap(newTexts.map { it.first })
-                val deltaEmojis = messageDao.buildEmojiFrequencyMap(newTexts.map { it.first })
-                val merged = mergeFrequencyMaps(existing.wordFrequencies, deltaWords) to
-                             mergeFrequencyMaps(existing.emojiFrequencies, deltaEmojis)
-                val maxTs = newTexts.maxOf { it.second }
-                cacheManager.saveChatWordIndexToDisk(chatId,
-                    WordFrequencyIndexData(merged.first, merged.second, maxTs, currentMsgCount)
-                )
-                merged
-            }
+        val sinceTs = if (existing != null && currentMsgCount >= existing.totalMessageCount) {
+            existing.lastProcessedTimestamp
+        } else {
+            0L
+        }
+
+        if (sinceTs > 0L) {
+            android.util.Log.d("WhatStat", "Word index chat #$chatId: delta from ts=$sinceTs")
         } else {
             android.util.Log.d("WhatStat", "Word index chat #$chatId: full rebuild (count=$currentMsgCount)")
-            val textsWithTs = messageDao.getTextsWithTimestamps(chatId = chatId)
-            val wordFreqs   = messageDao.buildWordFrequencyMap(textsWithTs.map { it.first })
-            val emojiFreqs  = messageDao.buildEmojiFrequencyMap(textsWithTs.map { it.first })
-            if (textsWithTs.isNotEmpty()) {
-                val maxTs = textsWithTs.maxOf { it.second }
-                cacheManager.saveChatWordIndexToDisk(chatId,
-                    WordFrequencyIndexData(wordFreqs, emojiFreqs, maxTs, currentMsgCount)
-                )
-            }
-            wordFreqs to emojiFreqs
         }
+
+        // Streaming: non carica tutti i testi in memoria
+        val delta = messageDao.buildLexicalDeltaStream(chatId = chatId, sinceTimestamp = sinceTs)
+
+        if (delta.maxTimestamp == 0L && sinceTs > 0L) {
+            return existing!!.wordFrequencies to existing.emojiFrequencies
+        }
+
+        val mergedWords = if (existing != null && sinceTs > 0L) mergeFrequencyMaps(existing.wordFrequencies, delta.words) else delta.words
+        val mergedEmojis = if (existing != null && sinceTs > 0L) mergeFrequencyMaps(existing.emojiFrequencies, delta.emojis) else delta.emojis
+
+        val maxTs = if (delta.maxTimestamp > 0) delta.maxTimestamp else sinceTs
+        cacheManager.saveChatWordIndexToDisk(chatId,
+            WordFrequencyIndexData(mergedWords, mergedEmojis, maxTs, currentMsgCount)
+        )
+
+        return mergedWords to mergedEmojis
     }
 
     /**

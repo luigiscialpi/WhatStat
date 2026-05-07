@@ -190,3 +190,11 @@ data class WordMessageResult(
     val chatRowId: Long,
     val chatDisplayName: String
 )
+
+data class LexicalDelta(
+    val words: Map<String, Int>,
+    val emojis: Map<String, Int>,
+    val monthlyWords: Map<String, Map<String, Int>>,
+    val monthlyEmojis: Map<String, Map<String, Int>>,
+    val maxTimestamp: Long
+)

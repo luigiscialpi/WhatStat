@@ -37,6 +37,7 @@ import com.whatstat.reborn.ui.screen.wordsearch.WordSearchScreen
 import com.whatstat.reborn.ui.screen.history.GroupHistoryScreen
 import com.whatstat.reborn.ui.MainViewModel
 import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.filterNotNull
 
@@ -182,12 +183,16 @@ private fun NavGraphBuilder.mainGraph(
             route = NavGraphRoute.Overview
         ) {
             composable(Screen.Dashboard.route) {
+                val scope = androidx.compose.runtime.rememberCoroutineScope()
                 DashboardScreen(
                     onNavigateBack = {
-                        onResetLite()
-                        repository.resetState()
-                        navController.navigate(Screen.Setup.route) {
-                            popUpTo(0) { inclusive = true }
+                        scope.launch {
+                            onResetLite()
+                            repository.cleanup()
+                            repository.resetState()
+                            navController.navigate(Screen.Setup.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
                         }
                     }
                 )

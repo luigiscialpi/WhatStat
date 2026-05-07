@@ -173,16 +173,18 @@ class MessageDao @Inject constructor(
             queryBuilder.append(" AND timestamp <= ?")
             args.add(endTime.toString())
         }
-        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
-        val texts = cursor.use {
-            buildList {
-                while (it.moveToNext()) {
-                    val text = it.getString(0)
-                    if (!text.isNullOrBlank()) add(text)
+        val freqEmojis = mutableMapOf<String, Int>()
+        database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray()).use { cursor ->
+            while (cursor.moveToNext()) {
+                val text = cursor.getString(0)
+                if (text.isNullOrBlank()) continue
+                extractEmojis(text).forEach { emoji ->
+                    val base = stripSkinTone(emoji)
+                    freqEmojis[base] = (freqEmojis[base] ?: 0) + 1
                 }
             }
         }
-        return countEmojis(texts, limit)
+        return freqEmojis.entries.sortedByDescending { it.value }.take(limit).map { EmojiStat(it.key, it.value) }
     }
 
     /**
@@ -207,18 +209,37 @@ class MessageDao @Inject constructor(
             queryBuilder.append(" AND timestamp <= ?")
             args.add(endTime.toString())
         }
-        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
-        val texts = cursor.use {
-            buildList {
-                while (it.moveToNext()) {
-                    val text = it.getString(0)
-                    if (!text.isNullOrBlank()) add(text)
+        
+        val freqWords = mutableMapOf<String, Int>()
+        val freqEmojis = mutableMapOf<String, Int>()
+        val urlPattern = Pattern.compile("(https?://\\S+|www\\.\\S+|\\S+\\.(com|it|org|net|me)/\\S+)", Pattern.CASE_INSENSITIVE)
+        
+        database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray()).use { cursor ->
+            while (cursor.moveToNext()) {
+                val text = cursor.getString(0)
+                if (text.isNullOrBlank()) continue
+                
+                extractEmojis(text).forEach { emoji ->
+                    val base = stripSkinTone(emoji)
+                    freqEmojis[base] = (freqEmojis[base] ?: 0) + 1
                 }
+                
+                val textWithoutUrls = urlPattern.matcher(text).replaceAll(" ")
+                textWithoutUrls.lowercase()
+                    .replace(WORD_CLEANER, " ")
+                    .split(WORD_SPLITTER)
+                    .forEach { word ->
+                        if (word.length > 2 && word !in STOP_WORDS) {
+                            val norm = word.replace(WORD_NORMALIZER, "$1$1")
+                            if (norm.isNotBlank()) freqWords[norm] = (freqWords[norm] ?: 0) + 1
+                        }
+                    }
             }
         }
-        val words = countWords(texts, wordsLimit)
-        val emojis = countEmojis(texts, emojisLimit)
-        return words to emojis
+        
+        val topWords = freqWords.entries.sortedByDescending { it.value }.take(wordsLimit).map { WordFrequency(it.key, it.value) }
+        val topEmojis = freqEmojis.entries.sortedByDescending { it.value }.take(emojisLimit).map { EmojiStat(it.key, it.value) }
+        return topWords to topEmojis
     }
 
     /** Distribuzione per giorno del mese (1-31) globale. */
@@ -447,12 +468,12 @@ class MessageDao @Inject constructor(
             } else {
                 // In chat 1-a-1, sender_jid_row_id potrebbe essere 0, 
                 // quindi controlliamo sia sender_jid_row_id che from_me = 0 
-                // (se il JID fornito è quello del contatto della chat).
+                // (se il JID fornito e' quello del contatto della chat).
                 conditions.add("""
                     (
                         (sender_jid_row_id = (SELECT _id FROM jid WHERE raw_string = ?))
                         OR 
-                        (from_me = 0 AND 0 = (SELECT sender_jid_row_id FROM message m2 WHERE m2._id = m._id))
+                        (from_me = 0 AND sender_jid_row_id = 0)
                     )
                 """.trimIndent())
                 args.add(jid)
@@ -464,26 +485,36 @@ class MessageDao @Inject constructor(
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            conditions.add("m.timestamp <= ?")
+            conditions.add("timestamp <= ?")
             args.add(endTime.toString())
         }
         
         val query = """
             SELECT text_data
-            FROM message m
+            FROM message
             WHERE ${conditions.joinToString(" AND ")}
         """.trimIndent()
 
-        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
-        val texts = cursor.use {
-            buildList {
-                while (it.moveToNext()) {
-                    val text = it.getString(0)
-                    if (!text.isNullOrBlank()) add(text)
-                }
+        val freqWords = mutableMapOf<String, Int>()
+        val urlPattern = Pattern.compile("(https?://\\S+|www\\.\\S+|\\S+\\.(com|it|org|net|me)/\\S+)", Pattern.CASE_INSENSITIVE)
+        
+        database.getMsgDb().rawQuery(query, args.toTypedArray()).use { cursor ->
+            while (cursor.moveToNext()) {
+                val text = cursor.getString(0)
+                if (text.isNullOrBlank()) continue
+                val textWithoutUrls = urlPattern.matcher(text).replaceAll(" ")
+                textWithoutUrls.lowercase()
+                    .replace(WORD_CLEANER, " ")
+                    .split(WORD_SPLITTER)
+                    .forEach { word ->
+                        if (word.length > 2 && word !in STOP_WORDS) {
+                            val norm = word.replace(WORD_NORMALIZER, "$1$1")
+                            if (norm.isNotBlank()) freqWords[norm] = (freqWords[norm] ?: 0) + 1
+                        }
+                    }
             }
         }
-        return countWords(texts, limit)
+        return freqWords.entries.sortedByDescending { it.value }.take(limit).map { WordFrequency(it.key, it.value) }
     }
 
     fun getTopEmojis(chatId: Long, jid: String? = null, startTime: Long? = null, endTime: Long? = null, limit: Int = 20): List<EmojiStat> {
@@ -501,7 +532,7 @@ class MessageDao @Inject constructor(
                     (
                         (sender_jid_row_id = (SELECT _id FROM jid WHERE raw_string = ?))
                         OR 
-                        (from_me = 0 AND 0 = (SELECT sender_jid_row_id FROM message m2 WHERE m2._id = m._id))
+                        (from_me = 0 AND sender_jid_row_id = 0)
                     )
                 """.trimIndent())
                 args.add(jid)
@@ -513,26 +544,29 @@ class MessageDao @Inject constructor(
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            conditions.add("m.timestamp <= ?")
+            conditions.add("timestamp <= ?")
             args.add(endTime.toString())
         }
         
         val query = """
             SELECT text_data
-            FROM message m
+            FROM message
             WHERE ${conditions.joinToString(" AND ")}
         """.trimIndent()
 
-        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
-        val texts = cursor.use {
-            buildList {
-                while (it.moveToNext()) {
-                    val text = it.getString(0)
-                    if (!text.isNullOrBlank()) add(text)
+        val freqEmojis = mutableMapOf<String, Int>()
+        
+        database.getMsgDb().rawQuery(query, args.toTypedArray()).use { cursor ->
+            while (cursor.moveToNext()) {
+                val text = cursor.getString(0)
+                if (text.isNullOrBlank()) continue
+                extractEmojis(text).forEach { emoji ->
+                    val base = stripSkinTone(emoji)
+                    freqEmojis[base] = (freqEmojis[base] ?: 0) + 1
                 }
             }
         }
-        return countEmojis(texts, limit)
+        return freqEmojis.entries.sortedByDescending { it.value }.take(limit).map { EmojiStat(it.key, it.value) }
     }
 
     /**
@@ -560,7 +594,7 @@ class MessageDao @Inject constructor(
                     (
                         (sender_jid_row_id = (SELECT _id FROM jid WHERE raw_string = ?))
                         OR 
-                        (from_me = 0 AND 0 = (SELECT sender_jid_row_id FROM message m2 WHERE m2._id = m._id))
+                        (from_me = 0 AND sender_jid_row_id = 0)
                     )
                 """.trimIndent())
                 args.add(jid)
@@ -572,28 +606,46 @@ class MessageDao @Inject constructor(
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            conditions.add("m.timestamp <= ?")
+            conditions.add("timestamp <= ?")
             args.add(endTime.toString())
         }
         
         val query = """
             SELECT text_data
-            FROM message m
+            FROM message
             WHERE ${conditions.joinToString(" AND ")}
         """.trimIndent()
 
-        val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
-        val texts = cursor.use {
-            buildList {
-                while (it.moveToNext()) {
-                    val text = it.getString(0)
-                    if (!text.isNullOrBlank()) add(text)
+        val freqWords = mutableMapOf<String, Int>()
+        val freqEmojis = mutableMapOf<String, Int>()
+        val urlPattern = Pattern.compile("(https?://\\S+|www\\.\\S+|\\S+\\.(com|it|org|net|me)/\\S+)", Pattern.CASE_INSENSITIVE)
+        
+        database.getMsgDb().rawQuery(query, args.toTypedArray()).use { cursor ->
+            while (cursor.moveToNext()) {
+                val text = cursor.getString(0)
+                if (text.isNullOrBlank()) continue
+                
+                extractEmojis(text).forEach { emoji ->
+                    val base = stripSkinTone(emoji)
+                    freqEmojis[base] = (freqEmojis[base] ?: 0) + 1
                 }
+                
+                val textWithoutUrls = urlPattern.matcher(text).replaceAll(" ")
+                textWithoutUrls.lowercase()
+                    .replace(WORD_CLEANER, " ")
+                    .split(WORD_SPLITTER)
+                    .forEach { word ->
+                        if (word.length > 2 && word !in STOP_WORDS) {
+                            val norm = word.replace(WORD_NORMALIZER, "$1$1")
+                            if (norm.isNotBlank()) freqWords[norm] = (freqWords[norm] ?: 0) + 1
+                        }
+                    }
             }
         }
-        val words = countWords(texts, wordsLimit)
-        val emojis = countEmojis(texts, emojisLimit)
-        return words to emojis
+        
+        val topWords = freqWords.entries.sortedByDescending { it.value }.take(wordsLimit).map { WordFrequency(it.key, it.value) }
+        val topEmojis = freqEmojis.entries.sortedByDescending { it.value }.take(emojisLimit).map { EmojiStat(it.key, it.value) }
+        return topWords to topEmojis
     }
 
     fun getEmojiStatsBySender(chatId: Long?): List<UserEmojiStat> {
@@ -1880,6 +1932,76 @@ class MessageDao @Inject constructor(
         }
     }
 
+    /**
+     * Calcola in modo efficiente l'indice lessicale scorrendo il cursore
+     * senza allocare l'intera lista di testi in memoria.
+     */
+    fun buildLexicalDeltaStream(
+        chatId: Long? = null,
+        sinceTimestamp: Long? = null
+    ): com.whatstat.reborn.data.db.model.LexicalDelta {
+        val conditions = mutableListOf("text_data IS NOT NULL", "message_type = 0")
+        val args = mutableListOf<String>()
+        if (chatId != null) {
+            conditions.add("chat_row_id = ?")
+            args.add(chatId.toString())
+        }
+        if (sinceTimestamp != null && sinceTimestamp > 0L) {
+            conditions.add("timestamp > ?")
+            args.add(sinceTimestamp.toString())
+        }
+        val query = "SELECT text_data, timestamp FROM message WHERE ${conditions.joinToString(" AND ")}"
+        
+        val urlPattern = Pattern.compile("(https?://\\S+|www\\.\\S+|\\S+\\.(com|it|org|net|me)/\\S+)", Pattern.CASE_INSENSITIVE)
+        
+        val globalWords = mutableMapOf<String, Int>()
+        val globalEmojis = mutableMapOf<String, Int>()
+        val monthlyWords = mutableMapOf<String, MutableMap<String, Int>>()
+        val monthlyEmojis = mutableMapOf<String, MutableMap<String, Int>>()
+        var maxTs = 0L
+
+        val cal = java.util.Calendar.getInstance()
+
+        database.getMsgDb().rawQuery(query, args.toTypedArray()).use { cursor ->
+            while (cursor.moveToNext()) {
+                val text = cursor.getString(0)
+                if (text.isNullOrBlank()) continue
+                val ts = cursor.getLong(1)
+                if (ts > maxTs) maxTs = ts
+
+                cal.timeInMillis = ts
+                val month = "${cal.get(java.util.Calendar.YEAR)}-${String.format("%02d", cal.get(java.util.Calendar.MONTH) + 1)}"
+
+                // EMOJI
+                extractEmojis(text).forEach { emoji ->
+                    val base = stripSkinTone(emoji)
+                    globalEmojis[base] = (globalEmojis[base] ?: 0) + 1
+                    val me = monthlyEmojis.getOrPut(month) { mutableMapOf() }
+                    me[base] = (me[base] ?: 0) + 1
+                }
+
+                // PAROLE
+                val textWithoutUrls = urlPattern.matcher(text).replaceAll(" ")
+                textWithoutUrls.lowercase()
+                    .replace(WORD_CLEANER, " ")
+                    .split(WORD_SPLITTER)
+                    .forEach { word ->
+                        if (word.length > 2 && word !in STOP_WORDS) {
+                            val norm = word.replace(WORD_NORMALIZER, "$1$1")
+                            if (norm.isNotBlank()) {
+                                globalWords[norm] = (globalWords[norm] ?: 0) + 1
+                                val mw = monthlyWords.getOrPut(month) { mutableMapOf() }
+                                mw[norm] = (mw[norm] ?: 0) + 1
+                            }
+                        }
+                    }
+            }
+        }
+        return com.whatstat.reborn.data.db.model.LexicalDelta(
+            globalWords, globalEmojis, monthlyWords, monthlyEmojis, maxTs
+        )
+    }
+
     /** Numero di messaggi testuali globali. Usato per sanity check dell'indice. */
     fun getGlobalTextMessageCount(): Int {
         val cursor = database.getMsgDb().rawQuery(
@@ -2142,20 +2264,22 @@ class MessageDao @Inject constructor(
         val args = mutableListOf<String>()
         
         if (chatId != null && jid != null) {
-            // Filtro per sender dentro una chat specifica
-            queryBuilder.append(" LEFT JOIN jid sender_jid ON m.sender_jid_row_id = sender_jid._id AND m.sender_jid_row_id > 0")
-            queryBuilder.append(" LEFT JOIN jid_map jm ON jm.lid_row_id = sender_jid._id")
-            queryBuilder.append(" LEFT JOIN jid real_jid ON real_jid._id = jm.jid_row_id")
-            queryBuilder.append(" LEFT JOIN chat c ON m.chat_row_id = c._id")
-            queryBuilder.append(" LEFT JOIN jid chat_jid ON c.jid_row_id = chat_jid._id")
             conditions.add("m.chat_row_id = ?")
             args.add(chatId.toString())
             if (jid == "me@s.whatsapp.net") {
                 conditions.add("m.from_me = 1")
             } else {
-                conditions.add("m.from_me = 0")
-                conditions.add("(sender_jid.raw_string = ? OR real_jid.raw_string = ? OR chat_jid.raw_string = ?)")
-                args.add(jid)
+                conditions.add("""
+                    (
+                        m.sender_jid_row_id IN (
+                            SELECT _id FROM jid WHERE raw_string = ?
+                            UNION
+                            SELECT lid_row_id FROM jid_map WHERE jid_row_id = (SELECT _id FROM jid WHERE raw_string = ?)
+                        )
+                        OR
+                        (m.from_me = 0 AND m.sender_jid_row_id = 0)
+                    )
+                """.trimIndent())
                 args.add(jid)
                 args.add(jid)
             }
@@ -2163,9 +2287,7 @@ class MessageDao @Inject constructor(
             conditions.add("m.chat_row_id = ?")
             args.add(chatId.toString())
         } else if (jid != null) {
-            queryBuilder.append(" INNER JOIN chat c ON m.chat_row_id = c._id")
-            queryBuilder.append(" INNER JOIN jid j ON c.jid_row_id = j._id")
-            conditions.add("j.raw_string = ?")
+            conditions.add("m.chat_row_id = (SELECT c._id FROM chat c JOIN jid j ON c.jid_row_id = j._id WHERE j.raw_string = ?)")
             args.add(jid)
         }
 

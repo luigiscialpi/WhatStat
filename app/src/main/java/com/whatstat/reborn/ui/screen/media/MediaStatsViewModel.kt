@@ -401,9 +401,8 @@ class MediaStatsViewModel @Inject constructor(
                     )
                 } ?: emptyList()
 
-                // Aggiorna lo stato solo quando abbiamo i dati, filtrando quelli che non esistono piu'
-                val existingMediaFiles = mediaFiles.filter { java.io.File(it.filePath).exists() }
-                _mediaGalleryState.value = Triple(name, avatarPath, existingMediaFiles)
+                // AnalyticsRepository.getMediaFiles ha già filtrato i file esistenti
+                _mediaGalleryState.value = Triple(name, avatarPath, mediaFiles)
             } catch (e: Exception) {
                 _mediaGalleryState.value = null
             } finally {
