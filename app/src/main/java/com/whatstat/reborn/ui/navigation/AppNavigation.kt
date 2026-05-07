@@ -42,7 +42,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.filterNotNull
 
 sealed class Screen(val route: String) {
-    data object Setup : Screen("setup")
+    data object Setup : Screen("setup?autoNavigate={autoNavigate}") {
+        fun createRoute(autoNavigate: Boolean = true) = "setup?autoNavigate=$autoNavigate"
+    }
     data object LiteSetup : Screen("lite_setup") {
         fun createRoute(zipUri: String? = null): String {
             return if (zipUri != null) {
@@ -150,7 +152,15 @@ private fun NavGraphBuilder.setupGraph(
         startDestination = Screen.Setup.route,
         route = NavGraphRoute.Setup
     ) {
-        composable(Screen.Setup.route) {
+        composable(
+            route = Screen.Setup.route,
+            arguments = listOf(
+                navArgument("autoNavigate") {
+                    type = NavType.BoolType
+                    defaultValue = true
+                }
+            )
+        ) {
             SetupScreen(
                 incomingZipUri = incomingZipUri,
                 onUriConsumed = onUriConsumed,
@@ -187,10 +197,11 @@ private fun NavGraphBuilder.mainGraph(
                 DashboardScreen(
                     onNavigateBack = {
                         scope.launch {
-                            onResetLite()
-                            repository.cleanup()
-                            repository.resetState()
-                            navController.navigate(Screen.Setup.route) {
+                            // Se siamo in Lite mode, resettiamo Lite. 
+                            // Se siamo in Root mode, non chiamiamo cleanup() altrimenti cancelliamo il db decifrato!
+                            onResetLite() 
+                            repository.resetState() // Reset dello stato UI per tornare al setup
+                            navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
                                 popUpTo(0) { inclusive = true }
                             }
                         }

@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,7 +47,9 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.FolderZip
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.Terminal
@@ -303,6 +307,8 @@ fun SetupScreen(
                             onCheckAndStartManual = { checkAndStart(true) },
                             onShowManualMode = { viewModel.showManualMode() },
                             onCancelSetup = { viewModel.cancelSetup() },
+                            onResumeRoot = { viewModel.resumeRootSession() },
+                            onClearRoot = { viewModel.clearRootSession() },
                             onManualFileSelected = { uri, type ->
                                 viewModel.handleManualFileSelected(uri, type)
                             }
@@ -503,6 +509,8 @@ private fun RootTabContent(
     onCheckAndStartManual: () -> Unit,
     onShowManualMode: () -> Unit,
     onCancelSetup: () -> Unit,
+    onResumeRoot: () -> Unit,
+    onClearRoot: () -> Unit,
     onManualFileSelected: (android.net.Uri, String) -> Unit
 ) {
     Column(
@@ -533,6 +541,58 @@ private fun RootTabContent(
             status = state.contactsStatus,
             icon = Icons.Outlined.Contacts
         )
+
+        Spacer(Modifier.height(8.dp))
+
+        // ── Dashboard & Clear Session ──────────────────────────
+        // Hint contestuale per Root (simile a Lite)
+        if (!state.isLoading) {
+            Text(
+                text = if (state.isRootReady)
+                    "Sessione Root preservata trovata. Puoi accedere alla dashboard o avviare una nuova analisi."
+                else
+                    "Nessuna sessione Root attiva. Avvia l'analisi per estrarre i dati aggiornati.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onResumeRoot,
+                    enabled = state.isRootReady,
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Icon(Icons.Filled.Dashboard, null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text("Vai alla dashboard", style = MaterialTheme.typography.labelLarge)
+                }
+
+                if (state.isRootReady) {
+                    OutlinedButton(
+                        onClick = onClearRoot,
+                        modifier = Modifier.size(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(0.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                    ) {
+                        Icon(Icons.Default.Delete, null, Modifier.size(20.dp))
+                    }
+                }
+            }
+        }
 
         // ── Error card & Manual Mode ─────────────────────────────
         AnimatedVisibility(
@@ -626,7 +686,6 @@ private fun RootTabContent(
         }
 
         // ── Action button ────────────────────────────────────────
-        Spacer(Modifier.height(4.dp))
 
         if (state.isLoading) {
             OutlinedButton(

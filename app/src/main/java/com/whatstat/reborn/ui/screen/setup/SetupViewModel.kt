@@ -29,6 +29,7 @@ class SetupViewModel @Inject constructor(
     private val repository: WhatsAppRepository,
     private val analyticsRepository: com.whatstat.reborn.data.repository.AnalyticsRepository,
     private val liteDatabase: LiteDatabase,
+    private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -43,6 +44,8 @@ class SetupViewModel @Inject constructor(
             // Osserva lo stato di LiteMode e RootDatabase
             analyticsRepository.isLiteMode.collectLatest { isLite ->
                 val hasLiteDb = withContext(Dispatchers.IO) { liteDatabase.hasChatData() }
+                val isRootReady = repository.isDatabaseReady()
+                
                 if (isLite) {
                     _state.update {
                         it.copy(
@@ -51,19 +54,25 @@ class SetupViewModel @Inject constructor(
                             hasLiteDb = hasLiteDb
                         )
                     }
-                } else if (repository.isDatabaseReady()) {
+                } else {
+                    // Se non è pronto subito e stiamo ancora controllando la cache (avvio)
+                    if (!isRootReady && _state.value.isCheckingCache) {
+                        delay(500)
+                    }
+                    
+                    val finalIsRootReady = repository.isDatabaseReady()
+                    val autoNavigate = savedStateHandle.get<Boolean>("autoNavigate") ?: true
+                    
                     _state.update {
                         it.copy(
-                            isComplete = true,
+                            isRootReady = finalIsRootReady,
+                            // Naviga automaticamente solo se:
+                            // 1. È il primo avvio (isCheckingCache == true)
+                            // 2. Il flag autoNavigate è true
+                            isComplete = if (it.isCheckingCache && autoNavigate) finalIsRootReady else it.isComplete,
                             isCheckingCache = false,
                             hasLiteDb = hasLiteDb
                         )
-                    }
-                } else {
-                    // Aspettiamo un attimo per essere sicuri che non ci sia una sessione root in arrivo
-                    delay(500)
-                    if (!repository.isDatabaseReady() && !analyticsRepository.isLiteMode.value) {
-                        _state.update { it.copy(isCheckingCache = false, hasLiteDb = hasLiteDb) }
                     }
                 }
             }
@@ -72,9 +81,11 @@ class SetupViewModel @Inject constructor(
         // Osserva lo stato globale nel repository (proveniente dal Service o dal repo direttamente)
         viewModelScope.launch {
             repository.setupState.collectLatest { repoState ->
+                val autoNavigate = savedStateHandle.get<Boolean>("autoNavigate") ?: true
                 _state.update { it.copy(
                     isLoading = repoState.isLoading,
-                    isComplete = repoState.isComplete,
+                    // Sovrascrivi isComplete solo se autoNavigate è true o se stiamo resettando (isComplete false)
+                    isComplete = if (autoNavigate || !repoState.isComplete) repoState.isComplete else it.isComplete,
                     error = repoState.error,
                     rootStatus = mapGlobalStatus(repoState.rootStatus),
                     extractionStatus = mapGlobalStatus(repoState.extractionStatus),
@@ -153,7 +164,20 @@ class SetupViewModel @Inject constructor(
 
     fun activateLiteMode() {
         analyticsRepository.setLiteMode(true)
-        _state.update { it.copy(hasLiteDb = true) }
+        _state.update { it.copy(hasLiteDb = true, isComplete = true) }
+    }
+
+    fun resumeRootSession() {
+        if (_state.value.isRootReady) {
+            _state.update { it.copy(isComplete = true) }
+        }
+    }
+
+    fun clearRootSession() {
+        viewModelScope.launch {
+            repository.cleanup()
+            _state.update { it.copy(isRootReady = false, isComplete = false) }
+        }
     }
 }
 
@@ -168,6 +192,7 @@ data class SetupState(
     val contactsStatus: StepStatus   = StepStatus.IDLE,
     val decryptionProgress: Float    = 0f,
     val hasLiteDb: Boolean           = false,
+    val isRootReady: Boolean         = false, // Sessione Root decifrata e pronta
     
     // UI State per la modalità manuale
     val isManualModeVisible: Boolean = false,
