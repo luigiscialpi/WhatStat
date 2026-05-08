@@ -143,7 +143,9 @@ fun AppNavigation(
                 navController = navController,
                 incomingZipUri = incomingZipUri,
                 onUriConsumed = { mainViewModel.setIncomingZipUri(null) },
-                isLiteMode = isLiteMode
+                resolveTargetGraph = {
+                    if (mainViewModel.isLiteMode.value) NavGraphRoute.Lite else NavGraphRoute.Root
+                }
             )
             rootModeGraph(navController, repository)
             liteModeGraph(
@@ -158,9 +160,8 @@ private fun NavGraphBuilder.setupGraph(
     navController: NavHostController,
     incomingZipUri: String?,
     onUriConsumed: () -> Unit,
-    isLiteMode: Boolean
+    resolveTargetGraph: () -> String
 ) {
-    val targetGraph = if (isLiteMode) NavGraphRoute.Lite else NavGraphRoute.Root
     navigation(
         startDestination = Screen.Setup.route,
         route = NavGraphRoute.Setup
@@ -178,12 +179,14 @@ private fun NavGraphBuilder.setupGraph(
                 incomingZipUri = incomingZipUri,
                 onUriConsumed = onUriConsumed,
                 onSetupComplete = {
-                    navController.navigate(targetGraph) {
+                    val target = resolveTargetGraph()
+                    navController.navigate(target) {
                         popUpTo(NavGraphRoute.Setup) { inclusive = true }
                     }
                 },
                 onNavigateToDashboard = {
-                    navController.navigate(targetGraph) {
+                    val target = resolveTargetGraph()
+                    navController.navigate(target) {
                         popUpTo(NavGraphRoute.Setup) { inclusive = true }
                     }
                 }

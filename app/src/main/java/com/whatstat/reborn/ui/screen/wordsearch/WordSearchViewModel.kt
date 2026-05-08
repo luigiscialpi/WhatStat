@@ -109,13 +109,15 @@ class WordSearchViewModel @Inject constructor(
     private var lastKnownCacheVersion = 0L
 
     init {
-        viewModelScope.launch {
-            analyticsRepository.liteCacheVersion.collect { version ->
-                if (version > 0L && version != lastKnownCacheVersion) {
-                    lastKnownCacheVersion = version
-                    initialized = false
-                    // Ricarica immediatamente con il chatId corrente
-                    initialize(_chatId.value, force = true)
+        if (analyticsRepository.isLiteMode.value) {
+            viewModelScope.launch {
+                analyticsRepository.liteCacheVersion.collect { version ->
+                    if (version > 0L && version != lastKnownCacheVersion) {
+                        lastKnownCacheVersion = version
+                        initialized = false
+                        // Ricarica immediatamente con il chatId corrente
+                        initialize(_chatId.value, force = true)
+                    }
                 }
             }
         }

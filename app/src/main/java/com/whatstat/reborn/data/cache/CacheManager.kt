@@ -458,12 +458,27 @@ class CacheManager @Inject constructor(
     @Volatile var monthlyWordIndex: MonthlyWordIndexData? = null
     private val chatWordIndexCache = java.util.concurrent.ConcurrentHashMap<Long, WordFrequencyIndexData>()
 
+    /** Traccia il namespace dell'ultima cache in-memory. Quando cambia, azzera le variabili volatili. */
+    private var lastInMemoryNs: String? = null
+
+    private fun ensureInMemoryNs() {
+        val current = ns
+        if (lastInMemoryNs != null && lastInMemoryNs != current) {
+            globalWordIndex = null
+            monthlyWordIndex = null
+            chatWordIndexCache.clear()
+            mediaFileIndex = null
+        }
+        lastInMemoryNs = current
+    }
+
     // filesDir: persistente tra sessioni (costoso da ricostruire)
     private val globalWordIndexFile get() = java.io.File(context.filesDir, "${ns}_word_index_global.gz")
     private val monthlyWordIndexFile get() = java.io.File(context.filesDir, "${ns}_word_index_monthly.gz")
     private fun chatWordIndexFile(chatId: Long) = java.io.File(context.cacheDir, "${ns}_word_index_chat_${chatId}.gz")
 
     fun loadGlobalWordIndexFromDisk(): WordFrequencyIndexData? {
+        ensureInMemoryNs()
         globalWordIndex?.let { return it }
         val file = globalWordIndexFile
         if (!file.exists() || file.length() == 0L) return null
@@ -473,6 +488,7 @@ class CacheManager @Inject constructor(
     }
 
     fun saveGlobalWordIndexToDisk(data: WordFrequencyIndexData) {
+        ensureInMemoryNs()
         globalWordIndex = data
         try {
             val tmp = java.io.File(context.filesDir, "${ns}_word_index_global.tmp")
@@ -482,6 +498,7 @@ class CacheManager @Inject constructor(
     }
 
     fun loadChatWordIndexFromDisk(chatId: Long): WordFrequencyIndexData? {
+        ensureInMemoryNs()
         chatWordIndexCache[chatId]?.let { return it }
         val file = chatWordIndexFile(chatId)
         if (!file.exists() || file.length() == 0L) return null
@@ -491,6 +508,7 @@ class CacheManager @Inject constructor(
     }
 
     fun saveChatWordIndexToDisk(chatId: Long, data: WordFrequencyIndexData) {
+        ensureInMemoryNs()
         chatWordIndexCache[chatId] = data
         try {
             val tmp = java.io.File(context.cacheDir, "${ns}_word_index_chat_${chatId}.tmp")
@@ -500,6 +518,7 @@ class CacheManager @Inject constructor(
     }
 
     fun loadMonthlyWordIndexFromDisk(): MonthlyWordIndexData? {
+        ensureInMemoryNs()
         monthlyWordIndex?.let { return it }
         val file = monthlyWordIndexFile
         if (!file.exists() || file.length() == 0L) return null
@@ -583,6 +602,7 @@ class CacheManager @Inject constructor(
      * Dimensione attesa: ~0.5 MB per 50.000 file (prefissi molto ripetuti → alta compressione).
      */
     fun loadMediaIndexFromDisk(): Set<String>? {
+        ensureInMemoryNs()
         val file = mediaIndexFile
         if (!file.exists() || file.length() == 0L) return null
         return try {

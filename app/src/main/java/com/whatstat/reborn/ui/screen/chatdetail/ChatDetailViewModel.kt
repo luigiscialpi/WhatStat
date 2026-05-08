@@ -129,12 +129,16 @@ class ChatDetailViewModel @Inject constructor(
 
     init {
         // In LiteMode, ricarica quando viene importato un nuovo ZIP
-        viewModelScope.launch {
-            var firstEmit = true
-            analyticsRepository.liteCacheVersion.collect { _ ->
-                if (firstEmit) { firstEmit = false; loadChatStats(); return@collect }
-                loadChatStats()
+        if (analyticsRepository.isLiteMode.value) {
+            viewModelScope.launch {
+                var firstEmit = true
+                analyticsRepository.liteCacheVersion.collect { _ ->
+                    if (firstEmit) { firstEmit = false; loadChatStats(); return@collect }
+                    loadChatStats()
+                }
             }
+        } else {
+            loadChatStats()
         }
     }
 

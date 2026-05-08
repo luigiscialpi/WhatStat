@@ -71,11 +71,13 @@ class ChatListViewModel @Inject constructor(
     init {
         val baselineVersion = analyticsRepository.liteCacheVersion.value
         loadChats()
-        // Ricarica la lista ogni volta che viene completata una nuova importazione Lite
-        viewModelScope.launch {
-            analyticsRepository.liteCacheVersion.collect { version ->
-                if (version > baselineVersion) {
-                    loadChats()
+        // Ricarica la lista solo in Lite mode quando viene completata una nuova importazione
+        if (analyticsRepository.isLiteMode.value) {
+            viewModelScope.launch {
+                analyticsRepository.liteCacheVersion.collect { version ->
+                    if (version > baselineVersion) {
+                        loadChats()
+                    }
                 }
             }
         }
