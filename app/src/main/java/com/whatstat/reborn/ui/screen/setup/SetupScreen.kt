@@ -157,7 +157,16 @@ fun SetupScreen(
     }
 
     // 0 = Lite (No Root), 1 = Root
-    var selectedTab by remember { mutableIntStateOf(0) }
+    // Se c'è un database root preservato, apri sulla tab Root
+    var selectedTab by remember { mutableIntStateOf(if (state.isRootReady) 1 else 0) }
+    // Aggiorna la tab predefinita quando il check asincrono completa (cold start)
+    var hasAutoSwitched by remember { mutableStateOf(false) }
+    LaunchedEffect(state.isRootReady) {
+        if (state.isRootReady && !hasAutoSwitched && selectedTab == 0) {
+            selectedTab = 1
+            hasAutoSwitched = true
+        }
+    }
     val zipLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->

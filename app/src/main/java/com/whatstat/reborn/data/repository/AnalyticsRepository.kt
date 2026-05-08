@@ -89,13 +89,10 @@ class AnalyticsRepository @Inject constructor(
     }
 
     init {
-        // Al caricamento, controlla se c'è una cache Lite valida nel DB
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-            val hasLiteChats = liteDatabase.hasChatData()
-            if (hasLiteChats) {
-                setLiteMode(true)
-            }
-        }
+        // Il flag isLiteMode viene preservato nelle SharedPreferences.
+        // Non lo sovrascriviamo qui: deve riflettere l'ultimo modo scelto dall'utente.
+        // La SetupScreen usa liteDatabase.hasChatData() per decidere quale tab mostrare,
+        // ma il routing DB (ActiveDatabaseProvider) resta intatto.
     }
 
 
