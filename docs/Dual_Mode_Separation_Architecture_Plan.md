@@ -1,9 +1,74 @@
 # Piano avanzato: separazione pulita Root / Lite
 
-Data: 2026-05-08  
+Data: 2026-05-08 (revisione pragmatica: 2026-05-08)  
 Branch analizzato: `lite-mode` (`4652dcad`)  
 Baseline: `master` (`7f8b8580`)  
 Diff baseline: `50 files changed, 4994 insertions(+), 668 deletions(-)`
+
+---
+
+## REVISIONE OPERATIVA
+
+La versione originale di questo piano prevedeva 8 fasi, 11 commit, e l'introduzione di astrazioni
+come `AppSession`, `SessionId`, `ModeSessionStore`, `PresentationSpec`, `NavigationSpec`,
+`MediaResolver`, `AnalyticsRepositoryFactory` e `DaoFactory`.
+
+Dopo analisi pratica dei bug reali riscontrati durante lo sviluppo, la decisione e di adottare
+un **piano intermedio pragmatico** che risolve i 4 problemi strutturali reali senza creare nuove
+astrazioni da mantenere.
+
+### I 4 problemi strutturali reali
+
+| # | Problema | Sintomo riscontrato |
+|---|----------|---------------------|
+| 1 | Query DAO assumono schema Lite | `c.import_timestamp` in `ChatDao.getChatList()` rompe Root (lista vuota) |
+| 2 | Cache condivisa tra i due modi | Import Lite invalida cache Root; dati stantii dopo switch |
+| 3 | Navigazione condivisa | Route Lite dentro graph Root; back button Dashboard resetta Lite; flash schermate su share da WhatsApp |
+| 4 | Refresh tramite bus globale | `liteCacheVersion` osservato da ViewModels Root; ViewModels Lite che non si aggiornano se creati prima dell'emit |
+
+### Piano operativo in 4 step
+
+| Step | Obiettivo | Approccio |
+|------|-----------|-----------|
+| 1 | Schema DB Lite compatibile | Metadati Lite-only in tabella separata (`lite_chat_metadata`); query DAO identiche su entrambi i DB; no colonne Lite nelle query condivise |
+| 2 | Cache con namespace fisico | Directory `root/` e `lite/` separate; nessuna invalidazione cross-mode; `liteCacheVersion` rimosso |
+| 3 | Due NavGraph separati | `RootModeGraph` e `LiteModeGraph` con graph analytics condiviso; niente route Lite dentro main Root |
+| 4 | Refresh Lite esplicito | ViewModel Lite ricarica direttamente dopo import (responsabilita locale); no bus globale |
+
+### Cosa rimane invariato
+
+- `ActiveDatabaseProvider` puo restare se le query non assumono colonne modo-specifiche
+- `isLiteMode` in forma ridotta e accettabile (un `UiConfig` object al top level)
+- I DAO restano singleton Hilt, il provider decide a runtime quale DB restituire
+- Non serve Room, non servono factory, non serve `SessionId`
+- Le differenze UI Lite (FAB, badge, tab, sticker) restano nei composable ma guidate da un config centralizzato
+
+### Cosa va comunque rimosso/spostato
+
+- `GlobalStats.isLiteMode` → non deve esistere nel dominio
+- `AnalyticsRepository.setLiteMode/resetLiteMode/fullResetLiteMode` → spostare nel layer di sessione/setup
+- `liteCacheVersion` → eliminare, sostituire con refresh diretto
+- `import_timestamp` nella query `getChatList()` → spostare in `lite_chat_metadata`
+- Branch media path dentro `AnalyticsRepository.getMediaFiles()` → estrarre in helper separato
+
+### Regola operativa per lo sviluppo
+
+- Procedere per step piccoli verificabili
+- Ogni step dichiara prima cosa tocchera e il risultato atteso
+- A fine step: file modificati, completato, residuo, rischi, test
+- Se scelta ambigua su architettura/UX/dati: fermarsi e chiedere
+- Non mischiare infrastruttura, UI, cache e DB nello stesso step
+- Mantenere `docs/Lite_Mode_Explained.md` aggiornato con ogni modifica Lite
+
+---
+
+## PIANO ORIGINALE (riferimento)
+
+Quanto segue e il piano originale completo, mantenuto come riferimento architetturale.
+Le 8 fasi e le astrazioni descritte sotto sono sostituite operativamente dai 4 step sopra,
+ma la diagnosi dei problemi e le regole di accettazione restano valide come guida.
+
+---
 
 ## Obiettivo
 
