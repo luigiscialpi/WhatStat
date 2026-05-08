@@ -1,9 +1,0 @@
-BEGIN:VCARD
-VERSION:3.0
-N:Proctologo;Fabio Marino;-;;
-FN:Fabio Marino - Proctologo
-item1.TEL;waid=393409351886:+39 340 935 1886
-item1.X-ABLabel:Cellulare
-item2.EMAIL;type=INTERNET:fabio.marino@virgilio.it
-item2.X-ABLabel:Casa
-END:VCARD
