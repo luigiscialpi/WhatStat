@@ -103,6 +103,10 @@ fun DashboardScreen(
     onNavigateBack: () -> Unit
 ) {
     val stats by viewModel.globalStats.collectAsState()
+
+    // Intercetta il back di sistema per usare la stessa logica del pulsante toolbar
+    androidx.activity.compose.BackHandler { onNavigateBack() }
+
     val hourlyData by viewModel.hourlyData.collectAsState()
     val weeklyData by viewModel.weeklyData.collectAsState()
     val dailyData by viewModel.dayOfMonthData.collectAsState()

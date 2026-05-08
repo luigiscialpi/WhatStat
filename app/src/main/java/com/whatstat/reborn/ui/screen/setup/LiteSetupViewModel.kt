@@ -130,9 +130,11 @@ class LiteSetupViewModel @Inject constructor(
                     analyticsRepository.notifyLiteImportDone()
                 }
                 prefs.edit().putString(LAST_OWNER_KEY, name).apply()
+                stopForegroundService()
                 _state.update { it.copy(isLoading = false, isComplete = true) }
             } else {
                 val error = finalizeResult.exceptionOrNull()
+                stopForegroundService()
                 _state.update { it.copy(isLoading = false, error = error?.message) }
             }
         }

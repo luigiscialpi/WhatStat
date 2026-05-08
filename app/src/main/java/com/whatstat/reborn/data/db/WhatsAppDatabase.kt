@@ -41,11 +41,13 @@ class WhatsAppDatabase @Inject constructor(
         )
         // Abilita WAL per letture concorrenti (più thread possono leggere in parallelo)
         msgDb?.enableWriteAheadLogging()
-        waDb = SQLiteDatabase.openDatabase(
-            waDbFile.absolutePath,
-            null,
-            SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS
-        )
+        if (waDbFile.exists()) {
+            waDb = SQLiteDatabase.openDatabase(
+                waDbFile.absolutePath,
+                null,
+                SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS
+            )
+        }
 
         // Crea indici per ottimizzare le query
         createIndexes()
@@ -106,14 +108,13 @@ class WhatsAppDatabase @Inject constructor(
         ?: throw IllegalStateException("Database msgstore.db non aperto. Chiama open() prima.")
 
     /**
-     * Ritorna il database contatti (wa.db).
-     * @throws IllegalStateException se il database non è stato aperto
+     * Ritorna il database contatti (wa.db), o null se non disponibile.
      */
-    override fun getWaDb(): SQLiteDatabase = waDb
-        ?: throw IllegalStateException("Database wa.db non aperto. Chiama open() prima.")
+    override fun getWaDb(): SQLiteDatabase? = waDb
 
     /**
-     * Verifica se i database sono aperti e accessibili.
+     * Verifica se il database principale (msgstore) è aperto e accessibile.
+     * wa.db è opzionale (potrebbe non esistere su tutti i dispositivi).
      */
-    override fun isOpen(): Boolean = msgDb?.isOpen == true && waDb?.isOpen == true
+    override fun isOpen(): Boolean = msgDb?.isOpen == true
 }

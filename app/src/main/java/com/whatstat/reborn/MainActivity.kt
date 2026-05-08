@@ -95,6 +95,11 @@ class MainActivity : ComponentActivity() {
             lastHandledIncomingUri = uriString
             lastHandledIncomingAtMs = now
             mainViewModel.setIncomingZipUri(uri.toString())
+            // Pulisci l'intent per evitare re-delivery su ricreazione Activity
+            intent.action = null
+            intent.removeExtra(Intent.EXTRA_STREAM)
+            intent.data = null
+            intent.clipData = null
             DebugLogManager.log("MainActivity.handleIncomingIntent | accepted zip uri")
         } else {
             DebugLogManager.log("MainActivity.handleIncomingIntent | ignored non-zip uri")

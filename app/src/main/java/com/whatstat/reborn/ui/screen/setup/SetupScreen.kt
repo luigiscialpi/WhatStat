@@ -94,6 +94,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun SetupScreen(
     viewModel: SetupViewModel = hiltViewModel(),
     liteViewModel: LiteSetupViewModel = hiltViewModel(),
+    autoNavigate: Boolean = true,
     incomingZipUri: String? = null,
     onUriConsumed: () -> Unit = {},
     onSetupComplete: () -> Unit,
@@ -102,36 +103,61 @@ fun SetupScreen(
     val state by viewModel.state.collectAsState()
     val liteState by liteViewModel.state.collectAsState()
 
-    // Se c'è un URI in ingresso al momento della prima composizione, blocchiamo
-    // la navigazione automatica (state.isComplete) finché il Lite import non è
-    // davvero completato (liteState.isComplete). Senza questo flag, Compose può
-    // eseguire il LaunchedEffect di navigazione prima che onZipSelected() abbia
-    // avuto il tempo di impostare isLoading=true nella composizione successiva.
-    val awaitLiteImport = remember { incomingZipUri != null }
+    var awaitLiteImport by remember { mutableStateOf(false) }
+    // Flag one-shot: una volta navigato, non navigare più.
+    var hasNavigated by remember { mutableStateOf(false) }
+    // Memorizza l'URI che abbiamo GIÀ processato per non ri-processarlo al ritorno.
+    var processedUri by remember { mutableStateOf<String?>(null) }
+    // Controlla se auto-navigare quando state.isComplete (disabilitato al ritorno da Dashboard)
+    var shouldAutoNavigate by remember { mutableStateOf(autoNavigate) }
+
+    // DEBUG LOGS
+    LaunchedEffect(state.isComplete, state.isCheckingCache) {
+        android.util.Log.d("WhatStat", "SetupScreen | state.isComplete=${state.isComplete} isCheckingCache=${state.isCheckingCache} isRootReady=${state.isRootReady} hasLiteDb=${state.hasLiteDb}")
+    }
+    LaunchedEffect(liteState.isComplete, liteState.isLoading) {
+        android.util.Log.d("WhatStat", "SetupScreen | liteState.isComplete=${liteState.isComplete} isLoading=${liteState.isLoading} awaitLiteImport=$awaitLiteImport")
+    }
 
     // Se arriva un URI dall'intent (cold start / condivisione da WhatsApp),
     // avviamo l'import direttamente dal tab Lite senza navigare a LiteSetupScreen.
     LaunchedEffect(incomingZipUri) {
-        if (incomingZipUri != null) {
+        android.util.Log.d("WhatStat", "SetupScreen | LaunchedEffect(incomingZipUri=$incomingZipUri) processedUri=$processedUri")
+        if (incomingZipUri != null && incomingZipUri != processedUri) {
+            processedUri = incomingZipUri
+            awaitLiteImport = true
+            hasNavigated = false
+            shouldAutoNavigate = true
             liteViewModel.onZipSelected(android.net.Uri.parse(incomingZipUri))
             onUriConsumed()
         }
     }
 
     // Navigazione automatica verso Main:
-    // - se stiamo aspettando il completamento di un import URI, lo gestiamo
-    //   solo con liteState.isComplete (via il LaunchedEffect sotto)
-    // - altrimenti: quando il setup generico è completo e non c'è un import in corso
-    LaunchedEffect(state.isComplete, liteState.isLoading, liteState.showSenderSelection) {
+    LaunchedEffect(state.isComplete, liteState.isLoading, liteState.showSenderSelection, awaitLiteImport) {
+        android.util.Log.d("WhatStat", "SetupScreen | NAV-CHECK state.isComplete=${state.isComplete} awaitLite=$awaitLiteImport liteLoading=${liteState.isLoading} senderSelection=${liteState.showSenderSelection} hasNavigated=$hasNavigated")
+        if (hasNavigated) return@LaunchedEffect
         if (awaitLiteImport) return@LaunchedEffect
+        if (!shouldAutoNavigate) {
+            android.util.Log.d("WhatStat", "SetupScreen | NAV-CHECK skipped (autoNavigate=false)")
+            return@LaunchedEffect
+        }
         if (state.isComplete && !liteState.isLoading && !liteState.showSenderSelection) {
+            android.util.Log.d("WhatStat", "SetupScreen | >>> onSetupComplete() [auto-nav]")
+            hasNavigated = true
             onSetupComplete()
         }
     }
 
     // Quando un import avviato da URI è completato, naviga verso Main.
-    LaunchedEffect(liteState.isComplete) {
+    LaunchedEffect(liteState.isComplete, awaitLiteImport) {
+        android.util.Log.d("WhatStat", "SetupScreen | IMPORT-CHECK awaitLite=$awaitLiteImport liteComplete=${liteState.isComplete} hasNavigated=$hasNavigated")
+        if (hasNavigated) return@LaunchedEffect
         if (awaitLiteImport && liteState.isComplete) {
+            android.util.Log.d("WhatStat", "SetupScreen | >>> onSetupComplete() [import-done]")
+            hasNavigated = true
+            awaitLiteImport = false
+            liteViewModel.consumeImportComplete()
             onSetupComplete()
         }
     }
@@ -150,6 +176,8 @@ fun SetupScreen(
     }
 
     fun checkAndStart(isManual: Boolean) {
+        shouldAutoNavigate = true
+        hasNavigated = false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
@@ -177,7 +205,12 @@ fun SetupScreen(
     val zipLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let { liteViewModel.onZipSelected(it) }
+        uri?.let {
+            awaitLiteImport = true
+            hasNavigated = false
+            shouldAutoNavigate = true
+            liteViewModel.onZipSelected(it)
+        }
     }
 
     BackHandler(enabled = liteState.isLoading || liteState.showSenderSelection) {}
@@ -323,7 +356,10 @@ fun SetupScreen(
                             onCheckAndStartManual = { checkAndStart(true) },
                             onShowManualMode = { viewModel.showManualMode() },
                             onCancelSetup = { viewModel.cancelSetup() },
-                            onResumeRoot = { viewModel.resumeRootSession() },
+                            onResumeRoot = {
+                                viewModel.resumeRootSession()
+                                onNavigateToDashboard()
+                            },
                             onClearRoot = { viewModel.clearRootSession() },
                             onManualFileSelected = { uri, type ->
                                 viewModel.handleManualFileSelected(uri, type)

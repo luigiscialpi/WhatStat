@@ -275,7 +275,8 @@ class WhatsAppRepository @Inject constructor(
                 }
             } catch (e: Exception) {
                 // Se non riusciamo ad aprire, facciamo finta di nulla e chiediamo il setup
-                outputDb.delete()
+                // NON cancellare msgstore.db: potrebbe essere un errore transiente su wa.db
+                android.util.Log.w("WhatStat", "tryRestoreSession failed: ${e.message}")
             }
         }
         false

@@ -37,21 +37,34 @@ class SetupViewModel @Inject constructor(
     val state: StateFlow<SetupState> = _state.asStateFlow()
 
     init {
+        val autoNavigate = savedStateHandle.get<Boolean>("autoNavigate") ?: true
+
+        // Se torniamo con autoNavigate=false (es. back dalla Dashboard),
+        // resetta lo stato del repository per evitare che un isComplete=true
+        // stale venga propagato al nuovo SetupViewModel.
+        if (!autoNavigate) {
+            repository.resetState()
+        }
+
         viewModelScope.launch {
-            // Tenta di ripristinare la sessione root salvata
-            repository.tryRestoreSession()
+            // Tenta di ripristinare la sessione root salvata SOLO se autoNavigate=true
+            // (avvio normale). Quando l'utente torna indietro (autoNavigate=false),
+            // non serve ripristinare: mostriamo Setup e basta.
+            if (autoNavigate) {
+                repository.tryRestoreSession()
+            }
             
             // Osserva lo stato di LiteMode e RootDatabase
             analyticsRepository.isLiteMode.collectLatest { isLite ->
                 val hasLiteDb = withContext(Dispatchers.IO) { liteDatabase.hasChatData() }
                 val isRootReady = repository.isDatabaseReady()
-                val autoNavigate = savedStateHandle.get<Boolean>("autoNavigate") ?: true
+                val autoNav = savedStateHandle.get<Boolean>("autoNavigate") ?: true
                 
                 if (isLite) {
                     _state.update {
                         it.copy(
                             // Auto-naviga verso Lite solo al primo avvio con autoNavigate=true
-                            isComplete = it.isCheckingCache && autoNavigate,
+                            isComplete = it.isCheckingCache && autoNav,
                             isCheckingCache = false,
                             hasLiteDb = hasLiteDb,
                             isRootReady = isRootReady
@@ -68,7 +81,7 @@ class SetupViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             isRootReady = finalIsRootReady,
-                            isComplete = if (it.isCheckingCache && autoNavigate) finalIsRootReady else it.isComplete,
+                            isComplete = if (it.isCheckingCache && autoNav) finalIsRootReady else it.isComplete,
                             isCheckingCache = false,
                             hasLiteDb = hasLiteDb
                         )
@@ -81,9 +94,15 @@ class SetupViewModel @Inject constructor(
         viewModelScope.launch {
             repository.setupState.collectLatest { repoState ->
                 val autoNavigate = savedStateHandle.get<Boolean>("autoNavigate") ?: true
+                val isRootReady = if (repoState.isComplete && !repoState.isLoading) {
+                    repository.isDatabaseReady()
+                } else {
+                    _state.value.isRootReady
+                }
+                android.util.Log.d("WhatStat", "SetupVM | setupState: isLoading=${repoState.isLoading} isComplete=${repoState.isComplete} autoNav=$autoNavigate isRootReady=$isRootReady")
                 _state.update { it.copy(
                     isLoading = repoState.isLoading,
-                    // Sovrascrivi isComplete solo se autoNavigate è true o se stiamo resettando (isComplete false)
+                    isRootReady = isRootReady,
                     isComplete = if (autoNavigate || !repoState.isComplete) repoState.isComplete else it.isComplete,
                     error = repoState.error,
                     rootStatus = mapGlobalStatus(repoState.rootStatus),

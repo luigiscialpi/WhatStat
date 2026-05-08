@@ -22,7 +22,7 @@ class ActiveDatabaseProvider @Inject constructor(
         return if (isLiteMode) liteDatabase.getOrCreate() else whatsAppDatabase.getMsgDb()
     }
 
-    override fun getWaDb(): android.database.sqlite.SQLiteDatabase {
+    override fun getWaDb(): android.database.sqlite.SQLiteDatabase? {
         return if (isLiteMode) liteDatabase.getWaDb() else whatsAppDatabase.getWaDb()
     }
 

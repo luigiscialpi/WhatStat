@@ -109,22 +109,17 @@ fun AppNavigation(
     val currentDestination = navBackStackEntry?.destination
     
     val isLiteMode by mainViewModel.isLiteMode.collectAsState()
-    val incomingZipUri by mainViewModel.incomingZipUri.collectAsState()
 
-    LaunchedEffect(incomingZipUri, navController) {
-        incomingZipUri?.let { uri ->
-            if (isLiteMode) {
-                // App già in Lite Mode: aggiunge un'altra chat dalla ChatList
-                snapshotFlow { navController.currentBackStackEntry }
-                    .filterNotNull()
-                    .first()
-                navController.navigate(Screen.LiteSetupAdd.createRoute(uri)) {
-                    launchSingleTop = true
+    // Quando arriva un URI da share intent e NON siamo su Setup,
+    // pop-a tutto e torna a Setup perché è lui a consumare gli URI.
+    LaunchedEffect(Unit) {
+        mainViewModel.incomingZipUri.collect { uri ->
+            if (uri != null) {
+                val currentRoute = navController.currentDestination?.route ?: ""
+                if (!currentRoute.startsWith("setup")) {
+                    navController.popBackStack(NavGraphRoute.Setup, inclusive = false)
                 }
-                mainViewModel.setIncomingZipUri(null)
             }
-            // isLiteMode=false: la SetupScreen consumerà l'URI direttamente
-            // tramite il suo LiteSetupViewModel senza navigare altrove.
         }
     }
 
@@ -141,8 +136,7 @@ fun AppNavigation(
         ) {
             setupGraph(
                 navController = navController,
-                incomingZipUri = incomingZipUri,
-                onUriConsumed = { mainViewModel.setIncomingZipUri(null) },
+                mainViewModel = mainViewModel,
                 resolveTargetGraph = {
                     if (mainViewModel.isLiteMode.value) NavGraphRoute.Lite else NavGraphRoute.Root
                 }
@@ -150,6 +144,7 @@ fun AppNavigation(
             rootModeGraph(navController, repository)
             liteModeGraph(
                 navController = navController,
+                mainViewModel = mainViewModel,
                 onResetLite = { mainViewModel.resetLiteMode() }
             )
         }
@@ -158,8 +153,7 @@ fun AppNavigation(
 
 private fun NavGraphBuilder.setupGraph(
     navController: NavHostController,
-    incomingZipUri: String?,
-    onUriConsumed: () -> Unit,
+    mainViewModel: MainViewModel,
     resolveTargetGraph: () -> String
 ) {
     navigation(
@@ -174,20 +168,25 @@ private fun NavGraphBuilder.setupGraph(
                     defaultValue = true
                 }
             )
-        ) {
+        ) { backStackEntry ->
+            val autoNavigate = backStackEntry.arguments?.getBoolean("autoNavigate", true) ?: true
+            val incomingZipUri by mainViewModel.incomingZipUri.collectAsState()
             SetupScreen(
+                autoNavigate = autoNavigate,
                 incomingZipUri = incomingZipUri,
-                onUriConsumed = onUriConsumed,
+                onUriConsumed = { mainViewModel.setIncomingZipUri(null) },
                 onSetupComplete = {
                     val target = resolveTargetGraph()
                     navController.navigate(target) {
-                        popUpTo(NavGraphRoute.Setup) { inclusive = true }
+                        popUpTo(NavGraphRoute.Setup) { inclusive = false }
+                        launchSingleTop = true
                     }
                 },
                 onNavigateToDashboard = {
                     val target = resolveTargetGraph()
                     navController.navigate(target) {
-                        popUpTo(NavGraphRoute.Setup) { inclusive = true }
+                        popUpTo(NavGraphRoute.Setup) { inclusive = false }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -216,7 +215,8 @@ private fun NavGraphBuilder.rootModeGraph(
                         scope.launch {
                             repository.resetState()
                             navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
-                                popUpTo(0) { inclusive = true }
+                                popUpTo("app_graph") { inclusive = false }
+                                launchSingleTop = true
                             }
                         }
                     }
@@ -275,6 +275,7 @@ private fun NavGraphBuilder.rootModeGraph(
 
 private fun NavGraphBuilder.liteModeGraph(
     navController: NavHostController,
+    mainViewModel: MainViewModel,
     onResetLite: () -> Unit
 ) {
     navigation(
@@ -288,12 +289,13 @@ private fun NavGraphBuilder.liteModeGraph(
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
                     onNavigateBack = {
-                        // Torna a Setup senza resettare il modo Lite.
-                        // Il flag isLiteMode resta true: Setup lo usa per la tab predefinita.
-                        // Il reset avviene solo se l'utente avvia esplicitamente Root.
+                        android.util.Log.d("WhatStat", "LiteDashboard | onNavigateBack → clearing URI and navigate to Setup(autoNavigate=false)")
+                        mainViewModel.setIncomingZipUri(null)
                         navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
-                            popUpTo(0) { inclusive = true }
+                            popUpTo("app_graph") { inclusive = false }
+                            launchSingleTop = true
                         }
+                        android.util.Log.d("WhatStat", "LiteDashboard | navigation executed backStack=${navController.currentBackStack.value.map { it.destination.route }}")
                     }
                 )
             }
@@ -314,7 +316,7 @@ private fun NavGraphBuilder.liteModeGraph(
                     },
                     onAllChatsDeleted = {
                         navController.navigate(Screen.Setup.route) {
-                            popUpTo(0) { inclusive = true }
+                            popUpTo("app_graph") { inclusive = false }
                         }
                     }
                 )

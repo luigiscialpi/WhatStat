@@ -20,9 +20,9 @@ class ContactDao @Inject constructor(
     /** Conta i contatti nel database wa.db. */
     fun getContactCount(): Int {
         return try {
-            val cursor = database.getWaDb().rawQuery(
+            val cursor = database.getWaDb()?.rawQuery(
                 "SELECT COUNT(*) FROM wa_contacts WHERE display_name IS NOT NULL", null
-            )
+            ) ?: return 0
             cursor.use { if (it.moveToFirst()) it.getInt(0) else 0 }
         } catch (_: Exception) {
             0 // wa.db potrebbe avere uno schema diverso
@@ -38,11 +38,11 @@ class ContactDao @Inject constructor(
      */
     fun resolveContactName(jid: String): String? {
         return try {
-            val cursor = database.getWaDb().rawQuery(
+            val cursor = database.getWaDb()?.rawQuery(
                 """SELECT COALESCE(display_name, given_name, number) AS name 
                    FROM wa_contacts WHERE jid = ? LIMIT 1""",
                 arrayOf(jid)
-            )
+            ) ?: return null
             cursor.use { if (it.moveToFirst()) it.getString(0) else null }
         } catch (_: Exception) {
             null
@@ -65,12 +65,12 @@ class ContactDao @Inject constructor(
         jids.chunked(50).forEach { batch ->
             val placeholders = batch.joinToString(",") { "?" }
             try {
-                val cursor = database.getWaDb().rawQuery(
+                val cursor = database.getWaDb()?.rawQuery(
                     """SELECT jid, COALESCE(display_name, given_name, number) AS name 
                        FROM wa_contacts WHERE jid IN ($placeholders)""",
                     batch.toTypedArray()
                 )
-                cursor.use {
+                cursor?.use {
                     while (it.moveToNext()) {
                         val jid = it.getString(0) ?: continue
                         val name = it.getString(1) ?: continue
@@ -95,12 +95,12 @@ class ContactDao @Inject constructor(
             if (needResolve.isNotEmpty()) {
                 val realPlaceholders = needResolve.joinToString(",") { "?" }
                 try {
-                    val waCursor = database.getWaDb().rawQuery(
+                    val waCursor = database.getWaDb()?.rawQuery(
                         """SELECT jid, COALESCE(display_name, given_name, number) AS name 
                            FROM wa_contacts WHERE jid IN ($realPlaceholders)""",
                         needResolve.toTypedArray()
                     )
-                    waCursor.use {
+                    waCursor?.use {
                         while (it.moveToNext()) {
                             val jid = it.getString(0) ?: continue
                             val name = it.getString(1) ?: continue
