@@ -39,8 +39,13 @@ class LiteDbWriter @Inject constructor(
 
         // 2. Crea entry chat (o recupera esistente per re-import)
         val chatJidId = getOrInsertJid(db, chatName, if (isGroup) "g.us" else "s.whatsapp.net")
-        val upsertResult = insertOrUpdateChat(db, chatJidId, chatName, chatImportKey, isGroup, importTimestamp)
+        val upsertResult = insertOrUpdateChat(db, chatJidId, chatName, chatImportKey, isGroup)
         val chatId = upsertResult.chatId
+        
+        // 2b. Registra il timestamp di import in lite_chat_metadata (se fornito)
+        if (importTimestamp != null) {
+            upsertChatMetadata(db, chatId, importTimestamp)
+        }
 
         // 3. Inserisci messaggi in batch (transaction)
         var lastMessageId = 0L
@@ -97,8 +102,7 @@ class LiteDbWriter @Inject constructor(
         jidRowId: Long,
         subject: String,
         importKey: String,
-        isGroup: Boolean,
-        importTimestamp: Long? = null
+        isGroup: Boolean
     ): ChatUpsertResult {
         val existingId = db.query(
             "chat",
@@ -126,7 +130,6 @@ class LiteDbWriter @Inject constructor(
                 put("subject", subject)
                 put("group_type", if (isGroup) 1 else 0)
                 put("import_key", importKey)
-                if (importTimestamp != null) put("import_timestamp", importTimestamp)
             }
             db.update("chat", updateValues, "_id = ?", arrayOf(existingId.toString()))
             // Pulizia per re-import
@@ -140,13 +143,20 @@ class LiteDbWriter @Inject constructor(
             put("subject", subject)
             put("group_type", if (isGroup) 1 else 0)
             put("import_key", importKey)
-            if (importTimestamp != null) put("import_timestamp", importTimestamp)
         }
         val chatId = db.insert("chat", null, values)
         return ChatUpsertResult(
             chatId = chatId,
             obsoleteMediaFolders = emptySet()
         )
+    }
+
+    private fun upsertChatMetadata(db: SQLiteDatabase, chatId: Long, importTimestamp: Long) {
+        val values = ContentValues().apply {
+            put("chat_id", chatId)
+            put("import_timestamp", importTimestamp)
+        }
+        db.insertWithOnConflict("lite_chat_metadata", null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     private fun insertMessage(
