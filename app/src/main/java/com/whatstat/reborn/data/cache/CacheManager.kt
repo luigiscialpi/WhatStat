@@ -304,6 +304,20 @@ class CacheManager @Inject constructor(
         return stored != newHash
     }
 
+    /** Confronta l'hash sempre contro il DataStore Root, indipendentemente dal modo corrente. */
+    suspend fun isRootDbChanged(newHash: String): Boolean {
+        val stored = context.rootCacheDataStore.data.first()[KEY_DB_HASH]
+        return stored != newHash
+    }
+
+    /** Salva l'hash sempre nel DataStore Root. */
+    suspend fun saveRootDbHash(hash: String) {
+        context.rootCacheDataStore.edit { prefs ->
+            prefs[KEY_DB_HASH] = hash
+            prefs[KEY_LAST_UPDATE] = System.currentTimeMillis()
+        }
+    }
+
     // ── Global Stats (quick) ─────────────────────────────────────
 
     suspend fun getGlobalStats(): GlobalStats? {

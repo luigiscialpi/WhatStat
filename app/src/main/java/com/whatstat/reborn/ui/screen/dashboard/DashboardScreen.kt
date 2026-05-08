@@ -170,7 +170,7 @@ fun DashboardScreen(
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    if (s?.isLiteMode == true) {
+                    if (isLiteMode) {
                         Surface(
                             color = MaterialTheme.colorScheme.tertiaryContainer,
                             shape = RoundedCornerShape(4.dp),
@@ -186,14 +186,12 @@ fun DashboardScreen(
                         }
                     }
                 }
-                // In Lite mode il back button NON deve resettare il DB Lite
-                if (s?.isLiteMode != true) {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Torna indietro"
-                        )
-                    }
+                // Back button: torna a SetupScreen in entrambi i modi
+                IconButton(onClick = onNavigateBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Torna indietro"
+                    )
                 }
             }
 
@@ -510,7 +508,7 @@ fun DashboardScreen(
                                                 previewSticker = fileName
                                                 previewStickerCount = count
                                             },
-                                            isLiteMode = s.isLiteMode
+                                            isLiteMode = isLiteMode
                                         )
                                     }
                                 }
@@ -540,7 +538,7 @@ fun DashboardScreen(
                 fileName = previewSticker!!,
                 count = previewStickerCount,
                 onDismiss = { previewSticker = null },
-                isLiteMode = s?.isLiteMode == true,
+                isLiteMode = isLiteMode,
                 litePath = s?.topStickers?.find { it.fileName == previewSticker }?.filePath
             )
         }

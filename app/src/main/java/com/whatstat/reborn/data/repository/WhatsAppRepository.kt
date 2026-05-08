@@ -115,11 +115,11 @@ class WhatsAppRepository @Inject constructor(
                 // Verifica se il DB è cambiato → invalida la cache
                 val dbHash = cacheManager.calculateFileHash(files.crypt14File.absolutePath)
                 if (dbHash != null) {
-                    if (cacheManager.isDbChanged(dbHash)) {
+                    if (cacheManager.isRootDbChanged(dbHash)) {
                         android.util.Log.d("WhatStat", "DB changed, clearing cache")
                         cacheManager.clearCache()
                     }
-                    cacheManager.saveDbHash(dbHash, files.crypt14File.absolutePath)
+                    cacheManager.saveRootDbHash(dbHash)
                 }
             } catch (e: Exception) {
                 _setupState.update { it.copy(contactsStatus = GlobalStepStatus.ERROR) }
@@ -206,11 +206,11 @@ class WhatsAppRepository @Inject constructor(
                 val hashSource = if (crypt14File.exists()) crypt14File else outputDb
                 val dbHash = cacheManager.calculateFileHash(hashSource.absolutePath)
                 if (dbHash != null) {
-                    if (cacheManager.isDbChanged(dbHash)) {
+                    if (cacheManager.isRootDbChanged(dbHash)) {
                         android.util.Log.d("WhatStat", "DB changed (manual), clearing cache")
                         cacheManager.clearCache()
                     }
-                    cacheManager.saveDbHash(dbHash, hashSource.absolutePath)
+                    cacheManager.saveRootDbHash(dbHash)
                 }
             } catch (e: Exception) {
                 _setupState.update { it.copy(contactsStatus = GlobalStepStatus.ERROR) }
@@ -249,7 +249,7 @@ class WhatsAppRepository @Inject constructor(
 
                     android.util.Log.d("WhatStat", "tryRestoreSession: sourceHash=$currentHash")
 
-                    if (currentHash != null && cacheManager.isDbChanged(currentHash)) {
+                    if (currentHash != null && cacheManager.isRootDbChanged(currentHash)) {
                         // DB sorgente cambiato - invalida cache e rigetta la sessione
                         android.util.Log.d("WhatStat", "DB changed, invalidating session")
                         cacheManager.clearCache()

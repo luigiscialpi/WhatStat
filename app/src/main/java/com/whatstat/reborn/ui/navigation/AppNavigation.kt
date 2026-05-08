@@ -286,14 +286,13 @@ private fun NavGraphBuilder.liteModeGraph(
             route = NavGraphRoute.Overview
         ) {
             composable(Screen.Dashboard.route) {
-                val scope = androidx.compose.runtime.rememberCoroutineScope()
                 DashboardScreen(
                     onNavigateBack = {
-                        scope.launch {
-                            onResetLite()
-                            navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
-                                popUpTo(0) { inclusive = true }
-                            }
+                        // Torna a Setup senza resettare il modo Lite.
+                        // Il flag isLiteMode resta true: Setup lo usa per la tab predefinita.
+                        // Il reset avviene solo se l'utente avvia esplicitamente Root.
+                        navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
+                            popUpTo(0) { inclusive = true }
                         }
                     }
                 )

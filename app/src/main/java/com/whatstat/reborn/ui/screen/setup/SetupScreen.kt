@@ -157,12 +157,19 @@ fun SetupScreen(
     }
 
     // 0 = Lite (No Root), 1 = Root
-    // Se c'è un database root preservato, apri sulla tab Root
-    var selectedTab by remember { mutableIntStateOf(if (state.isRootReady) 1 else 0) }
+    // Tab predefinita: se c'è un URI in ingresso → Lite; altrimenti segui il modo corrente
+    val initialTab = remember {
+        when {
+            incomingZipUri != null -> 0      // Share da WhatsApp → tab Lite
+            state.isRootReady -> 1           // DB Root preservato → tab Root
+            else -> 0                        // Default → tab Lite
+        }
+    }
+    var selectedTab by remember { mutableIntStateOf(initialTab) }
     // Aggiorna la tab predefinita quando il check asincrono completa (cold start)
     var hasAutoSwitched by remember { mutableStateOf(false) }
     LaunchedEffect(state.isRootReady) {
-        if (state.isRootReady && !hasAutoSwitched && selectedTab == 0) {
+        if (incomingZipUri == null && state.isRootReady && !hasAutoSwitched && selectedTab == 0) {
             selectedTab = 1
             hasAutoSwitched = true
         }

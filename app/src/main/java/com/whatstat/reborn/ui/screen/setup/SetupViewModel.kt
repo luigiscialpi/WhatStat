@@ -45,13 +45,16 @@ class SetupViewModel @Inject constructor(
             analyticsRepository.isLiteMode.collectLatest { isLite ->
                 val hasLiteDb = withContext(Dispatchers.IO) { liteDatabase.hasChatData() }
                 val isRootReady = repository.isDatabaseReady()
+                val autoNavigate = savedStateHandle.get<Boolean>("autoNavigate") ?: true
                 
                 if (isLite) {
                     _state.update {
                         it.copy(
-                            isComplete = true,
+                            // Auto-naviga verso Lite solo al primo avvio con autoNavigate=true
+                            isComplete = it.isCheckingCache && autoNavigate,
                             isCheckingCache = false,
-                            hasLiteDb = hasLiteDb
+                            hasLiteDb = hasLiteDb,
+                            isRootReady = isRootReady
                         )
                     }
                 } else {
@@ -61,14 +64,10 @@ class SetupViewModel @Inject constructor(
                     }
                     
                     val finalIsRootReady = repository.isDatabaseReady()
-                    val autoNavigate = savedStateHandle.get<Boolean>("autoNavigate") ?: true
                     
                     _state.update {
                         it.copy(
                             isRootReady = finalIsRootReady,
-                            // Naviga automaticamente solo se:
-                            // 1. È il primo avvio (isCheckingCache == true)
-                            // 2. Il flag autoNavigate è true
                             isComplete = if (it.isCheckingCache && autoNavigate) finalIsRootReady else it.isComplete,
                             isCheckingCache = false,
                             hasLiteDb = hasLiteDb
@@ -108,6 +107,7 @@ class SetupViewModel @Inject constructor(
 
     fun startSetup() {
         if (_state.value.isLoading) return
+        analyticsRepository.setLiteMode(false) // Assicura che il routing vada a Root
         repository.resetState()
         val intent = Intent(context, SetupService::class.java).apply {
             action = SetupService.ACTION_START_FULL
@@ -144,6 +144,7 @@ class SetupViewModel @Inject constructor(
 
     fun startManualSetup() {
         if (_state.value.isLoading) return
+        analyticsRepository.setLiteMode(false) // Assicura che il routing vada a Root
         repository.resetState()
         val intent = Intent(context, SetupService::class.java).apply {
             action = SetupService.ACTION_START_MANUAL
@@ -169,6 +170,7 @@ class SetupViewModel @Inject constructor(
 
     fun resumeRootSession() {
         if (_state.value.isRootReady) {
+            analyticsRepository.setLiteMode(false) // Assicura che il routing vada a Root
             _state.update { it.copy(isComplete = true) }
         }
     }
