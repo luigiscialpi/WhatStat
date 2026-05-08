@@ -34,6 +34,15 @@ class LiteModeManager @Inject constructor(
     private val _importProgress = MutableStateFlow(LiteImportProgress(0f, ""))
     val importProgress: StateFlow<LiteImportProgress> = _importProgress.asStateFlow()
 
+    /** Timestamp dell'ultima importazione riuscita. Sorgente di verità per il refresh dei ViewModel Lite. */
+    private val _importCompleted = MutableStateFlow(0L)
+    val importCompleted: StateFlow<Long> = _importCompleted.asStateFlow()
+
+    /** Notifica che un'importazione è andata a buon fine. Chiamato da [AnalyticsRepository.notifyLiteImportDone]. */
+    fun notifyImportDone() {
+        _importCompleted.value = System.currentTimeMillis()
+    }
+
     /** ID dell'ultima chat importata: usato da [finalizeOwnerSelection] per limitare l'aggiornamento. */
     private var lastImportedChatId: Long = -1L
 

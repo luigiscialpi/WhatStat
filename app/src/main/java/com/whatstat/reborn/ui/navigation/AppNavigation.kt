@@ -88,13 +88,15 @@ sealed class Screen(val route: String) {
 }
 
 object NavGraphRoute {
-    const val Setup = "setup_graph"
-    const val Main = "main_graph"
+    const val Setup    = "setup_graph"
+    const val Root     = "root_mode_graph"
+    const val Lite     = "lite_mode_graph"
+    // sub-graph shared keys
     const val Overview = "overview_graph"
-    const val Chats = "chats_graph"
-    const val Media = "media_graph"
-    const val Radar = "radar_graph"
-    const val Calls = "calls_graph"
+    const val Chats    = "chats_graph"
+    const val Media    = "media_graph"
+    const val Radar    = "radar_graph"
+    const val Calls    = "calls_graph"
 }
 
 @Composable
@@ -134,11 +136,20 @@ fun AppNavigation(
         NavHost(
             navController = navController,
             startDestination = NavGraphRoute.Setup,
-            route = "root_graph",
+            route = "app_graph",
             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
         ) {
-            setupGraph(navController, incomingZipUri, onUriConsumed = { mainViewModel.setIncomingZipUri(null) })
-            mainGraph(navController, repository, onResetLite = { mainViewModel.resetLiteMode() })
+            setupGraph(
+                navController = navController,
+                incomingZipUri = incomingZipUri,
+                onUriConsumed = { mainViewModel.setIncomingZipUri(null) },
+                isLiteMode = isLiteMode
+            )
+            rootModeGraph(navController, repository)
+            liteModeGraph(
+                navController = navController,
+                onResetLite = { mainViewModel.resetLiteMode() }
+            )
         }
     }
 }
@@ -146,8 +157,10 @@ fun AppNavigation(
 private fun NavGraphBuilder.setupGraph(
     navController: NavHostController,
     incomingZipUri: String?,
-    onUriConsumed: () -> Unit
+    onUriConsumed: () -> Unit,
+    isLiteMode: Boolean
 ) {
+    val targetGraph = if (isLiteMode) NavGraphRoute.Lite else NavGraphRoute.Root
     navigation(
         startDestination = Screen.Setup.route,
         route = NavGraphRoute.Setup
@@ -165,12 +178,12 @@ private fun NavGraphBuilder.setupGraph(
                 incomingZipUri = incomingZipUri,
                 onUriConsumed = onUriConsumed,
                 onSetupComplete = {
-                    navController.navigate(NavGraphRoute.Main) {
+                    navController.navigate(targetGraph) {
                         popUpTo(NavGraphRoute.Setup) { inclusive = true }
                     }
                 },
                 onNavigateToDashboard = {
-                    navController.navigate(NavGraphRoute.Main) {
+                    navController.navigate(targetGraph) {
                         popUpTo(NavGraphRoute.Setup) { inclusive = true }
                     }
                 }
@@ -179,14 +192,15 @@ private fun NavGraphBuilder.setupGraph(
     }
 }
 
-private fun NavGraphBuilder.mainGraph(
+// ── Root Mode Graph ─────────────────────────────────────────────────────────────
+
+private fun NavGraphBuilder.rootModeGraph(
     navController: NavHostController,
-    repository: WhatsAppRepository,
-    onResetLite: () -> Unit = {}
+    repository: WhatsAppRepository
 ) {
     navigation(
         startDestination = NavGraphRoute.Overview,
-        route = NavGraphRoute.Main
+        route = NavGraphRoute.Root
     ) {
         navigation(
             startDestination = Screen.Dashboard.route,
@@ -197,10 +211,7 @@ private fun NavGraphBuilder.mainGraph(
                 DashboardScreen(
                     onNavigateBack = {
                         scope.launch {
-                            // Se siamo in Lite mode, resettiamo Lite. 
-                            // Se siamo in Root mode, non chiamiamo cleanup() altrimenti cancelliamo il db decifrato!
-                            onResetLite() 
-                            repository.resetState() // Reset dello stato UI per tornare al setup
+                            repository.resetState()
                             navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
                                 popUpTo(0) { inclusive = true }
                             }
@@ -219,9 +230,83 @@ private fun NavGraphBuilder.mainGraph(
                     onChatSelected = { chatId ->
                         navController.navigate(Screen.ChatDetail.createRoute(chatId))
                     },
+                    onNavigateBack = { navController.popBackStack() },
+                    onImportChat = {},  // non disponibile in Root mode
+                    onAllChatsDeleted = {}
+                )
+            }
+
+            sharedChatDetailRoutes(navController)
+        }
+
+        navigation(
+            startDestination = Screen.MediaStats.route,
+            route = NavGraphRoute.Media
+        ) {
+            composable(Screen.MediaStats.route) {
+                MediaStatsScreen(chatId = null, onNavigateBack = {})
+            }
+        }
+
+        navigation(
+            startDestination = Screen.WordSearch.route,
+            route = NavGraphRoute.Radar
+        ) {
+            composable(Screen.WordSearch.route) {
+                WordSearchScreen(chatId = null, onNavigateBack = {})
+            }
+        }
+
+        navigation(
+            startDestination = Screen.CallsStats.route,
+            route = NavGraphRoute.Calls
+        ) {
+            composable(Screen.CallsStats.route) {
+                CallsStatsScreen(chatId = null, onNavigateBack = {})
+            }
+        }
+    }
+}
+
+// ── Lite Mode Graph ─────────────────────────────────────────────────────────────
+
+private fun NavGraphBuilder.liteModeGraph(
+    navController: NavHostController,
+    onResetLite: () -> Unit
+) {
+    navigation(
+        startDestination = NavGraphRoute.Overview,
+        route = NavGraphRoute.Lite
+    ) {
+        navigation(
+            startDestination = Screen.Dashboard.route,
+            route = NavGraphRoute.Overview
+        ) {
+            composable(Screen.Dashboard.route) {
+                val scope = androidx.compose.runtime.rememberCoroutineScope()
+                DashboardScreen(
                     onNavigateBack = {
-                        navController.popBackStack()
+                        scope.launch {
+                            onResetLite()
+                            navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    }
+                )
+            }
+        }
+
+        navigation(
+            startDestination = Screen.ChatList.route,
+            route = NavGraphRoute.Chats
+        ) {
+            composable(Screen.ChatList.route) {
+                ChatListScreen(
+                    onChatSelected = { chatId ->
+                        navController.navigate(Screen.ChatDetail.createRoute(chatId))
                     },
+                    onNavigateBack = { navController.popBackStack() },
                     onImportChat = {
                         navController.navigate(Screen.LiteSetupAdd.route)
                     },
@@ -233,6 +318,7 @@ private fun NavGraphBuilder.mainGraph(
                 )
             }
 
+            // Route esclusiva Lite per aggiungere una chat ZIP
             composable(
                 route = "lite_setup_add?zipUri={zipUri}",
                 arguments = listOf(
@@ -243,9 +329,7 @@ private fun NavGraphBuilder.mainGraph(
                     }
                 )
             ) { backStackEntry ->
-                val zipUri = backStackEntry.arguments?.getString("zipUri")?.let {
-                    Uri.decode(it)
-                }
+                val zipUri = backStackEntry.arguments?.getString("zipUri")?.let { Uri.decode(it) }
                 AddChatZipScreen(
                     incomingZipUri = zipUri,
                     onNavigateBack = { navController.popBackStack() },
@@ -253,72 +337,7 @@ private fun NavGraphBuilder.mainGraph(
                 )
             }
 
-            composable(
-                route = Screen.ChatDetail.route,
-                arguments = listOf(navArgument("chatId") { type = NavType.LongType })
-            ) { backStackEntry ->
-                val chatId = backStackEntry.arguments?.getLong("chatId") ?: return@composable
-                ChatDetailScreen(
-                    chatId = chatId,
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToWordSearch = {
-                        navController.navigate(Screen.WordSearch.createRoute(chatId))
-                    },
-                    onNavigateToCalls = {
-                        navController.navigate(Screen.CallsStats.createRoute(chatId))
-                    },
-                    onNavigateToMedia = {
-                        navController.navigate(Screen.MediaStats.createRoute(chatId))
-                    },
-                    onNavigateToHistory = {
-                        navController.navigate(Screen.GroupHistory.createRoute(chatId))
-                    }
-                )
-            }
-
-            composable(
-                route = "${Screen.WordSearch.route}/{chatId}",
-                arguments = listOf(navArgument("chatId") { type = NavType.LongType })
-            ) { backStackEntry ->
-                val chatId = backStackEntry.arguments?.getLong("chatId")
-                WordSearchScreen(
-                    chatId = chatId,
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            composable(
-                route = "${Screen.CallsStats.route}/{chatId}",
-                arguments = listOf(navArgument("chatId") { type = NavType.LongType })
-            ) { backStackEntry ->
-                val chatId = backStackEntry.arguments?.getLong("chatId")
-                CallsStatsScreen(
-                    chatId = chatId,
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            composable(
-                route = "${Screen.MediaStats.route}/{chatId}",
-                arguments = listOf(navArgument("chatId") { type = NavType.LongType })
-            ) { backStackEntry ->
-                val chatId = backStackEntry.arguments?.getLong("chatId")
-                MediaStatsScreen(
-                    chatId = chatId,
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            composable(
-                route = "${Screen.GroupHistory.route}/{chatId}",
-                arguments = listOf(navArgument("chatId") { type = NavType.LongType })
-            ) { backStackEntry ->
-                val chatId = backStackEntry.arguments?.getLong("chatId")
-                GroupHistoryScreen(
-                    chatId = chatId,
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
+            sharedChatDetailRoutes(navController)
         }
 
         navigation(
@@ -326,10 +345,7 @@ private fun NavGraphBuilder.mainGraph(
             route = NavGraphRoute.Media
         ) {
             composable(Screen.MediaStats.route) {
-                MediaStatsScreen(
-                    chatId = null,
-                    onNavigateBack = {}
-                )
+                MediaStatsScreen(chatId = null, onNavigateBack = {})
             }
         }
 
@@ -338,24 +354,68 @@ private fun NavGraphBuilder.mainGraph(
             route = NavGraphRoute.Radar
         ) {
             composable(Screen.WordSearch.route) {
-                WordSearchScreen(
-                    chatId = null,
-                    onNavigateBack = {}
-                )
+                WordSearchScreen(chatId = null, onNavigateBack = {})
             }
         }
+    }
+}
 
-        navigation(
-            startDestination = Screen.CallsStats.route,
-            route = NavGraphRoute.Calls
-        ) {
-            composable(Screen.CallsStats.route) {
-                CallsStatsScreen(
-                    chatId = null,
-                    onNavigateBack = {}
-                )
+// ── Route condivise ChatDetail (usate da entrambi i graph) ─────────────────────
+
+private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostController) {
+    composable(
+        route = Screen.ChatDetail.route,
+        arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+    ) { backStackEntry ->
+        val chatId = backStackEntry.arguments?.getLong("chatId") ?: return@composable
+        ChatDetailScreen(
+            chatId = chatId,
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToWordSearch = {
+                navController.navigate(Screen.WordSearch.createRoute(chatId))
+            },
+            onNavigateToCalls = {
+                navController.navigate(Screen.CallsStats.createRoute(chatId))
+            },
+            onNavigateToMedia = {
+                navController.navigate(Screen.MediaStats.createRoute(chatId))
+            },
+            onNavigateToHistory = {
+                navController.navigate(Screen.GroupHistory.createRoute(chatId))
             }
-        }
+        )
+    }
+
+    composable(
+        route = "${Screen.WordSearch.route}/{chatId}",
+        arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+    ) { backStackEntry ->
+        val chatId = backStackEntry.arguments?.getLong("chatId")
+        WordSearchScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() })
+    }
+
+    composable(
+        route = "${Screen.CallsStats.route}/{chatId}",
+        arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+    ) { backStackEntry ->
+        val chatId = backStackEntry.arguments?.getLong("chatId")
+        CallsStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() })
+    }
+
+    composable(
+        route = "${Screen.MediaStats.route}/{chatId}",
+        arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+    ) { backStackEntry ->
+        val chatId = backStackEntry.arguments?.getLong("chatId")
+        MediaStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() })
+    }
+
+    composable(
+        route = "${Screen.GroupHistory.route}/{chatId}",
+        arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+    ) { backStackEntry ->
+        val chatId = backStackEntry.arguments?.getLong("chatId")
+        GroupHistoryScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() })
     }
 }
 

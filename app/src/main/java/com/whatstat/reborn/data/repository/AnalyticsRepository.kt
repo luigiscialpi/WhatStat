@@ -7,6 +7,7 @@ import com.whatstat.reborn.data.db.dao.ContactDao
 import com.whatstat.reborn.data.cache.CacheManager
 import com.whatstat.reborn.data.cache.WordFrequencyIndexData
 import com.whatstat.reborn.data.cache.MonthlyWordIndexData
+import com.whatstat.reborn.data.lite.LiteModeManager
 import com.whatstat.reborn.domain.model.ChatStats
 import com.whatstat.reborn.domain.model.GlobalStats
 import com.whatstat.reborn.domain.model.SlowChatStats
@@ -44,14 +45,14 @@ class AnalyticsRepository @Inject constructor(
     private val contactDao: ContactDao,
     private val cacheManager: CacheManager,
     private val liteDatabase: com.whatstat.reborn.data.lite.LiteDatabase,
-    private val activeDatabaseProvider: com.whatstat.reborn.data.db.ActiveDatabaseProvider
+    private val activeDatabaseProvider: com.whatstat.reborn.data.db.ActiveDatabaseProvider,
+    private val liteModeManager: LiteModeManager
 ) {
     private val _isLiteMode = kotlinx.coroutines.flow.MutableStateFlow(activeDatabaseProvider.isLiteMode)
     val isLiteMode: kotlinx.coroutines.flow.StateFlow<Boolean> = _isLiteMode.asStateFlow()
 
-    /** Timestamp dell'ultima importazione Lite. Cambia ad ogni nuovo ZIP importato. */
-    private val _liteCacheVersion = kotlinx.coroutines.flow.MutableStateFlow(0L)
-    val liteCacheVersion: kotlinx.coroutines.flow.StateFlow<Long> = _liteCacheVersion.asStateFlow()
+    /** Delega a LiteModeManager: sorgente di verita' per il refresh post-import nei ViewModel Lite. */
+    val liteCacheVersion: kotlinx.coroutines.flow.StateFlow<Long> get() = liteModeManager.importCompleted
 
     fun setLiteMode(enabled: Boolean) {
         _isLiteMode.value = enabled
@@ -60,14 +61,10 @@ class AnalyticsRepository @Inject constructor(
 
     /** Chiamato dopo ogni importazione riuscita: aggiorna il version stamp e invalida la cache. */
     suspend fun notifyLiteImportDone() {
-        // Pulisci la cache DataStore PRIMA di notificare i collector.
-        // Se la pulizia fallisce, proseguiamo comunque con il version bump
-        // per forzare il refresh a runtime.
         runCatching {
             cacheManager.clearCache(resetWordIndexes = true)
         }
-        _liteCacheVersion.value = System.currentTimeMillis()
-        // Impostiamo la modalità lite attiva nel provider
+        liteModeManager.notifyImportDone()
         setLiteMode(true)
     }
 

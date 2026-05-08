@@ -66,6 +66,7 @@ object AppModule {
         contactDao: ContactDao,
         cacheManager: CacheManager,
         liteDatabase: com.whatstat.reborn.data.lite.LiteDatabase,
-        activeDatabaseProvider: ActiveDatabaseProvider
-    ): AnalyticsRepository = AnalyticsRepository(messageDao, chatDao, contactDao, cacheManager, liteDatabase, activeDatabaseProvider)
+        activeDatabaseProvider: ActiveDatabaseProvider,
+        liteModeManager: com.whatstat.reborn.data.lite.LiteModeManager
+    ): AnalyticsRepository = AnalyticsRepository(messageDao, chatDao, contactDao, cacheManager, liteDatabase, activeDatabaseProvider, liteModeManager)
 }

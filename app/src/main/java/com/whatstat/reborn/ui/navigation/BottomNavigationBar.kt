@@ -75,8 +75,9 @@ fun BottomNavigationBar(
             NavigationBarItem(
                 selected = selected,
                 onClick = {
+                    val topLevelRoute = if (isLiteMode) NavGraphRoute.Lite else NavGraphRoute.Root
                     navController.navigate(item.destinationRoute) {
-                        popUpTo(NavGraphRoute.Main) {
+                        popUpTo(topLevelRoute) {
                             saveState = true
                         }
                         launchSingleTop = true

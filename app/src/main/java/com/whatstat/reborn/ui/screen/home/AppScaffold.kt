@@ -21,7 +21,9 @@ fun AppScaffold(
     val isLiteImportRoute = route.contains("lite_setup")
     val showBottomBar = currentDestination
         ?.hierarchy
-        ?.any { destination -> destination.route == NavGraphRoute.Main } == true && !isLiteImportRoute
+        ?.any { destination ->
+            destination.route == NavGraphRoute.Root || destination.route == NavGraphRoute.Lite
+        } == true && !isLiteImportRoute
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),

@@ -133,18 +133,18 @@ class MediaStatsViewModel @Inject constructor(
                 if (version > 0L && version != lastKnownCacheVersion) {
                     lastKnownCacheVersion = version
                     initialized = false
-                    // Ricarica immediatamente (LaunchedEffect non riscatta se chatId non cambia)
+                    // Ricarica immediatamente con il chatId corrente
                     _linkStats.value = emptyList()
                     _linkStatsBySender.value = emptyList()
                     _topDomains.value = emptyList()
-                    loadStats()
+                    initialize(_chatId.value, force = true)
                 }
             }
         }
     }
 
-    fun initialize(chatId: Long?) {
-        if (!initialized) {
+    fun initialize(chatId: Long?, force: Boolean = false) {
+        if (!initialized || force) {
             initialized = true
             _chatId.value = chatId
             // Ripristina il filtro dal contesto corretto
