@@ -258,9 +258,13 @@ class CacheManager @Inject constructor(
     companion object {
         private val KEY_DB_HASH = stringPreferencesKey("db_file_hash")
         private val KEY_LAST_UPDATE = longPreferencesKey("last_cache_update")
-        private val KEY_GLOBAL_STATS = stringPreferencesKey("global_stats_v3")
-        // v3: bump per rigenerare la cache con pool da 50 words/emoji
-        private val KEY_GLOBAL_SLOW = stringPreferencesKey("global_slow_v4")
+        
+        // Versione v3/v4: aggiungiamo suffisso _root/_lite per separazione totale
+        private fun keyGlobalStats(isLite: Boolean) = stringPreferencesKey("global_stats_v3_${if (isLite) "lite" else "root"}")
+        private fun keyGlobalSlow(isLite: Boolean) = stringPreferencesKey("global_slow_v4_${if (isLite) "lite" else "root"}")
+        private fun keyGlobalMedia(isLite: Boolean) = stringPreferencesKey("media_global_v2_${if (isLite) "lite" else "root"}")
+        private val KEY_MEDIA_INDEX_FILE_ROOT = "media_index_root.gz"
+        private val KEY_MEDIA_INDEX_FILE_LITE = "media_index_lite.gz"
     }
 
     // ── Hash DB ──────────────────────────────────────────────────
@@ -298,9 +302,9 @@ class CacheManager @Inject constructor(
     }
 
     // ── Global Stats (quick) ─────────────────────────────────────
-
-    suspend fun getGlobalStats(): GlobalStats? {
-        val json = dataStore.data.first()[KEY_GLOBAL_STATS] ?: return null
+    
+    suspend fun getGlobalStats(isLite: Boolean): GlobalStats? {
+        val json = dataStore.data.first()[keyGlobalStats(isLite)] ?: return null
         return try {
             cacheJson.decodeFromString<CachedGlobalStats>(json).toDomain()
         } catch (e: Exception) {
@@ -308,18 +312,18 @@ class CacheManager @Inject constructor(
         }
     }
 
-    suspend fun saveGlobalStats(stats: GlobalStats) {
+    suspend fun saveGlobalStats(stats: GlobalStats, isLite: Boolean) {
         val json = cacheJson.encodeToString(stats.toCached())
         dataStore.edit { prefs ->
-            prefs[KEY_GLOBAL_STATS] = json
+            prefs[keyGlobalStats(isLite)] = json
             prefs[KEY_LAST_UPDATE] = System.currentTimeMillis()
         }
     }
 
     // ── Global Slow Stats (words + emoji) ────────────────────────
 
-    suspend fun getGlobalSlowStats(): Triple<List<WordFrequency>, List<EmojiStat>, List<StickerStat>>? {
-        val json = dataStore.data.first()[KEY_GLOBAL_SLOW] ?: return null
+    suspend fun getGlobalSlowStats(isLite: Boolean): Triple<List<WordFrequency>, List<EmojiStat>, List<StickerStat>>? {
+        val json = dataStore.data.first()[keyGlobalSlow(isLite)] ?: return null
         return try {
             val cached = cacheJson.decodeFromString<CachedSlowChatStats>(json)
             Triple(
@@ -332,14 +336,14 @@ class CacheManager @Inject constructor(
         }
     }
 
-    suspend fun saveGlobalSlowStats(topWords: List<WordFrequency>, topEmojis: List<EmojiStat>, topStickers: List<StickerStat>) {
+    suspend fun saveGlobalSlowStats(topWords: List<WordFrequency>, topEmojis: List<EmojiStat>, topStickers: List<StickerStat>, isLite: Boolean) {
         val cached = CachedSlowChatStats(
             topWords = topWords.map { CachedWordFrequency(it.word, it.frequency) },
             topEmojis = topEmojis.map { CachedEmojiStat(it.emoji, it.count) },
             topStickers = topStickers.map { CachedStickerStat(it.filePath, it.fileName, it.count) }
         )
         dataStore.edit { prefs ->
-            prefs[KEY_GLOBAL_SLOW] = cacheJson.encodeToString(cached)
+            prefs[keyGlobalSlow(isLite)] = cacheJson.encodeToString(cached)
         }
     }
 
@@ -384,8 +388,8 @@ class CacheManager @Inject constructor(
 
     // ── Media & Link Stats (global) ───────────────────────────────
 
-    suspend fun getGlobalMediaStats(): Pair<List<LinkStat>, List<DomainStat>>? {
-        val key = stringPreferencesKey("media_global_v2")
+    suspend fun getGlobalMediaStats(isLite: Boolean): Pair<List<LinkStat>, List<DomainStat>>? {
+        val key = keyGlobalMedia(isLite)
         val json = dataStore.data.first()[key] ?: return null
         return try {
             val cached = cacheJson.decodeFromString<CachedMediaPageStats>(json)
@@ -396,8 +400,8 @@ class CacheManager @Inject constructor(
         } catch (e: Exception) { null }
     }
 
-    suspend fun saveGlobalMediaStats(linkStats: List<LinkStat>, topDomains: List<DomainStat>) {
-        val key = stringPreferencesKey("media_global_v2")
+    suspend fun saveGlobalMediaStats(linkStats: List<LinkStat>, topDomains: List<DomainStat>, isLite: Boolean) {
+        val key = keyGlobalMedia(isLite)
         val cached = CachedMediaPageStats(
             linkStats = linkStats.map { CachedLinkStat(it.jid, it.displayName, it.totalLinks, it.mediaCount) },
             topDomains = topDomains.map { CachedDomainStat(it.domain, it.count) }
@@ -447,30 +451,33 @@ class CacheManager @Inject constructor(
 
     // ── Indice lessicale (word/emoji frequency, incrementale) ─────────────────────
 
-    @Volatile var globalWordIndex: WordFrequencyIndexData? = null
-    @Volatile var monthlyWordIndex: MonthlyWordIndexData? = null
+    @Volatile private var globalWordIndexRoot: WordFrequencyIndexData? = null
+    @Volatile private var globalWordIndexLite: WordFrequencyIndexData? = null
+    @Volatile private var monthlyWordIndexRoot: MonthlyWordIndexData? = null
+    @Volatile private var monthlyWordIndexLite: MonthlyWordIndexData? = null
     private val chatWordIndexCache = java.util.concurrent.ConcurrentHashMap<Long, WordFrequencyIndexData>()
 
     // filesDir: persistente tra sessioni (costoso da ricostruire)
-    private val globalWordIndexFile get() = java.io.File(context.filesDir, "word_index_global.gz")
-    private val monthlyWordIndexFile get() = java.io.File(context.filesDir, "word_index_monthly.gz")
+    private fun globalWordIndexFile(isLite: Boolean) = java.io.File(context.filesDir, "word_index_global_${if (isLite) "lite" else "root"}.gz")
+    private fun monthlyWordIndexFile(isLite: Boolean) = java.io.File(context.filesDir, "word_index_monthly_${if (isLite) "lite" else "root"}.gz")
     private fun chatWordIndexFile(chatId: Long) = java.io.File(context.cacheDir, "word_index_chat_${chatId}.gz")
 
-    fun loadGlobalWordIndexFromDisk(): WordFrequencyIndexData? {
-        globalWordIndex?.let { return it }
-        val file = globalWordIndexFile
+    fun loadGlobalWordIndexFromDisk(isLite: Boolean): WordFrequencyIndexData? {
+        if (isLite) globalWordIndexLite?.let { return it } else globalWordIndexRoot?.let { return it }
+        
+        val file = globalWordIndexFile(isLite)
         if (!file.exists() || file.length() == 0L) return null
         return try {
-            parseWordIndexFile(file).also { globalWordIndex = it }
+            parseWordIndexFile(file).also { if (isLite) globalWordIndexLite = it else globalWordIndexRoot = it }
         } catch (_: Exception) { null }
     }
 
-    fun saveGlobalWordIndexToDisk(data: WordFrequencyIndexData) {
-        globalWordIndex = data
+    fun saveGlobalWordIndexToDisk(data: WordFrequencyIndexData, isLite: Boolean) {
+        if (isLite) globalWordIndexLite = data else globalWordIndexRoot = data
         try {
-            val tmp = java.io.File(context.filesDir, "word_index_global.tmp")
+            val tmp = java.io.File(context.filesDir, "word_index_global_${if (isLite) "lite" else "root"}.tmp")
             writeWordIndexFile(tmp, data)
-            tmp.renameTo(globalWordIndexFile)
+            tmp.renameTo(globalWordIndexFile(isLite))
         } catch (_: Exception) { }
     }
 
@@ -492,9 +499,10 @@ class CacheManager @Inject constructor(
         } catch (_: Exception) { }
     }
 
-    fun loadMonthlyWordIndexFromDisk(): MonthlyWordIndexData? {
-        monthlyWordIndex?.let { return it }
-        val file = monthlyWordIndexFile
+    fun loadMonthlyWordIndexFromDisk(isLite: Boolean): MonthlyWordIndexData? {
+        if (isLite) monthlyWordIndexLite?.let { return it } else monthlyWordIndexRoot?.let { return it }
+        
+        val file = monthlyWordIndexFile(isLite)
         if (!file.exists() || file.length() == 0L) return null
         return try {
             val mWords = mutableMapOf<String, MutableMap<String, Int>>()
@@ -512,14 +520,14 @@ class CacheManager @Inject constructor(
                     }
                 }
             }
-            MonthlyWordIndexData(mWords, mEmojis, lastTs).also { monthlyWordIndex = it }
+            MonthlyWordIndexData(mWords, mEmojis, lastTs).also { if (isLite) monthlyWordIndexLite = it else monthlyWordIndexRoot = it }
         } catch (_: Exception) { null }
     }
 
-    fun saveMonthlyWordIndexToDisk(data: MonthlyWordIndexData) {
-        monthlyWordIndex = data
+    fun saveMonthlyWordIndexToDisk(data: MonthlyWordIndexData, isLite: Boolean) {
+        if (isLite) monthlyWordIndexLite = data else monthlyWordIndexRoot = data
         try {
-            val tmp = java.io.File(context.filesDir, "word_index_monthly.tmp")
+            val tmp = java.io.File(context.filesDir, "word_index_monthly_${if (isLite) "lite" else "root"}.tmp")
             java.util.zip.GZIPOutputStream(tmp.outputStream().buffered()).bufferedWriter().use { writer ->
                 writer.write("LAST_TS\t${data.lastProcessedTimestamp}"); writer.newLine()
                 data.monthlyWords.forEach { (month, freqs) ->
@@ -533,7 +541,7 @@ class CacheManager @Inject constructor(
                     }
                 }
             }
-            tmp.renameTo(monthlyWordIndexFile)
+            tmp.renameTo(monthlyWordIndexFile(isLite))
         } catch (_: Exception) { }
     }
 
@@ -566,21 +574,25 @@ class CacheManager @Inject constructor(
     }
 
     // ── Indice filesystem media (cache in-memory + file gzippato) ─────────────────
+    
+    @Volatile private var mediaFileIndexRoot: Set<String>? = null
+    @Volatile private var mediaFileIndexLite: Set<String>? = null
 
-    @Volatile var mediaFileIndex: Set<String>? = null
-
-    private val mediaIndexFile get() = java.io.File(context.cacheDir, "media_index.gz")
+    private fun mediaIndexFile(isLite: Boolean) = java.io.File(context.cacheDir, if (isLite) KEY_MEDIA_INDEX_FILE_LITE else KEY_MEDIA_INDEX_FILE_ROOT)
 
     /**
      * Carica l'indice dal file gzippato su disco (se esiste).
-     * Dimensione attesa: ~0.5 MB per 50.000 file (prefissi molto ripetuti → alta compressione).
      */
-    fun loadMediaIndexFromDisk(): Set<String>? {
-        val file = mediaIndexFile
+    fun loadMediaIndexFromDisk(isLite: Boolean): Set<String>? {
+        if (isLite) mediaFileIndexLite?.let { return it } else mediaFileIndexRoot?.let { return it }
+        
+        val file = mediaIndexFile(isLite)
         if (!file.exists() || file.length() == 0L) return null
         return try {
             java.util.zip.GZIPInputStream(file.inputStream().buffered()).bufferedReader().use { reader ->
-                reader.lines().collect(java.util.stream.Collectors.toSet())
+                reader.lines().collect(java.util.stream.Collectors.toSet()).also {
+                    if (isLite) mediaFileIndexLite = it else mediaFileIndexRoot = it
+                }
             }
         } catch (_: Exception) { null }
     }
@@ -588,26 +600,35 @@ class CacheManager @Inject constructor(
     /**
      * Salva l'indice su disco in formato gzippato (operazione in background).
      */
-    fun saveMediaIndexToDisk(index: Set<String>) {
+    fun saveMediaIndexToDisk(index: Set<String>, isLite: Boolean) {
+        if (isLite) mediaFileIndexLite = index else mediaFileIndexRoot = index
         try {
-            java.util.zip.GZIPOutputStream(mediaIndexFile.outputStream().buffered()).bufferedWriter().use { writer ->
+            val tmp = java.io.File(context.cacheDir, if (isLite) "media_index_lite.tmp" else "media_index_root.tmp")
+            java.util.zip.GZIPOutputStream(tmp.outputStream().buffered()).bufferedWriter().use { writer ->
                 index.forEach { writer.write(it); writer.newLine() }
             }
-        } catch (_: Exception) { /* non bloccante */ }
+            tmp.renameTo(mediaIndexFile(isLite))
+        } catch (_: Exception) { }
     }
 
     // ── Invalidazione ────────────────────────────────────────────
 
     suspend fun clearCache(resetWordIndexes: Boolean = false) {
         dataStore.edit { it.clear() }
-        mediaFileIndex = null
-        mediaIndexFile.delete()
-        globalWordIndex = null
-        monthlyWordIndex = null
+        mediaFileIndexRoot = null
+        mediaFileIndexLite = null
+        mediaIndexFile(false).delete()
+        mediaIndexFile(true).delete()
+        globalWordIndexRoot = null
+        globalWordIndexLite = null
+        monthlyWordIndexRoot = null
+        monthlyWordIndexLite = null
         chatWordIndexCache.clear()
         if (resetWordIndexes) {
-            globalWordIndexFile.delete()
-            monthlyWordIndexFile.delete()
+            globalWordIndexFile(false).delete()
+            globalWordIndexFile(true).delete()
+            monthlyWordIndexFile(false).delete()
+            monthlyWordIndexFile(true).delete()
             context.cacheDir.listFiles()
                 ?.filter { it.name.startsWith("word_index_chat_") && it.name.endsWith(".gz") }
                 ?.forEach { it.delete() }

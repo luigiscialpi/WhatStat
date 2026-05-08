@@ -22,6 +22,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import androidx.navigation.NavDestination.Companion.hierarchy
 import android.net.Uri
 import com.whatstat.reborn.data.repository.WhatsAppRepository
 import com.whatstat.reborn.ui.screen.calls.CallsStatsScreen
@@ -111,18 +112,20 @@ fun AppNavigation(
 
     LaunchedEffect(incomingZipUri, navController) {
         incomingZipUri?.let { uri ->
-            if (isLiteMode) {
-                // App già in Lite Mode: aggiunge un'altra chat dalla ChatList
-                snapshotFlow { navController.currentBackStackEntry }
-                    .filterNotNull()
-                    .first()
+            val currentHierarchy = navController.currentBackStackEntry
+                ?.destination?.hierarchy?.map { it.route }?.toList()
+            
+            val isInMainGraph = currentHierarchy?.contains(NavGraphRoute.Main) == true
+            
+            if (isInMainGraph) {
+                // Aspettiamo che il backstack sia pronto
+                snapshotFlow { navController.currentBackStackEntry }.filterNotNull().first()
                 navController.navigate(Screen.LiteSetupAdd.createRoute(uri)) {
                     launchSingleTop = true
                 }
                 mainViewModel.setIncomingZipUri(null)
             }
-            // isLiteMode=false: la SetupScreen consumerà l'URI direttamente
-            // tramite il suo LiteSetupViewModel senza navigare altrove.
+            // Se siamo nel SetupGraph, SetupScreen consumerà l'URI via LaunchedEffect
         }
     }
 
@@ -138,7 +141,7 @@ fun AppNavigation(
             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
         ) {
             setupGraph(navController, incomingZipUri, onUriConsumed = { mainViewModel.setIncomingZipUri(null) })
-            mainGraph(navController, repository, onResetLite = { mainViewModel.resetLiteMode() })
+            mainGraph(navController, repository, mainViewModel, onResetLite = { mainViewModel.resetLiteMode() })
         }
     }
 }
@@ -182,6 +185,7 @@ private fun NavGraphBuilder.setupGraph(
 private fun NavGraphBuilder.mainGraph(
     navController: NavHostController,
     repository: WhatsAppRepository,
+    mainViewModel: MainViewModel,
     onResetLite: () -> Unit = {}
 ) {
     navigation(
@@ -197,9 +201,8 @@ private fun NavGraphBuilder.mainGraph(
                 DashboardScreen(
                     onNavigateBack = {
                         scope.launch {
-                            // Se siamo in Lite mode, resettiamo Lite. 
-                            // Se siamo in Root mode, non chiamiamo cleanup() altrimenti cancelliamo il db decifrato!
-                            onResetLite() 
+                            // Non resettiamo più Lite mode qui, ci pensa autoNavigate=false a fermare il loop
+                            // mantenendo l'utente sulla tab corretta.
                             repository.resetState() // Reset dello stato UI per tornare al setup
                             navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
                                 popUpTo(0) { inclusive = true }
@@ -244,10 +247,11 @@ private fun NavGraphBuilder.mainGraph(
                 )
             ) { backStackEntry ->
                 val zipUri = backStackEntry.arguments?.getString("zipUri")?.let {
-                    Uri.decode(it)
+                    android.net.Uri.decode(it)
                 }
                 AddChatZipScreen(
                     incomingZipUri = zipUri,
+                    onUriConsumed = { mainViewModel.setIncomingZipUri(null) },
                     onNavigateBack = { navController.popBackStack() },
                     onImportComplete = { navController.popBackStack() }
                 )
@@ -365,6 +369,7 @@ private fun NavGraphBuilder.mainGraph(
 @Composable
 private fun AddChatZipScreen(
     incomingZipUri: String? = null,
+    onUriConsumed: () -> Unit = {},
     viewModel: LiteSetupViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
     onNavigateBack: () -> Unit,
     onImportComplete: () -> Unit
@@ -379,15 +384,19 @@ private fun AddChatZipScreen(
             viewModel.consumeImportComplete()
         }
     }
-
     // Lancia il picker automaticamente all'apertura della schermata.
     // L'URI rimane nell'Activity context — nessuna serializzazione nel route.
     val zipLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let { viewModel.onZipSelected(it) } }
 
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        if (incomingZipUri == null && !viewModel.state.value.isLoading) {
+    androidx.compose.runtime.LaunchedEffect(incomingZipUri) {
+        if (incomingZipUri != null) {
+            // Se riceviamo un URI, lo processiamo immediatamente!
+            viewModel.onZipSelected(android.net.Uri.parse(incomingZipUri))
+            onUriConsumed() // Consumiamo l'URI per evitare ri-trigger
+        } else if (!viewModel.state.value.isLoading) {
+            // Altrimenti lanciamo il picker manuale
             zipLauncher.launch(arrayOf("application/zip"))
         }
     }

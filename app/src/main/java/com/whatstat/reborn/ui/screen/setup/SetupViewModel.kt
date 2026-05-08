@@ -35,21 +35,40 @@ class SetupViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(SetupState())
     val state: StateFlow<SetupState> = _state.asStateFlow()
+    
+    // Traccia se l'utente ha esplicitamente cliccato su "Inizia analisi"
+    // Questo permette di navigare alla dashboard al termine del processo,
+    // scavalcando il blocco "autoNavigate = false".
+    private var manualStartInitiated = false
 
     init {
+        val autoNavigate = savedStateHandle.get<Boolean>("autoNavigate") ?: true
+
         viewModelScope.launch {
             // Tenta di ripristinare la sessione root salvata
             repository.tryRestoreSession()
             
             // Osserva lo stato di LiteMode e RootDatabase
             analyticsRepository.isLiteMode.collectLatest { isLite ->
+                // Non aggiornare lo stato di navigazione mentre un'analisi è in corso
+                if (_state.value.isLoading) return@collectLatest
+                
                 val hasLiteDb = withContext(Dispatchers.IO) { liteDatabase.hasChatData() }
-                val isRootReady = repository.isDatabaseReady()
+                
+                // Leggiamo isRootReady UNA SOLA VOLTA e non lo sovrascriviamo mai
+                // se il valore corrente è già true (il file su disco non sparisce)
+                val currentIsRootReady = _state.value.isRootReady
+                val freshIsRootReady = repository.isDatabaseReady()
+                // Prendiamo il più ottimista tra i due: se era già pronto, resta pronto
+                val isRootReady = currentIsRootReady || freshIsRootReady
                 
                 if (isLite) {
                     _state.update {
                         it.copy(
-                            isComplete = true,
+                            autoNavigate = autoNavigate,
+                            isRootReady = isRootReady, // Preserviamo lo stato del DB Root!
+                            // Naviga solo se autoNavigate è true E c'è un DB
+                            isComplete = if (autoNavigate) hasLiteDb else false,
                             isCheckingCache = false,
                             hasLiteDb = hasLiteDb
                         )
@@ -60,16 +79,16 @@ class SetupViewModel @Inject constructor(
                         delay(500)
                     }
                     
-                    val finalIsRootReady = repository.isDatabaseReady()
-                    val autoNavigate = savedStateHandle.get<Boolean>("autoNavigate") ?: true
-                    
+                    val finalIsRootReady = currentIsRootReady || repository.isDatabaseReady()
                     _state.update {
                         it.copy(
+                            autoNavigate = autoNavigate,
                             isRootReady = finalIsRootReady,
                             // Naviga automaticamente solo se:
                             // 1. È il primo avvio (isCheckingCache == true)
                             // 2. Il flag autoNavigate è true
-                            isComplete = if (it.isCheckingCache && autoNavigate) finalIsRootReady else it.isComplete,
+                            // 3. Il database root è effettivamente pronto
+                            isComplete = if (it.isCheckingCache && autoNavigate) finalIsRootReady else false,
                             isCheckingCache = false,
                             hasLiteDb = hasLiteDb
                         )
@@ -81,11 +100,11 @@ class SetupViewModel @Inject constructor(
         // Osserva lo stato globale nel repository (proveniente dal Service o dal repo direttamente)
         viewModelScope.launch {
             repository.setupState.collectLatest { repoState ->
-                val autoNavigate = savedStateHandle.get<Boolean>("autoNavigate") ?: true
                 _state.update { it.copy(
                     isLoading = repoState.isLoading,
                     // Sovrascrivi isComplete solo se autoNavigate è true o se stiamo resettando (isComplete false)
-                    isComplete = if (autoNavigate || !repoState.isComplete) repoState.isComplete else it.isComplete,
+                    // oppure se l'utente ha esplicitamente avviato un'analisi manuale
+                    isComplete = if (autoNavigate || manualStartInitiated) repoState.isComplete else (it.isComplete && repoState.isComplete),
                     error = repoState.error,
                     rootStatus = mapGlobalStatus(repoState.rootStatus),
                     extractionStatus = mapGlobalStatus(repoState.extractionStatus),
@@ -108,6 +127,13 @@ class SetupViewModel @Inject constructor(
 
     fun startSetup() {
         if (_state.value.isLoading) return
+        manualStartInitiated = true // Permettiamo la navigazione a fine analisi
+        
+        // Root prende il controllo: disattiviamo la modalità Lite persistente
+        viewModelScope.launch {
+            analyticsRepository.setLiteMode(false)
+        }
+        
         repository.resetState()
         val intent = Intent(context, SetupService::class.java).apply {
             action = SetupService.ACTION_START_FULL
@@ -144,6 +170,13 @@ class SetupViewModel @Inject constructor(
 
     fun startManualSetup() {
         if (_state.value.isLoading) return
+        manualStartInitiated = true // Permettiamo la navigazione a fine decifratura
+        
+        // Root prende il controllo: disattiviamo la modalità Lite persistente
+        viewModelScope.launch {
+            analyticsRepository.setLiteMode(false)
+        }
+        
         repository.resetState()
         val intent = Intent(context, SetupService::class.java).apply {
             action = SetupService.ACTION_START_MANUAL
@@ -163,8 +196,10 @@ class SetupViewModel @Inject constructor(
     }
 
     fun activateLiteMode() {
-        analyticsRepository.setLiteMode(true)
-        _state.update { it.copy(hasLiteDb = true, isComplete = true) }
+        viewModelScope.launch {
+            analyticsRepository.setLiteMode(true)
+            _state.update { it.copy(hasLiteDb = true, isComplete = true) }
+        }
     }
 
     fun resumeRootSession() {
@@ -183,6 +218,7 @@ class SetupViewModel @Inject constructor(
 
 data class SetupState(
     val isCheckingCache: Boolean  = true, // Flag dedicato per la fase di avvio iniziale
+    val autoNavigate: Boolean     = true, // Flag per gestire la navigazione automatica
     val isLoading: Boolean        = false,
     val isComplete: Boolean       = false,
     val error: String?            = null,

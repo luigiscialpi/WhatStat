@@ -24,6 +24,8 @@ class MainViewModel @Inject constructor(
     }
 
     fun resetLiteMode() {
-        analyticsRepository.resetLiteMode()
+        viewModelScope.launch {
+            analyticsRepository.resetLiteMode()
+        }
     }
 }

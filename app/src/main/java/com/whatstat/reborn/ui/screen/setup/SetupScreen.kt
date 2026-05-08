@@ -29,6 +29,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -111,8 +115,14 @@ fun SetupScreen(
 
     // Se arriva un URI dall'intent (cold start / condivisione da WhatsApp),
     // avviamo l'import direttamente dal tab Lite senza navigare a LiteSetupScreen.
+    // IMPORTANTE: Lo facciamo solo se autoNavigate è true, altrimenti ignoriamo l'URI
+    // (stiamo tornando indietro dalla dashboard).
+    
     LaunchedEffect(incomingZipUri) {
-        if (incomingZipUri != null) {
+        // Usiamo il flag autoNavigate dal ViewModel per decidere se processare lo ZIP.
+        // Se è false, significa che l'utente è tornato indietro apposta e non vogliamo
+        // far ripartire l'importazione automatica.
+        if (incomingZipUri != null && state.autoNavigate && !state.isComplete && !state.isLoading) {
             liteViewModel.onZipSelected(android.net.Uri.parse(incomingZipUri))
             onUriConsumed()
         }
@@ -519,28 +529,33 @@ private fun RootTabContent(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        var showDeleteDialog by remember { mutableStateOf(false) }
+
         // ── Step indicators ──────────────────────────────────────
-        SetupStep(
-            label = "Accesso root",
-            status = state.rootStatus,
-            icon = Icons.Outlined.AdminPanelSettings
-        )
-        SetupStep(
-            label = "Estrazione file",
-            status = state.extractionStatus,
-            icon = Icons.Outlined.FolderOpen
-        )
-        SetupStep(
-            label = "Decifratura database",
-            status = state.decryptionStatus,
-            icon = Icons.Outlined.Key,
-            progress = if (state.decryptionStatus == StepStatus.LOADING) state.decryptionProgress else null
-        )
-        SetupStep(
-            label = "Lettura contatti",
-            status = state.contactsStatus,
-            icon = Icons.Outlined.Contacts
-        )
+        // Nascondiamo gli step se la sessione è già pronta, per pulizia UI
+        if (!state.isRootReady || state.isLoading) {
+            SetupStep(
+                label = "Accesso root",
+                status = state.rootStatus,
+                icon = Icons.Outlined.AdminPanelSettings
+            )
+            SetupStep(
+                label = "Estrazione file",
+                status = state.extractionStatus,
+                icon = Icons.Outlined.FolderOpen
+            )
+            SetupStep(
+                label = "Decifratura database",
+                status = state.decryptionStatus,
+                icon = Icons.Outlined.Key,
+                progress = if (state.decryptionStatus == StepStatus.LOADING) state.decryptionProgress else null
+            )
+            SetupStep(
+                label = "Lettura contatti",
+                status = state.contactsStatus,
+                icon = Icons.Outlined.Contacts
+            )
+        }
 
         Spacer(Modifier.height(8.dp))
 
@@ -579,7 +594,7 @@ private fun RootTabContent(
 
                 if (state.isRootReady) {
                     OutlinedButton(
-                        onClick = onClearRoot,
+                        onClick = { showDeleteDialog = true },
                         modifier = Modifier.size(56.dp),
                         shape = RoundedCornerShape(16.dp),
                         contentPadding = PaddingValues(0.dp),
@@ -592,6 +607,35 @@ private fun RootTabContent(
                     }
                 }
             }
+        }
+
+        // ── Dialog di conferma eliminazione ──────────────────────
+        if (showDeleteDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                icon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                title = { Text("Elimina sessione?") },
+                text = {
+                    Text("Questa operazione eliminerà il database decifrato memorizzato localmente. " +
+                         "Dovrai ripetere l'estrazione e la decodifica (richiede permessi root) per accedere nuovamente ai dati.")
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showDeleteDialog = false
+                            onClearRoot()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Elimina")
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = { showDeleteDialog = false }) {
+                        Text("Annulla")
+                    }
+                }
+            )
         }
 
         // ── Error card & Manual Mode ─────────────────────────────

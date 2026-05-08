@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Call
@@ -186,14 +187,12 @@ fun DashboardScreen(
                         }
                     }
                 }
-                // In Lite mode il back button NON deve resettare il DB Lite
-                if (s?.isLiteMode != true) {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Torna indietro"
-                        )
-                    }
+                // In Lite mode mostriamo un tasto di "uscita" per tornare al setup
+                IconButton(onClick = onNavigateBack) {
+                    Icon(
+                        imageVector = if (s?.isLiteMode == true) Icons.AutoMirrored.Filled.ExitToApp else Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = if (s?.isLiteMode == true) "Esci dalla sessione" else "Torna indietro"
+                    )
                 }
             }
 

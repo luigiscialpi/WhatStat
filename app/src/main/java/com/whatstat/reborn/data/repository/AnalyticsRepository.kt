@@ -53,9 +53,15 @@ class AnalyticsRepository @Inject constructor(
     private val _liteCacheVersion = kotlinx.coroutines.flow.MutableStateFlow(0L)
     val liteCacheVersion: kotlinx.coroutines.flow.StateFlow<Long> = _liteCacheVersion.asStateFlow()
 
-    fun setLiteMode(enabled: Boolean) {
+    suspend fun setLiteMode(enabled: Boolean) {
+        val changed = _isLiteMode.value != enabled
         _isLiteMode.value = enabled
         activeDatabaseProvider.isLiteMode = enabled
+        
+        if (changed) {
+            // Forza il refresh di tutti i collector per mostrare i dati della nuova modalità
+            _liteCacheVersion.value = System.currentTimeMillis()
+        }
     }
 
     /** Chiamato dopo ogni importazione riuscita: aggiorna il version stamp e invalida la cache. */
@@ -75,10 +81,8 @@ class AnalyticsRepository @Inject constructor(
      * Resetta solo il flag di modalità Lite.
      * I DB Lite restano intatti per evitare perdita dati in caso di reset di navigazione.
      */
-    fun resetLiteMode() {
+    suspend fun resetLiteMode() {
         setLiteMode(false)
-        // Non cancelliamo più i DB Lite in reset di navigazione.
-        // La cancellazione esplicita dei dati va fatta solo da un'azione utente dedicata.
     }
 
     /**
@@ -115,7 +119,7 @@ class AnalyticsRepository @Inject constructor(
 
         // Cache solo per ALL_TIME (il caso più comune)
         if (!forceRefresh && timeRange == TimeRange.ALL_TIME) {
-            val cached = cacheManager.getGlobalStats()
+            val cached = cacheManager.getGlobalStats(_isLiteMode.value)
             if (cached != null) {
                 android.util.Log.d("WhatStat", "Quick GlobalStats from cache")
                 onProgress(100)
@@ -195,12 +199,13 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 monthOfYearDistribution = monthOfYear,
                 yearTrendDistribution = yearTrend,
                 topWords = emptyList(),
-                topEmojis = emptyList()
+                topEmojis = emptyList(),
+                isLiteMode = _isLiteMode.value
             )
             
             // Salva in cache solo per ALL_TIME
             if (timeRange == TimeRange.ALL_TIME) {
-                cacheManager.saveGlobalStats(stats)
+                cacheManager.saveGlobalStats(stats, _isLiteMode.value)
             }
             stats
         }
@@ -231,7 +236,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             // ── ALL_TIME ─────────────────────────────────────────────────────
 
             // 1) DataStore (velocissimo se la sessione non è cambiata)
-            val cached = cacheManager.getGlobalSlowStats()
+            val cached = cacheManager.getGlobalSlowStats(_isLiteMode.value)
             if (cached != null) {
                 android.util.Log.d("WhatStat", "Slow GlobalStats from DataStore cache")
                 onProgress(100)
@@ -239,7 +244,8 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                     totalMessages = 0, totalChats = 0, totalContacts = 0, totalMediaFiles = 0,
                     oldestMessageDate = 0, mostActiveChat = "", mostActiveHour = 0,
                     mostActiveDayOfWeek = 0, averageMessagesPerDay = 0f, longestStreak = 0,
-                    topWords = cached.first, topEmojis = cached.second, topStickers = cached.third
+                    topWords = cached.first, topEmojis = cached.second, topStickers = cached.third,
+                    isLiteMode = _isLiteMode.value
                 )
             }
 
@@ -263,13 +269,14 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             onProgress(100)
 
             // Salva in DataStore per accesso istantaneo nella stessa sessione
-            cacheManager.saveGlobalSlowStats(topWords, topEmojis, topStickers)
+            cacheManager.saveGlobalSlowStats(topWords, topEmojis, topStickers, _isLiteMode.value)
 
             GlobalStats(
                 totalMessages = 0, totalChats = 0, totalContacts = 0, totalMediaFiles = 0,
                 oldestMessageDate = 0, mostActiveChat = "", mostActiveHour = 0,
                 mostActiveDayOfWeek = 0, averageMessagesPerDay = 0f, longestStreak = 0,
-                topWords = topWords, topEmojis = topEmojis, topStickers = topStickers
+                topWords = topWords, topEmojis = topEmojis, topStickers = topStickers,
+                isLiteMode = _isLiteMode.value
             )
 
         } else {
@@ -283,7 +290,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             val topEmojis: List<EmojiStat>
 
             // Usa l'indice mensile per range >= 28 giorni (approssimazione accettabile)
-            val monthlyIndex = if (rangeSpanDays >= 28) cacheManager.loadMonthlyWordIndexFromDisk() else null
+            val monthlyIndex = if (rangeSpanDays >= 28) cacheManager.loadMonthlyWordIndexFromDisk(_isLiteMode.value) else null
             if (monthlyIndex != null &&
                 monthlyIndex.lastProcessedTimestamp >= resolvedEnd - 86_400_000L * 7
             ) {
@@ -317,7 +324,8 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 totalMessages = 0, totalChats = 0, totalContacts = 0, totalMediaFiles = 0,
                 oldestMessageDate = 0, mostActiveChat = "", mostActiveHour = 0,
                 mostActiveDayOfWeek = 0, averageMessagesPerDay = 0f, longestStreak = 0,
-                topWords = topWords, topEmojis = topEmojis, topStickers = topStickers
+                topWords = topWords, topEmojis = topEmojis, topStickers = topStickers,
+                isLiteMode = _isLiteMode.value
             )
         }
     }
@@ -1012,18 +1020,19 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
      * nuovo backup WhatsApp.
      */
     private fun getOrBuildMediaIndex(base: String): Set<String> {
+        val isLite = _isLiteMode.value
         // 1) In-memory (stessa sessione)
-        cacheManager.mediaFileIndex?.let { return it }
+        val inMem = if (isLite) cacheManager.loadMediaIndexFromDisk(true) else cacheManager.loadMediaIndexFromDisk(false)
+        if (inMem != null) return inMem
+
         // 2) Disco (sessioni precedenti)
-        cacheManager.loadMediaIndexFromDisk()?.let { index ->
-            cacheManager.mediaFileIndex = index
+        cacheManager.loadMediaIndexFromDisk(isLite)?.let { index ->
             return index
         }
         // 3) Scansione root — lenta, una tantum
         val result = Shell.cmd("find \"$base/Media\" -maxdepth 3 -type f 2>/dev/null").exec()
         val index: Set<String> = result.out.toHashSet()
-        cacheManager.mediaFileIndex = index
-        cacheManager.saveMediaIndexToDisk(index)
+        cacheManager.saveMediaIndexToDisk(index, isLite)
         return index
     }
 
@@ -1152,7 +1161,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
      * Se [existingIndex] è null o obsoleto, esegue full rebuild.
      */
     private fun buildOrUpdateGlobalWordIndex(currentMsgCount: Int): Pair<Map<String, Int>, Map<String, Int>> {
-        val existing = cacheManager.loadGlobalWordIndexFromDisk()
+        val existing = cacheManager.loadGlobalWordIndexFromDisk(_isLiteMode.value)
 
         val sinceTs = if (existing != null && currentMsgCount >= existing.totalMessageCount) {
             existing.lastProcessedTimestamp
@@ -1177,7 +1186,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         val mergedEmojis = if (existing != null && sinceTs > 0L) mergeFrequencyMaps(existing.emojiFrequencies, delta.emojis) else delta.emojis
 
         // Update Monthly Index
-        val existingMonthly = if (sinceTs > 0L) cacheManager.loadMonthlyWordIndexFromDisk() else null
+        val existingMonthly = if (sinceTs > 0L) cacheManager.loadMonthlyWordIndexFromDisk(_isLiteMode.value) else null
         val mWords = existingMonthly?.monthlyWords?.map { (k, v) -> k to v.toMutableMap() }?.toMap(mutableMapOf()) ?: mutableMapOf()
         val mEmojis = existingMonthly?.monthlyEmojis?.map { (k, v) -> k to v.toMutableMap() }?.toMap(mutableMapOf()) ?: mutableMapOf()
 
@@ -1192,8 +1201,8 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
 
         val maxTs = if (delta.maxTimestamp > 0) delta.maxTimestamp else sinceTs
 
-        cacheManager.saveMonthlyWordIndexToDisk(MonthlyWordIndexData(mWords, mEmojis, maxTs))
-        cacheManager.saveGlobalWordIndexToDisk(WordFrequencyIndexData(mergedWords, mergedEmojis, maxTs, currentMsgCount))
+        cacheManager.saveMonthlyWordIndexToDisk(MonthlyWordIndexData(mWords, mEmojis, maxTs), _isLiteMode.value)
+        cacheManager.saveGlobalWordIndexToDisk(WordFrequencyIndexData(mergedWords, mergedEmojis, maxTs, currentMsgCount), _isLiteMode.value)
 
         return mergedWords to mergedEmojis
     }
@@ -1246,7 +1255,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         val index = if (chatId != null) {
             cacheManager.loadChatWordIndexFromDisk(chatId)
         } else {
-            cacheManager.loadGlobalWordIndexFromDisk()
+            cacheManager.loadGlobalWordIndexFromDisk(_isLiteMode.value)
         }
 
         if (index == null) return@withContext emptyList()

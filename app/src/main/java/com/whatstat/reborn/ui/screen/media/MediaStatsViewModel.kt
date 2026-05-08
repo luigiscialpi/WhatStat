@@ -230,7 +230,7 @@ class MediaStatsViewModel @Inject constructor(
                 // Prova cache per ALL_TIME
                 if (isAllTime) {
                     val cached = if (cid != null) cacheManager.getChatMediaStats(cid)
-                                 else cacheManager.getGlobalMediaStats()
+                                 else cacheManager.getGlobalMediaStats(isLiteMode.value)
                     if (cached != null) {
                         _linkStats.value = cached.first.map { it.copy(avatarPath = getAvatarPath(it.jid)) }
                         _topDomains.value = cached.second
@@ -263,7 +263,7 @@ class MediaStatsViewModel @Inject constructor(
                 if (isAllTime) {
                     val statsToCache = _linkStats.value.map { it.copy(avatarPath = null) }
                     if (cid != null) cacheManager.saveChatMediaStats(cid, statsToCache, _topDomains.value)
-                    else cacheManager.saveGlobalMediaStats(statsToCache, _topDomains.value)
+                    else cacheManager.saveGlobalMediaStats(statsToCache, _topDomains.value, isLiteMode.value)
                 }
                 
             } catch (e: Exception) {
