@@ -104,7 +104,7 @@ fun ChatListScreen(
             // ── Header ───────────────────────────────────────────────
             SimpleScreenHeader(
                 title = "Le tue chat",
-                onBack = if (isLiteMode) null else onNavigateBack
+                onBack = null
             )
 
             // ── Search Bar ───────────────────────────────────────────

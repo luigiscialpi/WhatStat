@@ -79,14 +79,13 @@ class DashboardViewModel @Inject constructor(
 
     init {
         val isLite = analyticsRepository.isLiteMode.value
-        // In Lite mode, se un import è già avvenuto (liteCacheVersion > 0),
-        // forza il refresh per mostrare dati aggiornati.
-        // In Root mode, usa sempre la cache se disponibile.
-        val baselineVersion = analyticsRepository.liteCacheVersion.value
-        loadStats(forceRefresh = isLite && baselineVersion > 0L)
+        // Non forzare il refresh: usa la cache se disponibile.
+        // Sarà il collect su liteCacheVersion a triggerare il reload quando serve.
+        loadStats(forceRefresh = false)
 
         // Ricarica ogni volta che viene completata una nuova importazione Lite
         if (isLite) {
+            val baselineVersion = analyticsRepository.liteCacheVersion.value
             viewModelScope.launch {
                 analyticsRepository.liteCacheVersion
                     .collect { version ->

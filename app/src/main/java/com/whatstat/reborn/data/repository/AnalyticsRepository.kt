@@ -61,11 +61,11 @@ class AnalyticsRepository @Inject constructor(
 
     /** Chiamato dopo ogni importazione riuscita: aggiorna il version stamp e invalida la cache. */
     suspend fun notifyLiteImportDone() {
+        setLiteMode(true)
         runCatching {
             cacheManager.clearCache(resetWordIndexes = true)
         }
         liteModeManager.notifyImportDone()
-        setLiteMode(true)
     }
 
     /**

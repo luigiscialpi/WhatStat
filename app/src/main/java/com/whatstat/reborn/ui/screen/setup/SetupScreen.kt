@@ -111,18 +111,9 @@ fun SetupScreen(
     // Controlla se auto-navigare quando state.isComplete (disabilitato al ritorno da Dashboard)
     var shouldAutoNavigate by remember { mutableStateOf(autoNavigate) }
 
-    // DEBUG LOGS
-    LaunchedEffect(state.isComplete, state.isCheckingCache) {
-        android.util.Log.d("WhatStat", "SetupScreen | state.isComplete=${state.isComplete} isCheckingCache=${state.isCheckingCache} isRootReady=${state.isRootReady} hasLiteDb=${state.hasLiteDb}")
-    }
-    LaunchedEffect(liteState.isComplete, liteState.isLoading) {
-        android.util.Log.d("WhatStat", "SetupScreen | liteState.isComplete=${liteState.isComplete} isLoading=${liteState.isLoading} awaitLiteImport=$awaitLiteImport")
-    }
-
     // Se arriva un URI dall'intent (cold start / condivisione da WhatsApp),
     // avviamo l'import direttamente dal tab Lite senza navigare a LiteSetupScreen.
     LaunchedEffect(incomingZipUri) {
-        android.util.Log.d("WhatStat", "SetupScreen | LaunchedEffect(incomingZipUri=$incomingZipUri) processedUri=$processedUri")
         if (incomingZipUri != null && incomingZipUri != processedUri) {
             processedUri = incomingZipUri
             awaitLiteImport = true
@@ -135,15 +126,12 @@ fun SetupScreen(
 
     // Navigazione automatica verso Main:
     LaunchedEffect(state.isComplete, liteState.isLoading, liteState.showSenderSelection, awaitLiteImport) {
-        android.util.Log.d("WhatStat", "SetupScreen | NAV-CHECK state.isComplete=${state.isComplete} awaitLite=$awaitLiteImport liteLoading=${liteState.isLoading} senderSelection=${liteState.showSenderSelection} hasNavigated=$hasNavigated")
         if (hasNavigated) return@LaunchedEffect
         if (awaitLiteImport) return@LaunchedEffect
         if (!shouldAutoNavigate) {
-            android.util.Log.d("WhatStat", "SetupScreen | NAV-CHECK skipped (autoNavigate=false)")
             return@LaunchedEffect
         }
         if (state.isComplete && !liteState.isLoading && !liteState.showSenderSelection) {
-            android.util.Log.d("WhatStat", "SetupScreen | >>> onSetupComplete() [auto-nav]")
             hasNavigated = true
             onSetupComplete()
         }
@@ -151,10 +139,8 @@ fun SetupScreen(
 
     // Quando un import avviato da URI è completato, naviga verso Main.
     LaunchedEffect(liteState.isComplete, awaitLiteImport) {
-        android.util.Log.d("WhatStat", "SetupScreen | IMPORT-CHECK awaitLite=$awaitLiteImport liteComplete=${liteState.isComplete} hasNavigated=$hasNavigated")
         if (hasNavigated) return@LaunchedEffect
         if (awaitLiteImport && liteState.isComplete) {
-            android.util.Log.d("WhatStat", "SetupScreen | >>> onSetupComplete() [import-done]")
             hasNavigated = true
             awaitLiteImport = false
             liteViewModel.consumeImportComplete()

@@ -99,7 +99,6 @@ class SetupViewModel @Inject constructor(
                 } else {
                     _state.value.isRootReady
                 }
-                android.util.Log.d("WhatStat", "SetupVM | setupState: isLoading=${repoState.isLoading} isComplete=${repoState.isComplete} autoNav=$autoNavigate isRootReady=$isRootReady")
                 _state.update { it.copy(
                     isLoading = repoState.isLoading,
                     isRootReady = isRootReady,

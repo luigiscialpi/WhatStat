@@ -289,13 +289,11 @@ private fun NavGraphBuilder.liteModeGraph(
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
                     onNavigateBack = {
-                        android.util.Log.d("WhatStat", "LiteDashboard | onNavigateBack → clearing URI and navigate to Setup(autoNavigate=false)")
                         mainViewModel.setIncomingZipUri(null)
                         navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
                             popUpTo("app_graph") { inclusive = false }
                             launchSingleTop = true
                         }
-                        android.util.Log.d("WhatStat", "LiteDashboard | navigation executed backStack=${navController.currentBackStack.value.map { it.destination.route }}")
                     }
                 )
             }
