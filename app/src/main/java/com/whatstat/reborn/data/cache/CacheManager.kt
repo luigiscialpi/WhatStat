@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.whatstat.reborn.data.db.ActiveDatabaseProvider
 import com.whatstat.reborn.data.db.model.*
 import com.whatstat.reborn.domain.model.ChatStats
 import com.whatstat.reborn.domain.model.GlobalStats
@@ -20,7 +21,8 @@ import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.cacheDataStore: DataStore<Preferences> by preferencesDataStore(name = "stats_cache")
+private val Context.rootCacheDataStore: DataStore<Preferences> by preferencesDataStore(name = "stats_cache_root")
+private val Context.liteCacheDataStore: DataStore<Preferences> by preferencesDataStore(name = "stats_cache_lite")
 
 private val cacheJson = Json {
     ignoreUnknownKeys = true
@@ -251,9 +253,14 @@ private fun CachedQuickChatStats.toDomain(chatId: Long) = ChatStats(
 
 @Singleton
 class CacheManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val activeDb: ActiveDatabaseProvider
 ) {
-    private val dataStore = context.cacheDataStore
+    private val dataStore: DataStore<Preferences>
+        get() = if (activeDb.isLiteMode) context.liteCacheDataStore else context.rootCacheDataStore
+
+    private val ns: String
+        get() = if (activeDb.isLiteMode) "lite" else "root"
 
     companion object {
         private val KEY_DB_HASH = stringPreferencesKey("db_file_hash")
@@ -452,9 +459,9 @@ class CacheManager @Inject constructor(
     private val chatWordIndexCache = java.util.concurrent.ConcurrentHashMap<Long, WordFrequencyIndexData>()
 
     // filesDir: persistente tra sessioni (costoso da ricostruire)
-    private val globalWordIndexFile get() = java.io.File(context.filesDir, "word_index_global.gz")
-    private val monthlyWordIndexFile get() = java.io.File(context.filesDir, "word_index_monthly.gz")
-    private fun chatWordIndexFile(chatId: Long) = java.io.File(context.cacheDir, "word_index_chat_${chatId}.gz")
+    private val globalWordIndexFile get() = java.io.File(context.filesDir, "${ns}_word_index_global.gz")
+    private val monthlyWordIndexFile get() = java.io.File(context.filesDir, "${ns}_word_index_monthly.gz")
+    private fun chatWordIndexFile(chatId: Long) = java.io.File(context.cacheDir, "${ns}_word_index_chat_${chatId}.gz")
 
     fun loadGlobalWordIndexFromDisk(): WordFrequencyIndexData? {
         globalWordIndex?.let { return it }
@@ -468,7 +475,7 @@ class CacheManager @Inject constructor(
     fun saveGlobalWordIndexToDisk(data: WordFrequencyIndexData) {
         globalWordIndex = data
         try {
-            val tmp = java.io.File(context.filesDir, "word_index_global.tmp")
+            val tmp = java.io.File(context.filesDir, "${ns}_word_index_global.tmp")
             writeWordIndexFile(tmp, data)
             tmp.renameTo(globalWordIndexFile)
         } catch (_: Exception) { }
@@ -486,7 +493,7 @@ class CacheManager @Inject constructor(
     fun saveChatWordIndexToDisk(chatId: Long, data: WordFrequencyIndexData) {
         chatWordIndexCache[chatId] = data
         try {
-            val tmp = java.io.File(context.cacheDir, "word_index_chat_${chatId}.tmp")
+            val tmp = java.io.File(context.cacheDir, "${ns}_word_index_chat_${chatId}.tmp")
             writeWordIndexFile(tmp, data)
             tmp.renameTo(chatWordIndexFile(chatId))
         } catch (_: Exception) { }
@@ -519,7 +526,7 @@ class CacheManager @Inject constructor(
     fun saveMonthlyWordIndexToDisk(data: MonthlyWordIndexData) {
         monthlyWordIndex = data
         try {
-            val tmp = java.io.File(context.filesDir, "word_index_monthly.tmp")
+            val tmp = java.io.File(context.filesDir, "${ns}_word_index_monthly.tmp")
             java.util.zip.GZIPOutputStream(tmp.outputStream().buffered()).bufferedWriter().use { writer ->
                 writer.write("LAST_TS\t${data.lastProcessedTimestamp}"); writer.newLine()
                 data.monthlyWords.forEach { (month, freqs) ->
@@ -569,7 +576,7 @@ class CacheManager @Inject constructor(
 
     @Volatile var mediaFileIndex: Set<String>? = null
 
-    private val mediaIndexFile get() = java.io.File(context.cacheDir, "media_index.gz")
+    private val mediaIndexFile get() = java.io.File(context.cacheDir, "${ns}_media_index.gz")
 
     /**
      * Carica l'indice dal file gzippato su disco (se esiste).
@@ -599,6 +606,7 @@ class CacheManager @Inject constructor(
     // ── Invalidazione ────────────────────────────────────────────
 
     suspend fun clearCache(resetWordIndexes: Boolean = false) {
+        // Cancella solo il DataStore del namespace corrente (root o lite)
         dataStore.edit { it.clear() }
         mediaFileIndex = null
         mediaIndexFile.delete()
@@ -608,8 +616,9 @@ class CacheManager @Inject constructor(
         if (resetWordIndexes) {
             globalWordIndexFile.delete()
             monthlyWordIndexFile.delete()
+            val prefix = "${ns}_word_index_chat_"
             context.cacheDir.listFiles()
-                ?.filter { it.name.startsWith("word_index_chat_") && it.name.endsWith(".gz") }
+                ?.filter { it.name.startsWith(prefix) && it.name.endsWith(".gz") }
                 ?.forEach { it.delete() }
         }
     }
