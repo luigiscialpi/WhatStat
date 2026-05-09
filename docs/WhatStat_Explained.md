@@ -167,6 +167,14 @@ Elenco di tutte le conversazioni ordinate per numero totale di messaggi in ordin
 - Numero totale di messaggi.
 - Indicatore di posizione nel ranking.
 
+### Azioni per chat (solo Lite Mode)
+
+In Lite Mode, ogni elemento della lista chat espone due azioni:
+
+- **Rinomina** (icona matita) — Apre un `AlertDialog` con un campo testo pre-compilato con il nome attuale. Il rename aggiorna solo il campo `subject` nel DB SQLite Lite; l'`importKey` rimane invariato, garantendo che il meccanismo di re-import continui a funzionare. Il feedback nella UI e' istantaneo (aggiornamento in-memory della lista senza reload dal DB). Validazione: il nome non puo' essere vuoto. Implementato in `LiteDbWriter.renameChat()` → `ChatListViewModel.renameChat()` → `ChatListScreen`.
+
+- **Elimina** (icona cestino) — Conferma tramite dialog, poi rimuove chat + messaggi + media dal DB. Se era l'ultima chat, esegue un reset completo e naviga a Setup.
+
 ---
 
 ## 7. Dettaglio chat
@@ -419,7 +427,35 @@ L'app utilizza una `BottomNavigationBar` Material 3 a 5 tab: **Panoramica**, **C
 
 Il `NavHost` è strutturato con grafi annidati: un grafo Setup e un grafo Main contenente i 5 sotto-grafi per tab. Le schermate Radar, Chiamate e Media sono accessibili sia come radici di tab globali (senza `chatId`) sia come destinazioni chat-specifiche (con `chatId` nel path, es. `word_search/{chatId}`) all'interno del grafo Chat. Quando aperte da una chat, le schermate mostrano un header contestuale con nome chat, avatar e pulsante back tramite il componente `SimpleScreenHeader`. Il nome/avatar della chat è caricato da `AnalyticsRepository.getChatContextInfo(chatId)` e esposto come `StateFlow` nei rispettivi ViewModel (`WordSearchViewModel`, `CallsStatsViewModel`, `MediaStatsViewModel`).
 
-Il `ChatDetailScreen` espone 3 card azione (Radar, Chiamate, Media) disposte in una riga orizzontale 1×3.
+Il `ChatDetailScreen` espone 3 card azione (Radar, Chiamate, Media) disposte in una riga orizzontale 1x3.
+
+### Protezione back button: DoubleBackToExitHandler
+
+**File**: `ui/component/DoubleBackToExitHandler.kt`
+
+Le schermate tab di primo livello (ChatList, MediaStats, WordSearch, CallsStats) non hanno una destinazione precedente nel navigation stack. Senza protezione, il back button fisico chiuderebbe l'app immediatamente.
+
+Il composable `DoubleBackToExitHandler` implementa il pattern standard Android "premi di nuovo per uscire":
+- Intercetta il back fisico tramite `BackHandler`
+- Alla prima pressione: mostra un `Toast` con messaggio "Premi di nuovo per uscire"
+- Alla seconda pressione entro 2 secondi: chiama `Activity.finish()`
+- Dopo 2 secondi: il contatore si resetta
+
+**Dove e' applicato** (in `AppNavigation.kt`):
+
+| Grafo | Schermata | DoubleBackToExitHandler |
+|-------|-----------|------------------------|
+| Root  | Dashboard | No — ha il suo `BackHandler` che naviga a Setup |
+| Root  | ChatList (tab) | Si' |
+| Root  | MediaStats (tab) | Si' |
+| Root  | WordSearch (tab) | Si' |
+| Root  | CallsStats (tab) | Si' |
+| Lite  | Dashboard | No — ha il suo `BackHandler` che naviga a Setup |
+| Lite  | ChatList (tab) | Si' |
+| Lite  | MediaStats (tab) | Si' |
+| Lite  | WordSearch (tab) | Si' |
+
+**Non applicato** alle schermate di dettaglio (`sharedChatDetailRoutes`): MediaStats/{chatId}, WordSearch/{chatId}, CallsStats/{chatId}, ChatDetail, GroupHistory — queste usano `navController.popBackStack()` tramite il pulsante back nell'header e funzionano correttamente.
 
 ---
 
@@ -631,14 +667,42 @@ Singleton Hilt che orchestra l'intero flusso di importazione. Metodi principali:
 
 | Metodo | Descrizione |
 |--------|-------------|
-| `importAndProcess(zipUri, ownerName)` | Pipeline completa: estrazione → parsing → media → stats → cache |
-| `getCachedStats()` | Ritorna `GlobalStats` dalla cache (o `null`) |
-| `getOwnerName()` | Ritorna `ownerName` dalla cache — usato per la mappatura "Tu" |
-| `getCachedMessages()` | Ritorna la lista completa di `ParsedMessage` dalla cache |
-| `getCachedMedia()` | Ritorna `LiteMediaStats` dalla cache |
-| `clearCache()` | Delega a `LiteCacheRepository.clearCache()` |
+| `importAndProcess(zipUri, ownerName)` | Pipeline completa: estrazione -> parsing -> fingerprint -> media -> SQLite |
+| `finalizeOwnerSelection(ownerName)` | Aggiorna il flag `from_me` dopo la scelta del mittente |
+| `clearCache()` | Cancella tutti i dati del DB SQLite Lite |
 
-Il calcolo delle `GlobalStats` avviene interamente in memoria in `calculateGlobalStats()`: distribuzione oraria, settimanale, mensile, annuale, top 50 parole (> 3 lettere, dopo pulizia LTR), top 50 emoji, sticker `.webp`.
+#### Estrazione nome chat (`normalizeExportName`)
+
+Il nome della chat viene estratto dal nome del file ZIP/TXT rimuovendo il prefisso standard di WhatsApp. La regex e' **ancorata alla parola "WhatsApp"** per evitare match accidentali dentro i nomi dei contatti.
+
+**Problema risolto**: la vecchia regex usava `.*` greedy con congiunzioni corte (`o`, `s`, `de`), causando match dentro nomi propri (es. "Matilde Barbar**o** lavoro" → "lavoro").
+
+**Regex attuale**:
+```kotlin
+Regex(
+    """.*\bWhatsApp\b.*?\b(con|with|avec|mit|com|met|med|с|z\s+użytkownikiem|z\s+grupą)\s+""",
+    RegexOption.IGNORE_CASE
+)
+```
+
+**Lingue supportate**: IT (`con`), EN (`with`), FR (`avec`), DE (`mit`), PT (`com`), RU (`с`), PL (`z użytkownikiem`/`z grupą`), NL/AF (`met`), NO/SE/DA (`med`).
+
+Se "WhatsApp" non e' presente nel nome del file (es. file rinominato manualmente), il nome viene restituito intero.
+
+#### Content fingerprint (deduplicazione chat omonime)
+
+Quando piu' chat condividono lo stesso nome contatto (es. stesso contatto con 3 numeri WhatsApp), il fingerprint evita la sovrascrittura accidentale.
+
+**Come funziona**:
+1. `computeContentFingerprint()` calcola un hash MD5 dei timestamp dei primi 10 messaggi
+2. I primi 6 caratteri hex dell'hash diventano il fingerprint (16^6 = ~16M combinazioni)
+3. Il fingerprint viene incluso nell'`importKey`: `"dm:matilde_barbaro:a3f7c1"`
+
+**Risultato**:
+- Re-import dello stesso ZIP → stesso fingerprint → sovrascrittura corretta
+- ZIP diverso dello stesso contatto → fingerprint diverso → chat nuova
+
+La disambiguazione del display name e' delegata a `LiteDbWriter.disambiguateDisplayName()`: se il nome esiste gia' nel DB, appende un suffisso progressivo `(2)`, `(3)`, ecc.
 
 ---
 
@@ -738,13 +802,16 @@ Quando viene importato un nuovo ZIP, `notifyLiteImportDone()` bumpa `liteCacheVe
 | File | Ruolo |
 |------|-------|
 | `data/lite/TextChatParser.kt` | Parsing del file `.txt` WhatsApp |
-| `data/lite/LiteMediaManager.kt` | Scansione media e associazione file → mittente |
-| `data/lite/LiteMetricsCalculator.kt` | Helper per metriche (emoji, parole, `MEDIA_FILENAME_REGEX`) |
-| `data/lite/LiteCacheRepository.kt` | Serializzazione JSON della cache su disco |
-| `data/lite/LiteModeManager.kt` | Coordinatore del flusso di importazione |
+| `data/lite/LiteMediaManager.kt` | Scansione media e associazione file -> mittente |
+| `data/lite/LiteDatabase.kt` | Gestione del database SQLite Lite |
+| `data/lite/LiteDbWriter.kt` | Scrittura chat/messaggi/media su SQLite, rename chat, disambiguazione nomi |
+| `data/lite/LiteModeManager.kt` | Coordinatore: parsing, fingerprint, normalizzazione nomi, scrittura DB |
 | `data/root/FileExtractor.kt` | Estrazione ZIP (condiviso con Root) |
 | `data/repository/AnalyticsRepository.kt` | Branch Lite in ogni metodo dati pubblico |
 | `ui/screen/setup/LiteSetupScreen.kt` | UI onboarding Lite |
 | `ui/screen/setup/LiteSetupViewModel.kt` | Logica onboarding (double-processing) |
+| `ui/screen/chatlist/ChatListScreen.kt` | Lista chat con azioni rename/delete (Lite) |
+| `ui/screen/chatlist/ChatListViewModel.kt` | Logica rename/delete chat |
 | `ui/screen/dashboard/DashboardScreen.kt` | Renderizza `ChatDetailScreen` con `chatId = -1L` |
-| `ui/navigation/AppNavigation.kt` | Navigazione post-import e back-to-setup |
+| `ui/component/DoubleBackToExitHandler.kt` | Protezione back button: "premi di nuovo per uscire" |
+| `ui/navigation/AppNavigation.kt` | Navigazione post-import, back-to-setup, exit handler |

@@ -40,6 +40,7 @@ import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.filterNotNull
+import com.whatstat.reborn.ui.component.DoubleBackToExitHandler
 
 sealed class Screen(val route: String) {
     data object Setup : Screen("setup?autoNavigate={autoNavigate}") {
@@ -230,6 +231,7 @@ private fun NavGraphBuilder.rootModeGraph(
             route = NavGraphRoute.Chats
         ) {
             composable(Screen.ChatList.route) {
+                DoubleBackToExitHandler()
                 ChatListScreen(
                     onChatSelected = { chatId ->
                         navController.navigate(Screen.ChatDetail.createRoute(chatId))
@@ -248,6 +250,7 @@ private fun NavGraphBuilder.rootModeGraph(
             route = NavGraphRoute.Media
         ) {
             composable(Screen.MediaStats.route) {
+                DoubleBackToExitHandler()
                 MediaStatsScreen(chatId = null, onNavigateBack = {})
             }
         }
@@ -257,6 +260,7 @@ private fun NavGraphBuilder.rootModeGraph(
             route = NavGraphRoute.Radar
         ) {
             composable(Screen.WordSearch.route) {
+                DoubleBackToExitHandler()
                 WordSearchScreen(chatId = null, onNavigateBack = {})
             }
         }
@@ -266,6 +270,7 @@ private fun NavGraphBuilder.rootModeGraph(
             route = NavGraphRoute.Calls
         ) {
             composable(Screen.CallsStats.route) {
+                DoubleBackToExitHandler()
                 CallsStatsScreen(chatId = null, onNavigateBack = {})
             }
         }
@@ -305,6 +310,7 @@ private fun NavGraphBuilder.liteModeGraph(
             route = NavGraphRoute.Chats
         ) {
             composable(Screen.ChatList.route) {
+                DoubleBackToExitHandler()
                 ChatListScreen(
                     onChatSelected = { chatId ->
                         navController.navigate(Screen.ChatDetail.createRoute(chatId))
@@ -348,6 +354,7 @@ private fun NavGraphBuilder.liteModeGraph(
             route = NavGraphRoute.Media
         ) {
             composable(Screen.MediaStats.route) {
+                DoubleBackToExitHandler()
                 MediaStatsScreen(chatId = null, onNavigateBack = {})
             }
         }
@@ -357,6 +364,7 @@ private fun NavGraphBuilder.liteModeGraph(
             route = NavGraphRoute.Radar
         ) {
             composable(Screen.WordSearch.route) {
+                DoubleBackToExitHandler()
                 WordSearchScreen(chatId = null, onNavigateBack = {})
             }
         }

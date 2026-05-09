@@ -215,6 +215,21 @@ Conseguenza: il pulsante back non è mostrato nella `ChatList` (né in Root né 
 
 Per le schermate di dettaglio (ChatDetail, WordSearch per chat, ecc.) la navigazione **è** su stack e il back funziona con `navController.popBackStack()`.
 
+### Protezione back button fisico (`DoubleBackToExitHandler`)
+
+**File**: `ui/component/DoubleBackToExitHandler.kt`
+
+Le schermate tab di primo livello (ChatList, MediaStats, WordSearch, CallsStats) non hanno una destinazione precedente nel navigation stack. Senza protezione, il back button fisico chiuderebbe l'app.
+
+Il composable `DoubleBackToExitHandler` intercetta il back fisico con `BackHandler`:
+- Prima pressione: mostra `Toast` "Premi di nuovo per uscire"
+- Seconda pressione entro 2 secondi: `Activity.finish()`
+- Dopo 2 secondi: il contatore si resetta
+
+Applicato in `AppNavigation.kt` a tutte le composable tab-level di entrambi i grafi (Root e Lite). **Non applicato** a:
+- Dashboard (ha il suo `BackHandler` → Setup)
+- Schermate di dettaglio in `sharedChatDetailRoutes` (usano `popBackStack()`)
+
 ---
 
 ## 6. Route condivise (sharedChatDetailRoutes)
