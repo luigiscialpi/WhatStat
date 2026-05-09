@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
@@ -92,8 +93,10 @@ fun ChatListScreen(
     // Il picker viene lanciato direttamente da AddChatZipScreen, evitando la
     // serializzazione dell'URI che causa Permission Denial sui provider Downloads.
 
-    // Dialogo di conferma eliminazione
+    // Stato dialogo eliminazione
     var chatToDelete by remember { mutableStateOf<ChatListItem?>(null) }
+    // Stato dialogo rinomina
+    var chatToRename by remember { mutableStateOf<ChatListItem?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -172,6 +175,7 @@ fun ChatListScreen(
                                 importTimestamp = chat.importTimestamp,
                                 isLiteMode = isLiteMode,
                                 onDelete = { chatToDelete = chat },
+                                onRename = { chatToRename = chat },
                                 onClick = { onChatSelected(chat.chatId) }
                             )
                         }
@@ -230,6 +234,41 @@ fun ChatListScreen(
             }
         )
     }
+
+    // ── Dialogo rinomina chat ─────────────────────────────────────
+    chatToRename?.let { chat ->
+        var newName by remember(chat.chatId) { mutableStateOf(chat.displayName) }
+        AlertDialog(
+            onDismissRequest = { chatToRename = null },
+            title = { Text("Rinomina chat") },
+            text = {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    singleLine = true,
+                    label = { Text("Nome chat") },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.renameChat(chat.chatId, newName)
+                        chatToRename = null
+                    },
+                    enabled = newName.trim().isNotBlank()
+                ) {
+                    Text("Salva")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { chatToRename = null }) {
+                    Text("Annulla")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -243,6 +282,7 @@ private fun ChatListItem(
     importTimestamp: Long? = null,
     isLiteMode: Boolean = false,
     onDelete: () -> Unit = {},
+    onRename: () -> Unit = {},
     onClick: () -> Unit
 ) {
     Card(
@@ -339,8 +379,15 @@ private fun ChatListItem(
                 )
             }
 
-            // Destra: cestino in Lite mode, pill conteggio in Root mode
+            // Destra: azioni in Lite mode, pill conteggio in Root mode
             if (isLiteMode) {
+                IconButton(onClick = onRename) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        contentDescription = "Rinomina chat",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Outlined.Delete,

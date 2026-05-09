@@ -97,6 +97,15 @@ class LiteDbWriter @Inject constructor(
         }
     }
 
+    /**
+     * Inserisce o aggiorna una chat nel DB Lite.
+     *
+     * Logica di upsert:
+     * - Se esiste una chat con lo stesso [importKey] -> re-import: sovrascrive messaggi.
+     * - Se esiste una chat legacy senza importKey con lo stesso jidRowId -> migrazione.
+     * - Altrimenti -> nuova chat. Se il [subject] e' gia' usato da un'altra chat,
+     *   appende un suffisso numerico progressivo "(2)", "(3)" ecc. per disambiguare.
+     */
     private fun insertOrUpdateChat(
         db: SQLiteDatabase,
         jidRowId: Long,
@@ -138,9 +147,13 @@ class LiteDbWriter @Inject constructor(
             return ChatUpsertResult(existingId, obsoleteMediaFolders)
         }
 
+        // Nuova chat: disambigua il displayName se necessario.
+        // Conta quante chat hanno gia' lo stesso subject (o subject + suffisso numerico).
+        val disambiguatedSubject = disambiguateDisplayName(db, subject)
+
         val values = ContentValues().apply {
             put("jid_row_id", jidRowId)
-            put("subject", subject)
+            put("subject", disambiguatedSubject)
             put("group_type", if (isGroup) 1 else 0)
             put("import_key", importKey)
         }
@@ -149,6 +162,41 @@ class LiteDbWriter @Inject constructor(
             chatId = chatId,
             obsoleteMediaFolders = emptySet()
         )
+    }
+
+    /**
+     * Se esistono gia' chat con lo stesso nome base, appende un suffisso numerico
+     * progressivo: "Nome", "Nome (2)", "Nome (3)", ecc.
+     *
+     * Cerca nel DB tutte le chat il cui subject corrisponde al nome base
+     * (con o senza suffisso numerico) e calcola il prossimo indice disponibile.
+     */
+    private fun disambiguateDisplayName(db: SQLiteDatabase, baseName: String): String {
+        // Conta le chat il cui subject e' esattamente baseName oppure baseName + " (N)"
+        val cursor = db.rawQuery(
+            """
+            SELECT subject FROM chat
+            WHERE subject = ? OR subject LIKE ?
+            """.trimIndent(),
+            arrayOf(baseName, "$baseName (%)")
+        )
+
+        val existingNames = cursor.use {
+            buildSet {
+                while (it.moveToNext()) {
+                    add(it.getString(0))
+                }
+            }
+        }
+
+        if (existingNames.isEmpty()) return baseName
+
+        // Trova il prossimo indice numerico disponibile
+        var nextIndex = 2
+        while (existingNames.contains("$baseName ($nextIndex)")) {
+            nextIndex++
+        }
+        return "$baseName ($nextIndex)"
     }
 
     private fun upsertChatMetadata(db: SQLiteDatabase, chatId: Long, importTimestamp: Long) {
@@ -256,6 +304,26 @@ class LiteDbWriter @Inject constructor(
         cleanupMediaFolders(obsoleteMediaFolders)
     }
 
+    /**
+     * Rinomina una chat aggiornando solo il campo [subject] (nome visualizzato).
+     *
+     * L'[importKey] non viene modificato: il meccanismo di re-import
+     * continua a funzionare correttamente anche dopo il rename.
+     */
+    suspend fun renameChat(chatId: Long, newName: String) = withContext(Dispatchers.IO) {
+        val db = liteDatabase.getOrCreate()
+        val values = ContentValues().apply {
+            put("subject", newName.trim())
+        }
+        db.update("chat", values, "_id = ?", arrayOf(chatId.toString()))
+    }
+
+    /**
+     * Aggiorna i campi di riepilogo della chat (ultimo messaggio, timestamp di ordinamento).
+     *
+     * NOTA: Non sovrascrive il campo [subject] perche' potrebbe contenere
+     * un suffisso di disambiguazione (es. "Nome (2)") impostato da [insertOrUpdateChat].
+     */
     private fun updateChatSummary(
         db: SQLiteDatabase,
         chatId: Long,
@@ -266,7 +334,6 @@ class LiteDbWriter @Inject constructor(
         lastMessageTimestamp: Long
     ) {
         val values = ContentValues().apply {
-            put("subject", subject)
             put("import_key", importKey)
             put("group_type", if (isGroup) 1 else 0)
             if (lastMessageId > 0L) {

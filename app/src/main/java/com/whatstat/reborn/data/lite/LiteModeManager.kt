@@ -7,7 +7,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import java.security.MessageDigest
 import java.text.Normalizer
+import java.time.ZoneId
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -68,13 +70,15 @@ class LiteModeManager @Inject constructor(
 
             val zipDisplayName = getFileName(zipUri)
             val isGroup = identifiedSenders.size > 2
+            val fingerprint = computeContentFingerprint(parseResult.messages)
 
             val chatDescriptor = resolveChatDescriptor(
                 zipDisplayName = zipDisplayName,
                 txtDisplayName = txtFile.nameWithoutExtension,
                 ownerName = ownerName,
                 senders = identifiedSenders,
-                isGroup = isGroup
+                isGroup = isGroup,
+                fingerprint = fingerprint
             )
 
             // 4. Scrittura su SQLite
@@ -188,12 +192,22 @@ class LiteModeManager @Inject constructor(
         return System.currentTimeMillis() // Fallback a "ora"
     }
 
+    /**
+     * Risolve il nome visualizzato e la chiave di import per una chat.
+     *
+     * Il [fingerprint] (hash dei primi N timestamp) viene incluso nell'importKey
+     * per distinguere chat diverse che condividono lo stesso nome contatto
+     * (es. stesso contatto con piu' numeri WhatsApp).
+     * Lo stesso ZIP re-importato produce lo stesso fingerprint -> sovrascrittura corretta.
+     * ZIP diversi dello stesso contatto -> fingerprint diverso -> chat separate.
+     */
     private fun resolveChatDescriptor(
         zipDisplayName: String?,
         txtDisplayName: String?,
         ownerName: String,
         senders: List<String>,
-        isGroup: Boolean
+        isGroup: Boolean,
+        fingerprint: String
     ): LiteChatDescriptor {
         val normalizedZipName = normalizeExportName(zipDisplayName)
         val normalizedTxtName = normalizeExportName(txtDisplayName)
@@ -203,18 +217,34 @@ class LiteModeManager @Inject constructor(
 
         val fallbackName = buildFallbackChatName(ownerName, senders, isGroup)
         val displayName = preferredName ?: fallbackName
-        val importKey = when {
-            preferredName != null -> "${if (isGroup) "group" else "dm"}:${slugifyForKey(preferredName)}"
-            !isGroup -> "dm:${slugifyForKey(senders.distinct().sorted().joinToString("|"))}"
-            else -> "group:${slugifyForKey(senders.distinct().sorted().joinToString("|"))}"
+        val typePrefix = if (isGroup) "group" else "dm"
+        val baseSlug = when {
+            preferredName != null -> slugifyForKey(preferredName)
+            !isGroup -> slugifyForKey(senders.distinct().sorted().joinToString("|"))
+            else -> slugifyForKey(senders.distinct().sorted().joinToString("|"))
         }
+        // Il fingerprint rende l'importKey unico per contenuto,
+        // permettendo chat omonime senza sovrascrittura accidentale.
+        val importKey = "$typePrefix:$baseSlug:$fingerprint"
 
         return LiteChatDescriptor(displayName = displayName, importKey = importKey)
     }
 
+    /**
+     * Estrae il nome della chat dal nome del file ZIP/TXT esportato da WhatsApp.
+     *
+     * Strategia: ancora la ricerca alla parola "WhatsApp" presente in tutti gli export,
+     * poi cerca la prima congiunzione linguistica (con, with, avec, ...) che segue.
+     * Tutto cio' che viene dopo la congiunzione e' il nome della chat.
+     *
+     * Se "WhatsApp" non e' presente nel nome, restituisce il nome intero pulito
+     * (caso di file rinominati manualmente o condivisioni dirette).
+     *
+     * Lingue supportate: IT, EN, ES, FR, DE, PT, RU, PL, NL/AF, NO/SE/DA.
+     */
     private fun normalizeExportName(rawName: String?): String? {
         if (rawName.isNullOrBlank()) return null
-        
+
         // Rimuove l'estensione (es. .zip o .txt) in modo case-insensitive
         val name = if (rawName.contains(".")) {
             rawName.substringBeforeLast(".")
@@ -222,11 +252,22 @@ class LiteModeManager @Inject constructor(
             rawName
         }
 
-        // Pattern: Regex per prefissi comuni in varie lingue
-        // Cerca l'ultima occorrenza di congiunzioni comuni seguite da spazio (con, with, de, mit, ecc.)
-        val prefixRegex = Regex(".*(con|with|avec|mit|de|z|s|o|con la|with the|od|z użytkownikiem|z grupą)\\s+", RegexOption.IGNORE_CASE)
+        // Regex ancorata a "WhatsApp": cerca la congiunzione DOPO la parola WhatsApp.
+        // .*\bWhatsApp\b  -> matcha tutto fino a "WhatsApp" (greedy, ancora il contesto)
+        // .*?             -> matcha il minimo necessario (lazy) fino alla congiunzione
+        // \b(conj)\s+     -> congiunzione seguita da spazio
+        // Il resto della stringa e' il nome della chat.
+        //
+        // Congiunzioni per lingua:
+        //   IT/ES: con  |  EN: with  |  FR: avec  |  DE: mit  |  PT: com
+        //   RU: \u0441 (cirillico "s")  |  NL/AF: met  |  NO/SE/DA: med
+        //   PL: z u\u017cytkownikiem / z grup\u0105
+        val prefixRegex = Regex(
+            """.*\bWhatsApp\b.*?\b(con|with|avec|mit|com|met|med|\u0441|z\s+u\u017cytkownikiem|z\s+grup\u0105)\s+""",
+            RegexOption.IGNORE_CASE
+        )
         val match = prefixRegex.find(name)
-        
+
         if (match != null) {
             val cleanName = name.substring(match.range.last + 1).trim()
             if (cleanName.isNotBlank()) {
@@ -234,7 +275,7 @@ class LiteModeManager @Inject constructor(
             }
         }
 
-        // Se non trova il pattern linguistico, restituisce il nome originale pulito dagli spazi
+        // Se "WhatsApp" non e' nel nome, restituisce il nome intero pulito
         return name.trim().ifBlank { null }
     }
 
@@ -273,6 +314,36 @@ class LiteModeManager @Inject constructor(
             .replace(Regex("[^a-z0-9]+"), "_")
             .trim('_')
             .ifBlank { "chat" }
+    }
+
+    /**
+     * Genera un fingerprint compatto (6 caratteri hex) basato sui timestamp
+     * dei primi [FINGERPRINT_SAMPLE_SIZE] messaggi della chat.
+     *
+     * Due import dello stesso ZIP producono lo stesso fingerprint (= re-import).
+     * Due chat diverse dello stesso contatto (numeri diversi) producono
+     * fingerprint diversi, evitando sovrascritture accidentali.
+     */
+    private fun computeContentFingerprint(messages: List<ParsedMessage>): String {
+        val sample = messages.take(FINGERPRINT_SAMPLE_SIZE)
+        val digest = MessageDigest.getInstance("MD5")
+        for (msg in sample) {
+            val epochMillis = msg.timestamp
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+            digest.update(epochMillis.toString().toByteArray())
+        }
+        // Primi 6 caratteri hex: 16^6 = ~16 milioni di combinazioni,
+        // piu' che sufficienti per distinguere chat dello stesso contatto.
+        return digest.digest()
+            .joinToString("") { "%02x".format(it) }
+            .take(6)
+    }
+
+    companion object {
+        /** Numero di messaggi usati per il calcolo del fingerprint. */
+        private const val FINGERPRINT_SAMPLE_SIZE = 10
     }
 
 }
