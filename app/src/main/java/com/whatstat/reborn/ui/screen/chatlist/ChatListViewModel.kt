@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.whatstat.reborn.data.db.dao.ChatDao
 import com.whatstat.reborn.data.db.dao.ContactDao
 import com.whatstat.reborn.data.db.model.ChatListItem
+import com.whatstat.reborn.data.cache.CacheManager
 import com.whatstat.reborn.data.lite.LiteDbWriter
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.root.FileExtractor
@@ -28,6 +29,7 @@ class ChatListViewModel @Inject constructor(
     private val contactDao: ContactDao,
     private val liteDbWriter: LiteDbWriter,
     private val analyticsRepository: AnalyticsRepository,
+    private val cacheManager: CacheManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -87,6 +89,18 @@ class ChatListViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             try {
+                val isLite = analyticsRepository.isLiteMode.value
+
+                // In root mode, prova la cache prima di interrogare il DB
+                if (!isLite) {
+                    val cached = cacheManager.getChatList()
+                    if (cached != null) {
+                        _allChats.value = cached
+                        _isLoading.value = false
+                        return@launch
+                    }
+                }
+
                 val chats = chatDao.getChatList()
 
                 // Arricchisci i nomi con wa.db
@@ -108,6 +122,11 @@ class ChatListViewModel @Inject constructor(
                 }
 
                 _allChats.value = enrichedChats
+
+                // Salva in cache solo in root mode
+                if (!analyticsRepository.isLiteMode.value) {
+                    cacheManager.saveChatList(enrichedChats)
+                }
             } catch (e: Exception) {
                 _allChats.value = emptyList()
             } finally {

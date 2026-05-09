@@ -105,6 +105,18 @@ private data class CachedQuickChatStats(
 )
 @Serializable private data class CachedStickerStat(val filePath: String, val fileName: String, val count: Int)
 
+@Serializable
+private data class CachedChatListItem(
+    val chatId: Long,
+    val jid: String,
+    val displayName: String,
+    val isGroup: Boolean,
+    val totalMessages: Int,
+    val lastMessageTimestamp: Long,
+    val importTimestamp: Long? = null,
+    val avatarPath: String? = null
+)
+
 // ── Indice lessicale incrementale ─────────────────────────────────
 
 /**
@@ -268,6 +280,7 @@ class CacheManager @Inject constructor(
         private val KEY_GLOBAL_STATS = stringPreferencesKey("global_stats_v3")
         // v3: bump per rigenerare la cache con pool da 50 words/emoji
         private val KEY_GLOBAL_SLOW = stringPreferencesKey("global_slow_v4")
+        private val KEY_CHAT_LIST = stringPreferencesKey("chat_list_v1")
     }
 
     // ── Hash DB ──────────────────────────────────────────────────
@@ -466,7 +479,41 @@ class CacheManager @Inject constructor(
         dataStore.edit { prefs -> prefs[key] = cacheJson.encodeToString(cached) }
     }
 
-    // ── Indice lessicale (word/emoji frequency, incrementale) ─────────────────────
+    // ── Chat List ─────────────────────────────────────────────────
+
+    suspend fun getChatList(): List<ChatListItem>? {
+        val json = dataStore.data.first()[KEY_CHAT_LIST] ?: return null
+        return try {
+            cacheJson.decodeFromString<List<CachedChatListItem>>(json).map {
+                ChatListItem(
+                    chatId = it.chatId,
+                    jid = it.jid,
+                    displayName = it.displayName,
+                    isGroup = it.isGroup,
+                    totalMessages = it.totalMessages,
+                    lastMessageTimestamp = it.lastMessageTimestamp,
+                    importTimestamp = it.importTimestamp,
+                    avatarPath = it.avatarPath
+                )
+            }
+        } catch (e: Exception) { null }
+    }
+
+    suspend fun saveChatList(chats: List<ChatListItem>) {
+        val cached = chats.map {
+            CachedChatListItem(
+                chatId = it.chatId,
+                jid = it.jid,
+                displayName = it.displayName,
+                isGroup = it.isGroup,
+                totalMessages = it.totalMessages,
+                lastMessageTimestamp = it.lastMessageTimestamp,
+                importTimestamp = it.importTimestamp,
+                avatarPath = it.avatarPath
+            )
+        }
+        dataStore.edit { prefs -> prefs[KEY_CHAT_LIST] = cacheJson.encodeToString(cached) }
+    }
 
     @Volatile var globalWordIndex: WordFrequencyIndexData? = null
     @Volatile var monthlyWordIndex: MonthlyWordIndexData? = null
