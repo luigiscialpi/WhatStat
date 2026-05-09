@@ -68,6 +68,14 @@ class AnalyticsRepository @Inject constructor(
         liteModeManager.notifyImportDone()
     }
 
+    /** Chiamato dopo l'eliminazione di una chat Lite: invalida la cache e notifica la Dashboard. */
+    suspend fun notifyLiteChatDeleted() {
+        runCatching {
+            cacheManager.clearCache(resetWordIndexes = true)
+        }
+        liteModeManager.notifyImportDone()
+    }
+
     /**
      * Resetta solo il flag di modalità Lite.
      * I DB Lite restano intatti per evitare perdita dati in caso di reset di navigazione.

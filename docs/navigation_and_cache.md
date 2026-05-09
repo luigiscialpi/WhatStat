@@ -105,15 +105,21 @@ Il `MainViewModel` espone l'URI via `incomingZipUri: StateFlow<String?>`.
 
 ### 3.2 Intercettazione in AppNavigation
 
-In `AppNavigation`, un `LaunchedEffect(Unit)` osserva il flow dell'URI. Se arriva un URI mentre non siamo su Setup, esegue un pop fino a `setup_graph`:
+In `AppNavigation`, un `LaunchedEffect(Unit)` osserva il flow dell'URI. Se arriva un URI mentre non siamo su Setup, naviga direttamente a Setup con `autoNavigate = true`:
 
 ```kotlin
 mainViewModel.incomingZipUri.collect { uri ->
+    val currentRoute = navController.currentDestination?.route ?: ""
     if (uri != null && !currentRoute.startsWith("setup")) {
-        navController.popBackStack(NavGraphRoute.Setup, inclusive = false)
+        navController.navigate(Screen.Setup.createRoute(autoNavigate = true)) {
+            popUpTo("app_graph") { inclusive = false }
+            launchSingleTop = true
+        }
     }
 }
 ```
+
+> **Nota:** Non si usa `popBackStack(NavGraphRoute.Setup)` perché `setup_graph` potrebbe non essere nel backstack come destinazione navigabile (ad es. quando l'app era in background sulla Dashboard). `navigate()` garantisce sempre l'arrivo su Setup.
 
 ### 3.3 Elaborazione in SetupScreen
 
@@ -262,7 +268,7 @@ La cache quick è usata solo per `TimeRange.ALL_TIME`. Filtri temporali personal
 
 ### 8.3 Invalidazione Cache
 
-La cache viene invalidata esplicitamente in tre occasioni:
+La cache viene invalidata esplicitamente in quattro occasioni:
 
 1. **Nuovo import Lite** (`AnalyticsRepository.notifyLiteImportDone()`):
    ```kotlin
@@ -272,9 +278,16 @@ La cache viene invalidata esplicitamente in tre occasioni:
    ```
    > **Importante:** `setLiteMode(true)` va chiamato *prima* di `clearCache()`, altrimenti viene cancellato il DataStore Root invece del Lite.
 
-2. **Reset sessione Root** (`AnalyticsRepository.resetState()`): cancella la cache Root quando si torna a Setup dalla Dashboard Root.
+2. **Eliminazione chat Lite** (`AnalyticsRepository.notifyLiteChatDeleted()`):
+   ```kotlin
+   cacheManager.clearCache(resetWordIndexes = true)
+   liteModeManager.notifyImportDone()  // aggiorna liteCacheVersion → Dashboard si aggiorna
+   ```
+   Chiamato da `ChatListViewModel.deleteChat()` quando dopo la cancellazione restano ancora altre chat. Se viene eliminata l'ultima chat, viene invece chiamato `fullResetLiteMode()` che esegue un reset completo.
 
-3. **DB Root modificato** (rilevato da hash SHA-256): `CacheManager` confronta l'hash del `msgstore.db` corrente con quello salvato e invalida automaticamente se diverso.
+3. **Reset sessione Root** (`AnalyticsRepository.resetState()`): cancella la cache Root quando si torna a Setup dalla Dashboard Root.
+
+4. **DB Root modificato** (rilevato da hash SHA-256): `CacheManager` confronta l'hash del `msgstore.db` corrente con quello salvato e invalida automaticamente se diverso.
 
 ### 8.4 Refresh Lite nel DashboardViewModel
 

@@ -138,6 +138,7 @@ class ChatListViewModel @Inject constructor(
                 analyticsRepository.fullResetLiteMode()
                 _shouldNavigateToSetup.value = true
             } else {
+                analyticsRepository.notifyLiteChatDeleted()
                 _allChats.value = remaining
                 _isLoading.value = false
             }
