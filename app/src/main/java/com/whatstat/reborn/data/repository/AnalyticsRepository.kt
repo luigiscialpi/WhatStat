@@ -956,7 +956,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         var existingFiles: Set<String>? = null
 
         coroutineScope {
-            val rawDeferred = async { messageDao.getMediaFiles(chatId, jid, startTime, endTime) }
+            val rawDeferred = async { messageDao.getMediaFiles(chatId, jid, startTime, endTime, includeStickers = isLite) }
             val indexDeferred = if (!isLite) async { getOrBuildMediaIndex(base) } else null
             
             rawList = rawDeferred.await()

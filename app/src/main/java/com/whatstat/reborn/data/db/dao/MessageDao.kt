@@ -2237,7 +2237,8 @@ class MessageDao @Inject constructor(
         chatId: Long? = null,
         jid: String? = null,
         startTime: Long? = null,
-        endTime: Long? = null
+        endTime: Long? = null,
+        includeStickers: Boolean = false
     ): List<MediaStat> {
         val queryBuilder = StringBuilder("""
             WITH all_media AS (
@@ -2301,10 +2302,12 @@ class MessageDao @Inject constructor(
         }
 
         // Escludi messaggi di sistema (7)
-        // Nota: gli sticker (20) non vengono esclusi — in Lite mode sono file fisici accessibili
-        // identificati da mime_type = 'image/webp'. In Root mode non hanno mime_type valorizzato
-        // quindi il filtro mime_type qui sotto li escluderà comunque.
         conditions.add("m.message_type != 7")
+        
+        // Escludi sticker (20) solo se richiesto (es. Root mode Gallery)
+        if (!includeStickers) {
+            conditions.add("m.message_type != 20")
+        }
 
         conditions.add("(mm.mime_type LIKE 'image/%' OR mm.mime_type LIKE 'video/%' OR mm.mime_type LIKE 'audio/%' OR (mm.mime_type IS NULL AND m.message_type IN (1, 2, 3, 13)))")
         queryBuilder.append(" WHERE ${conditions.joinToString(" AND ")}")
