@@ -14,6 +14,8 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
+import com.whatstat.reborn.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -41,12 +43,36 @@ fun ActivityRecapCard(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Oraria", "Settimanale", "Giornaliera", "Mensile", "Annuale")
+    val tabs = listOf(
+        stringResource(R.string.tab_hourly),
+        stringResource(R.string.tab_weekly),
+        stringResource(R.string.tab_daily),
+        stringResource(R.string.tab_monthly),
+        stringResource(R.string.tab_yearly)
+    )
 
-    val dayNames = listOf("Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab")
+    val dayNames = listOf(
+        stringResource(R.string.day_sun),
+        stringResource(R.string.day_mon),
+        stringResource(R.string.day_tue),
+        stringResource(R.string.day_wed),
+        stringResource(R.string.day_thu),
+        stringResource(R.string.day_fri),
+        stringResource(R.string.day_sat)
+    )
     val monthNames = listOf(
-        "Gen", "Feb", "Mar", "Apr", "Mag", "Giu",
-        "Lug", "Ago", "Set", "Ott", "Nov", "Dic"
+        stringResource(R.string.month_jan),
+        stringResource(R.string.month_feb),
+        stringResource(R.string.month_mar),
+        stringResource(R.string.month_apr),
+        stringResource(R.string.month_may),
+        stringResource(R.string.month_jun),
+        stringResource(R.string.month_jul),
+        stringResource(R.string.month_aug),
+        stringResource(R.string.month_sep),
+        stringResource(R.string.month_oct),
+        stringResource(R.string.month_nov),
+        stringResource(R.string.month_dec)
     )
 
     val handlePointClick: (String, String) -> Unit = { title, value ->
@@ -97,11 +123,11 @@ fun ActivityRecapCard(
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
                 Text(
                     text = when (selectedTab) {
-                        0 -> "Distribuzione oraria"
-                        1 -> "Attività settimanale"
-                        2 -> "Giorni del mese (1-31)"
-                        3 -> "Stagionalità (Gen-Dic)"
-                        else -> "Trend negli anni"
+                        0 -> stringResource(R.string.activity_hourly_title)
+                        1 -> stringResource(R.string.activity_weekly_title)
+                        2 -> stringResource(R.string.activity_daily_title)
+                        3 -> stringResource(R.string.activity_monthly_title)
+                        else -> stringResource(R.string.activity_yearly_title)
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -111,11 +137,15 @@ fun ActivityRecapCard(
 
                 when (selectedTab) {
                     0 -> {
+                        val context = androidx.compose.ui.platform.LocalContext.current
                         InteractiveHourlyHeatmap(
                             hourlyData = hourlyData,
                             dismissSignal = dismissSignal,
                             onHourClick = { hour, count ->
-                                handlePointClick("Ore $hour:00", "$count messaggi")
+                                handlePointClick(
+                                    context.getString(R.string.click_hour_format, hour),
+                                    context.getString(R.string.messages_count_suffix, count)
+                                )
                             }
                         )
                     }
@@ -124,17 +154,19 @@ fun ActivityRecapCard(
                             val count = weeklyData.find { it.dayOfWeek == day }?.count ?: 0
                             StatPoint(day, dayNames[day], count)
                         }
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val dayFullNames = listOf(
+                            R.string.day_sunday, R.string.day_monday, R.string.day_tuesday,
+                            R.string.day_wednesday, R.string.day_thursday, R.string.day_friday, R.string.day_saturday
+                        )
                         InteractiveBarChart(
                             data = points,
                             barWidth = 32.dp,
                             spacing = 12.dp,
                             dismissSignal = dismissSignal,
                             onPointClick = { point ->
-                                val dayFull = listOf(
-                                    "Domenica", "Lunedì", "Martedì",
-                                    "Mercoledì", "Giovedì", "Venerdì", "Sabato"
-                                )[point.id as Int]
-                                handlePointClick(dayFull, "${point.count} messaggi")
+                                val dayFull = context.getString(dayFullNames[point.id as Int])
+                                handlePointClick(dayFull, context.getString(R.string.messages_count_suffix, point.count))
                             }
                         )
                     }
@@ -143,6 +175,7 @@ fun ActivityRecapCard(
                             val count = dailyData.find { it.day == day }?.count ?: 0
                             StatPoint(day, "$day", count)
                         }
+                        val context = androidx.compose.ui.platform.LocalContext.current
                         InteractiveBarChart(
                             data = points,
                             barWidth = 14.dp,
@@ -150,7 +183,10 @@ fun ActivityRecapCard(
                             labelFrequency = 5,
                             dismissSignal = dismissSignal,
                             onPointClick = { point ->
-                                handlePointClick("Giorno ${point.label}", "${point.count} messaggi")
+                                handlePointClick(
+                                    context.getString(R.string.click_day_prefix, point.label),
+                                    context.getString(R.string.messages_count_suffix, point.count)
+                                )
                             }
                         )
                     }
@@ -159,17 +195,21 @@ fun ActivityRecapCard(
                             val count = monthlyData.find { it.month == month }?.count ?: 0
                             StatPoint(month, monthNames[month - 1], count)
                         }
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val monthFullNames = listOf(
+                            R.string.month_january, R.string.month_february, R.string.month_march,
+                            R.string.month_april, R.string.month_may_full, R.string.month_june,
+                            R.string.month_july, R.string.month_august, R.string.month_september,
+                            R.string.month_october, R.string.month_november, R.string.month_december
+                        )
                         InteractiveBarChart(
                             data = points,
                             barWidth = 24.dp,
                             spacing = 8.dp,
                             dismissSignal = dismissSignal,
                             onPointClick = { point ->
-                                val monthFull = listOf(
-                                    "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
-                                    "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
-                                )[point.id as Int - 1]
-                                handlePointClick(monthFull, "${point.count} messaggi")
+                                val monthFull = context.getString(monthFullNames[point.id as Int - 1])
+                                handlePointClick(monthFull, context.getString(R.string.messages_count_suffix, point.count))
                             }
                         )
                     }
@@ -178,13 +218,17 @@ fun ActivityRecapCard(
                         val points = sortedYears.map {
                             StatPoint(it.year, "${it.year}", it.count)
                         }
+                        val context = androidx.compose.ui.platform.LocalContext.current
                         InteractiveBarChart(
                             data = points,
                             barWidth = 48.dp,
                             spacing = 16.dp,
                             dismissSignal = dismissSignal,
                             onPointClick = { point ->
-                                handlePointClick("Anno ${point.label}", "${point.count} messaggi")
+                                handlePointClick(
+                                    context.getString(R.string.click_year_prefix, point.label),
+                                    context.getString(R.string.messages_count_suffix, point.count)
+                                )
                             }
                         )
                     }

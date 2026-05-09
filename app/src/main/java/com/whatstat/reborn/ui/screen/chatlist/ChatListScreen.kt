@@ -57,6 +57,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import com.whatstat.reborn.R
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -106,7 +108,7 @@ fun ChatListScreen(
         ) {
             // ── Header ───────────────────────────────────────────────
             SimpleScreenHeader(
-                title = "Le tue chat",
+                title = stringResource(R.string.chatlist_title),
                 onBack = null
             )
 
@@ -116,7 +118,7 @@ fun ChatListScreen(
                 onValueChange = { viewModel.onSearchQueryChange(it) },
                 placeholder = {
                     Text(
-                        "Cerca chat…",
+                        stringResource(R.string.chatlist_search_hint),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
@@ -144,7 +146,7 @@ fun ChatListScreen(
 
             // ── Chat counter ─────────────────────────────────────────
             Text(
-                "${chats.size} chat",
+                stringResource(R.string.chatlist_count_suffix, chats.size),
                 modifier = Modifier.padding(horizontal = 20.dp),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -203,7 +205,7 @@ fun ChatListScreen(
                 },
                 text = {
                     Text(
-                        "Aggiungi ZIP",
+                        stringResource(R.string.add_zip_fab),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
@@ -215,8 +217,8 @@ fun ChatListScreen(
     chatToDelete?.let { chat ->
         AlertDialog(
             onDismissRequest = { chatToDelete = null },
-            title = { Text("Elimina chat") },
-            text = { Text("Vuoi eliminare \"${chat.displayName}\" e tutti i suoi messaggi?") },
+            title = { Text(stringResource(R.string.delete_chat_title)) },
+            text = { Text(stringResource(R.string.delete_chat_confirm, chat.displayName)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -224,12 +226,12 @@ fun ChatListScreen(
                         chatToDelete = null
                     }
                 ) {
-                    Text("Elimina", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { chatToDelete = null }) {
-                    Text("Annulla")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -240,13 +242,13 @@ fun ChatListScreen(
         var newName by remember(chat.chatId) { mutableStateOf(chat.displayName) }
         AlertDialog(
             onDismissRequest = { chatToRename = null },
-            title = { Text("Rinomina chat") },
+            title = { Text(stringResource(R.string.rename_chat_title)) },
             text = {
                 OutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it },
                     singleLine = true,
-                    label = { Text("Nome chat") },
+                    label = { Text(stringResource(R.string.chat_name_label)) },
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -259,12 +261,12 @@ fun ChatListScreen(
                     },
                     enabled = newName.trim().isNotBlank()
                 ) {
-                    Text("Salva")
+                    Text(stringResource(R.string.save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { chatToRename = null }) {
-                    Text("Annulla")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -367,13 +369,13 @@ private fun ChatListItem(
                     val sdf = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
                     val dateStr = sdf.format(java.util.Date(importTimestamp))
                     Text(
-                        text = "Esportata il: $dateStr",
+                        text = stringResource(R.string.exported_on_prefix, dateStr),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                     )
                 }
                 Text(
-                    "%,d messaggi".format(messageCount),
+                    stringResource(R.string.messages_count_suffix, messageCount),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -384,14 +386,14 @@ private fun ChatListItem(
                 IconButton(onClick = onRename) {
                     Icon(
                         Icons.Outlined.Edit,
-                        contentDescription = "Rinomina chat",
+                        contentDescription = stringResource(R.string.rename_chat_title),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Outlined.Delete,
-                        contentDescription = "Elimina chat",
+                        contentDescription = stringResource(R.string.delete_chat_title),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }

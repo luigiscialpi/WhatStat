@@ -15,6 +15,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
+import androidx.compose.ui.res.stringResource
+import com.whatstat.reborn.R
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -466,13 +469,13 @@ private fun AddChatZipScreen(
     androidx.compose.material3.Scaffold(
         topBar = {
             androidx.compose.material3.TopAppBar(
-                title = { androidx.compose.material3.Text("Aggiungi ZIP") },
+                title = { androidx.compose.material3.Text(stringResource(R.string.add_zip_title)) },
                 navigationIcon = {
                     if (!state.isLoading && !state.showSenderSelection) {
                         androidx.compose.material3.IconButton(onClick = onNavigateBack) {
                             androidx.compose.material3.Icon(
                                 androidx.compose.material.icons.Icons.Default.ArrowBack,
-                                contentDescription = "Indietro"
+                                contentDescription = stringResource(R.string.back_button_desc)
                             )
                         }
                     }
@@ -495,7 +498,7 @@ private fun AddChatZipScreen(
             ) {
                 if (state.isLoading) {
                     androidx.compose.material3.Text(
-                        text = state.progressLabel.ifEmpty { "Elaborazione in corso..." },
+                        text = state.progressLabel.ifEmpty { stringResource(R.string.processing_label) },
                         style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
                         color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -516,7 +519,7 @@ private fun AddChatZipScreen(
                             .height(56.dp),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
                     ) {
-                        androidx.compose.material3.Text("SELEZIONA FILE ZIP")
+                        androidx.compose.material3.Text(stringResource(R.string.select_zip_file))
                     }
                 }
                 state.error?.let {

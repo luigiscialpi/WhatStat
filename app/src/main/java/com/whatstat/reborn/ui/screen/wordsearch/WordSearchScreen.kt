@@ -51,6 +51,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.res.stringResource
+import com.whatstat.reborn.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -134,7 +136,7 @@ fun WordSearchScreen(
             .statusBarsPadding()
     ) {
         SimpleScreenHeader(
-            title = "Radar Parole",
+            title = stringResource(R.string.radar_parole_title),
             onBack = if (isChatSpecific) onNavigateBack else null,
             subtitle = chatContextName,
             avatarPath = chatContextAvatarPath
@@ -167,7 +169,7 @@ fun WordSearchScreen(
                 value = searchQuery,
                 onValueChange = { viewModel.onSearchQueryChange(it) },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Cerca una parola...") },
+                placeholder = { Text(stringResource(R.string.word_search_placeholder)) },
                 leadingIcon = { 
                     Icon(
                         Icons.Filled.Search, 
@@ -179,7 +181,7 @@ fun WordSearchScreen(
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                            Icon(Icons.Outlined.Clear, contentDescription = "Cancella")
+                            Icon(Icons.Outlined.Clear, contentDescription = stringResource(R.string.cancel))
                         }
                     }
                 }
@@ -207,7 +209,7 @@ fun WordSearchScreen(
                 ) {
                     Icon(
                         if (isSearching) Icons.Filled.Close else Icons.Filled.Search,
-                        contentDescription = if (isSearching) "Annulla" else "Cerca"
+                        contentDescription = if (isSearching) stringResource(R.string.cancel) else stringResource(R.string.search_button)
                     )
                 }
             }
@@ -255,9 +257,9 @@ fun WordSearchScreen(
                 onClick = { viewModel.cycleMultiWordMode() },
                 label = { 
                     val label = when(multiWordMode) {
-                        MultiWordMode.NONE -> "Multi"
-                        MultiWordMode.AND -> "Multi: E"
-                        MultiWordMode.OR -> "Multi: O"
+                        MultiWordMode.NONE -> stringResource(R.string.filter_multi)
+                        MultiWordMode.AND -> "${stringResource(R.string.filter_multi)}: ${stringResource(R.string.and_label)}"
+                        MultiWordMode.OR -> "${stringResource(R.string.filter_multi)}: ${stringResource(R.string.or_label)}"
                     }
                     Text(label) 
                 },
@@ -268,7 +270,7 @@ fun WordSearchScreen(
             IconButton(onClick = { showInfoDialog = true }) {
                 Icon(
                     Icons.Outlined.Info,
-                    contentDescription = "Informazioni",
+                    contentDescription = stringResource(R.string.info_dialog_title),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -309,7 +311,7 @@ fun WordSearchScreen(
             LoadingSection()
         } else if (results.isNotEmpty()) {
             Text(
-                "Top mittenti",
+                stringResource(R.string.occurrences_by_sender),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
@@ -406,7 +408,7 @@ fun WordSearchScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "Nessun risultato per \"$searchQuery\"",
+                    stringResource(R.string.no_results_word),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -419,7 +421,7 @@ fun WordSearchScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "Inserisci almeno 2 caratteri per cercare",
+                    stringResource(R.string.word_search_hint_min),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -461,24 +463,13 @@ fun WordSearchScreen(
     if (showInfoDialog) {
         AlertDialog(
             onDismissRequest = { showInfoDialog = false },
-            title = { Text("Informazioni sulla Ricerca") },
+            title = { Text(stringResource(R.string.info_dialog_title)) },
             text = {
-                Text("Il Radar analizza la frequenza delle parole nei messaggi.\n\n" +
-                     "Comportamento standard:\n" +
-                     "• La ricerca trova tutte le occorrenze della parola, anche se inclusa in altre (es. 'casa' troverà anche 'casale').\n" +
-                     "• I suggerimenti appaiono dopo 3 caratteri e mostrano le parole più usate.\n\n" +
-                     "Opzioni di ricerca:\n" +
-                     "• Aa: Attiva la distinzione tra maiuscole e minuscole.\n" +
-                     "• ab: Cerca solo la parola esatta, ignorando i match parziali.\n" +
-                     "• ?: Mostra solo i messaggi che contengono un punto interrogativo.\n" +
-                     "• Multi: Clicca per cambiare modalità:\n" +
-                     "   - Multi: Cerca la frase esatta.\n" +
-                     "   - Multi: E: Cerca messaggi che contengono TUTTE le parole (AND).\n" +
-                     "   - Multi: O: Cerca messaggi che contengono ALMENO UNA parola (OR).")
+                Text(stringResource(R.string.radar_info_text))
             },
             confirmButton = {
                 TextButton(onClick = { showInfoDialog = false }) {
-                    Text("Ho capito")
+                    Text(stringResource(R.string.ho_capito))
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface,
@@ -533,7 +524,7 @@ private fun WordMessageSheet(
             }
             Column {
                 Text(
-                    "Messaggi con \"$searchWord\"",
+                    "${stringResource(R.string.results_for)} \"$searchWord\"",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -553,14 +544,14 @@ private fun WordMessageSheet(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "${messages.size} messaggi trovati",
+                stringResource(R.string.messages_count_suffix, messages.size),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TextButton(onClick = { sortAscending = !sortAscending }) {
-                Icon(Icons.Outlined.SwapVert, contentDescription = "Ordina")
+                Icon(Icons.Outlined.SwapVert, contentDescription = stringResource(R.string.radar_parole_title))
                 Spacer(Modifier.width(4.dp))
-                Text(if (sortAscending) "Meno recenti" else "Piu' recenti")
+                Text(if (sortAscending) stringResource(R.string.sort_oldest) else stringResource(R.string.sort_newest))
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -576,7 +567,7 @@ private fun WordMessageSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Nessun messaggio trovato",
+                        stringResource(R.string.no_results_word),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -602,7 +593,7 @@ private fun WordMessageSheet(
                                     .fillMaxWidth()
                                     .padding(vertical = 8.dp)
                             ) {
-                                Text("Carica altri (${sortedAll.size - displayedCount} rimasti)")
+                                Text("${stringResource(R.string.load_more)} (${sortedAll.size - displayedCount} ${stringResource(R.string.show_less)})")
                             }
                         }
                     }

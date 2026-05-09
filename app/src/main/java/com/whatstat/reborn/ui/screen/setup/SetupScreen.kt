@@ -36,6 +36,8 @@ import com.whatstat.reborn.data.root.FileExtractor
 import android.Manifest
 import android.os.Build
 import android.widget.Toast
+import androidx.compose.ui.res.stringResource
+import com.whatstat.reborn.R
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -257,7 +259,7 @@ fun SetupScreen(
             Spacer(Modifier.height(28.dp))
 
             Text(
-                "WhatStat Reborn",
+                stringResource(R.string.setup_title),
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -265,7 +267,7 @@ fun SetupScreen(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                "Analisi completa delle tue chat WhatsApp.\nTutti i dati rimangono sul dispositivo.",
+                stringResource(R.string.setup_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -291,7 +293,7 @@ fun SetupScreen(
                                     selectedTab = 0
                                 }
                             },
-                            text = { Text("Lite") },
+                            text = { Text(stringResource(R.string.tab_lite)) },
                             icon = {
                                 Icon(
                                     imageVector = Icons.Outlined.PhoneAndroid,
@@ -307,7 +309,7 @@ fun SetupScreen(
                                     selectedTab = 1
                                 }
                             },
-                            text = { Text("Root") },
+                            text = { Text(stringResource(R.string.tab_root)) },
                             icon = {
                                 Icon(
                                     imageVector = Icons.Outlined.Terminal,
@@ -377,7 +379,7 @@ fun SetupScreen(
                     )
                     Spacer(Modifier.height(20.dp))
                     Text(
-                        "Importazione chat in corso...",
+                        stringResource(R.string.importing_overlay),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -420,7 +422,7 @@ fun SetupScreen(
                     )
                     Spacer(Modifier.height(24.dp))
                     Text(
-                        "Verifica dei dati in corso...",
+                        stringResource(R.string.checking_data_overlay),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -451,13 +453,13 @@ fun SenderSelectionDialog(
         ) {
             Column(Modifier.padding(24.dp)) {
                 Text(
-                    "Chi sei tu?",
+                    stringResource(R.string.who_are_you_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Seleziona il tuo nome dalla lista per distinguere i messaggi inviati da quelli ricevuti.",
+                    stringResource(R.string.who_are_you_desc),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -502,9 +504,9 @@ private fun LiteTabContent(
         // Hint contestuale
         Text(
             text = if (hasLiteDb)
-                "Dati precedentemente importati trovati. Puoi accedere alla dashboard o importare un'altra chat ZIP."
+                stringResource(R.string.lite_hint_import_found)
             else
-                "Nessun dato importato. Carica una chat WhatsApp esportata come file ZIP.",
+                stringResource(R.string.lite_hint_no_import),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -530,13 +532,13 @@ private fun LiteTabContent(
                 modifier = Modifier.size(20.dp)
             )
             Spacer(Modifier.width(10.dp))
-            Text("Vai alla dashboard", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.go_to_dashboard), style = MaterialTheme.typography.labelLarge)
         }
 
         if (isLoading) {
             val progressInt = (progressPercent * 100).toInt()
             Text(
-                text = if (progressLabel.isNotEmpty()) progressLabel else "Elaborazione in corso...",
+                text = if (progressLabel.isNotEmpty()) progressLabel else stringResource(R.string.processing),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -569,7 +571,7 @@ private fun LiteTabContent(
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    "Importa Chat da file ZIP",
+                    stringResource(R.string.import_zip_button),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -607,23 +609,23 @@ private fun RootTabContent(
     ) {
         // ── Step indicators ──────────────────────────────────────
         SetupStep(
-            label = "Accesso root",
+            label = stringResource(R.string.root_step_access),
             status = state.rootStatus,
             icon = Icons.Outlined.AdminPanelSettings
         )
         SetupStep(
-            label = "Estrazione file",
+            label = stringResource(R.string.root_step_extraction),
             status = state.extractionStatus,
             icon = Icons.Outlined.FolderOpen
         )
         SetupStep(
-            label = "Decifratura database",
+            label = stringResource(R.string.root_step_decryption),
             status = state.decryptionStatus,
             icon = Icons.Outlined.Key,
             progress = if (state.decryptionStatus == StepStatus.LOADING) state.decryptionProgress else null
         )
         SetupStep(
-            label = "Lettura contatti",
+            label = stringResource(R.string.root_step_contacts),
             status = state.contactsStatus,
             icon = Icons.Outlined.Contacts
         )
@@ -635,9 +637,9 @@ private fun RootTabContent(
         if (!state.isLoading) {
             Text(
                 text = if (state.isRootReady)
-                    "Sessione Root preservata trovata. Puoi accedere alla dashboard o avviare una nuova analisi."
+                    stringResource(R.string.root_hint_session_found)
                 else
-                    "Nessuna sessione Root attiva. Avvia l'analisi per estrarre i dati aggiornati.",
+                    stringResource(R.string.root_hint_no_session),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -660,7 +662,7 @@ private fun RootTabContent(
                 ) {
                     Icon(Icons.Filled.Dashboard, null, Modifier.size(20.dp))
                     Spacer(Modifier.width(10.dp))
-                    Text("Vai alla dashboard", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.go_to_dashboard), style = MaterialTheme.typography.labelLarge)
                 }
 
                 if (state.isRootReady) {
@@ -707,7 +709,7 @@ private fun RootTabContent(
                         onClick = onShowManualMode,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Seleziona File Manualmente")
+                        Text(stringResource(R.string.manual_mode_button))
                     }
                 }
             }
@@ -732,11 +734,11 @@ private fun RootTabContent(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Opzioni Manuali (No Root)", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.manual_mode_title), style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(16.dp))
 
                     ManualFileButton(
-                        label = "File Chiave (key)",
+                        label = stringResource(R.string.manual_file_key),
                         isLoaded = state.hasManualKey,
                         onClick = {
                             currentSelectionType = FileExtractor.KEY_DEST
@@ -744,7 +746,7 @@ private fun RootTabContent(
                         }
                     )
                     ManualFileButton(
-                        label = "Database (msgstore.db.crypt14)",
+                        label = stringResource(R.string.manual_file_crypt14),
                         isLoaded = state.hasManualCrypt14,
                         onClick = {
                             currentSelectionType = FileExtractor.CRYPT14_DEST
@@ -752,7 +754,7 @@ private fun RootTabContent(
                         }
                     )
                     ManualFileButton(
-                        label = "Database già decifrato (msgstore.db)",
+                        label = stringResource(R.string.manual_file_decrypted),
                         isLoaded = state.hasManualDbDecrypted,
                         onClick = {
                             currentSelectionType = FileExtractor.DB_DECRYPTED_DEST
@@ -760,7 +762,7 @@ private fun RootTabContent(
                         }
                     )
                     ManualFileButton(
-                        label = "Contatti (wa.db) - Opzionale",
+                        label = stringResource(R.string.manual_file_wadb),
                         isLoaded = state.hasManualWaDb,
                         onClick = {
                             currentSelectionType = FileExtractor.WA_DB_DEST
@@ -786,11 +788,11 @@ private fun RootTabContent(
             ) {
                 Icon(
                     imageVector = Icons.Filled.Close,
-                    contentDescription = "Annulla",
+                    contentDescription = stringResource(R.string.cancel),
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(Modifier.width(12.dp))
-                Text("Annulla", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.cancel), style = MaterialTheme.typography.labelLarge)
             }
         } else {
             Button(
@@ -839,7 +841,7 @@ private fun ManualFileButton(
             onClick = onClick,
             modifier = Modifier.weight(1f)
         ) {
-            Text(if (isLoaded) "Sostituisci" else "Seleziona")
+            Text(if (isLoaded) stringResource(R.string.button_replace) else stringResource(R.string.button_select))
         }
         Spacer(Modifier.width(12.dp))
         Text(label, modifier = Modifier.weight(2f), style = MaterialTheme.typography.bodySmall)

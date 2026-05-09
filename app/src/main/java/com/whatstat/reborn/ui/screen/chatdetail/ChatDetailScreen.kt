@@ -57,6 +57,9 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.ui.res.stringResource
+import com.whatstat.reborn.R
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -190,7 +193,7 @@ fun ChatDetailScreen(
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Indietro",
+                        contentDescription = stringResource(R.string.back_desc),
                         tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
@@ -203,7 +206,7 @@ fun ChatDetailScreen(
                                 .data(java.io.File(s.avatarPath))
                                 .crossfade(true)
                                 .build(),
-                            contentDescription = "Avatar",
+                            contentDescription = stringResource(R.string.avatar_desc),
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
@@ -244,7 +247,7 @@ fun ChatDetailScreen(
                             )
                         )
                         Text(
-                            "%,d messaggi".format(s.totalMessages),
+                            stringResource(R.string.messages_count_suffix, s.totalMessages),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -260,7 +263,7 @@ fun ChatDetailScreen(
                                     .data(java.io.File(hi.avatarPath))
                                     .crossfade(true)
                                     .build(),
-                                contentDescription = "Avatar",
+                                contentDescription = stringResource(R.string.avatar_desc),
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape),
@@ -345,7 +348,7 @@ fun ChatDetailScreen(
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     SelectionContainer {
                         Text(
-                            text = errorMsg ?: "Errore sconosciuto",
+                            text = errorMsg ?: stringResource(R.string.error_unknown, ""),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(16.dp)
@@ -363,13 +366,13 @@ fun ChatDetailScreen(
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 StatCard(
                                     modifier = Modifier.weight(1f),
-                                    label = "Inviati",
+                                    label = stringResource(R.string.chatdetail_sent),
                                     value = "%,d".format(s.sentByMe),
                                     icon = Icons.AutoMirrored.Filled.Send
                                 )
                                 StatCard(
                                     modifier = Modifier.weight(1f),
-                                    label = "Ricevuti",
+                                    label = stringResource(R.string.chatdetail_received),
                                     value = "%,d".format(s.receivedFromThem),
                                     icon = Icons.Filled.CallReceived
                                 )
@@ -378,7 +381,7 @@ fun ChatDetailScreen(
 
                         // ── Distribuzione messaggi (Pie Chart) ───────────
                         item {
-                            SectionCard(title = "Chi scrive di più") {
+                            SectionCard(title = stringResource(R.string.chatdetail_top_sender_title)) {
                                 if (s.senderBreakdown.isNotEmpty()) {
                                     MessagePieChart(
                                         senders = s.senderBreakdown,
@@ -387,10 +390,10 @@ fun ChatDetailScreen(
                                 } else if (isLoadingSlow) {
                                     LoadingSection(progress = progressSlow)
                                 } else {
-                                    val otherName = if (!s.isGroup) s.contactName else "Loro"
+                                    val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
                                     MessagePieChart(
                                         senders = listOf(
-                                            com.whatstat.reborn.data.db.model.SenderStat("me", "Tu", s.sentByMe),
+                                            com.whatstat.reborn.data.db.model.SenderStat("me", stringResource(R.string.fallback_me), s.sentByMe),
                                             com.whatstat.reborn.data.db.model.SenderStat("other", otherName, s.receivedFromThem)
                                         ),
                                         totalMessages = s.totalMessages
@@ -404,7 +407,7 @@ fun ChatDetailScreen(
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 DateRangeCard(
                                     modifier = Modifier.weight(1f),
-                                    label = "Periodo di attività",
+                                    label = stringResource(R.string.activity_period_label),
                                     startTimestamp = s.firstMessageDate,
                                     endTimestamp = s.lastMessageDate,
                                     dateFormatter = dateFormatter,
@@ -413,7 +416,7 @@ fun ChatDetailScreen(
                                 )
                                 StatCard(
                                     modifier = Modifier.weight(1f),
-                                    label = "Tempo medio risposta",
+                                    label = stringResource(R.string.avg_response_time),
                                     value = formatDuration(s.averageResponseTimeMs),
                                     icon = Icons.Outlined.AccessTime,
                                     isSmallText = true
@@ -425,15 +428,15 @@ fun ChatDetailScreen(
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 StatCard(
                                     modifier = Modifier.weight(1f),
-                                    label = "File media",
+                                    label = stringResource(R.string.stat_total_media),
                                     value = "%,d".format(s.mediaCount),
                                     icon = Icons.Outlined.PhotoLibrary,
                                     isSmallText = true
                                 )
                                 StatCard(
                                     modifier = Modifier.weight(1f),
-                                    label = "Lungh. media msg",
-                                    value = "%.0f car.".format(s.averageMessageLength),
+                                    label = stringResource(R.string.media_length_label),
+                                    value = "%.0f ${stringResource(R.string.chars_abbr)}".format(s.averageMessageLength),
                                     icon = Icons.Outlined.TextFields,
                                     isSmallText = true
                                 )
@@ -443,7 +446,7 @@ fun ChatDetailScreen(
                         // ── Conversation Starters ────────────────────────────
                         item {
                             SectionCard(
-                                title = "Chi inizia le conversazioni",
+                                title = stringResource(R.string.conv_starters_title),
                                 onInfoClick = { showInfoDialog = true }
                             ) {
                                 if (s.conversationStarterBreakdown.isNotEmpty()) {
@@ -451,21 +454,21 @@ fun ChatDetailScreen(
                                     MessagePieChart(
                                         senders = s.conversationStarterBreakdown,
                                         totalMessages = breakdownTotal,
-                                        centerLabel = "conversazioni"
+                                        centerLabel = stringResource(R.string.conv_starters_center)
                                     )
                                 } else if (isLoadingSlow) {
                                     LoadingSection(progress = progressSlow)
                                 } else {
                                     val starterTotal = (s.iStartedConversations + s.theyStartedConversations)
                                         .coerceAtLeast(1)
-                                    val otherName = if (!s.isGroup) s.contactName else "Loro"
+                                    val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
                                     MessagePieChart(
                                         senders = listOf(
-                                            com.whatstat.reborn.data.db.model.SenderStat("me", "Tu", s.iStartedConversations),
+                                            com.whatstat.reborn.data.db.model.SenderStat("me", stringResource(R.string.fallback_me), s.iStartedConversations),
                                             com.whatstat.reborn.data.db.model.SenderStat("other", otherName, s.theyStartedConversations)
                                         ),
                                         totalMessages = starterTotal,
-                                        centerLabel = "conversazioni"
+                                        centerLabel = stringResource(R.string.conv_starters_center)
                                     )
                                 }
                             }
@@ -486,12 +489,12 @@ fun ChatDetailScreen(
                         // ── Analisi Testi (Parole / Emoji / Sticker) ──────
                         // In Lite mode lo Sticker tab viene nascosto.
                         item {
-                            val tabs = if (isLiteMode) listOf("Parole", "Emoji") else listOf("Parole", "Emoji", "Sticker")
+                            val tabs = if (isLiteMode) listOf(stringResource(R.string.tab_words), stringResource(R.string.tab_emojis)) else listOf(stringResource(R.string.tab_words), stringResource(R.string.tab_emojis), stringResource(R.string.tab_stickers))
                             var selectedTab by remember { mutableIntStateOf(0) }
                             if (selectedTab >= tabs.size) selectedTab = 0
 
                             SectionCard(
-                                title = "Analisi testi",
+                                title = stringResource(R.string.text_analysis_title),
                                 trailingContent = {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -603,7 +606,7 @@ fun ChatDetailScreen(
                                         .padding(4.dp),
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    listOf(false to "Tutti", true to "Per Persona").forEach { (isIndividual, label) ->
+                                    listOf(false to stringResource(R.string.view_mode_all), true to stringResource(R.string.view_mode_person)).forEach { (isIndividual, label) ->
                                         Box(
                                             modifier = Modifier
                                                 .weight(1f)
@@ -679,7 +682,7 @@ fun ChatDetailScreen(
                                                 (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED && isLoadingSlow && currentWords.isEmpty()) ->
                                                     LoadingSection(progress = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED) progressSlow else null)
                                                 currentWords.isEmpty() ->
-                                                    Text("Nessuna parola trovata", style = MaterialTheme.typography.bodyMedium,
+                                                    Text(stringResource(R.string.no_words_found), style = MaterialTheme.typography.bodyMedium,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
                                                 else ->
                                                     InteractiveWordCloud(words = currentWords)
@@ -693,7 +696,7 @@ fun ChatDetailScreen(
                                                 (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED && isLoadingSlow && currentEmojis.isEmpty()) ->
                                                     LoadingSection(progress = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED) progressSlow else null)
                                                 currentEmojis.isEmpty() ->
-                                                    Text("Nessuna emoji trovata", style = MaterialTheme.typography.bodyMedium,
+                                                    Text(stringResource(R.string.no_emojis_found), style = MaterialTheme.typography.bodyMedium,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
                                                 else ->
                                                     InteractiveEmojiCloud(
@@ -718,7 +721,7 @@ fun ChatDetailScreen(
                                                 )
                                                 Spacer(Modifier.width(4.dp))
                                                 Text(
-                                                    "Sticker simili possono comparire più volte perché WhatsApp li salva come file separati.",
+                                                    stringResource(R.string.sticker_info_hint),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -729,7 +732,7 @@ fun ChatDetailScreen(
                                                 isStickerLoading ->
                                                     LoadingSection()
                                                 currentStickers.isEmpty() ->
-                                                    Text("Nessuno sticker trovato", style = MaterialTheme.typography.bodyMedium,
+                                                    Text(stringResource(R.string.no_stickers_found), style = MaterialTheme.typography.bodyMedium,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
                                                 else ->
                                                     InteractiveStickerCloud(
@@ -754,33 +757,33 @@ fun ChatDetailScreen(
                                     // Layout 2x2 per i gruppi
                                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                            ActionCard(
-                                                modifier = Modifier.weight(1f),
-                                                title = "Radar Parole",
-                                                subtitle = "Cerca parole frequenti",
-                                                icon = Icons.Outlined.Search,
-                                                onClick = onNavigateToWordSearch
-                                            )
-                                            ActionCard(
-                                                modifier = Modifier.weight(1f),
-                                                title = "Log Chiamate",
-                                                subtitle = "Audio, video, perse",
-                                                icon = Icons.Outlined.Call,
-                                                onClick = onNavigateToCalls
-                                            )
+                                                ActionCard(
+                                                    modifier = Modifier.weight(1f),
+                                                    title = stringResource(R.string.radar_parole_title),
+                                                    subtitle = stringResource(R.string.radar_parole_sub),
+                                                    icon = Icons.Outlined.Search,
+                                                    onClick = onNavigateToWordSearch
+                                                )
+                                                ActionCard(
+                                                    modifier = Modifier.weight(1f),
+                                                    title = stringResource(R.string.log_chiamate_title),
+                                                    subtitle = stringResource(R.string.log_chiamate_sub),
+                                                    icon = Icons.Outlined.Call,
+                                                    onClick = onNavigateToCalls
+                                                )
                                         }
                                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                             ActionCard(
                                                 modifier = Modifier.weight(1f),
-                                                title = "Media & Link",
-                                                subtitle = "Documenti e URL",
+                                                title = stringResource(R.string.media_link_title),
+                                                subtitle = stringResource(R.string.media_link_sub),
                                                 icon = Icons.Outlined.Link,
                                                 onClick = onNavigateToMedia
                                             )
                                             ActionCard(
                                                 modifier = Modifier.weight(1f),
-                                                title = "Storico Gruppo",
-                                                subtitle = "Eventi del gruppo",
+                                                title = stringResource(R.string.group_history_title),
+                                                subtitle = stringResource(R.string.group_history_sub),
                                                 icon = Icons.Outlined.History,
                                                 onClick = onNavigateToHistory
                                             )
@@ -791,22 +794,22 @@ fun ChatDetailScreen(
                                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                         ActionCard(
                                             modifier = Modifier.weight(1f),
-                                            title = "Radar Parole",
-                                            subtitle = "Cerca parole frequenti",
+                                            title = stringResource(R.string.radar_parole_title),
+                                            subtitle = stringResource(R.string.radar_parole_sub),
                                             icon = Icons.Outlined.Search,
                                             onClick = onNavigateToWordSearch
                                         )
                                         ActionCard(
                                             modifier = Modifier.weight(1f),
-                                            title = "Log Chiamate",
-                                            subtitle = "Audio, video, perse",
+                                            title = stringResource(R.string.log_chiamate_title),
+                                            subtitle = stringResource(R.string.log_chiamate_sub),
                                             icon = Icons.Outlined.Call,
                                             onClick = onNavigateToCalls
                                         )
                                         ActionCard(
                                             modifier = Modifier.weight(1f),
-                                            title = "Media & Link",
-                                            subtitle = "Documenti e URL",
+                                            title = stringResource(R.string.media_link_title),
+                                            subtitle = stringResource(R.string.media_link_sub),
                                             icon = Icons.Outlined.Link,
                                             onClick = onNavigateToMedia
                                         )
@@ -826,13 +829,13 @@ fun ChatDetailScreen(
         if (showInfoDialog) {
             AlertDialog(
                 onDismissRequest = { showInfoDialog = false },
-                title = { Text("Informazioni") },
+                title = { Text(stringResource(R.string.info_dialog_title)) },
                 text = { 
-                    Text("Una nuova conversazione viene contata quando un messaggio viene inviato dopo almeno 3 ore di silenzio rispetto all'ultimo messaggio precedente.")
+                    Text(stringResource(R.string.conv_starters_info))
                 },
                 confirmButton = {
                     TextButton(onClick = { showInfoDialog = false }) {
-                        Text("Ho capito")
+                        Text(stringResource(R.string.ho_capito))
                     }
                 },
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -903,7 +906,7 @@ private fun SectionCard(
                         ) {
                             Icon(
                                 Icons.Outlined.Info,
-                                contentDescription = "Informazioni",
+                                contentDescription = stringResource(R.string.info_dialog_title),
                                 tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                                 modifier = Modifier.size(16.dp)
                             )
@@ -966,14 +969,15 @@ private fun ActionCard(
     }
 }
 
+@Composable
 private fun formatDuration(ms: Long): String {
     if (ms <= 0) return "—"
     val hours = TimeUnit.MILLISECONDS.toHours(ms)
     val minutes = TimeUnit.MILLISECONDS.toMinutes(ms) % 60
     return when {
-        hours > 0 -> "${hours}h ${minutes}m"
-        minutes > 0 -> "${minutes} min"
-        else -> "<1 min"
+        hours > 0 -> "${hours}${stringResource(R.string.unit_hours)} ${minutes}${stringResource(R.string.unit_minutes)}"
+        minutes > 0 -> "${minutes} ${stringResource(R.string.unit_min_full)}"
+        else -> stringResource(R.string.less_than_one_min)
     }
 }
 
@@ -998,7 +1002,7 @@ private val pieColors = listOf(
 private fun MessagePieChart(
     senders: List<com.whatstat.reborn.data.db.model.SenderStat>,
     totalMessages: Int,
-    centerLabel: String = "messaggi"
+    centerLabel: String = stringResource(R.string.messages_label)
 ) {
     val total = totalMessages.coerceAtLeast(1)
     var expanded by remember { mutableStateOf(false) }
@@ -1107,7 +1111,7 @@ private fun MessagePieChart(
         // ── Toggle "Mostra tutti" / "Mostra meno" ──
         if (showExpand) {
             Text(
-                text = if (expanded) "Mostra meno" else "Mostra tutti (${senders.size})",
+                text = if (expanded) stringResource(R.string.show_less) else stringResource(R.string.show_more_with_count, senders.size),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier

@@ -20,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.res.stringResource
+import com.whatstat.reborn.R
 import coil.compose.AsyncImage
 import com.whatstat.reborn.domain.model.GroupEventUiModel
 import com.whatstat.reborn.ui.component.LoadingSection
@@ -49,8 +51,8 @@ fun GroupHistoryScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         SimpleScreenHeader(
-            title = "Storia del Gruppo",
-            subtitle = chatName ?: "Caricamento...",
+            title = stringResource(R.string.group_history_title),
+            subtitle = chatName ?: stringResource(R.string.loading),
             avatarPath = chatAvatar,
             onBack = onNavigateBack
         )
@@ -71,7 +73,7 @@ fun GroupHistoryScreen(
                 if (state.events.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = "Nessun evento storico trovato per questo gruppo.",
+                            text = stringResource(R.string.group_history_no_events),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -130,14 +132,14 @@ fun TimelineLegendBar() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Outlined.Edit,
-                        contentDescription = "Nomi/Descrizioni",
+                        contentDescription = stringResource(R.string.history_legend_names) + "/" + stringResource(R.string.history_legend_descriptions),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Nomi",
+                            text = stringResource(R.string.history_legend_names),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -147,7 +149,7 @@ fun TimelineLegendBar() {
                             color = MaterialTheme.colorScheme.secondary
                         )
                         Text(
-                            text = "Descrizioni",
+                            text = stringResource(R.string.history_legend_descriptions),
                             style = MaterialTheme.typography.titleMedium,
                             color = androidx.compose.ui.graphics.Color(0xFF0288D1) // Azzurro più scuro per la legenda
                         )
@@ -161,14 +163,14 @@ fun TimelineLegendBar() {
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Entrate/Uscite",
+                        text = stringResource(R.string.history_legend_io),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.secondary
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.Outlined.Group,
-                        contentDescription = "Entrate/Uscite",
+                        contentDescription = stringResource(R.string.history_legend_io),
                         tint = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(22.dp)
                     )

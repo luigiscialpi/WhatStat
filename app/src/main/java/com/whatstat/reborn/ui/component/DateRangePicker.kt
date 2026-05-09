@@ -27,6 +27,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.ui.res.stringResource
+import com.whatstat.reborn.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -90,7 +92,7 @@ fun DateRangePicker(
                 TextField(
                     value = dateRange?.startTime?.let { dateFormatter.format(Date(it)) } ?: "",
                     onValueChange = {},
-                    placeholder = { Text("Da", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                    placeholder = { Text(stringResource(R.string.date_from), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
                     readOnly = true,
                     colors = transparentColors,
                     singleLine = true,
@@ -110,7 +112,7 @@ fun DateRangePicker(
                 TextField(
                     value = dateRange?.endTime?.let { dateFormatter.format(Date(it)) } ?: "",
                     onValueChange = {},
-                    placeholder = { Text("A", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                    placeholder = { Text(stringResource(R.string.date_to), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
                     readOnly = true,
                     colors = transparentColors,
                     singleLine = true,
@@ -125,7 +127,7 @@ fun DateRangePicker(
             
             if (dateRange != null) {
                 IconButton(onClick = { onDateRangeChanged(null) }) {
-                    Icon(Icons.Default.Clear, tint = Color.Gray, contentDescription = "Svuota")
+                    Icon(Icons.Default.Clear, tint = Color.Gray, contentDescription = stringResource(R.string.clear))
                 }
             }
             
@@ -148,7 +150,7 @@ fun DateRangePicker(
                 ) {
                     Icon(
                         if (isSearching) Icons.Default.Close else Icons.Filled.Search,
-                        contentDescription = if (isSearching) "Annulla" else "Cerca"
+                        contentDescription = if (isSearching) stringResource(R.string.cancel) else stringResource(R.string.search_button)
                     )
                 }
             }
@@ -168,10 +170,10 @@ fun DateRangePicker(
                     )
                     onDateRangeChanged(newRange)
                     showStartPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showStartPicker = false }) { Text("Annulla") }
+                TextButton(onClick = { showStartPicker = false }) { Text(stringResource(R.string.cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -191,10 +193,10 @@ fun DateRangePicker(
                     )
                     onDateRangeChanged(newRange)
                     showEndPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showEndPicker = false }) { Text("Annulla") }
+                TextButton(onClick = { showEndPicker = false }) { Text(stringResource(R.string.cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)

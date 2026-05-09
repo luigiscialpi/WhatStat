@@ -67,6 +67,8 @@ import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.ui.res.stringResource
+import com.whatstat.reborn.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -173,7 +175,7 @@ fun MediaStatsScreen(
             // ── HEADER ─────────────────────────────────────
             var showInfoDialog by remember { mutableStateOf(false) }
             SimpleScreenHeader(
-                title = "Media & Link",
+                title = stringResource(R.string.media_link_title),
                 onBack = if (isChatDetail) onNavigateBack else null,
                 subtitle = chatContextName,
                 avatarPath = chatContextAvatarPath
@@ -181,20 +183,20 @@ fun MediaStatsScreen(
                 IconButton(onClick = { showInfoDialog = true }) {
                     Icon(
                         Icons.Outlined.Info,
-                        contentDescription = "Informazioni sui media",
+                        contentDescription = stringResource(R.string.info_dialog_title),
                         tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
                 if (showInfoDialog) {
                     AlertDialog(
                         onDismissRequest = { showInfoDialog = false },
-                        title = { Text("Informazioni sui Media") },
+                    title = { Text(stringResource(R.string.media_info_title)) },
                         text = { 
-                            Text("Questi contatori includono solo Foto e Video scambiati storicamente.\n\nNota bene: i bottoni esterni mostrano il totale assoluto di sempre. Tuttavia, entrando nella galleria i numeri saranno quasi sempre inferiori poiché verranno caricati e visualizzati solo i media ancora fisicamente presenti nel telefono e non eliminati nel corso del tempo.")
+                            Text(stringResource(R.string.media_info_text_global))
                         },
                         confirmButton = {
                             TextButton(onClick = { showInfoDialog = false }) {
-                                Text("Ho capito")
+                                Text(stringResource(R.string.ho_capito))
                             }
                         },
                         containerColor = MaterialTheme.colorScheme.surface,
@@ -242,12 +244,12 @@ fun MediaStatsScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { viewModel.setSearchQuery(it) },
-                        placeholder = { Text("Cerca contatto…") },
+                        placeholder = { Text(stringResource(R.string.chatlist_search_hint)) },
                         leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
                                 IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                                    Icon(Icons.Outlined.Clear, contentDescription = "Cancella")
+                                    Icon(Icons.Outlined.Clear, contentDescription = stringResource(R.string.cancel))
                                 }
                             }
                         },
@@ -277,7 +279,7 @@ fun MediaStatsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "Nessun link o media trovato",
+                            stringResource(R.string.no_results_word),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -311,7 +313,7 @@ fun MediaStatsScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            "← Torna a tutti i link",
+                                            stringResource(R.string.back_to_all_links),
                                             style = MaterialTheme.typography.titleMedium,
                                             color = MaterialTheme.colorScheme.onPrimaryContainer
                                         )
@@ -324,7 +326,7 @@ fun MediaStatsScreen(
                         if (topDomains.isNotEmpty() && !isShowingBreakdown) {
                             item {
                                 Text(
-                                    "Domini più condivisi",
+                                    stringResource(R.string.links_grouped_domain),
                                     style = MaterialTheme.typography.titleMedium,
                                     modifier = Modifier.padding(vertical = 8.dp)
                                 )
@@ -342,10 +344,7 @@ fun MediaStatsScreen(
                         item {
                             Text(
                                 when {
-                                    isShowingBreakdown -> "Dettaglio per contatto"
-                                    isChatDetail -> "Classifica link per persona"
-                                    isLite -> "Re delle condivisioni"
-                                    else -> "Re dei Link"
+                                    else -> stringResource(R.string.media_link_title)
                                 },
                                 style = MaterialTheme.typography.titleMedium,
                                 modifier = Modifier.padding(vertical = 8.dp)
@@ -511,7 +510,7 @@ private fun MediaGallerySheet(
             }
             Column {
                 Text(
-                    "Analisi Media",
+                    stringResource(R.string.media_link_title),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -534,7 +533,7 @@ private fun MediaGallerySheet(
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                listOf(0 to "Galleria (${galleryFiles.size})", 1 to "Sticker ($stickerCount)").forEach { (idx, label) ->
+                listOf(0 to "${stringResource(R.string.tab_media)} (${galleryFiles.size})", 1 to "${stringResource(R.string.tab_stickers)} ($stickerCount)").forEach { (idx, label) ->
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -567,8 +566,8 @@ private fun MediaGallerySheet(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    if (activeTab == 1) "$stickerCount sticker"
-                    else "${photoCount} foto · $videoCount video" + if (audioCount > 0) " · $audioCount audio" else "",
+                    if (activeTab == 1) "$stickerCount ${stringResource(R.string.tab_stickers)}"
+                    else "${photoCount} ${stringResource(R.string.type_images)} · $videoCount ${stringResource(R.string.type_videos)}" + if (audioCount > 0) " · $audioCount ${stringResource(R.string.type_audio)}" else "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -577,7 +576,7 @@ private fun MediaGallerySheet(
                 IconButton(onClick = { showInfoDialog = true }, modifier = Modifier.size(32.dp)) {
                     Icon(
                         Icons.Outlined.Info,
-                        contentDescription = "Informazioni",
+                        contentDescription = stringResource(R.string.info_dialog_title),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp).padding(start = 4.dp)
                     )
@@ -586,13 +585,13 @@ private fun MediaGallerySheet(
                 if (showInfoDialog) {
                     AlertDialog(
                         onDismissRequest = { showInfoDialog = false },
-                        title = { Text("Informazioni sui Media") },
+                        title = { Text(stringResource(R.string.media_info_title)) },
                         text = { 
-                            Text("Questi contatori si riferiscono solo ai file attuali.\n\nNota bene: i bottoni nella schermata precedente e nei breakdown mostrano il totale assoluto dei file scambiati per sempre. Tuttavia la galleria calcola e ti permette di vedere solo i numeri fisicamente presenti adesso nel telefono, escludendo i file cancellati nel corso del tempo (da te o da pulitori automatici).")
+                            Text(stringResource(R.string.media_info_text_gallery))
                         },
                         confirmButton = {
                             TextButton(onClick = { showInfoDialog = false }) {
-                                Text("Ho capito")
+                                Text(stringResource(R.string.ho_capito))
                             }
                         },
                         containerColor = MaterialTheme.colorScheme.surface,
@@ -605,11 +604,11 @@ private fun MediaGallerySheet(
             TextButton(onClick = { sortAscending = !sortAscending }) {
                 Icon(
                     Icons.Outlined.SwapVert,
-                    contentDescription = "Ordina data",
+                    contentDescription = stringResource(R.string.radar_parole_title),
                     modifier = Modifier.rotate(rotation)
                 )
                 Spacer(Modifier.width(4.dp))
-                Text(if (sortAscending) "Meno recenti" else "Più recenti")
+                Text(if (sortAscending) stringResource(R.string.sort_oldest) else stringResource(R.string.sort_newest))
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -627,7 +626,7 @@ private fun MediaGallerySheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Nessun media trovato",
+                        stringResource(R.string.no_stickers_found),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -664,7 +663,7 @@ private fun MediaGallerySheet(
                                                 intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                                 context.startActivity(intent)
                                             } catch (e: Exception) {
-                                                android.widget.Toast.makeText(context, "Impossibile aprire il file", android.widget.Toast.LENGTH_SHORT).show()
+                                                android.widget.Toast.makeText(context, context.getString(R.string.error_open_file), android.widget.Toast.LENGTH_SHORT).show()
                                             }
                                         } else {
                                             selectedImageForPreview = media
@@ -678,7 +677,7 @@ private fun MediaGallerySheet(
                                     ) {
                                         Icon(
                                             Icons.Outlined.Mic,
-                                            contentDescription = "Audio",
+                                            contentDescription = stringResource(R.string.type_audio),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(32.dp).align(Alignment.Center)
                                         )
@@ -705,7 +704,7 @@ private fun MediaGallerySheet(
                                         ) {
                                             Icon(
                                                 Icons.Outlined.PlayArrow,
-                                                contentDescription = "Video",
+                                                contentDescription = stringResource(R.string.type_videos),
                                                 tint = Color.White,
                                                 modifier = Modifier.size(24.dp)
                                             )
@@ -733,7 +732,7 @@ private fun MediaGallerySheet(
                                     .fillMaxWidth()
                                     .padding(16.dp)
                             ) {
-                                Text("Carica altri (${sortedAll.size - displayedCount} rimasti)")
+                                Text("${stringResource(R.string.load_more)} (${sortedAll.size - displayedCount} ${stringResource(R.string.show_less)})")
                             }
                         }
                     }

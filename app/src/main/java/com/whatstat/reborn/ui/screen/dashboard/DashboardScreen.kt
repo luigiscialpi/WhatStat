@@ -55,6 +55,8 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.ui.res.stringResource
+import com.whatstat.reborn.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -170,7 +172,7 @@ fun DashboardScreen(
             ) {
                 Column {
                     Text(
-                        "Panoramica",
+                        stringResource(R.string.dashboard_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -181,7 +183,7 @@ fun DashboardScreen(
                             modifier = Modifier.padding(top = 2.dp)
                         ) {
                             Text(
-                                "MODALITÀ LITE (ZIP)",
+                                stringResource(R.string.lite_mode_badge),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
@@ -194,7 +196,7 @@ fun DashboardScreen(
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Torna indietro"
+                        contentDescription = stringResource(R.string.back_button_desc)
                     )
                 }
             }
@@ -248,7 +250,7 @@ fun DashboardScreen(
                         ) {
                             Column(Modifier.padding(16.dp)) {
                                 Text(
-                                    "ERRORE",
+                                    stringResource(R.string.error_title),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
@@ -259,7 +261,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 Button(onClick = { viewModel.retry() }) {
-                                    Text("Riprova")
+                                    Text(stringResource(R.string.retry))
                                 }
                             }
                         }
@@ -277,13 +279,13 @@ fun DashboardScreen(
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     StatCard(
                                         modifier = Modifier.weight(1f),
-                                        label = "Messaggi totali",
+                                        label = stringResource(R.string.stat_total_messages),
                                         value = "%,d".format(s.totalMessages),
                                         icon = Icons.AutoMirrored.Outlined.Chat
                                     )
                                     StatCard(
                                         modifier = Modifier.weight(1f),
-                                        label = "Media/giorno",
+                                        label = stringResource(R.string.stat_avg_per_day),
                                         value = "%.1f".format(s.averageMessagesPerDay),
                                         icon = Icons.AutoMirrored.Outlined.TrendingUp
                                     )
@@ -291,14 +293,14 @@ fun DashboardScreen(
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     StatCard(
                                         modifier = Modifier.weight(1f),
-                                        label = "File media",
+                                        label = stringResource(R.string.stat_total_media),
                                         value = "%,d".format(s.totalMediaFiles),
                                         icon = Icons.Outlined.PhotoLibrary,
                                         isSmallText = true
                                     )
                                     StatCard(
                                         modifier = Modifier.weight(1f),
-                                        label = "Chat più attiva",
+                                        label = stringResource(R.string.stat_most_active_chat),
                                         value = s.mostActiveChat,
                                         icon = Icons.AutoMirrored.Outlined.TrendingUp,
                                         isSmallText = true
@@ -325,8 +327,8 @@ fun DashboardScreen(
                 item {
                     if (!slowStatsRequested) {
                         SectionCard(
-                            title = "Analisi Lessicale",
-                            subtitle = "Parole ed emoji più frequenti"
+                            title = stringResource(R.string.lexical_analysis_title),
+                            subtitle = stringResource(R.string.lexical_analysis_subtitle)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -340,7 +342,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    "L'analisi potrebbe richiedere parecchi secondi - forse anche qualche minuto!",
+                                    stringResource(R.string.lexical_analysis_info),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -355,13 +357,13 @@ fun DashboardScreen(
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(Modifier.width(8.dp))
-                                Text("Avvia analisi")
+                                Text(stringResource(R.string.run_analysis_button))
                             }
                         }
                     } else if (isLoadingSlow) {
                         SectionCard(
-                            title = "Analisi Lessicale",
-                            subtitle = "Elaborazione in corso..."
+                            title = stringResource(R.string.lexical_analysis_title),
+                            subtitle = stringResource(R.string.processing)
                         ) {
                             LoadingSection(progress = progressSlow)
                         }
@@ -373,14 +375,14 @@ fun DashboardScreen(
                 // gli sticker per file identico quindi i conteggi sarebbero fuorvianti.
                 if (slowStatsRequested && !isLoadingSlow && s != null) {
                     item {
-                        val tabs = if (isLiteMode) listOf("Parole", "Emoji") else listOf("Parole", "Emoji", "Sticker")
+                        val tabs = if (isLiteMode) listOf(stringResource(R.string.tab_words), stringResource(R.string.tab_emojis)) else listOf(stringResource(R.string.tab_words), stringResource(R.string.tab_emojis), stringResource(R.string.tab_stickers))
                         var selectedTab by remember { mutableIntStateOf(0) }
                         // Clamp per evitare indice out-of-bounds se si cambia modalità
                         if (selectedTab >= tabs.size) selectedTab = 0
 
                         SectionCard(
-                            title = "Analisi testi",
-                            subtitle = "Parole, emoji e sticker più frequenti",
+                            title = stringResource(R.string.text_analysis_title),
+                            subtitle = stringResource(R.string.text_analysis_subtitle),
                             trailingContent = {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -451,7 +453,7 @@ fun DashboardScreen(
                                 0 -> {
                                     if (s.topWords.isEmpty()) {
                                         Text(
-                                            "Nessuna parola trovata",
+                                            stringResource(R.string.no_words_found),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(vertical = 24.dp)
@@ -465,7 +467,7 @@ fun DashboardScreen(
                                 1 -> {
                                     if (s.topEmojis.isEmpty()) {
                                         Text(
-                                            "Nessuna emoji trovata",
+                                            stringResource(R.string.no_emojis_found),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(vertical = 24.dp)
@@ -493,14 +495,14 @@ fun DashboardScreen(
                                         )
                                         Spacer(Modifier.width(4.dp))
                                         Text(
-                                            "Sticker simili possono comparire più volte perché WhatsApp li salva come file separati.",
+                                            stringResource(R.string.sticker_info_hint),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                     if (s.topStickers.isEmpty()) {
                                         Text(
-                                            "Nessuno sticker trovato",
+                                            stringResource(R.string.no_stickers_found),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(vertical = 24.dp)

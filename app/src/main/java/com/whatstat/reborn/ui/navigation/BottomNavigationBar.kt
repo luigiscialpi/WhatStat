@@ -13,6 +13,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.whatstat.reborn.R
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -35,31 +37,31 @@ fun BottomNavigationBar(
         BottomNavItem(
             graphRoute = NavGraphRoute.Overview,
             destinationRoute = Screen.Dashboard.route,
-            label = "Home",
+            label = stringResource(R.string.nav_dashboard),
             icon = Icons.Outlined.Dashboard
         ),
         BottomNavItem(
             graphRoute = NavGraphRoute.Chats,
             destinationRoute = Screen.ChatList.route,
-            label = "Chat",
+            label = stringResource(R.string.nav_chats),
             icon = Icons.Outlined.Chat
         ),
         BottomNavItem(
             graphRoute = NavGraphRoute.Media,
             destinationRoute = Screen.MediaStats.route,
-            label = "Media",
+            label = stringResource(R.string.nav_media),
             icon = Icons.Outlined.Link
         ),
         BottomNavItem(
             graphRoute = NavGraphRoute.Radar,
             destinationRoute = Screen.WordSearch.route,
-            label = "Radar",
+            label = stringResource(R.string.nav_radar),
             icon = Icons.Outlined.Search
         ),
         BottomNavItem(
             graphRoute = NavGraphRoute.Calls,
             destinationRoute = Screen.CallsStats.route,
-            label = "Chiamate",
+            label = stringResource(R.string.nav_calls),
             icon = Icons.Outlined.Call
         )
     )

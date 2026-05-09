@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WhatStat Reborn</string>
+
+    <!-- Navigation & Common -->
+    <string name="back_desc">Indietro</string>
+    <string name="back_button_desc">Torna indietro</string>
+    <string name="cancel">Annulla</string>
+    <string name="save">Salva</string>
+    <string name="delete">Elimina</string>
+    <string name="retry">Riprova</string>
+    <string name="error_title">ERRORE</string>
+    <string name="exit_toast">Premi di nuovo per uscire</string>
+    <string name="processing">Elaborazione in corso…</string>
+    <string name="loading">Caricamento…</string>
+    <string name="show_more">Mostra tutti</string>
+    <string name="show_more_with_count">Mostra tutti (%d)</string>
+    <string name="show_less">Mostra meno</string>
+    <string name="info_dialog_title">Informazioni</string>
+    <string name="ho_capito">Ho capito</string>
+    <string name="ok">OK</string>
+    <string name="add_zip_title">Aggiungi ZIP</string>
+    <string name="select_zip_file">SELEZIONA FILE ZIP</string>
+    <string name="processing_label">Elaborazione in corso...</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_chats">Chat</string>
+    <string name="nav_media">Media</string>
+    <string name="nav_radar">Radar</string>
+    <string name="nav_calls">Chiamate</string>
+
+    <string name="group_history_title">Storia del Gruppo</string>
+    <string name="group_history_no_events">Nessun evento storico trovato per questo gruppo.</string>
+    <string name="history_legend_names">Nomi</string>
+    <string name="history_legend_descriptions">Descrizioni</string>
+    <string name="history_legend_io">Entrate/Uscite</string>
+
+    <string name="tab_hourly">Oraria</string>
+    <string name="tab_weekly">Settimanale</string>
+    <string name="tab_daily">Giornaliera</string>
+    <string name="tab_monthly">Mensile</string>
+    <string name="tab_yearly">Annuale</string>
+    <string name="activity_hourly_title">Distribuzione oraria</string>
+    <string name="activity_weekly_title">Attività settimanale</string>
+    <string name="activity_daily_title">Giorni del mese (1-31)</string>
+    <string name="activity_monthly_title">Stagionalità (Gen-Dic)</string>
+    <string name="activity_yearly_title">Trend negli anni</string>
+    <string name="click_hour_format">Ore %d:00</string>
+    <string name="click_day_prefix">Giorno %s</string>
+    <string name="click_year_prefix">Anno %s</string>
+
+    <!-- Setup Screen -->
+    <string name="setup_title">WhatStat Reborn</string>
+    <string name="setup_subtitle">Analisi completa delle tue chat WhatsApp.\nTutti i dati rimangono sul dispositivo.</string>
+    <string name="tab_lite">Lite</string>
+    <string name="tab_root">Root</string>
+    <string name="permesso_notifiche_toast">Il permesso notifiche è necessario per seguire il progresso in background</string>
+    <string name="importing_overlay">Importazione chat in corso…</string>
+    <string name="checking_data_overlay">Verifica dei dati in corso…</string>
+    <string name="who_are_you_title">Chi sei tu?</string>
+    <string name="who_are_you_desc">Seleziona il tuo nome dalla lista per distinguere i messaggi inviati da quelli ricevuti.</string>
+    <string name="lite_hint_import_found">Dati precedentemente importati trovati. Puoi accedere alla dashboard o importare un\'altra chat ZIP.</string>
+    <string name="lite_hint_no_import">Nessun dato importato. Carica una chat WhatsApp esportata come file ZIP.</string>
+    <string name="go_to_dashboard">Vai alla dashboard</string>
+    <string name="import_zip_button">Importa Chat da file ZIP</string>
+    <string name="root_step_access">Accesso root</string>
+    <string name="root_step_extraction">Estrazione file</string>
+    <string name="root_step_decryption">Decifratura database</string>
+    <string name="root_step_contacts">Lettura contatti</string>
+    <string name="root_hint_session_found">Sessione Root preservata trovata. Puoi accedere alla dashboard o avviare una nuova analisi.</string>
+    <string name="root_hint_no_session">Nessuna sessione Root attiva. Avvia l\'analisi per estrarre i dati aggiornati.</string>
+    <string name="manual_mode_button">Seleziona File Manualmente</string>
+    <string name="manual_mode_title">Opzioni Manuali (No Root)</string>
+    <string name="manual_file_key">File Chiave (key)</string>
+    <string name="manual_file_crypt14">Database (msgstore.db.crypt14)</string>
+    <string name="manual_file_decrypted">Database già decifrato (msgstore.db)</string>
+    <string name="manual_file_wadb">Contatti (wa.db) - Opzionale</string>
+    <string name="start_analysis">Inizia analisi</string>
+    <string name="decrypt_db_button">Decifra Database</string>
+    <string name="button_replace">Sostituisci</string>
+    <string name="button_select">Seleziona</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Panoramica</string>
+    <string name="lite_mode_badge">MODALITÀ LITE (ZIP)</string>
+    <string name="stat_total_messages">Messaggi totali</string>
+    <string name="stat_avg_per_day">Media/giorno</string>
+    <string name="stat_active_chats">Chat attive</string>
+    <string name="stat_longest_streak">Streak più lungo</string>
+    <string name="stat_streak_days">%d giorni</string>
+    <string name="stat_contacts">Contatti</string>
+    <string name="stat_total_media">File media</string>
+    <string name="stat_most_active_chat">Chat più attiva</string>
+    <string name="lexical_analysis_title">Analisi Lessicale</string>
+    <string name="lexical_analysis_subtitle">Parole ed emoji più frequenti</string>
+    <string name="lexical_analysis_info">L\'analisi potrebbe richiedere parecchi secondi - forse anche qualche minuto!</string>
+    <string name="run_analysis_button">Avvia analisi</string>
+    <string name="text_analysis_title">Analisi testi</string>
+    <string name="text_analysis_subtitle">Parole, emoji e sticker più frequenti</string>
+    <string name="tab_words">Parole</string>
+    <string name="tab_emojis">Emoji</string>
+    <string name="tab_stickers">Sticker</string>
+    <string name="no_words_found">Nessuna parola trovata</string>
+    <string name="no_emojis_found">Nessuna emoji trovata</string>
+    <string name="sticker_info_hint">Sticker simili possono comparire più volte perché WhatsApp li salva come file separati.</string>
+    <string name="no_stickers_found">Nessuno sticker trovato</string>
+
+    <!-- Errors (Service) -->
+    <string name="error_root_not_available">Root non disponibile. Assicurati che Magisk sia installato e che l\'app abbia i permessi root.</string>
+    <string name="error_root_not_granted">Permessi root negati. Apri Magisk e concedi i permessi a WhatStat Reborn.</string>
+    <string name="error_key_not_found">File chiave non trovato. WhatsApp è installato?</string>
+    <string name="error_crypt14_not_found">Database cifrato non trovato. Assicurati che il backup locale sia attivo in WhatsApp.</string>
+    <string name="error_crypt15_detected">Rilevato backup crypt15 (E2E). Disattiva il backup crittografato end-to-end nelle impostazioni di WhatsApp.</string>
+    <string name="error_decryption_failed">Decifratura fallita: %s</string>
+    <string name="error_database_open">Impossibile aprire il database: %s</string>
+    <string name="error_unknown">Errore imprevisto: %s</string>
+
+    <!-- Chat List -->
+    <string name="chatlist_title">Le tue chat</string>
+    <string name="chatlist_search_hint">Cerca chat…</string>
+    <string name="chatlist_count_suffix">%d chat</string>
+    <string name="add_zip_fab">Aggiungi ZIP</string>
+    <string name="delete_chat_title">Elimina chat</string>
+    <string name="delete_chat_confirm">Vuoi eliminare \"%s\" e tutti i suoi messaggi?</string>
+    <string name="rename_chat_title">Rinomina chat</string>
+    <string name="chat_name_label">Nome chat</string>
+    <string name="exported_on_prefix">Esportata il: %s</string>
+    <string name="messages_count_suffix">%,d messaggi</string>
+    <string name="messages_label">messaggi</string>
+
+    <!-- Chat Detail -->
+    <string name="chatdetail_sent">Inviati</string>
+    <string name="chatdetail_received">Ricevuti</string>
+    <string name="chatdetail_top_sender_title">Chi scrive di più</string>
+    <string name="fallback_them">Loro</string>
+    <string name="fallback_me">Tu</string>
+    <string name="activity_period_label">Periodo di attività</string>
+    <string name="avg_response_time">Tempo medio risposta</string>
+    <string name="media_length_label">Lungh. media msg</string>
+    <string name="chars_abbr">car.</string>
+    <string name="conv_starters_title">Chi inizia le conversazioni</string>
+    <string name="conv_starters_center">conversazioni</string>
+    <string name="view_mode_all">Tutti</string>
+    <string name="view_mode_person">Per Persona</string>
+    <string name="conv_starters_info">Una nuova conversazione viene contata quando un messaggio viene inviato dopo almeno 3 ore di silenzio rispetto all\'ultimo messaggio precedente.</string>
+    
+    <!-- Action Cards -->
+    <string name="radar_parole_title">Radar Parole</string>
+    <string name="radar_parole_sub">Cerca parole frequenti</string>
+    <string name="log_chiamate_title">Log Chiamate</string>
+    <string name="log_chiamate_sub">Audio, video, perse</string>
+    <string name="media_link_title">Media &amp; Link</string>
+    <string name="media_link_sub">Documenti e URL</string>
+    <string name="group_history_sub">Eventi del gruppo</string>
+
+    <!-- Units & Time -->
+    <string name="unit_hours">h</string>
+    <string name="unit_minutes">m</string>
+    <string name="unit_min_full">min</string>
+    <string name="less_than_one_min">&lt;1 min</string>
+
+    <!-- Radar Parole -->
+    <string name="word_search_placeholder">Cerca una parola o frase…</string>
+    <string name="suggested_words_label">Parole suggerite</string>
+    <string name="search_button">Cerca</string>
+    <string name="no_results_word">Nessun messaggio trovato per questa parola.</string>
+    <string name="results_for">Risultati per</string>
+    <string name="occurrences_by_sender">Occorrenze per mittente</string>
+    <string name="message_preview_title">Anteprima messaggi</string>
+    <string name="sort_newest">Più recenti</string>
+    <string name="sort_oldest">Meno recenti</string>
+    <string name="load_more">Carica altri</string>
+    <string name="word_search_hint_min">Inserisci almeno 2 caratteri per cercare</string>
+    <string name="filter_multi">Multi</string>
+    <string name="and_label">E</string>
+    <string name="or_label">O</string>
+    <string name="month_jan">Gen</string>
+    <string name="month_feb">Feb</string>
+    <string name="month_mar">Mar</string>
+    <string name="month_apr">Apr</string>
+    <string name="month_may">Mag</string>
+    <string name="month_jun">Giu</string>
+    <string name="month_jul">Lug</string>
+    <string name="month_aug">Ago</string>
+    <string name="month_sep">Set</string>
+    <string name="month_oct">Ott</string>
+    <string name="month_nov">Nov</string>
+    <string name="month_dec">Dic</string>
+
+    <string name="day_sunday">Domenica</string>
+    <string name="day_monday">Lunedì</string>
+    <string name="day_tuesday">Martedì</string>
+    <string name="day_wednesday">Mercoledì</string>
+    <string name="day_thursday">Giovedì</string>
+    <string name="day_friday">Venerdì</string>
+    <string name="day_saturday">Sabato</string>
+
+    <string name="month_january">Gennaio</string>
+    <string name="month_february">Febbraio</string>
+    <string name="month_march">Marzo</string>
+    <string name="month_april">Aprile</string>
+    <string name="month_may_full">Maggio</string>
+    <string name="month_june">Giugno</string>
+    <string name="month_july">Luglio</string>
+    <string name="month_august">Agosto</string>
+    <string name="month_september">Settembre</string>
+    <string name="month_october">Ottobre</string>
+    <string name="month_november">Novembre</string>
+    <string name="month_december">Dicembre</string>
+    <string name="radar_info_text">Il Radar analizza la frequenza delle parole nei messaggi.\n\nComportamento standard:\n• La ricerca trova tutte le occorrenze della parola, anche se inclusa in altre (es. \'casa\' troverà anche \'casale\').\n• I suggerimenti appaiono dopo 3 caratteri e mostrano le parole più usate.\n\nOpzioni di ricerca:\n• Aa: Attiva la distinzione tra maiuscole e minuscole.\n• ab: Cerca solo la parola esatta, ignorando i match parziali.\n• ?: Mostra solo i messaggi che contengono un punto interrogativo.\n• Multi: Clicca per cambiare modalità:\n   - Multi: Cerca la frase esatta.\n   - Multi: E: Cerca messaggi che contengono TUTTE le parole (AND).\n   - Multi: O: Cerca messaggi che contengono ALMENO UNA parola (OR).</string>
+
+    <!-- Media & Link -->
+    <string name="tab_media">Galleria media</string>
+    <string name="tab_links">Link condivisi</string>
+    <string name="search_links_placeholder">Cerca link o domini…</string>
+    <string name="type_images">Immagini</string>
+    <string name="type_videos">Video</string>
+    <string name="type_audio">Audio</string>
+    <string name="type_docs">Documenti</string>
+    <string name="unit_mb">MB</string>
+    <string name="unit_gb">GB</string>
+    <string name="links_grouped_domain">Link condivisi raggruppati per dominio</string>
+    <string name="last_link_prefix">Ultimo link: %s</string>
+    <string name="sent_by_prefix">Inviato da: %s</string>
+    <string name="media_info_title">Informazioni sui Media</string>
+    <string name="media_info_text_global">Questi contatori includono solo Foto e Video scambiati storicamente.\n\nNota bene: i bottoni esterni mostrano il totale assoluto di sempre. Tuttavia, entrando nella galleria i numeri saranno quasi sempre inferiori poiché verranno caricati e visualizzati solo i media ancora fisicamente presenti nel telefono e non eliminati nel corso del tempo.</string>
+    <string name="media_info_text_gallery">Questi contatori si riferiscono solo ai file attuali.\n\nNota bene: i bottoni nella schermata precedente e nei breakdown mostrano il totale assoluto dei file scambiati per sempre. Tuttavia la galleria calcola e ti permette di vedere solo i numeri fisicamente presenti adesso nel telefono, escludendo i file cancellati nel corso del tempo (da te o da pulitori automatici).</string>
+    <string name="error_open_file">Impossibile aprire il file</string>
+    <string name="back_to_all_links">← Tutti i link</string>
+    <string name="avatar_desc">Avatar</string>
+
+    <!-- Calls Stats -->
+    <string name="total_calls_label">Totale chiamate</string>
+    <string name="call_type_audio">Audio</string>
+    <string name="call_type_video">Video</string>
+    <string name="call_type_missed">Perse</string>
+    <string name="total_duration_label">Durata totale</string>
+    <string name="search_calls_placeholder">Cerca contatti o date…</string>
+    <string name="no_calls_found">Nessuna chiamata trovata</string>
+    <string name="call_audio_label">Chiamata audio</string>
+    <string name="call_video_label">Chiamata video</string>
+    <string name="call_missed_label">Chiamata persa</string>
+    <string name="call_outgoing">Uscente</string>
+    <string name="call_incoming">Entrante</string>
+    <string name="calls_summary_title">Riepilogo</string>
+    <string name="calls_total_label">Totali</string>
+    <string name="calls_grouped_stats">Statistiche chiamate</string>
+    <string name="calls_grouped_person">Dettaglio per persona</string>
+    <string name="calls_log_title">Log Chiamate</string>
+
+    <!-- Days of week -->
+    <string name="day_sun">Dom</string>
+    <string name="day_mon">Lun</string>
+    <string name="day_tue">Mar</string>
+    <string name="day_wed">Mer</string>
+    <string name="day_thu">Gio</string>
+    <string name="day_fri">Ven</string>
+    <string name="day_sat">Sab</string>
+    <string name="total_duration">Durata totale: %s</string>
+    <string name="date_from">Da</string>
+    <string name="date_to">A</string>
+    <string name="clear">Svuota</string>
+</resources>
+
