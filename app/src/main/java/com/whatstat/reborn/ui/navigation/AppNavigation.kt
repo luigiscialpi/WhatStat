@@ -111,13 +111,14 @@ fun AppNavigation(
     val isLiteMode by mainViewModel.isLiteMode.collectAsState()
 
     // Quando arriva un URI da share intent e NON siamo su Setup,
-    // pop-a tutto e torna a Setup perché è lui a consumare gli URI.
+    // naviga a Setup per consumare l'URI.
     LaunchedEffect(Unit) {
         mainViewModel.incomingZipUri.collect { uri ->
-            if (uri != null) {
-                val currentRoute = navController.currentDestination?.route ?: ""
-                if (!currentRoute.startsWith("setup")) {
-                    navController.popBackStack(NavGraphRoute.Setup, inclusive = false)
+            val currentRoute = navController.currentDestination?.route ?: ""
+            if (uri != null && !currentRoute.startsWith("setup")) {
+                navController.navigate(Screen.Setup.createRoute(autoNavigate = true)) {
+                    popUpTo("app_graph") { inclusive = false }
+                    launchSingleTop = true
                 }
             }
         }
