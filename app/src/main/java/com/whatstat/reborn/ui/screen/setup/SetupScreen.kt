@@ -356,8 +356,56 @@ fun SetupScreen(
             }
         }
 
+        // ── Overlay import da condivisione WhatsApp ─────────────
+        if (awaitLiteImport && (liteState.isLoading || liteState.showSenderSelection)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.97f))
+                    .clickable(enabled = false) {},
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.FolderZip,
+                        contentDescription = null,
+                        modifier = Modifier.size(56.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(20.dp))
+                    Text(
+                        "Importazione chat in corso...",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    if (liteState.progressLabel.isNotEmpty()) {
+                        Text(
+                            liteState.progressLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(12.dp))
+                    }
+                    LinearProgressIndicator(
+                        progress = { liteState.progressPercent },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "${(liteState.progressPercent * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+
         // ── Overlay cache check ──────────────────────────────────
-        if (state.isCheckingCache) {
+        if (state.isCheckingCache && !awaitLiteImport) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
