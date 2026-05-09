@@ -265,7 +265,7 @@ class ChatDetailViewModel @Inject constructor(
     fun setWordViewMode(mode: WordViewMode) {
         _wordViewMode.value = mode
         if (mode == WordViewMode.INDIVIDUAL) {
-            _topWordsLimit.value = 5 // Default per individuale
+            _topWordsLimit.value = 30 // Default per individuale
             if (_selectedSenderForWords.value == null) {
                 _selectedSenderForWords.value = SenderStat("me@s.whatsapp.net", "Tu", 0)
             }
@@ -324,7 +324,7 @@ class ChatDetailViewModel @Inject constructor(
     fun setEmojiViewMode(mode: EmojiViewMode) {
         _emojiViewMode.value = mode
         if (mode == EmojiViewMode.INDIVIDUAL) {
-            _topEmojiLimit.value = 5
+            _topEmojiLimit.value = 30
             if (_selectedSenderForEmojis.value == null) {
                 _selectedSenderForEmojis.value = SenderStat("me@s.whatsapp.net", "Tu", 0)
             }
@@ -363,7 +363,7 @@ class ChatDetailViewModel @Inject constructor(
     fun setStickerViewMode(mode: StickerViewMode) {
         _stickerViewMode.value = mode
         if (mode == StickerViewMode.INDIVIDUAL) {
-            _topStickerLimit.value = 5
+            _topStickerLimit.value = 30
             if (_selectedSenderForStickers.value == null) {
                 _selectedSenderForStickers.value = SenderStat("me@s.whatsapp.net", "Tu", 0)
             }
