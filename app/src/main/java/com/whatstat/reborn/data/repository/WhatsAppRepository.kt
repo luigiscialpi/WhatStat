@@ -282,10 +282,11 @@ class WhatsAppRepository @Inject constructor(
         false
     }
 
-    /** Chiude il database e pulisce i file estratti. */
+    /** Chiude il database, pulisce i file estratti e invalida la cache. */
     suspend fun cleanup() = withContext(Dispatchers.IO) {
         database.close()
         fileExtractor.cleanup()
+        cacheManager.clearCache(resetWordIndexes = true)
     }
 
     /** Proxy per copiare file da Uri senza esporre FileExtractor al ViewModel */

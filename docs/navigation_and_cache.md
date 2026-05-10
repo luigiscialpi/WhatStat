@@ -300,7 +300,7 @@ La cache viene invalidata esplicitamente in quattro occasioni:
    ```
    Chiamato da `ChatListViewModel.deleteChat()` quando dopo la cancellazione restano ancora altre chat. Se viene eliminata l'ultima chat, viene invece chiamato `fullResetLiteMode()` che esegue un reset completo.
 
-3. **Reset sessione Root** (`AnalyticsRepository.resetState()`): cancella la cache Root quando si torna a Setup dalla Dashboard Root.
+3. **Eliminazione sessione Root** (`WhatsAppRepository.cleanup()`): cancella la cache Root quando l'utente elimina manualmente la sessione premendo l'icona del cestino nella tab Root.
 
 4. **DB Root modificato** (rilevato da hash SHA-256): `CacheManager` confronta l'hash del `msgstore.db` corrente con quello salvato e invalida automaticamente se diverso.
 
