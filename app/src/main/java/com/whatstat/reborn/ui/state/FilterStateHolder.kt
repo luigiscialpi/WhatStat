@@ -39,4 +39,12 @@ class FilterStateHolder @Inject constructor() {
         chatTimeRange = range
         chatCustomRange = if (range == TimeRange.CUSTOM) custom else null
     }
+
+    /** Azzera entrambi i contesti. Da chiamare al cambio di modalità (Lite ↔ Root). */
+    fun resetAll() {
+        globalTimeRange = TimeRange.ALL_TIME
+        globalCustomRange = null
+        chatTimeRange = TimeRange.ALL_TIME
+        chatCustomRange = null
+    }
 }

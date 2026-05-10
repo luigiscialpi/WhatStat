@@ -24,6 +24,7 @@ import java.net.URI
 import java.time.ZoneId
 import java.util.regex.Pattern
 import com.topjohnwu.superuser.Shell
+import com.whatstat.reborn.ui.state.FilterStateHolder
 import com.topjohnwu.superuser.io.SuFile
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -47,7 +48,8 @@ class AnalyticsRepository @Inject constructor(
     private val cacheManager: CacheManager,
     private val liteDatabase: com.whatstat.reborn.data.lite.LiteDatabase,
     private val activeDatabaseProvider: com.whatstat.reborn.data.db.ActiveDatabaseProvider,
-    private val liteModeManager: LiteModeManager
+    private val liteModeManager: LiteModeManager,
+    private val filterStateHolder: FilterStateHolder
 ) {
     private val _isLiteMode = kotlinx.coroutines.flow.MutableStateFlow(activeDatabaseProvider.isLiteMode)
     val isLiteMode: kotlinx.coroutines.flow.StateFlow<Boolean> = _isLiteMode.asStateFlow()
@@ -58,6 +60,7 @@ class AnalyticsRepository @Inject constructor(
     fun setLiteMode(enabled: Boolean) {
         _isLiteMode.value = enabled
         activeDatabaseProvider.isLiteMode = enabled
+        filterStateHolder.resetAll()
     }
 
     /** Chiamato dopo ogni importazione riuscita: aggiorna il version stamp e invalida la cache. */
