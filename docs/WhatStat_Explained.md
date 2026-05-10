@@ -82,9 +82,11 @@ I modelli che strutturano l'indice sono `WordFrequencyIndexData` e `MonthlyWordI
 
 **Cache Slow Stats per chat** — Contiene le analisi testuali per chat: parole più usate, emoji più usate, sticker più usati, breakdown per mittente, breakdown degli starter, tempo medio di risposta. Cachata per `chatId` dopo la prima analisi opt-in.
 
-### Comportamento della cache per i filtri temporali
+### Comportamento della cache per i filtri temporali e previsioni
 
 La cache viene salvata **solo per il filtro `ALL_TIME`**. Quando l'utente applica un filtro temporale diverso (Ultimi 7 giorni, Ultimi 6 mesi, custom, ecc.), le query vengono rieseguite direttamente sul database. Questo è accettabile perché le query filtrate sono veloci grazie agli indici SQL.
+
+**Nota sulle Previsioni**: I dati della card "Previsione Traguardi" **non vengono mai cachati**. Poiché dipendono strettamente dal ritmo dei messaggi calcolato sul periodo selezionato, vengono ricalcolati in tempo reale ad ogni cambio di filtro per garantire la massima accuratezza.
 
 ### Ottimizzazioni database
 
@@ -140,6 +142,13 @@ Quattro schede selezionabili, ciascuna con un grafico a barre con scrolling oriz
 
 I grafici sono interattivi: toccando una barra appare un popup di selezione inline con il valore esatto; toccare fuori dall'area del grafico chiude la selezione tramite il meccanismo `dismissSignal`.
 
+### Previsione Traguardi (Milestone Prediction)
+
+Card interattiva (disponibile solo in Root Mode) che stima la data di raggiungimento di traguardi futuri (es. 10.000, 50.000, 100.000 messaggi o un obiettivo personalizzato).
+- **Logica**: Il sistema calcola il ritmo giornaliero dei messaggi basandosi sul periodo temporale selezionato.
+- **Affidabilità**: Include un indicatore di confidenza ("Stima instabile") se il volume di dati è troppo basso o la velocità troppo irregolare.
+- **Interattività**: Permette di inserire un obiettivo personalizzato e mostra una barra di progresso visiva verso il traguardo selezionato.
+
 ### Analisi testi — Sezione opt-in
 
 Le analisi testuali non partono automaticamente perché richiedono più tempo. L'utente vede un pulsante "Avvia analisi" con un'icona informativa che spiega la durata stimata. Una volta avviata, l'analisi procede in background con un indicatore di avanzamento (`LoadingSection`). I risultati vengono cachati e mostrati automaticamente alle aperture successive senza richiedere di riavviare l'analisi.
@@ -167,6 +176,8 @@ Elenco di tutte le conversazioni ordinate per numero totale di messaggi in ordin
 - Numero totale di messaggi.
 - Indicatore di posizione nel ranking.
 
+Molti elementi (come i nomi dei contatti lunghi) utilizzano il componente **AutoMarquee**, che attiva uno scorrimento orizzontale automatico se il testo eccede lo spazio disponibile.
+
 ### Azioni per chat (solo Lite Mode)
 
 In Lite Mode, ogni elemento della lista chat espone due azioni:
@@ -187,8 +198,8 @@ L'apertura è istantanea grazie alla `QuickChatStats` cache per chat. Le statist
 ### Intestazione
 
 - Avatar del contatto cliccabile. Toccando l'avatar si apre una visualizzazione a schermo intero con overlay nero. Toccando di nuovo si chiude. L'anteprima a schermo intero supporta pinch-to-zoom, rotazione a 90°, doppio tap e swipe-to-dismiss tramite `ZoomableImageViewer`.
-- Nome del contatto e numero di telefono (componente `ContactNameWithPhone`). Il nome supporta scrolling orizzontale automatico con animazione per nomi lunghi.
-- Periodo analizzato: data del primo e dell'ultimo messaggio nel filtro selezionato, visualizzato tramite `DateRangeCard` con sfondo SurfaceVariant e scorrimento orizzontale.
+- Nome del contatto e numero di telefono (componente `ContactNameWithPhone`). Il nome supporta scrolling orizzontale automatico (**AutoMarquee**) per nomi lunghi.
+- Periodo analizzato: data del primo e dell'ultimo messaggio nel filtro selezionato, visualizzato tramite `DateRangeCard` con sfondo SurfaceVariant e scorrimento orizzontale automatico (**AutoMarquee**).
 
 L'intestazione viene caricata in anticipo (`HeaderInfo` state) con shimmer placeholder, fornendo feedback visivo immediato. Il nome e l'avatar sono recuperati in background in parallelo alle statistiche, migliorando la percezione delle prestazioni.
 
@@ -200,6 +211,10 @@ L'intestazione viene caricata in anticipo (`HeaderInfo` state) con shimmer place
 - Lunghezza media dei messaggi in caratteri.
 - Messaggio più lungo.
 - Numero totale di media, di cui audio e video separati.
+
+### Previsione Traguardi
+
+Presente anche nel dettaglio chat, fornisce una stima specifica per la conversazione corrente, permettendo di vedere quanto manca a raggiungere cifre tonde di messaggi con quel particolare contatto.
 
 ### Chi scrive di più (`SenderBreakdown`)
 

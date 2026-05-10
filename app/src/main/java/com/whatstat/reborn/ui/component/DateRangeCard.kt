@@ -1,16 +1,12 @@
 package com.whatstat.reborn.ui.component
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -41,8 +37,6 @@ fun DateRangeCard(
     val startDate = if (startTimestamp > 0) dateFormatter.format(Date(startTimestamp)) else "—"
     val endDate = if (endTimestamp > 0) dateFormatter.format(Date(endTimestamp)) else "—"
 
-    val scrollState = rememberScrollState()
-
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
@@ -55,10 +49,9 @@ fun DateRangeCard(
             tint = MaterialTheme.colorScheme.primary
         )
         Spacer(Modifier.height(10.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(scrollState)
+        AutoMarquee(
+            delayMillis = 2000L,
+            speedMultiplier = 25
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -73,8 +66,7 @@ fun DateRangeCard(
                     },
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 1
                 )
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowForward,
@@ -90,8 +82,7 @@ fun DateRangeCard(
                     },
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 1
                 )
             }
         }
