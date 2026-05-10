@@ -551,7 +551,7 @@ class AnalyticsRepository @Inject constructor(
             val dSenders    = async { messageDao.getMessageCountBySender(chatId, startTime, endTime) }
             val dStartersBySender = async { messageDao.getConversationStartersBySender(chatId, startTime, endTime) }
             val dLongest    = async { messageDao.getLongestMessage(chatId) }
-            val dSenderEmojis = async { getEmojiStatsBySender(chatId, startTime, endTime, 1) }
+            val dSenderEmojis = async { getEmojiStatsBySender(chatId, startTime, endTime, 50) }
 
             onProgress(20)
             val starters = dStarters.await()
@@ -966,7 +966,7 @@ class AnalyticsRepository @Inject constructor(
         endTime: Long? = null,
         limit: Int = 5
     ): List<com.whatstat.reborn.data.db.model.UserEmojiStat> = withContext(Dispatchers.IO) {
-        val raw = messageDao.getEmojiStatsBySender(chatId)
+        val raw = messageDao.getEmojiStatsBySender(chatId, startTime, endTime)
         val jids = raw.map { it.jid }
         val contactNames = contactDao.resolveContactNames(jids)
         val lidJids = jids.filter { it.endsWith("@lid") }

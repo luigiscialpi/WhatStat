@@ -398,7 +398,7 @@ fun ChatDetailScreen(
                             val totalEmojis = s.sentEmojis + s.receivedEmojis
                             val avgEmojis = if (totalMessages > 0) "%.1f".format(totalEmojis.toFloat() / totalMessages) else "—"
                             val sentEpm = if (s.sentByMe > 0) "%.1f".format(s.sentEmojis.toFloat() / s.sentByMe) else "0"
-                            val recvEpm = if (s.receivedFromThem > 0) "%.1f".format(s.receivedWords.toFloat() / s.receivedFromThem) else "0"
+                            val recvEpm = if (s.receivedFromThem > 0) "%.1f".format(s.receivedEmojis.toFloat() / s.receivedFromThem) else "0"
                             val emojisSubtitle = stringResource(R.string.stat_split_format, meName, sentEpm, otherName, recvEpm)
 
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

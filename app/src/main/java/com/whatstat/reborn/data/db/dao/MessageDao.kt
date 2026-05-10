@@ -664,34 +664,47 @@ class MessageDao @Inject constructor(
         return topWords to topEmojis
     }
 
-    fun getEmojiStatsBySender(chatId: Long?): List<UserEmojiStat> {
-        val query = if (chatId != null) {
-            """
-            SELECT 
-                CASE 
-                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
-                    ELSE COALESCE(j.raw_string, 'unknown')
-                END AS jid,
-                m.text_data
-            FROM message m
-            LEFT JOIN jid j ON m.sender_jid_row_id = j._id
-            WHERE m.chat_row_id = ? AND m.message_type = 0 AND m.text_data IS NOT NULL
-            """.trimIndent()
+    fun getEmojiStatsBySender(chatId: Long?, startTime: Long? = null, endTime: Long? = null): List<UserEmojiStat> {
+        val queryBuilder = StringBuilder()
+        val args = mutableListOf<String>()
+
+        if (chatId != null) {
+            queryBuilder.append("""
+                SELECT 
+                    CASE 
+                        WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                        ELSE COALESCE(j.raw_string, 'unknown')
+                    END AS jid,
+                    m.text_data
+                FROM message m
+                LEFT JOIN jid j ON m.sender_jid_row_id = j._id
+                WHERE m.chat_row_id = ? AND m.message_type = 0 AND m.text_data IS NOT NULL
+            """.trimIndent())
+            args.add(chatId.toString())
         } else {
-            """
-            SELECT 
-                CASE 
-                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
-                    ELSE COALESCE(j.raw_string, 'unknown')
-                END AS jid,
-                m.text_data
-            FROM message m
-            LEFT JOIN jid j ON m.sender_jid_row_id = j._id
-            WHERE m.message_type = 0 AND m.text_data IS NOT NULL
-            """.trimIndent()
+            queryBuilder.append("""
+                SELECT 
+                    CASE 
+                        WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                        ELSE COALESCE(j.raw_string, 'unknown')
+                    END AS jid,
+                    m.text_data
+                FROM message m
+                LEFT JOIN jid j ON m.sender_jid_row_id = j._id
+                WHERE m.message_type = 0 AND m.text_data IS NOT NULL
+            """.trimIndent())
         }
-        val args = if (chatId != null) arrayOf(chatId.toString()) else null
-        val cursor = database.getMsgDb().rawQuery(query, args)
+
+        if (startTime != null) {
+            queryBuilder.append(" AND m.timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND m.timestamp <= ?")
+            args.add(endTime.toString())
+        }
+
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         
         val senderTexts = mutableMapOf<String, MutableList<String>>()
         cursor.use {
