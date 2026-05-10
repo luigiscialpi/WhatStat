@@ -352,11 +352,11 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             val dDayOfMonth = async { messageDao.getDayOfMonthDistribution(chatId, startTime, endTime) }
             val dMonthOfYear = async { messageDao.getMonthOfYearDistribution(chatId, startTime, endTime) }
             val dYearTrend  = async { messageDao.getYearTrendDistribution(chatId, startTime, endTime) }
-            val dMonthly    = async { messageDao.getMonthlyTrend(chatId) }
+            val dMonthly    = async { messageDao.getMonthlyTrend(chatId, startTime, endTime) }
             val dMediaStats = async { messageDao.getMediaStats(chatId, startTime, endTime) }
-            val dFirstTs    = async { messageDao.getFirstMessageTimestamp(chatId) }
-            val dLastTs     = async { messageDao.getLastMessageTimestamp(chatId) }
-            val dAvgLen     = async { messageDao.getAverageMessageLength(chatId) }
+            val dFirstTs    = async { messageDao.getFirstMessageTimestamp(chatId, startTime, endTime) }
+            val dLastTs     = async { messageDao.getLastMessageTimestamp(chatId, startTime, endTime) }
+            val dAvgLen     = async { messageDao.getAverageMessageLength(chatId, startTime, endTime) }
 
             val displayName = if (basicInfo.isGroup) {
                 basicInfo.subject ?: contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")

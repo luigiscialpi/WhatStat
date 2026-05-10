@@ -441,19 +441,29 @@ class MessageDao @Inject constructor(
         return cursor.use { parseYearTrendCount(it) }
     }
 
-    /** Evoluzione mensile del numero di messaggi. */
-    fun getMonthlyTrend(chatId: Long): List<MonthlyCount> {
-        val query = """
+    /** Evoluzione mensile del numero di messaggi con filtro temporale. */
+    fun getMonthlyTrend(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<MonthlyCount> {
+        val queryBuilder = StringBuilder("""
             SELECT
                 strftime('%Y-%m', datetime(timestamp / 1000, 'unixepoch')) AS month,
                 COUNT(*) AS count
             FROM message
             WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
-            GROUP BY month
-            ORDER BY month
-        """.trimIndent()
+        """.trimIndent())
+        val args = mutableListOf(chatId.toString())
 
-        val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+
+        queryBuilder.append(" GROUP BY month ORDER BY month")
+
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseMonthlyCount(it) }
     }
 
@@ -1142,21 +1152,43 @@ class MessageDao @Inject constructor(
         return cursor.use { if (it.moveToFirst()) it.getLong(0) else 0L }
     }
 
-    /** Timestamp del primo messaggio di una chat. */
-    fun getFirstMessageTimestamp(chatId: Long): Long {
-        val cursor = database.getMsgDb().rawQuery(
-            "SELECT MIN(timestamp) FROM message WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90) AND timestamp > 0",
-            arrayOf(chatId.toString())
-        )
+    /** Timestamp del primo messaggio di una chat con filtro temporale. */
+    fun getFirstMessageTimestamp(chatId: Long, startTime: Long? = null, endTime: Long? = null): Long {
+        val queryBuilder = StringBuilder("""
+            SELECT MIN(timestamp) FROM message WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90) AND timestamp > 0
+        """.trimIndent())
+        val args = mutableListOf(chatId.toString())
+
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { if (it.moveToFirst()) it.getLong(0) else 0L }
     }
 
-    /** Timestamp dell'ultimo messaggio di una chat. */
-    fun getLastMessageTimestamp(chatId: Long): Long {
-        val cursor = database.getMsgDb().rawQuery(
-            "SELECT MAX(timestamp) FROM message WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)",
-            arrayOf(chatId.toString())
-        )
+    /** Timestamp dell'ultimo messaggio di una chat con filtro temporale. */
+    fun getLastMessageTimestamp(chatId: Long, startTime: Long? = null, endTime: Long? = null): Long {
+        val queryBuilder = StringBuilder("""
+            SELECT MAX(timestamp) FROM message WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90) AND timestamp > 0
+        """.trimIndent())
+        val args = mutableListOf(chatId.toString())
+
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { if (it.moveToFirst()) it.getLong(0) else 0L }
     }
 
@@ -1171,13 +1203,24 @@ class MessageDao @Inject constructor(
         return cursor.use { if (it.moveToFirst()) it.getString(0) ?: "" else "" }
     }
 
-    /** Lunghezza media dei messaggi in una chat. */
-    fun getAverageMessageLength(chatId: Long): Float {
-        val cursor = database.getMsgDb().rawQuery(
-            """SELECT AVG(LENGTH(text_data)) FROM message 
-               WHERE chat_row_id = ? AND message_type = 0 AND text_data IS NOT NULL""",
-            arrayOf(chatId.toString())
-        )
+    /** Lunghezza media dei messaggi in una chat con filtro temporale. */
+    fun getAverageMessageLength(chatId: Long, startTime: Long? = null, endTime: Long? = null): Float {
+        val queryBuilder = StringBuilder("""
+            SELECT AVG(LENGTH(text_data)) FROM message 
+            WHERE chat_row_id = ? AND message_type = 0 AND text_data IS NOT NULL
+        """.trimIndent())
+        val args = mutableListOf(chatId.toString())
+
+        if (startTime != null) {
+            queryBuilder.append(" AND timestamp >= ?")
+            args.add(startTime.toString())
+        }
+        if (endTime != null) {
+            queryBuilder.append(" AND timestamp <= ?")
+            args.add(endTime.toString())
+        }
+
+        val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { if (it.moveToFirst()) it.getFloat(0) else 0f }
     }
 
