@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import com.whatstat.reborn.data.db.model.WordFrequency
 import com.whatstat.reborn.data.db.model.SenderStat
 import com.whatstat.reborn.data.db.model.EmojiStat
@@ -85,6 +86,9 @@ class ChatDetailViewModel @Inject constructor(
     private val _customDateRange = MutableStateFlow(filterState.chatCustomRange)
     val customDateRange: StateFlow<DateRange?> = _customDateRange.asStateFlow()
 
+    private val _firstMessageTimestamp = MutableStateFlow<Long?>(null)
+    val firstMessageTimestamp: StateFlow<Long?> = _firstMessageTimestamp.asStateFlow()
+
     private val _wordViewMode = MutableStateFlow(WordViewMode.AGGREGATED)
     val wordViewMode: StateFlow<WordViewMode> = _wordViewMode.asStateFlow()
 
@@ -139,6 +143,10 @@ class ChatDetailViewModel @Inject constructor(
             }
         } else {
             loadChatStats()
+        }
+        // Carica il timestamp del primo messaggio (non bloccante su IO)
+        viewModelScope.launch(Dispatchers.IO) {
+            _firstMessageTimestamp.value = analyticsRepository.getFirstMessageTimestamp()
         }
     }
 

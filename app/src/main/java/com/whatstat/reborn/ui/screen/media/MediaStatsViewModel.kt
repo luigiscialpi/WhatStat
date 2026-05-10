@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import java.io.File
 import javax.inject.Inject
 
@@ -61,6 +62,9 @@ class MediaStatsViewModel @Inject constructor(
 
     private val _customDateRange = MutableStateFlow<DateRange?>(null)
     val customDateRange: StateFlow<DateRange?> = _customDateRange.asStateFlow()
+
+    private val _firstMessageTimestamp = MutableStateFlow<Long?>(null)
+    val firstMessageTimestamp: StateFlow<Long?> = _firstMessageTimestamp.asStateFlow()
 
     private val _chatId = MutableStateFlow<Long?>(null)
     val chatId: StateFlow<Long?> = _chatId.asStateFlow()
@@ -140,9 +144,13 @@ class MediaStatsViewModel @Inject constructor(
                         _topDomains.value = emptyList()
                         initialize(_chatId.value, force = true)
                     }
-                }
             }
         }
+        // Carica il timestamp del primo messaggio
+        viewModelScope.launch(Dispatchers.IO) {
+            _firstMessageTimestamp.value = analyticsRepository.getFirstMessageTimestamp()
+        }
+    }
     }
 
     fun initialize(chatId: Long?, force: Boolean = false) {

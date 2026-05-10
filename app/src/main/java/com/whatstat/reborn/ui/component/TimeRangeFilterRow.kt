@@ -37,7 +37,8 @@ fun TimeRangeFilterRow(
     modifier: Modifier = Modifier,
     onSubmitClicked: (() -> Unit)? = null,
     isSearching: Boolean = false,
-    onCancelClicked: (() -> Unit)? = null
+    onCancelClicked: (() -> Unit)? = null,
+    minDate: Long? = null
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -91,15 +92,16 @@ fun TimeRangeFilterRow(
                 )
             }
         }
-        if (showDatePicker) {
-            DateRangePicker(
-                dateRange = customDateRange,
-                onDateRangeChanged = onDateRangeChanged,
-                onSubmitClicked = onSubmitClicked,
-                isSearching = isSearching,
-                onCancelClicked = onCancelClicked,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
-            )
-        }
+         if (showDatePicker) {
+             DateRangePicker(
+                 dateRange = customDateRange,
+                 onDateRangeChanged = onDateRangeChanged,
+                 onSubmitClicked = onSubmitClicked,
+                 isSearching = isSearching,
+                 onCancelClicked = onCancelClicked,
+                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                 minDate = minDate
+             )
+         }
     }
 }

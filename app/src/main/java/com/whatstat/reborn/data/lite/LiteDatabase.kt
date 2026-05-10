@@ -242,4 +242,15 @@ class LiteDatabase @Inject constructor(
         File(context.filesDir, "lite_msgstore.db").delete()
         File(context.filesDir, "lite_wa.db").delete()
     }
+
+    /** Restituisce il timestamp del primo messaggio (più antico) nel database Lite. */
+    fun getFirstMessageTimestamp(): Long? {
+        val db = getOrCreate()
+        val cursor = db.rawQuery(
+            "SELECT MIN(timestamp) FROM message WHERE message_type NOT IN (7, 15, 90)", null
+        )
+        return cursor.use {
+            if (it.moveToFirst() && !it.isNull(0)) it.getLong(0) else null
+        }
+    }
 }

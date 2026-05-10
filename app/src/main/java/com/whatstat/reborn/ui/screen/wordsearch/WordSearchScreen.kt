@@ -107,6 +107,7 @@ fun WordSearchScreen(
     val isSearching by viewModel.isSearching.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val firstMessageTimestamp by viewModel.firstMessageTimestamp.collectAsState()
     val chatContextName by viewModel.chatContextName.collectAsState()
     val chatContextAvatarPath by viewModel.chatContextAvatarPath.collectAsState()
     val suggestions by viewModel.suggestions.collectAsState()
@@ -152,11 +153,12 @@ fun WordSearchScreen(
             }
         }
 
-        TimeRangeFilterRow(
+         TimeRangeFilterRow(
             selectedRange = selectedRange,
             onRangeSelected = { viewModel.setTimeRange(it) },
             customDateRange = customDateRange,
-            onDateRangeChanged = { viewModel.setCustomDateRange(it) }
+            onDateRangeChanged = { viewModel.setCustomDateRange(it) },
+            minDate = firstMessageTimestamp
         )
 
         Row(

@@ -124,6 +124,7 @@ fun DashboardScreen(
     
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val firstMessageTimestamp by viewModel.firstMessageTimestamp.collectAsState()
 
     LifecycleResumeEffect(Unit) {
         viewModel.syncFilterState()
@@ -229,7 +230,8 @@ fun DashboardScreen(
                 onDateRangeChanged = { viewModel.setCustomDateRange(it) },
                 onSubmitClicked = { viewModel.retry() },
                 isSearching = isLoading,
-                onCancelClicked = { viewModel.cancelLoad() }
+                onCancelClicked = { viewModel.cancelLoad() },
+                minDate = firstMessageTimestamp
             )
 
             // ── Scrollable Content ───────────────────────────────────

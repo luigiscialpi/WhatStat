@@ -49,6 +49,16 @@ class MessageDao @Inject constructor(
         return cursor.use { if (it.moveToFirst()) it.getInt(0) else 0 }
     }
 
+    /** Restituisce il timestamp del primo messaggio (più antico) nel database. */
+    fun getFirstMessageTimestamp(): Long? {
+        val cursor = database.getMsgDb().rawQuery(
+            "SELECT MIN(timestamp) FROM message WHERE message_type NOT IN (7, 15, 90)", null
+        )
+        return cursor.use {
+            if (it.moveToFirst() && !it.isNull(0)) it.getLong(0) else null
+        }
+    }
+
     /** Conta i messaggi per una chat specifica (totale, inviati, ricevuti) con filtro temporale opzionale. */
     fun getMessageCountForChat(chatId: Long, startTime: Long? = null, endTime: Long? = null): ChatMessageCount {
         val queryBuilder = StringBuilder("""

@@ -133,6 +133,7 @@ fun ChatDetailScreen(
     val progressSlow by viewModel.loadingProgressSlow.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val firstMessageTimestamp by viewModel.firstMessageTimestamp.collectAsState()
     val errorMsg by viewModel.error.collectAsState()
 
     LifecycleResumeEffect(Unit) {
@@ -337,13 +338,14 @@ fun ChatDetailScreen(
 
             if (!isLoading) {
                 // ── Sticky Filter Chips ───────────────────────────────────
-            TimeRangeFilterRow(
-                selectedRange = selectedRange,
-                onRangeSelected = { viewModel.setTimeRange(it) },
-                customDateRange = customDateRange,
-                onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-                onSubmitClicked = { viewModel.applyCustomDateRange() }
-            )
+                TimeRangeFilterRow(
+                    selectedRange = selectedRange,
+                    onRangeSelected = { viewModel.setTimeRange(it) },
+                    customDateRange = customDateRange,
+                    onDateRangeChanged = { viewModel.setCustomDateRange(it) },
+                    onSubmitClicked = { viewModel.applyCustomDateRange() },
+                    minDate = firstMessageTimestamp
+                )
             }
 
             if (isLoading) {

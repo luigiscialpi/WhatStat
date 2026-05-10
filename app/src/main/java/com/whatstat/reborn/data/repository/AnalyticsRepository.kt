@@ -105,6 +105,18 @@ class AnalyticsRepository @Inject constructor(
     }
 
     /**
+     * Restituisce il timestamp del primo messaggio nel database (più antico).
+     * Viene usato come limite inferiore per i selettori di date.
+     */
+    suspend fun getFirstMessageTimestamp(): Long? = withContext(Dispatchers.IO) {
+        if (isLiteMode.value) {
+            liteModeManager.getFirstMessageTimestamp()
+        } else {
+            messageDao.getFirstMessageTimestamp()
+        }
+    }
+
+    /**
      * Risolve il range temporale da usare per il calcolo del ritmo (rate).
      */
     private fun resolveRateWindow(

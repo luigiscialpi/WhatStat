@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import java.io.File
 import javax.inject.Inject
 
@@ -52,6 +53,9 @@ class CallsStatsViewModel @Inject constructor(
     private val _customDateRange = MutableStateFlow<DateRange?>(null)
     val customDateRange: StateFlow<DateRange?> = _customDateRange.asStateFlow()
 
+    private val _firstMessageTimestamp = MutableStateFlow<Long?>(null)
+    val firstMessageTimestamp: StateFlow<Long?> = _firstMessageTimestamp.asStateFlow()
+
     private val _chatId = MutableStateFlow<Long?>(null)
 
     private val _chatContextName = MutableStateFlow<String?>(null)
@@ -83,6 +87,10 @@ class CallsStatsViewModel @Inject constructor(
                 _customDateRange.value = filterState.globalCustomRange
                 _chatContextName.value = null
                 _chatContextAvatarPath.value = null
+            }
+            // Carica il timestamp del primo messaggio
+            viewModelScope.launch(Dispatchers.IO) {
+                _firstMessageTimestamp.value = analyticsRepository.getFirstMessageTimestamp()
             }
             loadStats()
         }

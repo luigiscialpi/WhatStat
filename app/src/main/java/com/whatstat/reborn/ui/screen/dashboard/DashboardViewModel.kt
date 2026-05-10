@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @HiltViewModel
@@ -82,10 +83,17 @@ class DashboardViewModel @Inject constructor(
     private val _selectedLimit = MutableStateFlow(if (analyticsRepository.isLiteMode.value) 30 else 20)
     val selectedLimit: StateFlow<Int> = _selectedLimit.asStateFlow()
 
+    private val _firstMessageTimestamp = MutableStateFlow<Long?>(null)
+    val firstMessageTimestamp: StateFlow<Long?> = _firstMessageTimestamp.asStateFlow()
+
     private var loadJob: Job? = null
 
     init {
         val isLite = analyticsRepository.isLiteMode.value
+        // Carica il timestamp del primo messaggio (non bloccante su IO)
+        viewModelScope.launch(Dispatchers.IO) {
+            _firstMessageTimestamp.value = analyticsRepository.getFirstMessageTimestamp()
+        }
         // Non forzare il refresh: usa la cache se disponibile.
         // Sarà il collect su liteCacheVersion a triggerare il reload quando serve.
         loadStats(forceRefresh = false)

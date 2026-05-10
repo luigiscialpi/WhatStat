@@ -126,6 +126,7 @@ fun MediaStatsScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val firstMessageTimestamp by viewModel.firstMessageTimestamp.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val topDomains by viewModel.topDomains.collectAsState()
     val contactDomainStats by viewModel.contactDomainStats.collectAsState()
@@ -230,7 +231,8 @@ fun MediaStatsScreen(
                 onRangeSelected = { viewModel.setTimeRange(it) },
                 customDateRange = customDateRange,
                 onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-                onSubmitClicked = { viewModel.applyCustomDateRange() }
+                onSubmitClicked = { viewModel.applyCustomDateRange() },
+                minDate = firstMessageTimestamp
             )
 
             // ── SEARCH BAR ───────────────────────────────

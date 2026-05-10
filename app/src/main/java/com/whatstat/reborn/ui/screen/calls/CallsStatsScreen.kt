@@ -87,6 +87,7 @@ fun CallsStatsScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
+    val firstMessageTimestamp by viewModel.firstMessageTimestamp.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val chatContextName by viewModel.chatContextName.collectAsState()
     val chatContextAvatarPath by viewModel.chatContextAvatarPath.collectAsState()
@@ -129,7 +130,8 @@ fun CallsStatsScreen(
             onRangeSelected = { viewModel.setTimeRange(it) },
             customDateRange = customDateRange,
             onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-            onSubmitClicked = { viewModel.applyCustomDateRange() }
+            onSubmitClicked = { viewModel.applyCustomDateRange() },
+            minDate = firstMessageTimestamp
         )
 
         // Search bar slot fisso: evita micro-shift quando il campo appare dopo il caricamento

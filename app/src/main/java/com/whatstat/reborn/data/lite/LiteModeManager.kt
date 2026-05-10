@@ -40,6 +40,15 @@ class LiteModeManager @Inject constructor(
     private val _importCompleted = MutableStateFlow(0L)
     val importCompleted: StateFlow<Long> = _importCompleted.asStateFlow()
 
+    /** Restituisce il timestamp del primo messaggio (più antico) tra i messaggi importati. */
+    fun getFirstMessageTimestamp(): Long? {
+        return liteDatabase.getOrCreate().rawQuery(
+            "SELECT MIN(timestamp) FROM message WHERE message_type NOT IN (7, 15, 90)", null
+        ).use { cursor ->
+            if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else null
+        }
+    }
+
     /** Notifica che un'importazione è andata a buon fine. Chiamato da [AnalyticsRepository.notifyLiteImportDone]. */
     fun notifyImportDone() {
         _importCompleted.value = System.currentTimeMillis()
