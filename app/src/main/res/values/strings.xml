@@ -262,4 +262,20 @@
     <string name="date_from">From</string>
     <string name="date_to">To</string>
     <string name="clear">Clear</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_title">Milestone Prediction</string>
+    <string name="prediction_info_title">About Predictions</string>
+    <string name="prediction_info_desc">Predictions estimate when you will reach a future milestone based on your recent messaging rate.\n\nThe rate is calculated using the messages sent in the selected time period. If you change the period filter, the prediction will update accordingly.</string>
+    <string name="prediction_custom">Custom</string>
+    <string name="prediction_target_label">Custom target</string>
+    <string name="prediction_target_placeholder">e.g. 50000</string>
+    <string name="prediction_error_already_reached">Milestone already reached!</string>
+    <string name="prediction_unavailable">Prediction unavailable</string>
+    <string name="prediction_estimated_date">Estimated date</string>
+    <string name="prediction_date_unavailable">Date unavailable</string>
+    <string name="prediction_uncalculable">Uncalculable</string>
+    <string name="prediction_reached">Reached</string>
+    <string name="prediction_low_confidence">Unstable estimate</string>
+    <string name="prediction_period_filtered_label">Based on the rate of the selected period</string>
 </resources>

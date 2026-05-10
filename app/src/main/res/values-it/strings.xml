@@ -262,5 +262,21 @@
     <string name="date_from">Da</string>
     <string name="date_to">A</string>
     <string name="clear">Svuota</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_title">Previsione traguardi</string>
+    <string name="prediction_info_title">Informazioni sulle previsioni</string>
+    <string name="prediction_info_desc">Le previsioni stimano quando raggiungerai un traguardo futuro in base al tuo ritmo di messaggi recente.\n\nIl ritmo viene calcolato usando i messaggi inviati nel periodo selezionato. Se cambi il filtro temporale, la previsione si aggiornerà di conseguenza.</string>
+    <string name="prediction_custom">Personalizzato</string>
+    <string name="prediction_target_label">Traguardo personalizzato</string>
+    <string name="prediction_target_placeholder">es. 50000</string>
+    <string name="prediction_error_already_reached">Traguardo già raggiunto!</string>
+    <string name="prediction_unavailable">Previsione non disponibile</string>
+    <string name="prediction_estimated_date">Data stimata</string>
+    <string name="prediction_date_unavailable">Data non disponibile</string>
+    <string name="prediction_uncalculable">Incalcolabile</string>
+    <string name="prediction_reached">Raggiunto</string>
+    <string name="prediction_low_confidence">Stima poco stabile</string>
+    <string name="prediction_period_filtered_label">Basato sul ritmo del periodo selezionato</string>
 </resources>
 

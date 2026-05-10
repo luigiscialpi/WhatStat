@@ -17,6 +17,32 @@ import com.whatstat.reborn.data.db.model.WordFrequency
  * Statistiche globali aggregate su tutte le chat.
  */
 @Serializable
+enum class PredictionConfidence {
+    NONE,
+    LOW,
+    MEDIUM,
+    HIGH
+}
+
+@Serializable
+data class MilestonePrediction(
+    val targetCount: Long,
+    val estimatedDate: Long?,
+    val daysRemaining: Long?,
+    val progress: Float,
+    val dailyRate: Float,
+    val confidence: PredictionConfidence
+)
+
+@Serializable
+data class MilestonePredictionState(
+    val currentCount: Long = 0L,
+    val dailyRate: Float = 0f,
+    val confidence: PredictionConfidence = PredictionConfidence.NONE,
+    val suggestedPredictions: List<MilestonePrediction> = emptyList()
+)
+
+@Serializable
 data class GlobalStats(
     val totalMessages: Int,
     val totalChats: Int,
@@ -27,6 +53,7 @@ data class GlobalStats(
     val mostActiveHour: Int,           // 0–23
     val mostActiveDayOfWeek: Int,      // 0=domenica
     val averageMessagesPerDay: Float,
+    val milestonePredictionState: MilestonePredictionState = MilestonePredictionState(),
     val longestStreak: Int,             // giorni consecutivi con almeno un messaggio
     val hourlyDistribution: List<HourlyCount> = emptyList(),
     val weeklyDistribution: List<DayCount> = emptyList(),
@@ -48,6 +75,7 @@ data class ChatStats(
     val jid: String,
     val isGroup: Boolean,
     val totalMessages: Int,
+    val milestonePredictionState: MilestonePredictionState = MilestonePredictionState(),
     val sentByMe: Int,
     val receivedFromThem: Int,
     val sentWords: Int = 0,

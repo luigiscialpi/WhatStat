@@ -262,4 +262,20 @@
     <string name="date_from">Von</string>
     <string name="date_to">Bis</string>
     <string name="clear">Leeren</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_title">Meilenstein-Prognose</string>
+    <string name="prediction_info_title">Über Prognosen</string>
+    <string name="prediction_info_desc">Prognosen schätzen, wann Sie einen zukünftigen Meilenstein erreichen werden, basierend auf Ihrer aktuellen Nachrichtenrate.\n\nDie Rate wird anhand der im ausgewählten Zeitraum gesendeten Nachrichten berechnet. Wenn Sie den Zeitraumfilter ändern, wird die Prognose entsprechend aktualisiert.</string>
+    <string name="prediction_custom">Benutzerdefiniert</string>
+    <string name="prediction_target_label">Benutzerdefiniertes Ziel</string>
+    <string name="prediction_target_placeholder">z.B. 50000</string>
+    <string name="prediction_error_already_reached">Meilenstein bereits erreicht!</string>
+    <string name="prediction_unavailable">Prognose nicht verfügbar</string>
+    <string name="prediction_estimated_date">Voraussichtliches Datum</string>
+    <string name="prediction_date_unavailable">Datum nicht verfügbar</string>
+    <string name="prediction_uncalculable">Nicht berechenbar</string>
+    <string name="prediction_reached">Erreicht</string>
+    <string name="prediction_low_confidence">Instabile Schätzung</string>
+    <string name="prediction_period_filtered_label">Basierend auf der Rate des ausgewählten Zeitraums</string>
 </resources>

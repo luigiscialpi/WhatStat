@@ -11,6 +11,7 @@ import com.whatstat.reborn.data.lite.LiteModeManager
 import com.whatstat.reborn.domain.model.ChatStats
 import com.whatstat.reborn.domain.model.GlobalStats
 import com.whatstat.reborn.domain.model.SlowChatStats
+import com.whatstat.reborn.domain.prediction.MilestonePredictionCalculator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -103,6 +104,20 @@ class AnalyticsRepository @Inject constructor(
         // ma il routing DB (ActiveDatabaseProvider) resta intatto.
     }
 
+    /**
+     * Risolve il range temporale da usare per il calcolo del ritmo (rate).
+     */
+    private fun resolveRateWindow(
+        startTime: Long?,
+        endTime: Long?,
+        fallbackStart: Long,
+        now: Long
+    ): Pair<Long?, Long?> {
+        val rateStart = startTime ?: fallbackStart.takeIf { it > 0L }
+        val rateEnd = endTime ?: now
+        return rateStart to rateEnd
+    }
+
 
     /**
      * Calcola le statistiche globali aggregate su tutte le chat.
@@ -116,12 +131,21 @@ class AnalyticsRepository @Inject constructor(
     ): GlobalStats = withContext(Dispatchers.IO) {
 
         // Cache solo per ALL_TIME (il caso più comune)
+        val now = System.currentTimeMillis()
         if (!forceRefresh && timeRange == TimeRange.ALL_TIME) {
             val cached = cacheManager.getGlobalStats()
             if (cached != null) {
                 android.util.Log.d("WhatStat", "Quick GlobalStats from cache")
                 onProgress(100)
-                return@withContext cached
+                // Enrich con prediction aggiornate (dipendono da 'now')
+                val predictionState = MilestonePredictionCalculator.buildState(
+                    currentCount = cached.totalMessages.toLong(),
+                    rateCount = cached.totalMessages.toLong(),
+                    rateStartTimestamp = cached.oldestMessageDate.takeIf { it > 0L },
+                    rateEndTimestamp = now,
+                    nowTimestamp = now
+                )
+                return@withContext cached.copy(milestonePredictionState = predictionState)
             }
         }
 
@@ -133,6 +157,13 @@ class AnalyticsRepository @Inject constructor(
         
         coroutineScope {
             val dTotalMessages = async { messageDao.getTotalMessageCount(startTime, endTime) }
+            val dAllTimeTotalMessages = async {
+                if (startTime == null && endTime == null) {
+                    null
+                } else {
+                    messageDao.getTotalMessageCount(null, null)
+                }
+            }
             val dTotalChats    = async { chatDao.getChatCount() }
             val dHourly        = async { messageDao.getGlobalHourlyDistribution(startTime, endTime) }
             val dWeekly        = async { messageDao.getGlobalWeeklyDistribution(startTime, endTime) }
@@ -178,7 +209,22 @@ class AnalyticsRepository @Inject constructor(
                 0f
             }
 
-val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
+            val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mostActiveChatJid.substringBefore("@")
+
+            val currentCountAllTime = dAllTimeTotalMessages.await() ?: totalMessages
+            val (rateStart, rateEnd) = resolveRateWindow(
+                startTime = startTime,
+                endTime = endTime,
+                fallbackStart = oldestTs,
+                now = now
+            )
+            val predictionState = MilestonePredictionCalculator.buildState(
+                currentCount = currentCountAllTime.toLong(),
+                rateCount = totalMessages.toLong(),
+                rateStartTimestamp = rateStart,
+                rateEndTimestamp = rateEnd,
+                nowTimestamp = now
+            )
 
             val stats = GlobalStats(
                 totalMessages       = totalMessages,
@@ -190,6 +236,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 mostActiveHour      = hourly.maxByOrNull { it.count }?.hour ?: 0,
                 mostActiveDayOfWeek = weekly.maxByOrNull { it.count }?.dayOfWeek ?: 0,
                 averageMessagesPerDay = avgPerDay,
+                milestonePredictionState = predictionState,
                 longestStreak       = streak,
                 hourlyDistribution  = hourly,
                 weeklyDistribution  = weekly,
@@ -335,11 +382,20 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
         onProgress: (Int) -> Unit = {}
     ): ChatStats = withContext(Dispatchers.IO) {
         // Cache solo per ALL_TIME
+        val now = System.currentTimeMillis()
         if (startTime == null && endTime == null) {
             val cached = cacheManager.getChatQuickStats(chatId)
             if (cached != null) {
                 android.util.Log.d("WhatStat", "Quick ChatStats #$chatId from cache")
-                return@withContext cached
+                // Enrich con prediction aggiornate
+                val predictionState = MilestonePredictionCalculator.buildState(
+                    currentCount = cached.totalMessages.toLong(),
+                    rateCount = cached.totalMessages.toLong(),
+                    rateStartTimestamp = cached.firstMessageDate.takeIf { it > 0L },
+                    rateEndTimestamp = now,
+                    nowTimestamp = now
+                )
+                return@withContext cached.copy(milestonePredictionState = predictionState)
             }
         }
 
@@ -357,6 +413,14 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             val dFirstTs    = async { messageDao.getFirstMessageTimestamp(chatId, startTime, endTime) }
             val dLastTs     = async { messageDao.getLastMessageTimestamp(chatId, startTime, endTime) }
             val dAvgLen     = async { messageDao.getAverageMessageLength(chatId, startTime, endTime) }
+            val dAllTimeMsgCount = async {
+                if (startTime == null && endTime == null) null
+                else messageDao.getMessageCountForChat(chatId, null, null)
+            }
+            val dAllTimeFirstTs = async {
+                if (startTime == null && endTime == null) null
+                else messageDao.getFirstMessageTimestamp(chatId, null, null)
+            }
 
             val displayName = if (basicInfo.isGroup) {
                 basicInfo.subject ?: contactDao.resolveContactName(basicInfo.jid) ?: basicInfo.jid.substringBefore("@")
@@ -374,6 +438,25 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             val weekly = dWeekly.await()
             onProgress(90)
             
+            val firstTs = dFirstTs.await()
+            val lastTs = dLastTs.await()
+            val allTimeCount = dAllTimeMsgCount.await()?.total ?: msgCount.total
+            val allTimeFirstTs = dAllTimeFirstTs.await() ?: firstTs
+            
+            val (rateStart, rateEnd) = resolveRateWindow(
+                startTime = startTime,
+                endTime = endTime,
+                fallbackStart = allTimeFirstTs,
+                now = now
+            )
+            val predictionState = MilestonePredictionCalculator.buildState(
+                currentCount = allTimeCount.toLong(),
+                rateCount = msgCount.total.toLong(),
+                rateStartTimestamp = rateStart,
+                rateEndTimestamp = rateEnd,
+                nowTimestamp = now
+            )
+
             val total = msgCount.total.coerceAtLeast(1)
 
             val result = ChatStats(
@@ -387,8 +470,9 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 sentWords                = msgCount.sentWords,
                 receivedWords            = msgCount.receivedWords,
                 sentRatio                = msgCount.sent.toFloat() / total,
-                firstMessageDate         = dFirstTs.await(),
-                lastMessageDate          = dLastTs.await(),
+                milestonePredictionState = predictionState,
+                firstMessageDate         = firstTs,
+                lastMessageDate          = lastTs,
                 averageResponseTimeMs    = 0L,
                 iStartedConversations    = 0,
                 theyStartedConversations = 0,

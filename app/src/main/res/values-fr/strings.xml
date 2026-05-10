@@ -262,4 +262,20 @@
     <string name="date_from">Du</string>
     <string name="date_to">Au</string>
     <string name="clear">Vider</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_title">Prévision de paliers</string>
+    <string name="prediction_info_title">À propos des prévisions</string>
+    <string name="prediction_info_desc">Les prévisions estiment quand vous atteindrez un futur palier en fonction de votre rythme récent de messages.\n\nLe rythme est calculé à l\'aide des messages envoyés au cours de la période sélectionnée. Si vous changez le filtre de période, la prévision sera mise à jour en conséquence.</string>
+    <string name="prediction_custom">Personnalisé</string>
+    <string name="prediction_target_label">Objectif personnalisé</string>
+    <string name="prediction_target_placeholder">ex. 50000</string>
+    <string name="prediction_error_already_reached">Palier déjà atteint !</string>
+    <string name="prediction_unavailable">Prévision indisponible</string>
+    <string name="prediction_estimated_date">Date estimée</string>
+    <string name="prediction_date_unavailable">Date indisponible</string>
+    <string name="prediction_uncalculable">Incalculable</string>
+    <string name="prediction_reached">Atteint</string>
+    <string name="prediction_low_confidence">Estimation peu stable</string>
+    <string name="prediction_period_filtered_label">Basé sur le rythme de la période sélectionnée</string>
 </resources>

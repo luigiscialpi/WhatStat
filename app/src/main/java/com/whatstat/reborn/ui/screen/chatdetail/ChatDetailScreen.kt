@@ -102,6 +102,7 @@ import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.ui.component.EmojiPreviewModal
 import com.whatstat.reborn.ui.component.StickerPreviewModal
 import com.whatstat.reborn.ui.component.ZoomableImageViewer
+import com.whatstat.reborn.ui.component.MilestonePredictionCard
 import com.whatstat.reborn.ui.component.ShimmerBox
 import com.whatstat.reborn.ui.component.rememberShimmerBrush
 import java.io.File
@@ -416,6 +417,16 @@ fun ChatDetailScreen(
                                     icon = Icons.Outlined.EmojiEmotions
                                 )
                             }
+                        }
+
+                        // ── Milestone Prediction ───────────────────────────
+                        item {
+                            MilestonePredictionCard(
+                                state = s.milestonePredictionState,
+                                periodLabel = if (selectedRange != TimeRange.ALL_TIME) {
+                                    stringResource(R.string.prediction_period_filtered_label)
+                                } else null
+                            )
                         }
 
                         // ── Distribuzione messaggi (Pie Chart) ───────────

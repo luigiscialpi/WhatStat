@@ -262,4 +262,20 @@
     <string name="date_from">Başlangıç</string>
     <string name="date_to">Bitiş</string>
     <string name="clear">Temizle</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_title">Kilometre taşı tahmini</string>
+    <string name="prediction_info_title">Tahminler hakkında</string>
+    <string name="prediction_info_desc">Tahminler, mevcut mesajlaşma hızınıza bağlı olarak gelecekteki bir kilometre taşına ne zaman ulaşacağınızı tahmin eder.\n\nHız, seçilen zaman diliminde gönderilen mesajlar kullanılarak hesaplanır. Dönem filtresini değiştirirseniz, tahmin buna göre güncellenecektir.</string>
+    <string name="prediction_custom">Özel</string>
+    <string name="prediction_target_label">Özel hedef</string>
+    <string name="prediction_target_placeholder">ör. 50000</string>
+    <string name="prediction_error_already_reached">Kilometre taşına zaten ulaşıldı!</string>
+    <string name="prediction_unavailable">Tahmin mevcut değil</string>
+    <string name="prediction_estimated_date">Tahmini tarih</string>
+    <string name="prediction_date_unavailable">Tarih mevcut değil</string>
+    <string name="prediction_uncalculable">Hesaplanamaz</string>
+    <string name="prediction_reached">Ulaşıldı</string>
+    <string name="prediction_low_confidence">Tahmin kararsız</string>
+    <string name="prediction_period_filtered_label">Seçilen dönemin hızına göre</string>
 </resources>

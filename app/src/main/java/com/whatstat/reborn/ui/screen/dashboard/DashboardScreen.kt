@@ -93,6 +93,7 @@ import com.whatstat.reborn.ui.component.InteractiveStickerCloud
 import com.whatstat.reborn.ui.component.InteractiveWordCloud
 import com.whatstat.reborn.ui.component.EmojiPreviewModal
 import com.whatstat.reborn.ui.component.StickerPreviewModal
+import com.whatstat.reborn.ui.component.MilestonePredictionCard
 import java.io.File
 
 @Composable
@@ -308,6 +309,18 @@ fun DashboardScreen(
                                 }
                             }
                         }
+                    }
+                }
+
+                // ── Milestone Prediction (Root Only) ──────────────────────
+                if (s != null && !isLiteMode) {
+                    item {
+                        MilestonePredictionCard(
+                            state = s.milestonePredictionState,
+                            periodLabel = if (selectedRange != TimeRange.ALL_TIME) {
+                                stringResource(R.string.prediction_period_filtered_label)
+                            } else null
+                        )
                     }
                 }
 

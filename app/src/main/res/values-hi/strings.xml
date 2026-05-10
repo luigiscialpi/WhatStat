@@ -262,4 +262,20 @@
     <string name="date_from">से</string>
     <string name="date_to">तक</string>
     <string name="clear">साफ़ करें</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_title">मील के पत्थर की भविष्यवाणी</string>
+    <string name="prediction_info_title">भविष्यवाणियों के बारे में</string>
+    <string name="prediction_info_desc">भविष्यवाणियां आपकी हालिया संदेश दर के आधार पर यह अनुमान लगाती हैं कि आप भविष्य के मील के पत्थर तक कब पहुंचेंगे।\n\nदर की गणना चयनित समय अवधि के दौरान भेजे गए संदेशों का उपयोग करके की जाती है। यदि आप अवधि फ़िल्टर बदलते हैं, तो भविष्यवाणी तदनुसार अपडेट की जाएगी।</string>
+    <string name="prediction_custom">कस्टम</string>
+    <string name="prediction_target_label">कस्टम लक्ष्य</string>
+    <string name="prediction_target_placeholder">जैसे 50000</string>
+    <string name="prediction_error_already_reached">मील का पत्थर पहले ही पूरा हो चुका है!</string>
+    <string name="prediction_unavailable">भविष्यवाणी उपलब्ध नहीं है</string>
+    <string name="prediction_estimated_date">अनुमानित तिथि</string>
+    <string name="prediction_date_unavailable">तिथि उपलब्ध नहीं है</string>
+    <string name="prediction_uncalculable">अगणनीय</string>
+    <string name="prediction_reached">पहुंच गए</string>
+    <string name="prediction_low_confidence">अस्थिर अनुमान</string>
+    <string name="prediction_period_filtered_label">चयनित अवधि की दर के आधार पर</string>
 </resources>

@@ -262,4 +262,20 @@
     <string name="date_from">Desde</string>
     <string name="date_to">Hasta</string>
     <string name="clear">Vaciar</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_title">Predicción de hitos</string>
+    <string name="prediction_info_title">Sobre las predicciones</string>
+    <string name="prediction_info_desc">Las predicciones estiman cuándo alcanzarás un hito futuro basándose en tu ritmo reciente de mensajes.\n\nEl ritmo se calcula utilizando los mensajes enviados en el período de tiempo seleccionado. Si cambias el filtro de período, la predicción se actualizará en consecuencia.</string>
+    <string name="prediction_custom">Personalizado</string>
+    <string name="prediction_target_label">Objetivo personalizado</string>
+    <string name="prediction_target_placeholder">ej. 50000</string>
+    <string name="prediction_error_already_reached">¡Hito ya alcanzado!</string>
+    <string name="prediction_unavailable">Predicción no disponible</string>
+    <string name="prediction_estimated_date">Fecha estimada</string>
+    <string name="prediction_date_unavailable">Fecha no disponible</string>
+    <string name="prediction_uncalculable">Incalculable</string>
+    <string name="prediction_reached">Alcanzado</string>
+    <string name="prediction_low_confidence">Estimación poco estable</string>
+    <string name="prediction_period_filtered_label">Basado en el ritmo del período seleccionado</string>
 </resources>

@@ -262,4 +262,20 @@
     <string name="date_from">De</string>
     <string name="date_to">Até</string>
     <string name="clear">Limpar</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_title">Previsão de marcos</string>
+    <string name="prediction_info_title">Sobre as previsões</string>
+    <string name="prediction_info_desc">As previsões estimam quando você alcançará um marco futuro com base no seu ritmo recente de mensagens.\n\nO ritmo é calculado usando as mensagens enviadas no período de tempo selecionado. Se você alterar o filtro de período, a previsão será atualizada adequadamente.</string>
+    <string name="prediction_custom">Personalizado</string>
+    <string name="prediction_target_label">Meta personalizada</string>
+    <string name="prediction_target_placeholder">ex: 50000</string>
+    <string name="prediction_error_already_reached">Marco já alcançado!</string>
+    <string name="prediction_unavailable">Previsão indisponível</string>
+    <string name="prediction_estimated_date">Data estimada</string>
+    <string name="prediction_date_unavailable">Data indisponível</string>
+    <string name="prediction_uncalculable">Incalculável</string>
+    <string name="prediction_reached">Alcançado</string>
+    <string name="prediction_low_confidence">Estimativa pouco estável</string>
+    <string name="prediction_period_filtered_label">Baseado no ritmo do período selecionado</string>
 </resources>
