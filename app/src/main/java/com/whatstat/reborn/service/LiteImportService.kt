@@ -68,6 +68,7 @@ class LiteImportService : Service() {
         super.onDestroy()
         progressJob?.cancel()
         serviceScope.cancel()
+        notificationManager.cancel(NOTIFICATION_ID)
     }
 
     private fun observeProgress() {

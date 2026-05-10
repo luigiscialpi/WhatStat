@@ -1,7 +1,10 @@
 package com.whatstat.reborn.ui.screen.dashboard
 
+import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.whatstat.reborn.data.analysis.LexicalAnalysisManager
 import com.whatstat.reborn.data.db.model.DateRange
 import com.whatstat.reborn.data.db.model.DayCount
 import com.whatstat.reborn.data.db.model.DayOfMonthCount
@@ -11,8 +14,10 @@ import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.db.model.YearTrendCount
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.domain.model.GlobalStats
+import com.whatstat.reborn.service.LexicalAnalysisService
 import com.whatstat.reborn.ui.state.FilterStateHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +30,9 @@ import javax.inject.Inject
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
-    private val filterState: FilterStateHolder
+    private val filterState: FilterStateHolder,
+    private val lexicalAnalysisManager: LexicalAnalysisManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _globalStats = MutableStateFlow<GlobalStats?>(null)
@@ -175,6 +182,7 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoadingSlow.value = true
             _loadingProgressSlow.value = 0
+            startLexicalNotification()
             try {
                 val (startTime, endTime) = if (_selectedTimeRange.value == TimeRange.CUSTOM) {
                     _customDateRange.value?.let {
@@ -186,7 +194,10 @@ class DashboardViewModel @Inject constructor(
                 val slowStats = analyticsRepository.getSlowGlobalStats(
                     startTime = startTime,
                     endTime = endTime,
-                    onProgress = { progress -> _loadingProgressSlow.value = progress }
+                    onProgress = { progress ->
+                        _loadingProgressSlow.value = progress
+                        lexicalAnalysisManager.updateProgress(progress)
+                    }
                 )
                 _globalStats.value = _globalStats.value?.copy(
                     topWords = slowStats.topWords,
@@ -200,8 +211,26 @@ class DashboardViewModel @Inject constructor(
             } finally {
                 _isLoadingSlow.value = false
                 _loadingProgressSlow.value = null
+                stopLexicalNotification()
             }
         }
+    }
+
+    private fun startLexicalNotification() {
+        lexicalAnalysisManager.updateProgress(0)
+        context.startService(
+            Intent(context, LexicalAnalysisService::class.java).apply {
+                action = LexicalAnalysisService.ACTION_START
+            }
+        )
+    }
+
+    private fun stopLexicalNotification() {
+        context.startService(
+            Intent(context, LexicalAnalysisService::class.java).apply {
+                action = LexicalAnalysisService.ACTION_STOP
+            }
+        )
     }
 
     fun setSelectedLimit(limit: Int) {
