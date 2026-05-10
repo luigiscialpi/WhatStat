@@ -136,6 +136,9 @@
     <string name="activity_period_label">Período de atividade</string>
     <string name="avg_response_time">Tempo médio de resposta</string>
     <string name="media_length_label">Comp. médio msg</string>
+    <string name="chatdetail_words_per_msg">Palavras / mensagem</string>
+    <string name="chatdetail_emoji_per_msg">Emoji / mensagem</string>
+    <string name="stat_split_format">%1$s: %2$s • %3$s: %4$s</string>
     <string name="chars_abbr">car.</string>
     <string name="conv_starters_title">Quem inicia as conversas</string>
     <string name="conv_starters_center">conversas</string>

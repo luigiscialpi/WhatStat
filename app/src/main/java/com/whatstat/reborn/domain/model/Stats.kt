@@ -50,6 +50,10 @@ data class ChatStats(
     val totalMessages: Int,
     val sentByMe: Int,
     val receivedFromThem: Int,
+    val sentWords: Int = 0,
+    val receivedWords: Int = 0,
+    val sentEmojis: Int = 0,
+    val receivedEmojis: Int = 0,
     val sentRatio: Float,              // percentuale messaggi inviati (0.0–1.0)
     val firstMessageDate: Long,        // Unix timestamp ms
     val lastMessageDate: Long,
@@ -86,5 +90,7 @@ data class SlowChatStats(
     val averageResponseTimeMs: Long,
     val iStartedConversations: Int,
     val theyStartedConversations: Int,
-    val longestMessage: String
+    val longestMessage: String,
+    val sentEmojis: Int = 0,
+    val receivedEmojis: Int = 0
 )

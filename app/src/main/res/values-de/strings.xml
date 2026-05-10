@@ -136,6 +136,9 @@
     <string name="activity_period_label">Aktivitätszeitraum</string>
     <string name="avg_response_time">Durchschnittliche Antwortzeit</string>
     <string name="media_length_label">Ø Nachrichtenlänge</string>
+    <string name="chatdetail_words_per_msg">Wörter / Nachricht</string>
+    <string name="chatdetail_emoji_per_msg">Emoji / Nachricht</string>
+    <string name="stat_split_format">%1$s: %2$s • %3$s: %4$s</string>
     <string name="chars_abbr">Zeich.</string>
     <string name="conv_starters_title">Wer startet die Gespräche</string>
     <string name="conv_starters_center">Gespräche</string>

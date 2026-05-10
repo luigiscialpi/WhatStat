@@ -35,7 +35,9 @@ data class ChatMessageCount(
     val name: String?,
     val total: Int,
     val sent: Int,
-    val received: Int
+    val received: Int,
+    val sentWords: Int = 0,
+    val receivedWords: Int = 0
 )
 
 @Serializable

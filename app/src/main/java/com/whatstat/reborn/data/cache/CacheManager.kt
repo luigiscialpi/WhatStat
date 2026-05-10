@@ -62,7 +62,9 @@ private data class CachedSlowChatStats(
     val averageResponseTimeMs: Long = 0L,
     val iStartedConversations: Int = 0,
     val theyStartedConversations: Int = 0,
-    val longestMessage: String = ""
+    val longestMessage: String = "",
+    val sentEmojis: Int = 0,
+    val receivedEmojis: Int = 0
 )
 
 @Serializable
@@ -73,6 +75,8 @@ private data class CachedQuickChatStats(
     val totalMessages: Int,
     val sentByMe: Int,
     val receivedFromThem: Int,
+    val sentWords: Int = 0,
+    val receivedWords: Int = 0,
     val sentRatio: Float,
     val firstMessageDate: Long,
     val lastMessageDate: Long,
@@ -194,7 +198,9 @@ private fun SlowChatStats.toCached() = CachedSlowChatStats(
     averageResponseTimeMs = averageResponseTimeMs,
     iStartedConversations = iStartedConversations,
     theyStartedConversations = theyStartedConversations,
-    longestMessage = longestMessage
+    longestMessage = longestMessage,
+    sentEmojis = sentEmojis,
+    receivedEmojis = receivedEmojis
 )
 
 private fun CachedSlowChatStats.toDomain() = SlowChatStats(
@@ -206,7 +212,9 @@ private fun CachedSlowChatStats.toDomain() = SlowChatStats(
     averageResponseTimeMs = averageResponseTimeMs,
     iStartedConversations = iStartedConversations,
     theyStartedConversations = theyStartedConversations,
-    longestMessage = longestMessage
+    longestMessage = longestMessage,
+    sentEmojis = sentEmojis,
+    receivedEmojis = receivedEmojis
 )
 
 private fun ChatStats.toQuickCached() = CachedQuickChatStats(
@@ -216,6 +224,8 @@ private fun ChatStats.toQuickCached() = CachedQuickChatStats(
     totalMessages = totalMessages,
     sentByMe = sentByMe,
     receivedFromThem = receivedFromThem,
+    sentWords = sentWords,
+    receivedWords = receivedWords,
     sentRatio = sentRatio,
     firstMessageDate = firstMessageDate,
     lastMessageDate = lastMessageDate,
@@ -239,6 +249,8 @@ private fun CachedQuickChatStats.toDomain(chatId: Long) = ChatStats(
     totalMessages = totalMessages,
     sentByMe = sentByMe,
     receivedFromThem = receivedFromThem,
+    sentWords = sentWords,
+    receivedWords = receivedWords,
     sentRatio = sentRatio,
     firstMessageDate = firstMessageDate,
     lastMessageDate = lastMessageDate,

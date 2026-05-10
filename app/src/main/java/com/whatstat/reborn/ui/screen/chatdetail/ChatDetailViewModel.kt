@@ -202,6 +202,8 @@ class ChatDetailViewModel @Inject constructor(
                         iStartedConversations = slowStats.iStartedConversations,
                         theyStartedConversations = slowStats.theyStartedConversations,
                         longestMessage = slowStats.longestMessage,
+                        sentEmojis = slowStats.sentEmojis,
+                        receivedEmojis = slowStats.receivedEmojis,
                         avatarPath = avatarPath
                     )
                     // Popola gli sticker AGGREGATED dal pool slow stats (stesso pattern di parole/emoji)

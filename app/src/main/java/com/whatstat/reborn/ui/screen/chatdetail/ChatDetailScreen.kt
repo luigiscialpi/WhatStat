@@ -38,6 +38,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -375,6 +376,44 @@ fun ChatDetailScreen(
                                     label = stringResource(R.string.chatdetail_received),
                                     value = "%,d".format(s.receivedFromThem),
                                     icon = Icons.Filled.CallReceived
+                                )
+                            }
+                        }
+
+                        // ── Density Stats ──────────────────────────────────
+                        item {
+                            val totalMessages = s.sentByMe + s.receivedFromThem
+                            val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
+                            val meName = stringResource(R.string.fallback_me)
+
+                            // Words
+                            val totalWords = s.sentWords + s.receivedWords
+                            val avgWords = if (totalMessages > 0) "%.1f".format(totalWords.toFloat() / totalMessages) else "—"
+                            val sentWpm = if (s.sentByMe > 0) "%.1f".format(s.sentWords.toFloat() / s.sentByMe) else "0"
+                            val recvWpm = if (s.receivedFromThem > 0) "%.1f".format(s.receivedWords.toFloat() / s.receivedFromThem) else "0"
+                            val wordsSubtitle = stringResource(R.string.stat_split_format, meName, sentWpm, otherName, recvWpm)
+
+                            // Emojis
+                            val totalEmojis = s.sentEmojis + s.receivedEmojis
+                            val avgEmojis = if (totalMessages > 0) "%.1f".format(totalEmojis.toFloat() / totalMessages) else "—"
+                            val sentEpm = if (s.sentByMe > 0) "%.1f".format(s.sentEmojis.toFloat() / s.sentByMe) else "0"
+                            val recvEpm = if (s.receivedFromThem > 0) "%.1f".format(s.receivedWords.toFloat() / s.receivedFromThem) else "0"
+                            val emojisSubtitle = stringResource(R.string.stat_split_format, meName, sentEpm, otherName, recvEpm)
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                StatCard(
+                                    modifier = Modifier.weight(1f),
+                                    label = stringResource(R.string.chatdetail_words_per_msg),
+                                    value = avgWords,
+                                    subtitle = wordsSubtitle,
+                                    icon = Icons.Outlined.TextFields
+                                )
+                                StatCard(
+                                    modifier = Modifier.weight(1f),
+                                    label = stringResource(R.string.chatdetail_emoji_per_msg),
+                                    value = avgEmojis,
+                                    subtitle = emojisSubtitle,
+                                    icon = Icons.Outlined.EmojiEmotions
                                 )
                             }
                         }

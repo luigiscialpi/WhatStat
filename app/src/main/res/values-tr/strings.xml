@@ -136,6 +136,9 @@
     <string name="activity_period_label">Aktivite dönemi</string>
     <string name="avg_response_time">Ortalama yanıt süresi</string>
     <string name="media_length_label">Ort. mesaj uzunluğu</string>
+    <string name="chatdetail_words_per_msg">Kelime / mesaj</string>
+    <string name="chatdetail_emoji_per_msg">Emoji / mesaj</string>
+    <string name="stat_split_format">%1$s: %2$s • %3$s: %4$s</string>
     <string name="chars_abbr">kar.</string>
     <string name="conv_starters_title">Konuşmayı kim başlatıyor</string>
     <string name="conv_starters_center">konuşma</string>

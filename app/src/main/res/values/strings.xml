@@ -169,6 +169,9 @@
     <string name="activity_period_label">Activity period</string>
     <string name="avg_response_time">Avg response time</string>
     <string name="media_length_label">Avg msg length</string>
+    <string name="chatdetail_words_per_msg">Words / message</string>
+    <string name="chatdetail_emoji_per_msg">Emoji / message</string>
+    <string name="stat_split_format">%1$s: %2$s • %3$s: %4$s</string>
     <string name="chars_abbr">chars</string>
     <string name="conv_starters_title">Who starts conversations</string>
     <string name="conv_starters_center">conversations</string>

@@ -384,6 +384,8 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 totalMessages            = msgCount.total,
                 sentByMe                 = msgCount.sent,
                 receivedFromThem         = msgCount.received,
+                sentWords                = msgCount.sentWords,
+                receivedWords            = msgCount.receivedWords,
                 sentRatio                = msgCount.sent.toFloat() / total,
                 firstMessageDate         = dFirstTs.await(),
                 lastMessageDate          = dLastTs.await(),
@@ -465,6 +467,7 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             val dSenders    = async { messageDao.getMessageCountBySender(chatId, startTime, endTime) }
             val dStartersBySender = async { messageDao.getConversationStartersBySender(chatId, startTime, endTime) }
             val dLongest    = async { messageDao.getLongestMessage(chatId) }
+            val dSenderEmojis = async { getEmojiStatsBySender(chatId, startTime, endTime, 1) }
 
             onProgress(20)
             val starters = dStarters.await()
@@ -478,7 +481,12 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
             onProgress(95)
             val avgResp = dAvgResp.await()
             val longest = dLongest.await()
+            val senderEmojis = dSenderEmojis.await()
             onProgress(100)
+            
+            val sentEmojisCount = senderEmojis.find { it.jid == "me@s.whatsapp.net" }?.totalEmojiCount ?: 0
+            val receivedEmojisCount = senderEmojis.filter { it.jid != "me@s.whatsapp.net" }.sumOf { it.totalEmojiCount }
+
             val senderJids = rawSenders.map { it.jid }
             val contactNames = contactDao.resolveContactNames(senderJids)
             val aggregatedSenders = rawSenders.map { stat ->
@@ -516,7 +524,9 @@ val mostActiveChatName = contactDao.resolveContactName(mostActiveChatJid) ?: mos
                 averageResponseTimeMs    = avgResp,
                 iStartedConversations    = starters.startedByMe,
                 theyStartedConversations = starters.startedByThem,
-                longestMessage           = longest
+                longestMessage           = longest,
+                sentEmojis               = sentEmojisCount,
+                receivedEmojis           = receivedEmojisCount
             )
 
             // Salva in DataStore solo per ALL_TIME

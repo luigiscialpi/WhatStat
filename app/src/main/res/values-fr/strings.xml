@@ -23,7 +23,7 @@
     <string name="select_zip_file">SÉLECTIONNER UN FICHIER ZIP</string>
     <string name="processing_label">Traitement en cours...</string>
     <string name="nav_dashboard">Tableau de bord</string>
-    <string name="nav_chats">Discussions</string>
+    <string name="nav_chats">Chat</string>
     <string name="nav_media">Médias</string>
     <string name="nav_radar">Radar</string>
     <string name="nav_calls">Appels</string>
@@ -136,6 +136,9 @@
     <string name="activity_period_label">Période d\'activité</string>
     <string name="avg_response_time">Temps de réponse moyen</string>
     <string name="media_length_label">Long. moy. msg</string>
+    <string name="chatdetail_words_per_msg">Mots / message</string>
+    <string name="chatdetail_emoji_per_msg">Emoji / message</string>
+    <string name="stat_split_format">%1$s: %2$s • %3$s: %4$s</string>
     <string name="chars_abbr">car.</string>
     <string name="conv_starters_title">Qui initie les conversations</string>
     <string name="conv_starters_center">conversations</string>

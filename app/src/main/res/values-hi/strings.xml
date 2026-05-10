@@ -135,7 +135,10 @@
     <string name="fallback_me">आप</string>
     <string name="activity_period_label">गतिविधि अवधि</string>
     <string name="avg_response_time">औसत प्रतिक्रिया समय</string>
-    <string name="media_length_label">औसत संदेश लंबाई</string>
+    <string name="media_length_label">औसत संदेश की लंबाई</string>
+    <string name="chatdetail_words_per_msg">शब्द / संदेश</string>
+    <string name="chatdetail_emoji_per_msg">इमोजी / संदेश</string>
+    <string name="stat_split_format">%1$s: %2$s • %3$s: %4$s</string>
     <string name="chars_abbr">अक्षर</string>
     <string name="conv_starters_title">बातचीत कौन शुरू करता है</string>
     <string name="conv_starters_center">बातचीत</string>

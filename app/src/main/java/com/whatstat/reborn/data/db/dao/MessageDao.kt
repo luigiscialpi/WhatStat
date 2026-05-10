@@ -58,7 +58,9 @@ class MessageDao @Inject constructor(
                 '' AS name,
                 COUNT(*) AS total,
                 SUM(CASE WHEN from_me = 1 THEN 1 ELSE 0 END) AS sent,
-                SUM(CASE WHEN from_me = 0 THEN 1 ELSE 0 END) AS received
+                SUM(CASE WHEN from_me = 0 THEN 1 ELSE 0 END) AS received,
+                SUM(CASE WHEN from_me = 1 AND message_type = 0 AND text_data IS NOT NULL THEN LENGTH(text_data) - LENGTH(REPLACE(text_data, ' ', '')) + 1 ELSE 0 END) AS sent_words,
+                SUM(CASE WHEN from_me = 0 AND message_type = 0 AND text_data IS NOT NULL THEN LENGTH(text_data) - LENGTH(REPLACE(text_data, ' ', '')) + 1 ELSE 0 END) AS received_words
             FROM message
             WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
         """.trimIndent())
@@ -81,8 +83,10 @@ class MessageDao @Inject constructor(
                 name     = null,
                 total    = it.getInt(it.getColumnIndexOrThrow("total")),
                 sent     = it.getInt(it.getColumnIndexOrThrow("sent")),
-                received = it.getInt(it.getColumnIndexOrThrow("received"))
-            ) else ChatMessageCount(chatId, "", null, 0, 0, 0)
+                received = it.getInt(it.getColumnIndexOrThrow("received")),
+                sentWords = it.getInt(it.getColumnIndexOrThrow("sent_words")),
+                receivedWords = it.getInt(it.getColumnIndexOrThrow("received_words"))
+            ) else ChatMessageCount(chatId, "", null, 0, 0, 0, 0, 0)
         }
     }
 
@@ -98,7 +102,9 @@ class MessageDao @Inject constructor(
                 COALESCE(c.subject, j.raw_string) AS name,
                 COUNT(*)            AS total,
                 SUM(CASE WHEN m.from_me = 1 THEN 1 ELSE 0 END) AS sent,
-                SUM(CASE WHEN m.from_me = 0 THEN 1 ELSE 0 END) AS received
+                SUM(CASE WHEN m.from_me = 0 THEN 1 ELSE 0 END) AS received,
+                SUM(CASE WHEN m.from_me = 1 AND m.message_type = 0 AND m.text_data IS NOT NULL THEN LENGTH(m.text_data) - LENGTH(REPLACE(m.text_data, ' ', '')) + 1 ELSE 0 END) AS sent_words,
+                SUM(CASE WHEN m.from_me = 0 AND m.message_type = 0 AND m.text_data IS NOT NULL THEN LENGTH(m.text_data) - LENGTH(REPLACE(m.text_data, ' ', '')) + 1 ELSE 0 END) AS received_words
             FROM message m
             JOIN chat c ON m.chat_row_id = c._id
             JOIN jid j  ON c.jid_row_id  = j._id
@@ -1834,7 +1840,9 @@ class MessageDao @Inject constructor(
                 name     = cursor.getString(cursor.getColumnIndexOrThrow("name")),
                 total    = cursor.getInt(cursor.getColumnIndexOrThrow("total")),
                 sent     = cursor.getInt(cursor.getColumnIndexOrThrow("sent")),
-                received = cursor.getInt(cursor.getColumnIndexOrThrow("received"))
+                received = cursor.getInt(cursor.getColumnIndexOrThrow("received")),
+                sentWords = cursor.getInt(cursor.getColumnIndexOrThrow("sent_words")),
+                receivedWords = cursor.getInt(cursor.getColumnIndexOrThrow("received_words"))
             ))
         }
     }
