@@ -302,27 +302,29 @@ private fun ChatListItem(
                 .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = if (isLiteMode) 4.dp else 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Rank badge
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (rank <= 3) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "$rank",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (rank <= 3) FontWeight.Bold else FontWeight.Normal,
-                    color = if (rank <= 3) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            if (!isLiteMode) {
+                // Rank badge
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (rank <= 3) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "$rank",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (rank <= 3) FontWeight.Bold else FontWeight.Normal,
+                        color = if (rank <= 3) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
-            Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(14.dp))
+            }
 
             // Avatar image or icon fallback
             if (avatarPath != null) {
