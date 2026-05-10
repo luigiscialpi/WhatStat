@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -401,7 +403,10 @@ fun ChatDetailScreen(
                             val recvEpm = if (s.receivedFromThem > 0) "%.1f".format(s.receivedEmojis.toFloat() / s.receivedFromThem) else "0"
                             val emojisSubtitle = stringResource(R.string.stat_split_format, meName, sentEpm, otherName, recvEpm)
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.height(IntrinsicSize.Min)
+                            ) {
                                 StatCard(
                                     modifier = Modifier.weight(1f),
                                     label = stringResource(R.string.chatdetail_words_per_msg),
@@ -409,13 +414,23 @@ fun ChatDetailScreen(
                                     subtitle = wordsSubtitle,
                                     icon = Icons.Outlined.TextFields
                                 )
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = stringResource(R.string.chatdetail_emoji_per_msg),
-                                    value = avgEmojis,
-                                    subtitle = emojisSubtitle,
-                                    icon = Icons.Outlined.EmojiEmotions
-                                )
+                                if (isLoadingSlow) {
+                                    ShimmerBox(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight(),
+                                        brush = rememberShimmerBrush(),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                } else {
+                                    StatCard(
+                                        modifier = Modifier.weight(1f),
+                                        label = stringResource(R.string.chatdetail_emoji_per_msg),
+                                        value = avgEmojis,
+                                        subtitle = emojisSubtitle,
+                                        icon = Icons.Outlined.EmojiEmotions
+                                    )
+                                }
                             }
                         }
 
