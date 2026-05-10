@@ -278,4 +278,12 @@
     <string name="prediction_reached">Erreicht</string>
     <string name="prediction_low_confidence">Instabile Schätzung</string>
     <string name="prediction_period_filtered_label">Basierend auf der Rate des ausgewählten Zeitraums</string>
+
+    <!-- Time Range Filters -->
+    <string name="time_range_all">Alle</string>
+    <string name="time_range_30_days">30 Tage</string>
+    <string name="time_range_6_months">6 Monate</string>
+    <string name="time_range_year">Jahr</string>
+    <string name="time_range_custom">Benutzerdefiniert</string>
+    <string name="time_range_custom_button">Auswählen</string>
 </resources>

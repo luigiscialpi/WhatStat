@@ -278,4 +278,12 @@
     <string name="prediction_reached">Atteint</string>
     <string name="prediction_low_confidence">Estimation peu stable</string>
     <string name="prediction_period_filtered_label">Basé sur le rythme de la période sélectionnée</string>
+
+    <!-- Time Range Filters -->
+    <string name="time_range_all">Tout</string>
+    <string name="time_range_30_days">30 jours</string>
+    <string name="time_range_6_months">6 mois</string>
+    <string name="time_range_year">Année</string>
+    <string name="time_range_custom">Personnalisé</string>
+    <string name="time_range_custom_button">Choisir</string>
 </resources>

@@ -9,12 +9,12 @@ import kotlinx.serialization.Serializable
  */
 
 /** Range temporale per i filtri */
-enum class TimeRange(val label: String, val millisBack: Long?) {
-    ALL_TIME("Tutto", null),
-    LAST_30_DAYS("30 giorni", 2592000000L),
-    LAST_6_MONTHS("6 mesi", 15552000000L),
-    LAST_YEAR("Anno", 31536000000L),
-    CUSTOM("Personalizzato", null)
+enum class TimeRange(val millisBack: Long?) {
+    ALL_TIME(null),
+    LAST_30_DAYS(2592000000L),
+    LAST_6_MONTHS(15552000000L),
+    LAST_YEAR(31536000000L),
+    CUSTOM(null)
 }
 
 data class DateRange(

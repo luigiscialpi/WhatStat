@@ -18,9 +18,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.whatstat.reborn.data.db.model.DateRange
 import com.whatstat.reborn.data.db.model.TimeRange
+import com.whatstat.reborn.R
 
 /**
  * Riga filtri temporali riutilizzabile: carosello chip + DateRangePicker.
@@ -62,19 +64,26 @@ fun TimeRangeFilterRow(
                 .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
             items(timeRangeItems) { range ->
-                FilterChip(
-                    selected = selectedRange == range,
-                    onClick = {
-                        if (range == TimeRange.CUSTOM) {
-                            showDatePicker = !showDatePicker
-                        } else {
-                            showDatePicker = false
-                            onRangeSelected(range)
-                        }
-                    },
-                    label = {
-                        Text(if (range == TimeRange.CUSTOM) "Scegli" else range.label)
-                    },
+                 FilterChip(
+                     selected = selectedRange == range,
+                     onClick = {
+                         if (range == TimeRange.CUSTOM) {
+                             showDatePicker = !showDatePicker
+                         } else {
+                             showDatePicker = false
+                             onRangeSelected(range)
+                         }
+                     },
+                     label = {
+                         val labelRes = when (range) {
+                             TimeRange.ALL_TIME -> R.string.time_range_all
+                             TimeRange.LAST_30_DAYS -> R.string.time_range_30_days
+                             TimeRange.LAST_6_MONTHS -> R.string.time_range_6_months
+                             TimeRange.LAST_YEAR -> R.string.time_range_year
+                             TimeRange.CUSTOM -> R.string.time_range_custom_button
+                         }
+                         Text(stringResource(labelRes))
+                     },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
