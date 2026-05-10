@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WhatStat Reborn</string>
+
+    <!-- Navigation & Common -->
+    <string name="back_desc">वापस</string>
+    <string name="back_button_desc">पीछे जाएं</string>
+    <string name="cancel">रद्द करें</string>
+    <string name="save">सहेजें</string>
+    <string name="delete">हटाएं</string>
+    <string name="retry">पुनः प्रयास करें</string>
+    <string name="error_title">त्रुटि</string>
+    <string name="exit_toast">बाहर निकलने के लिए फिर से दबाएं</string>
+    <string name="processing">प्रोसेसिंग हो रही है…</string>
+    <string name="loading">लोड हो रहा है…</string>
+    <string name="show_more">सभी दिखाएं</string>
+    <string name="show_more_with_count">सभी दिखाएं (%d)</string>
+    <string name="show_less">कम दिखाएं</string>
+    <string name="info_dialog_title">जानकारी</string>
+    <string name="ho_capito">समझ गया</string>
+    <string name="ok">ठीक है</string>
+    <string name="add_zip_title">ZIP जोड़ें</string>
+    <string name="select_zip_file">ZIP फ़ाइल चुनें</string>
+    <string name="processing_label">प्रोसेसिंग हो रही है...</string>
+    <string name="nav_dashboard">डैशबोर्ड</string>
+    <string name="nav_chats">चैट्स</string>
+    <string name="nav_media">मीडिया</string>
+    <string name="nav_radar">रडार</string>
+    <string name="nav_calls">कॉल्स</string>
+
+    <string name="group_history_title">ग्रुप इतिहास</string>
+    <string name="group_history_no_events">इस ग्रुप के लिए कोई ऐतिहासिक घटना नहीं मिली।</string>
+    <string name="history_legend_names">नाम</string>
+    <string name="history_legend_descriptions">विवरण</string>
+    <string name="history_legend_io">प्रवेश/निकास</string>
+
+    <string name="tab_hourly">प्रति घंटा</string>
+    <string name="tab_weekly">साप्ताहिक</string>
+    <string name="tab_daily">दैनिक</string>
+    <string name="tab_monthly">मासिक</string>
+    <string name="tab_yearly">वार्षिक</string>
+    <string name="activity_hourly_title">प्रति घंटा वितरण</string>
+    <string name="activity_weekly_title">साप्ताहिक गतिविधि</string>
+    <string name="activity_daily_title">महीने के दिन (1-31)</string>
+    <string name="activity_monthly_title">मौसमी (जन-दिस)</string>
+    <string name="activity_yearly_title">वार्षिक रुझान</string>
+    <string name="click_hour_format">घंटा %d:00</string>
+    <string name="click_day_prefix">दिन %s</string>
+    <string name="click_year_prefix">वर्ष %s</string>
+
+    <!-- Setup Screen -->
+    <string name="setup_title">WhatStat Reborn</string>
+    <string name="setup_subtitle">आपकी WhatsApp चैट्स का पूर्ण विश्लेषण।\nसभी डेटा डिवाइस पर ही रहता है।</string>
+    <string name="tab_lite">Lite</string>
+    <string name="tab_root">Root</string>
+    <string name="permesso_notifiche_toast">बैकग्राउंड में प्रगति देखने के लिए नोटिफिकेशन की अनुमति आवश्यक है</string>
+    <string name="importing_overlay">चैट आयात हो रही है…</string>
+    <string name="checking_data_overlay">डेटा जाँचा जा रहा है…</string>
+    <string name="who_are_you_title">आप कौन हैं?</string>
+    <string name="who_are_you_desc">भेजे और प्राप्त संदेशों में अंतर करने के लिए सूची से अपना नाम चुनें।</string>
+    <string name="lite_hint_import_found">पहले से आयातित डेटा मिला। आप डैशबोर्ड पर जा सकते हैं या कोई अन्य ZIP चैट आयात कर सकते हैं।</string>
+    <string name="lite_hint_no_import">कोई डेटा आयात नहीं हुआ। ZIP फ़ाइल के रूप में निर्यात की गई WhatsApp चैट अपलोड करें।</string>
+    <string name="go_to_dashboard">डैशबोर्ड पर जाएं</string>
+    <string name="import_zip_button">ZIP फ़ाइल से चैट आयात करें</string>
+    <string name="root_step_access">Root एक्सेस</string>
+    <string name="root_step_extraction">फ़ाइल निष्कर्षण</string>
+    <string name="root_step_decryption">डेटाबेस डिक्रिप्शन</string>
+    <string name="root_step_contacts">संपर्क पढ़ना</string>
+    <string name="root_hint_session_found">सहेजा गया Root सत्र मिला। आप डैशबोर्ड पर जा सकते हैं या नया विश्लेषण शुरू कर सकते हैं।</string>
+    <string name="root_hint_no_session">कोई सक्रिय Root सत्र नहीं। अपडेटेड डेटा निकालने के लिए विश्लेषण शुरू करें।</string>
+    <string name="manual_mode_button">फ़ाइलें मैन्युअल रूप से चुनें</string>
+    <string name="manual_mode_title">मैन्युअल विकल्प (Root के बिना)</string>
+    <string name="manual_file_key">की फ़ाइल (key)</string>
+    <string name="manual_file_crypt14">डेटाबेस (msgstore.db.crypt14)</string>
+    <string name="manual_file_decrypted">पहले से डिक्रिप्टेड डेटाबेस (msgstore.db)</string>
+    <string name="manual_file_wadb">संपर्क (wa.db) - वैकल्पिक</string>
+    <string name="start_analysis">विश्लेषण शुरू करें</string>
+    <string name="decrypt_db_button">डेटाबेस डिक्रिप्ट करें</string>
+    <string name="button_replace">बदलें</string>
+    <string name="button_select">चुनें</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">सारांश</string>
+    <string name="lite_mode_badge">LITE मोड (ZIP)</string>
+    <string name="stat_total_messages">कुल संदेश</string>
+    <string name="stat_avg_per_day">औसत/दिन</string>
+    <string name="stat_active_chats">सक्रिय चैट्स</string>
+    <string name="stat_longest_streak">सबसे लंबी लकीर</string>
+    <string name="stat_streak_days">%d दिन</string>
+    <string name="stat_contacts">संपर्क</string>
+    <string name="stat_total_media">मीडिया फ़ाइलें</string>
+    <string name="stat_most_active_chat">सबसे सक्रिय चैट</string>
+    <string name="lexical_analysis_title">शाब्दिक विश्लेषण</string>
+    <string name="lexical_analysis_subtitle">सबसे अधिक उपयोग किए गए शब्द और इमोजी</string>
+    <string name="lexical_analysis_info">विश्लेषण में कई सेकंड लग सकते हैं — शायद कुछ मिनट भी!</string>
+    <string name="run_analysis_button">विश्लेषण शुरू करें</string>
+    <string name="text_analysis_title">टेक्स्ट विश्लेषण</string>
+    <string name="text_analysis_subtitle">सबसे अधिक उपयोग किए गए शब्द, इमोजी और स्टिकर</string>
+    <string name="tab_words">शब्द</string>
+    <string name="tab_emojis">इमोजी</string>
+    <string name="tab_stickers">स्टिकर</string>
+    <string name="no_words_found">कोई शब्द नहीं मिला</string>
+    <string name="no_emojis_found">कोई इमोजी नहीं मिला</string>
+    <string name="sticker_info_hint">समान स्टिकर कई बार दिख सकते हैं क्योंकि WhatsApp उन्हें अलग-अलग फ़ाइलों के रूप में सहेजता है।</string>
+    <string name="no_stickers_found">कोई स्टिकर नहीं मिला</string>
+
+    <!-- Errors (Service) -->
+    <string name="error_root_not_available">Root उपलब्ध नहीं है। सुनिश्चित करें कि Magisk इंस्टॉल है और ऐप को Root अनुमतियां मिली हैं।</string>
+    <string name="error_root_not_granted">Root अनुमतियां अस्वीकृत। Magisk खोलें और WhatStat Reborn को अनुमतियां दें।</string>
+    <string name="error_key_not_found">की फ़ाइल नहीं मिली। क्या WhatsApp इंस्टॉल है?</string>
+    <string name="error_crypt14_not_found">एन्क्रिप्टेड डेटाबेस नहीं मिला। सुनिश्चित करें कि WhatsApp में लोकल बैकअप चालू है।</string>
+    <string name="error_crypt15_detected">Crypt15 (E2E) बैकअप मिला। WhatsApp सेटिंग में एंड-टू-एंड एन्क्रिप्टेड बैकअप बंद करें।</string>
+    <string name="error_decryption_failed">डिक्रिप्शन विफल: %s</string>
+    <string name="error_database_open">डेटाबेस नहीं खुला: %s</string>
+    <string name="error_unknown">अप्रत्याशित त्रुटि: %s</string>
+
+    <!-- Chat List -->
+    <string name="chatlist_title">आपकी चैट्स</string>
+    <string name="chatlist_search_hint">चैट खोजें…</string>
+    <string name="chatlist_count_suffix">%d चैट्स</string>
+    <string name="add_zip_fab">ZIP जोड़ें</string>
+    <string name="delete_chat_title">चैट हटाएं</string>
+    <string name="delete_chat_confirm">क्या आप \"%s\" और उसके सभी संदेश हटाना चाहते हैं?</string>
+    <string name="rename_chat_title">चैट का नाम बदलें</string>
+    <string name="chat_name_label">चैट का नाम</string>
+    <string name="exported_on_prefix">निर्यात किया: %s</string>
+    <string name="messages_count_suffix">%,d संदेश</string>
+    <string name="messages_label">संदेश</string>
+
+    <!-- Chat Detail -->
+    <string name="chatdetail_sent">भेजे गए</string>
+    <string name="chatdetail_received">प्राप्त</string>
+    <string name="chatdetail_top_sender_title">सबसे अधिक कौन लिखता है</string>
+    <string name="fallback_them">वे</string>
+    <string name="fallback_me">आप</string>
+    <string name="activity_period_label">गतिविधि अवधि</string>
+    <string name="avg_response_time">औसत प्रतिक्रिया समय</string>
+    <string name="media_length_label">औसत संदेश लंबाई</string>
+    <string name="chars_abbr">अक्षर</string>
+    <string name="conv_starters_title">बातचीत कौन शुरू करता है</string>
+    <string name="conv_starters_center">बातचीत</string>
+    <string name="view_mode_all">सभी</string>
+    <string name="view_mode_person">व्यक्ति के अनुसार</string>
+    <string name="conv_starters_info">एक नई बातचीत तब गिनी जाती है जब पिछले संदेश के बाद कम से कम 3 घंटे की चुप्पी के बाद कोई संदेश भेजा जाता है।</string>
+
+    <!-- Action Cards -->
+    <string name="radar_parole_title">शब्द रडार</string>
+    <string name="radar_parole_sub">बार-बार आने वाले शब्द खोजें</string>
+    <string name="log_chiamate_title">कॉल लॉग</string>
+    <string name="log_chiamate_sub">ऑडियो, वीडियो, मिस्ड</string>
+    <string name="media_link_title">मीडिया और लिंक</string>
+    <string name="media_link_sub">दस्तावेज़ और URLs</string>
+    <string name="group_history_sub">ग्रुप की घटनाएं</string>
+
+    <!-- Units & Time -->
+    <string name="unit_hours">घं</string>
+    <string name="unit_minutes">मि</string>
+    <string name="unit_min_full">मिनट</string>
+    <string name="less_than_one_min">&lt;1 मिनट</string>
+
+    <!-- Radar Parole -->
+    <string name="word_search_placeholder">कोई शब्द या वाक्यांश खोजें…</string>
+    <string name="suggested_words_label">सुझाए गए शब्द</string>
+    <string name="search_button">खोजें</string>
+    <string name="no_results_word">इस शब्द के लिए कोई संदेश नहीं मिला।</string>
+    <string name="results_for">के लिए परिणाम</string>
+    <string name="occurrences_by_sender">प्रेषक के अनुसार घटनाएं</string>
+    <string name="message_preview_title">संदेश पूर्वावलोकन</string>
+    <string name="sort_newest">नवीनतम</string>
+    <string name="sort_oldest">सबसे पुराने</string>
+    <string name="load_more">और लोड करें</string>
+    <string name="word_search_hint_min">खोजने के लिए कम से कम 2 अक्षर डालें</string>
+    <string name="filter_multi">मल्टी</string>
+    <string name="and_label">और</string>
+    <string name="or_label">या</string>
+    <string name="month_jan">जन</string>
+    <string name="month_feb">फर</string>
+    <string name="month_mar">मार</string>
+    <string name="month_apr">अप्र</string>
+    <string name="month_may">मई</string>
+    <string name="month_jun">जून</string>
+    <string name="month_jul">जुल</string>
+    <string name="month_aug">अग</string>
+    <string name="month_sep">सित</string>
+    <string name="month_oct">अक्त</string>
+    <string name="month_nov">नव</string>
+    <string name="month_dec">दिस</string>
+
+    <string name="day_sunday">रविवार</string>
+    <string name="day_monday">सोमवार</string>
+    <string name="day_tuesday">मंगलवार</string>
+    <string name="day_wednesday">बुधवार</string>
+    <string name="day_thursday">गुरुवार</string>
+    <string name="day_friday">शुक्रवार</string>
+    <string name="day_saturday">शनिवार</string>
+
+    <string name="month_january">जनवरी</string>
+    <string name="month_february">फ़रवरी</string>
+    <string name="month_march">मार्च</string>
+    <string name="month_april">अप्रैल</string>
+    <string name="month_may_full">मई</string>
+    <string name="month_june">जून</string>
+    <string name="month_july">जुलाई</string>
+    <string name="month_august">अगस्त</string>
+    <string name="month_september">सितंबर</string>
+    <string name="month_october">अक्तूबर</string>
+    <string name="month_november">नवंबर</string>
+    <string name="month_december">दिसंबर</string>
+    <string name="radar_info_text">रडार संदेशों में शब्दों की आवृत्ति का विश्लेषण करता है।\n\nसामान्य व्यवहार:\n• खोज शब्द की सभी घटनाएं ढूंढती है, भले ही वह अन्य शब्दों में शामिल हो (जैसे \'घर\' से \'घरेलू\' भी मिलेगा)।\n• सुझाव 3 अक्षरों के बाद दिखते हैं और सबसे अधिक उपयोग किए गए शब्द दिखाते हैं।\n\nखोज विकल्प:\n• Aa: बड़े और छोटे अक्षरों में अंतर करता है।\n• ab: केवल सटीक शब्द खोजता है, आंशिक मिलान को अनदेखा करता है।\n• ?: केवल वे संदेश दिखाता है जिनमें प्रश्नचिह्न है।\n• मल्टी: मोड बदलने के लिए क्लिक करें:\n   - मल्टी: सटीक वाक्यांश खोजता है।\n   - मल्टी: और: वे संदेश खोजता है जिनमें सभी शब्द हों (AND)।\n   - मल्टी: या: वे संदेश खोजता है जिनमें कम से कम एक शब्द हो (OR)।</string>
+
+    <!-- Media & Link -->
+    <string name="tab_media">मीडिया गैलरी</string>
+    <string name="tab_links">साझा किए गए लिंक</string>
+    <string name="search_links_placeholder">लिंक या डोमेन खोजें…</string>
+    <string name="type_images">तस्वीरें</string>
+    <string name="type_videos">वीडियो</string>
+    <string name="type_audio">ऑडियो</string>
+    <string name="type_docs">दस्तावेज़</string>
+    <string name="unit_mb">MB</string>
+    <string name="unit_gb">GB</string>
+    <string name="links_grouped_domain">डोमेन के अनुसार समूहित साझा लिंक</string>
+    <string name="last_link_prefix">अंतिम लिंक: %s</string>
+    <string name="sent_by_prefix">भेजा: %s</string>
+    <string name="media_info_title">मीडिया जानकारी</string>
+    <string name="media_info_text_global">इन काउंटर में केवल ऐतिहासिक रूप से आदान-प्रदान की गई फ़ोटो और वीडियो शामिल हैं।\n\nनोट: बाहरी बटन हमेशा का कुल दिखाते हैं। हालांकि, गैलरी में जाने पर संख्या लगभग हमेशा कम होगी क्योंकि केवल वही मीडिया फ़ाइलें दिखेंगी जो अभी भी फ़ोन में मौजूद हैं और समय के साथ हटाई नहीं गई हैं।</string>
+    <string name="media_info_text_gallery">ये काउंटर केवल मौजूदा फ़ाइलों के लिए हैं।\n\nनोट: पिछली स्क्रीन के बटन कभी भी आदान-प्रदान की गई फ़ाइलों का कुल दिखाते हैं। हालांकि, गैलरी केवल वही दिखाती है जो अभी फ़ोन में मौजूद हैं, समय के साथ हटाई गई फ़ाइलों को छोड़कर (आपके द्वारा या स्वचालित क्लीनर द्वारा)।</string>
+    <string name="error_open_file">फ़ाइल नहीं खुली</string>
+    <string name="back_to_all_links">← सभी लिंक</string>
+    <string name="avatar_desc">अवतार</string>
+
+    <!-- Calls Stats -->
+    <string name="total_calls_label">कुल कॉल्स</string>
+    <string name="call_type_audio">ऑडियो</string>
+    <string name="call_type_video">वीडियो</string>
+    <string name="call_type_missed">मिस्ड</string>
+    <string name="total_duration_label">कुल अवधि</string>
+    <string name="search_calls_placeholder">संपर्क या तारीख खोजें…</string>
+    <string name="no_calls_found">कोई कॉल नहीं मिली</string>
+    <string name="call_audio_label">ऑडियो कॉल</string>
+    <string name="call_video_label">वीडियो कॉल</string>
+    <string name="call_missed_label">मिस्ड कॉल</string>
+    <string name="call_outgoing">आउटगोइंग</string>
+    <string name="call_incoming">इनकमिंग</string>
+    <string name="calls_summary_title">सारांश</string>
+    <string name="calls_total_label">कुल</string>
+    <string name="calls_grouped_stats">कॉल आंकड़े</string>
+    <string name="calls_grouped_person">व्यक्ति के अनुसार विवरण</string>
+    <string name="calls_log_title">कॉल लॉग</string>
+
+    <!-- Days of week -->
+    <string name="day_sun">रवि</string>
+    <string name="day_mon">सोम</string>
+    <string name="day_tue">मंग</string>
+    <string name="day_wed">बुध</string>
+    <string name="day_thu">गुरु</string>
+    <string name="day_fri">शुक्र</string>
+    <string name="day_sat">शनि</string>
+    <string name="total_duration">कुल अवधि: %s</string>
+    <string name="date_from">से</string>
+    <string name="date_to">तक</string>
+    <string name="clear">साफ़ करें</string>
+</resources>

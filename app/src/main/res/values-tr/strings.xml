@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WhatStat Reborn</string>
+
+    <!-- Navigation & Common -->
+    <string name="back_desc">Geri</string>
+    <string name="back_button_desc">Geri git</string>
+    <string name="cancel">İptal</string>
+    <string name="save">Kaydet</string>
+    <string name="delete">Sil</string>
+    <string name="retry">Tekrar dene</string>
+    <string name="error_title">HATA</string>
+    <string name="exit_toast">Çıkmak için tekrar basın</string>
+    <string name="processing">İşleniyor…</string>
+    <string name="loading">Yükleniyor…</string>
+    <string name="show_more">Tümünü göster</string>
+    <string name="show_more_with_count">Tümünü göster (%d)</string>
+    <string name="show_less">Daha az göster</string>
+    <string name="info_dialog_title">Bilgi</string>
+    <string name="ho_capito">Anladım</string>
+    <string name="ok">Tamam</string>
+    <string name="add_zip_title">ZIP Ekle</string>
+    <string name="select_zip_file">ZIP DOSYASI SEÇ</string>
+    <string name="processing_label">İşleniyor...</string>
+    <string name="nav_dashboard">Panel</string>
+    <string name="nav_chats">Sohbetler</string>
+    <string name="nav_media">Medya</string>
+    <string name="nav_radar">Radar</string>
+    <string name="nav_calls">Aramalar</string>
+
+    <string name="group_history_title">Grup Geçmişi</string>
+    <string name="group_history_no_events">Bu grup için geçmiş etkinlik bulunamadı.</string>
+    <string name="history_legend_names">İsimler</string>
+    <string name="history_legend_descriptions">Açıklamalar</string>
+    <string name="history_legend_io">Girişler/Çıkışlar</string>
+
+    <string name="tab_hourly">Saatlik</string>
+    <string name="tab_weekly">Haftalık</string>
+    <string name="tab_daily">Günlük</string>
+    <string name="tab_monthly">Aylık</string>
+    <string name="tab_yearly">Yıllık</string>
+    <string name="activity_hourly_title">Saatlik dağılım</string>
+    <string name="activity_weekly_title">Haftalık aktivite</string>
+    <string name="activity_daily_title">Ayın günleri (1-31)</string>
+    <string name="activity_monthly_title">Mevsimsellik (Oca-Ara)</string>
+    <string name="activity_yearly_title">Yıllık eğilim</string>
+    <string name="click_hour_format">Saat %d:00</string>
+    <string name="click_day_prefix">Gün %s</string>
+    <string name="click_year_prefix">Yıl %s</string>
+
+    <!-- Setup Screen -->
+    <string name="setup_title">WhatStat Reborn</string>
+    <string name="setup_subtitle">WhatsApp sohbetlerinizin eksiksiz analizi.\nTüm veriler cihazda kalır.</string>
+    <string name="tab_lite">Lite</string>
+    <string name="tab_root">Root</string>
+    <string name="permesso_notifiche_toast">Arka planda ilerlemeyi takip etmek için bildirim izni gereklidir</string>
+    <string name="importing_overlay">Sohbet içe aktarılıyor…</string>
+    <string name="checking_data_overlay">Veriler kontrol ediliyor…</string>
+    <string name="who_are_you_title">Sen kimsin?</string>
+    <string name="who_are_you_desc">Gönderilen ve alınan mesajları ayırt etmek için listeden adını seç.</string>
+    <string name="lite_hint_import_found">Daha önce içe aktarılmış veriler bulundu. Panele gidebilir veya başka bir ZIP sohbeti içe aktarabilirsin.</string>
+    <string name="lite_hint_no_import">İçe aktarılan veri yok. ZIP dosyası olarak dışa aktarılmış bir WhatsApp sohbeti yükle.</string>
+    <string name="go_to_dashboard">Panele git</string>
+    <string name="import_zip_button">ZIP dosyasından sohbet içe aktar</string>
+    <string name="root_step_access">Root erişimi</string>
+    <string name="root_step_extraction">Dosya çıkarma</string>
+    <string name="root_step_decryption">Veritabanı şifre çözme</string>
+    <string name="root_step_contacts">Kişileri okuma</string>
+    <string name="root_hint_session_found">Kaydedilmiş Root oturumu bulundu. Panele gidebilir veya yeni bir analiz başlatabilirsin.</string>
+    <string name="root_hint_no_session">Aktif Root oturumu yok. Güncel verileri çıkarmak için analizi başlat.</string>
+    <string name="manual_mode_button">Dosyaları manuel olarak seç</string>
+    <string name="manual_mode_title">Manuel seçenekler (Root olmadan)</string>
+    <string name="manual_file_key">Anahtar dosyası (key)</string>
+    <string name="manual_file_crypt14">Veritabanı (msgstore.db.crypt14)</string>
+    <string name="manual_file_decrypted">Zaten şifresi çözülmüş veritabanı (msgstore.db)</string>
+    <string name="manual_file_wadb">Kişiler (wa.db) - İsteğe bağlı</string>
+    <string name="start_analysis">Analizi başlat</string>
+    <string name="decrypt_db_button">Veritabanı şifresini çöz</string>
+    <string name="button_replace">Değiştir</string>
+    <string name="button_select">Seç</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Genel bakış</string>
+    <string name="lite_mode_badge">LİTE MODU (ZIP)</string>
+    <string name="stat_total_messages">Toplam mesaj</string>
+    <string name="stat_avg_per_day">Ortalama/gün</string>
+    <string name="stat_active_chats">Aktif sohbetler</string>
+    <string name="stat_longest_streak">En uzun seri</string>
+    <string name="stat_streak_days">%d gün</string>
+    <string name="stat_contacts">Kişiler</string>
+    <string name="stat_total_media">Medya dosyaları</string>
+    <string name="stat_most_active_chat">En aktif sohbet</string>
+    <string name="lexical_analysis_title">Sözcüksel analiz</string>
+    <string name="lexical_analysis_subtitle">En sık kullanılan kelimeler ve emojiler</string>
+    <string name="lexical_analysis_info">Analiz birkaç saniye sürebilir — hatta birkaç dakika bile!</string>
+    <string name="run_analysis_button">Analizi başlat</string>
+    <string name="text_analysis_title">Metin analizi</string>
+    <string name="text_analysis_subtitle">En sık kullanılan kelimeler, emojiler ve çıkartmalar</string>
+    <string name="tab_words">Kelimeler</string>
+    <string name="tab_emojis">Emojiler</string>
+    <string name="tab_stickers">Çıkartmalar</string>
+    <string name="no_words_found">Kelime bulunamadı</string>
+    <string name="no_emojis_found">Emoji bulunamadı</string>
+    <string name="sticker_info_hint">Benzer çıkartmalar birden fazla kez görünebilir çünkü WhatsApp bunları ayrı dosyalar olarak kaydeder.</string>
+    <string name="no_stickers_found">Çıkartma bulunamadı</string>
+
+    <!-- Errors (Service) -->
+    <string name="error_root_not_available">Root kullanılamıyor. Magisk\'in yüklü olduğundan ve uygulamanın root izinlerine sahip olduğundan emin ol.</string>
+    <string name="error_root_not_granted">Root izinleri reddedildi. Magisk\'i aç ve WhatStat Reborn\'a izin ver.</string>
+    <string name="error_key_not_found">Anahtar dosyası bulunamadı. WhatsApp yüklü mü?</string>
+    <string name="error_crypt14_not_found">Şifreli veritabanı bulunamadı. WhatsApp\'ta yerel yedeklemenin açık olduğundan emin ol.</string>
+    <string name="error_crypt15_detected">Crypt15 (E2E) yedeklemesi tespit edildi. WhatsApp ayarlarında uçtan uca şifreli yedeklemeyi devre dışı bırak.</string>
+    <string name="error_decryption_failed">Şifre çözme başarısız: %s</string>
+    <string name="error_database_open">Veritabanı açılamadı: %s</string>
+    <string name="error_unknown">Beklenmeyen hata: %s</string>
+
+    <!-- Chat List -->
+    <string name="chatlist_title">Sohbetlerin</string>
+    <string name="chatlist_search_hint">Sohbet ara…</string>
+    <string name="chatlist_count_suffix">%d sohbet</string>
+    <string name="add_zip_fab">ZIP ekle</string>
+    <string name="delete_chat_title">Sohbeti sil</string>
+    <string name="delete_chat_confirm">\"%s\" ve tüm mesajlarını silmek istiyor musun?</string>
+    <string name="rename_chat_title">Sohbeti yeniden adlandır</string>
+    <string name="chat_name_label">Sohbet adı</string>
+    <string name="exported_on_prefix">Dışa aktarıldı: %s</string>
+    <string name="messages_count_suffix">%,d mesaj</string>
+    <string name="messages_label">mesaj</string>
+
+    <!-- Chat Detail -->
+    <string name="chatdetail_sent">Gönderilen</string>
+    <string name="chatdetail_received">Alınan</string>
+    <string name="chatdetail_top_sender_title">En çok kim yazıyor</string>
+    <string name="fallback_them">Onlar</string>
+    <string name="fallback_me">Sen</string>
+    <string name="activity_period_label">Aktivite dönemi</string>
+    <string name="avg_response_time">Ortalama yanıt süresi</string>
+    <string name="media_length_label">Ort. mesaj uzunluğu</string>
+    <string name="chars_abbr">kar.</string>
+    <string name="conv_starters_title">Konuşmayı kim başlatıyor</string>
+    <string name="conv_starters_center">konuşma</string>
+    <string name="view_mode_all">Tümü</string>
+    <string name="view_mode_person">Kişiye göre</string>
+    <string name="conv_starters_info">Bir önceki mesajdan sonra en az 3 saat sessizliğin ardından mesaj gönderildiğinde yeni bir konuşma sayılır.</string>
+
+    <!-- Action Cards -->
+    <string name="radar_parole_title">Kelime Radarı</string>
+    <string name="radar_parole_sub">Sık kullanılan kelimeleri ara</string>
+    <string name="log_chiamate_title">Arama kaydı</string>
+    <string name="log_chiamate_sub">Sesli, görüntülü, cevapsız</string>
+    <string name="media_link_title">Medya ve bağlantılar</string>
+    <string name="media_link_sub">Belgeler ve URL\'ler</string>
+    <string name="group_history_sub">Grup etkinlikleri</string>
+
+    <!-- Units & Time -->
+    <string name="unit_hours">sa</string>
+    <string name="unit_minutes">dk</string>
+    <string name="unit_min_full">dak</string>
+    <string name="less_than_one_min">&lt;1 dak</string>
+
+    <!-- Radar Parole -->
+    <string name="word_search_placeholder">Bir kelime veya ifade ara…</string>
+    <string name="suggested_words_label">Önerilen kelimeler</string>
+    <string name="search_button">Ara</string>
+    <string name="no_results_word">Bu kelime için mesaj bulunamadı.</string>
+    <string name="results_for">Sonuçlar:</string>
+    <string name="occurrences_by_sender">Gönderene göre geçme sayısı</string>
+    <string name="message_preview_title">Mesaj önizlemesi</string>
+    <string name="sort_newest">En yeni</string>
+    <string name="sort_oldest">En eski</string>
+    <string name="load_more">Daha fazla yükle</string>
+    <string name="word_search_hint_min">Aramak için en az 2 karakter gir</string>
+    <string name="filter_multi">Çoklu</string>
+    <string name="and_label">VE</string>
+    <string name="or_label">VEYA</string>
+    <string name="month_jan">Oca</string>
+    <string name="month_feb">Şub</string>
+    <string name="month_mar">Mar</string>
+    <string name="month_apr">Nis</string>
+    <string name="month_may">May</string>
+    <string name="month_jun">Haz</string>
+    <string name="month_jul">Tem</string>
+    <string name="month_aug">Ağu</string>
+    <string name="month_sep">Eyl</string>
+    <string name="month_oct">Eki</string>
+    <string name="month_nov">Kas</string>
+    <string name="month_dec">Ara</string>
+
+    <string name="day_sunday">Pazar</string>
+    <string name="day_monday">Pazartesi</string>
+    <string name="day_tuesday">Salı</string>
+    <string name="day_wednesday">Çarşamba</string>
+    <string name="day_thursday">Perşembe</string>
+    <string name="day_friday">Cuma</string>
+    <string name="day_saturday">Cumartesi</string>
+
+    <string name="month_january">Ocak</string>
+    <string name="month_february">Şubat</string>
+    <string name="month_march">Mart</string>
+    <string name="month_april">Nisan</string>
+    <string name="month_may_full">Mayıs</string>
+    <string name="month_june">Haziran</string>
+    <string name="month_july">Temmuz</string>
+    <string name="month_august">Ağustos</string>
+    <string name="month_september">Eylül</string>
+    <string name="month_october">Ekim</string>
+    <string name="month_november">Kasım</string>
+    <string name="month_december">Aralık</string>
+    <string name="radar_info_text">Radar, mesajlardaki kelimelerin sıklığını analiz eder.\n\nStandart davranış:\n• Arama, kelimeyi başka kelimelerin içinde de bulur (örn. \'ev\' araması \'evli\'yi de bulur).\n• Öneriler 3 karakterden sonra görünür ve en çok kullanılan kelimeleri gösterir.\n\nArama seçenekleri:\n• Aa: Büyük/küçük harf duyarlılığını etkinleştirir.\n• ab: Yalnızca tam kelimeyi arar, kısmi eşleşmeleri yok sayar.\n• ?: Yalnızca soru işareti içeren mesajları gösterir.\n• Çoklu: Modu değiştirmek için tıkla:\n   - Çoklu: Tam ifadeyi arar.\n   - Çoklu: VE: TÜM kelimeleri içeren mesajları arar (AND).\n   - Çoklu: VEYA: En az bir kelimeyi içeren mesajları arar (OR).</string>
+
+    <!-- Media & Link -->
+    <string name="tab_media">Medya galerisi</string>
+    <string name="tab_links">Paylaşılan bağlantılar</string>
+    <string name="search_links_placeholder">Bağlantı veya alan adı ara…</string>
+    <string name="type_images">Fotoğraflar</string>
+    <string name="type_videos">Videolar</string>
+    <string name="type_audio">Ses</string>
+    <string name="type_docs">Belgeler</string>
+    <string name="unit_mb">MB</string>
+    <string name="unit_gb">GB</string>
+    <string name="links_grouped_domain">Alan adına göre gruplandırılmış paylaşılan bağlantılar</string>
+    <string name="last_link_prefix">Son bağlantı: %s</string>
+    <string name="sent_by_prefix">Gönderen: %s</string>
+    <string name="media_info_title">Medya bilgisi</string>
+    <string name="media_info_text_global">Bu sayaçlar yalnızca tarihsel olarak paylaşılan fotoğraf ve videoları içerir.\n\nNot: dıştaki düğmeler tüm zamanların mutlak toplamını gösterir. Ancak galeriye girildiğinde sayılar neredeyse her zaman daha düşük olacaktır, çünkü yalnızca hâlâ telefonda fiziksel olarak bulunan ve zamanla silinmemiş medya dosyaları yüklenir.</string>
+    <string name="media_info_text_gallery">Bu sayaçlar yalnızca mevcut dosyaları ifade eder.\n\nNot: önceki ekrandaki düğmeler ve ayrıntılar, hiç paylaşılmış tüm dosyaların mutlak toplamını gösterir. Ancak galeri, şu anda telefonda fiziksel olarak bulunanları hesaplar ve gösterir; zamanla silinen dosyaları (sizin tarafınızdan veya otomatik temizleyiciler tarafından) hariç tutar.</string>
+    <string name="error_open_file">Dosya açılamadı</string>
+    <string name="back_to_all_links">← Tüm bağlantılar</string>
+    <string name="avatar_desc">Avatar</string>
+
+    <!-- Calls Stats -->
+    <string name="total_calls_label">Toplam arama</string>
+    <string name="call_type_audio">Sesli</string>
+    <string name="call_type_video">Görüntülü</string>
+    <string name="call_type_missed">Cevapsız</string>
+    <string name="total_duration_label">Toplam süre</string>
+    <string name="search_calls_placeholder">Kişi veya tarih ara…</string>
+    <string name="no_calls_found">Arama bulunamadı</string>
+    <string name="call_audio_label">Sesli arama</string>
+    <string name="call_video_label">Görüntülü arama</string>
+    <string name="call_missed_label">Cevapsız arama</string>
+    <string name="call_outgoing">Giden</string>
+    <string name="call_incoming">Gelen</string>
+    <string name="calls_summary_title">Özet</string>
+    <string name="calls_total_label">Toplam</string>
+    <string name="calls_grouped_stats">Arama istatistikleri</string>
+    <string name="calls_grouped_person">Kişiye göre detay</string>
+    <string name="calls_log_title">Arama kaydı</string>
+
+    <!-- Days of week -->
+    <string name="day_sun">Paz</string>
+    <string name="day_mon">Pzt</string>
+    <string name="day_tue">Sal</string>
+    <string name="day_wed">Çar</string>
+    <string name="day_thu">Per</string>
+    <string name="day_fri">Cum</string>
+    <string name="day_sat">Cmt</string>
+    <string name="total_duration">Toplam süre: %s</string>
+    <string name="date_from">Başlangıç</string>
+    <string name="date_to">Bitiş</string>
+    <string name="clear">Temizle</string>
+</resources>
