@@ -21,7 +21,8 @@
 13. [Comportamenti noti e quirk del database](#13-comportamenti-noti-e-quirk-del-database)
 14. [Struttura della navigazione](#14-struttura-della-navigazione)
 15. [Roadmap](#15-roadmap)
-16. [Modalità Lite (non-root)](#16-modalità-lite-non-root)
+16. [Internazionalizzazione (i18n)](#16-internazionalizzazione-i18n)
+17. [Modalità Lite (non-root)](#17-modalità-lite-non-root)
 
 ---
 
@@ -55,6 +56,15 @@ L'estrazione degli avatar avviene separatamente: l'app itera su tutti i profili 
 **3. Decifratura database** — Il file crypt14 viene decifrato in locale. Il processo legge la chiave AES-256 dal file `key` (deserializzazione Java Object, byte 99–131), estrae l'IV dall'header protobuf del file cifrato, decifra con AES-GCM e decomprime con zlib. Il risultato è un file SQLite valido (`msgstore.db`). L'operazione fallisce se la chiave non corrisponde al database (errore GCM authentication tag).
 
 **4. Apertura database contatti** — Il file `wa.db` viene aperto in sola lettura per la risoluzione dei nomi dei contatti. I nomi sono ricavati dalla tabella `wa_contacts` del file `wa.db`, non da `jid.cached_name` in `msgstore.db` (spesso vuoto nelle versioni moderne di WhatsApp).
+
+### Gestione sessione Root
+
+Il database decifrato (`msgstore.db`) viene preservato tra le sessioni in `filesDir`. Al successivo avvio, se il file è già presente, il `SetupViewModel` rileva che la sessione Root è ancora valida (`isRootReady = true`) e mostra due opzioni nella schermata di setup:
+
+- **Riprendi sessione** — naviga direttamente alla Dashboard senza rieseguire estrazione e decifratura, garantendo avvio immediato.
+- **Cancella sessione** — elimina `msgstore.db` e tutti i file derivati, riportando l'app allo stato iniziale e richiedendo un nuovo ciclo completo di setup.
+
+Il pulsante "Avvia analisi" diventa "Analizza di nuovo" in caso di sessione già pronta, per distinguere visivamente i due casi. Implementato in `SetupViewModel.resumeRootSession()` e `clearRootSession()`.
 
 ### Avvii successivi e rilevamento aggiornamenti
 
@@ -106,6 +116,8 @@ Tutte le schermate principali che espongono analisi temporali (Dashboard, Dettag
 
 Il `DateRangePicker` è un componente dedicato con un pulsante "Cerca" che diventa verde quando è attivo e rosso per annullare. I filtri rapidi e il date picker rimangono fissi in cima alla schermata mentre si scorre (sticky header).
 
+Il picker accetta un parametro `minDate` (Unix timestamp in ms): se fornito, le date precedenti a quel valore vengono disabilitate nella selezione. Il `minDate` viene calcolato da `getFirstMessageTimestamp()` (disponibile su `MessageDao`, `LiteDatabase` e `LiteModeManager`) ed esposto come `StateFlow` nei ViewModel. Questo impedisce di selezionare intervalli che non contengono alcun messaggio, eliminando i risultati vuoti.
+
 Lo stato dei filtri viene mantenuto in memoria tramite `FilterStateHolder` (singleton Hilt, con campi `globalTimeRange/globalCustomRange` e `chatTimeRange/chatCustomRange`), così il range selezionato viene preservato quando si passa tra schermate globali e chat-specifiche. L'UI dei filtri è centralizzata nel componente `TimeRangeFilterRow`, con auto-scroll del carosello al chip selezionato per rendere sempre visibile il filtro attivo. Una progress bar top coerente è presente su tutte le schermate con altezza riservata per ridurre i micro-spostamenti del layout durante i caricamenti. Il chip "Scegli" gestisce uno stato locale `showDatePicker` separato dal `selectedRange`: premere il chip mostra/nasconde il picker senza propagare alcuna chiamata a `setTimeRange()` e senza triggerare query al database.
 
 Il modello dati per i filtri è `TimeRange` (enum con valori: `ALL_TIME`, `LAST_30_DAYS`, `LAST_6_MONTHS`, `LAST_YEAR`, `CUSTOM`) e `DateRange` (con campi `startTime: Long?` e `endTime: Long?`, entrambi Unix timestamp in millisecondi).
@@ -152,6 +164,8 @@ Card interattiva (disponibile solo in Root Mode) che stima la data di raggiungim
 ### Analisi testi — Sezione opt-in
 
 Le analisi testuali non partono automaticamente perché richiedono più tempo. L'utente vede un pulsante "Avvia analisi" con un'icona informativa che spiega la durata stimata. Una volta avviata, l'analisi procede in background con un indicatore di avanzamento (`LoadingSection`). I risultati vengono cachati e mostrati automaticamente alle aperture successive senza richiedere di riavviare l'analisi.
+
+**Notifiche di avanzamento (Root Mode)** — Durante l'analisi lessicale lenta in Root Mode, il `DashboardViewModel` avvia il `LexicalAnalysisService`, un Android foreground service registrato in `AndroidManifest` con tipo `dataSync`. Il servizio mostra una notifica di sistema con barra di avanzamento percentuale in tempo reale, aggiornata da `LexicalAnalysisManager` che riceve i callback dal processo di costruzione dell'indice lessicale. Il servizio si termina automaticamente al completamento dell'analisi o al suo annullamento.
 
 È possibile scegliere quanti elementi visualizzare (10, 20, 30 o 50) tramite il componente `SelectableLimitChip`. Il pool interno è sempre di 50 elementi pre-caricati; il selettore filtra la visualizzazione senza nuove query.
 
@@ -211,6 +225,8 @@ L'intestazione viene caricata in anticipo (`HeaderInfo` state) con shimmer place
 - Lunghezza media dei messaggi in caratteri.
 - Messaggio più lungo.
 - Numero totale di media, di cui audio e video separati.
+- **Media parole per messaggio** — Due StatCard mostrano la media globale di parole per messaggio e il dettaglio suddiviso per mittente (inviati vs ricevuti). Calcolato da `sentWords` e `receivedWords` in `ChatStats` tramite tokenizzazione per spazi nel DAO.
+- **Media emoji per messaggio** — Analoga alla card delle parole: media globale e breakdown per mittente (`sentEmojis`, `receivedEmojis`). Aggiornato dalla stessa pipeline temporale delle altre statistiche, quindi rispetta i filtri attivi.
 
 ### Previsione Traguardi
 
@@ -483,6 +499,7 @@ Il composable `DoubleBackToExitHandler` implementa il pattern standard Android "
 - Modalità "time capsule" (analisi di un anno fa)
 - Supporto formato crypt15 con inserimento manuale della chiave a 64 hex
 - Backup automatico delle statistiche (non dei messaggi)
+- Supporto lingue export Lite Mode oltre l'italiano
 
 ---
 
@@ -490,52 +507,102 @@ Il composable `DoubleBackToExitHandler` implementa il pattern standard Android "
 
 ---
 
-## 16. Modalità Lite (non-root)
+## 16. Internazionalizzazione (i18n)
 
-La **Modalità Lite** è l'alternativa a WhatsApp root-access che permette di analizzare una singola chat senza bisogno di permessi root. Invece di leggere il database `msgstore.db`, l'utente importa uno **ZIP di esportazione WhatsApp** (generato da WhatsApp con "Esporta chat → Includi media").
+Tutte le stringhe visibili nella UI sono esternalizzate in file di risorse Android (`res/values-*/strings.xml`). Non sono presenti stringhe hardcodate nelle classi Kotlin o Composable: ogni testo è referenziato tramite `stringResource(R.string.xxx)`.
 
-Questa sezione descrive in dettaglio tutta l'architettura Lite, poiché è separata dalla pipeline Root Mode e deve essere compresa autonomamente.
+**Lingue supportate**:
+
+| Codice | Lingua |
+|--------|--------|
+| `values/` (default) | Inglese |
+| `values-it/` | Italiano |
+| `values-de/` | Tedesco |
+| `values-es/` | Spagnolo |
+| `values-fr/` | Francese |
+| `values-hi/` | Hindi |
+| `values-pt-rBR/` | Portoghese (Brasile) |
+| `values-tr/` | Turco |
+
+Le stringhe coprono navigazione, titoli, pulsanti, dialog, formati data/ora e label di accessibilità.
 
 ---
 
-### 16.1 — Panoramica del flusso dati
+## 17. Modalità Lite (non-root)
+
+La **Modalità Lite** permette di analizzare le chat WhatsApp senza permessi root. Invece di leggere `msgstore.db` direttamente, l'utente importa uno o più **ZIP di esportazione WhatsApp** (generati da WhatsApp con "Esporta chat → Includi media"). Ogni ZIP aggiunge una chat al database locale, rendendo possibile l'analisi multi-chat anche in Lite Mode.
+
+Questa sezione descrive l'architettura Lite. Il punto architetturale centrale è che **dopo la migrazione a SQLite, i DAO e `AnalyticsRepository` sono quasi identici** per Root e Lite Mode — il routing verso il database corretto è gestito da `ActiveDatabaseProvider` in modo trasparente.
+
+---
+
+### 16.1 — Architettura del database (`ActiveDatabaseProvider`)
+
+**File**: `data/db/ActiveDatabaseProvider.kt`
+
+`ActiveDatabaseProvider` implementa l'interfaccia `DatabaseProvider` ed è il punto di commutazione tra Root e Lite Mode:
+
+```kotlin
+override fun getMsgDb(): SQLiteDatabase =
+    if (isLiteMode) liteDatabase.getOrCreate() else whatsAppDatabase.getMsgDb()
+
+override fun getWaDb(): SQLiteDatabase? =
+    if (isLiteMode) liteDatabase.getWaDb() else whatsAppDatabase.getWaDb()
+```
+
+Il flag `isLiteMode` è persistito in `SharedPreferences` (`whatstat_lite_prefs`) e sopravvive ai riavvii dell'app. `AnalyticsRepository` espone il flag come `StateFlow<Boolean>` leggendolo da `activeDatabaseProvider.isLiteMode`.
+
+Il risultato pratico è che tutti i DAO (MessageDao, ChatDao, ecc.) eseguono le stesse query SQL sia su `msgstore.db` (Root) sia su `lite_msgstore.db` (Lite), **senza branch nel codice di business logic**. Le uniche differenze residue in `AnalyticsRepository` riguardano i limiti numerici (es. 50 elementi in Lite vs 20 in Root per le word cloud, data la dimensione tipicamente minore delle chat esportate).
+
+---
+
+### 16.2 — Database Lite (`LiteDatabase`)
+
+**File**: `data/lite/LiteDatabase.kt`
+
+`LiteDatabase` gestisce due file SQLite in `filesDir`:
+
+- **`lite_msgstore.db`** — database principale, con schema compatibile con `msgstore.db` Root. Tabelle create: `jid`, `chat`, `message`, `message_media`. Gli indici SQL sono identici al Root per garantire le stesse prestazioni.
+- **`lite_wa.db`** — stub minimale con la tabella `wa_contacts` (colonne: `_id`, `jid`, `display_name`). Serve per la risoluzione nomi in `AnalyticsRepository.resolveDisplayName()`. In Lite Mode `jid` contiene il nome del mittente grezzo dall'export (es. `"Mario Rossi"`), non un JID reale.
+
+**Nota su `jid` in Lite Mode**: il campo `raw_string` nella tabella `jid` contiene il nome del mittente (es. `"Mario Rossi"`), non un JID reale WhatsApp. Questo è l'unico dato disponibile dall'export `.txt`. Per l'utente corrente, `raw_string` è il `ownerName` scelto durante il setup.
+
+**Nota sugli sticker**: in Root Mode i messaggi sticker (`message_type=20`) vengono esclusi dalle query media perché mancano di `mime_type`. In Lite Mode vengono inclusi, poiché i file `.webp` estratti dallo ZIP hanno `mime_type='image/webp'` impostato da `LiteDbWriter`.
+
+---
+
+### 16.3 — Panoramica del flusso di import
 
 ```
-Utente tocca "Importa ZIP"
+Utente tocca "Importa ZIP" (SetupScreen o "Aggiungi chat" in ChatList)
         ↓
-LiteSetupScreen
+LiteSetupScreen / AddChatZipScreen
         ↓
 LiteSetupViewModel.onZipSelected(uri)
-        ↓  (run 1: parsing preliminare con ownerName temporaneo)
-LiteModeManager.importAndProcess(uri, "Guest")
+        ↓  (LiteImportService: foreground service con overlay di progresso in UI)
+LiteModeManager.importAndProcess(uri, "Guest")  ← run 1: parsing preliminare
         ↓
 FileExtractor.extractFullChatFolder(zipUri)  →  cacheDir/lite_chat_extracted/
         ↓
-TextChatParser.parse(txtFile, ownerName)  →  ParseResult(messages, groupEvents)
-        ↓
-LiteMediaManager.extractMediaFromFolder(folder, messages)  →  LiteMediaStats
-        ↓
-LiteModeManager.calculateGlobalStats(messages, mediaStats)  →  GlobalStats
-        ↓
-LiteCacheRepository.saveCache(LiteCacheData)  →  cacheDir/lite_chat_cache.json
+TextChatParser.parse(txtFile, "Guest")  →  ParseResult(messages, groupEvents)
         ↓  (risposta: identifiedSenders → UI mostra il picker "Chi sei tu?")
 Utente sceglie il proprio nome dal picker
         ↓
-LiteSetupViewModel.onSenderSelected(name)
-        ↓  (run 2: re-processing con ownerName definitivo)
-LiteModeManager.importAndProcess(uri, name)
-        ↓  (pipeline identica a sopra, sovrascrive la cache)
-analyticsRepository.setLiteMode(true)
-analyticsRepository.notifyLiteImportDone()   ← invalida DataStore + bumpa liteCacheVersion
+LiteModeManager.finalizeOwnerSelection(ownerName)  ← run 2: aggiorna from_me nel DB
         ↓
-Navigazione a NavGraphRoute.Main (DashboardScreen mostra ChatDetailScreen con chatId = -1L)
+analyticsRepository.setLiteMode(true)
+analyticsRepository.notifyLiteImportDone()   ← bumpa LiteModeManager.importCompleted
+        ↓
+Navigazione a NavGraphRoute.Lite (ChatList con tutte le chat importate)
 ```
 
-**Nota importante**: il processing viene eseguito due volte. La prima con `ownerName = "Guest"` serve solo per estrarre l'elenco dei mittenti e presentarli all'utente. La seconda, con il nome reale scelto, è quella definitiva e sovrascrive la cache con `isCurrentUser` calcolato correttamente.
+**Doppio processing**: la prima chiamata con `ownerName = "Guest"` serve solo per identificare i mittenti. Dopo la scelta dell'utente, `finalizeOwnerSelection()` aggiorna `from_me` nel DB SQLite per i messaggi del mittente selezionato — non è necessario rieseguire il parsing completo.
+
+**Overlay di progresso**: durante il processing, `LiteImportService` (foreground service) invia gli aggiornamenti di stato a `LiteSetupViewModel` tramite `LiteModeManager.importProgress` (`StateFlow<LiteImportProgress>`). La `LiteSetupScreen` mostra un overlay con barra di progresso e label descrittiva (es. "Estrazione ZIP… 5%", "Lettura messaggi… 20%", "Salvataggio database… 60%").
 
 ---
 
-### 16.2 — Struttura dello ZIP WhatsApp
+### 16.4 — Struttura dello ZIP WhatsApp
 
 WhatsApp esporta la chat come ZIP con questa struttura piatta:
 
@@ -564,7 +631,7 @@ Lo ZIP viene estratto da `FileExtractor.extractFullChatFolder()` in `cacheDir/li
 
 ---
 
-### 16.3 — Parsing del file di testo (`TextChatParser`)
+### 16.5 — Parsing del file di testo (`TextChatParser`)
 
 **File**: `data/lite/TextChatParser.kt`
 
@@ -585,7 +652,6 @@ Il parser usa due regex principali:
 
 **Modello `ParsedMessage`**:
 ```kotlin
-@Serializable
 data class ParsedMessage(
     val timestamp: LocalDateTime,
     val senderName: String,        // nome grezzo dall'export, es. "Mario Rossi"
@@ -598,13 +664,13 @@ data class ParsedMessage(
 )
 ```
 
-Il `senderName` viene ripulito dal carattere Unicode LTR Mark (`\u200E`) che WhatsApp inserisce. Il campo `isCurrentUser` è calcolato confrontando `cleanSender == ownerName`.
+Il `senderName` viene ripulito dal carattere Unicode LTR Mark (`\u200E`) che WhatsApp inserisce. Il campo `isCurrentUser` viene impostato definitivamente da `LiteModeManager.finalizeOwnerSelection()` tramite aggiornamento SQL su `message.from_me`.
 
 **Righe multi-riga**: le righe che non corrispondono all'`headerRegex` vengono accodate al messaggio corrente tramite `appendToCurrent()`.
 
 ---
 
-### 16.4 — Associazione media → mittente (`LiteMediaManager`)
+### 16.6 — Associazione media → mittente (`LiteMediaManager`)
 
 **File**: `data/lite/LiteMediaManager.kt`
 
@@ -631,50 +697,11 @@ Regex("(?:IMG|VID|AUD|PTT|DOC)-\\d{8}-WA\\d{4,}(?:\\.[a-z0-9]+)?", RegexOption.I
 | `.opus`, `.mp3`, `.aac`, `.m4a`, `.ogg` | `AUDIO` |
 | altro | `DOCUMENT` |
 
-**Nota sticker**: gli sticker esportati hanno estensione `.webp` e vengono classificati come `IMAGE`. In `GlobalStats.topStickers` vengono inseriti i file `.webp`, ma il conteggio per sticker è sempre 1 (non tiene conto delle ripetizioni tra import diversi).
-
-**Modello `LiteMediaItem`**:
-```kotlin
-@Serializable
-data class LiteMediaItem(
-    val fileName: String,
-    val relativePath: String,
-    val type: String,          // "IMAGE", "VIDEO", "AUDIO", "DOCUMENT"
-    val timestamp: Long,       // epoch millis dal messaggio (o da file.lastModified se non trovato)
-    val senderName: String?    // null se non associabile a un messaggio
-)
-```
+**Nota sticker**: gli sticker esportati hanno estensione `.webp` e vengono classificati come `IMAGE`. A differenza del Root Mode (dove gli sticker sono separati), in Lite Mode i `.webp` vengono inclusi nella media gallery con `mime_type='image/webp'`. Il conteggio delle ripetizioni non è supportato (ogni sticker appare una volta per file fisico).
 
 ---
 
-### 16.5 — Cache Lite (`LiteCacheRepository`)
-
-**File**: `data/lite/LiteCacheRepository.kt`
-
-La cache è un singolo file JSON in `context.cacheDir/lite_chat_cache.json`, serializzato con `kotlinx.serialization`.
-
-**Modello `LiteCacheData`**:
-```kotlin
-@Serializable
-data class LiteCacheData(
-    val sourceFileName: String,       // nome chat (es. "Mario Rossi") senza prefisso WhatsApp
-    val lastModified: Long,           // timestamp dell'importazione
-    val totalLines: Int,              // numero di messaggi
-    val ownerName: String,            // nome scelto dall'utente (es. "Luca") → visualizzato come "Tu"
-    val globalStats: GlobalStats,     // statistiche aggregate calcolate all'import
-    val messages: List<ParsedMessage>,// tutti i messaggi, necessari per i filtri temporali
-    val mediaStats: LiteMediaStats?   // null se nessun media nello ZIP
-)
-```
-
-**Operazioni**:
-- `saveCache(data)` — serializza e scrive il file; sovrascrive senza controllo versione
-- `loadCache()` — deserializza il file; ritorna `null` se non esiste o in caso di errore di parsing
-- `clearCache()` — elimina il file fisico
-
----
-
-### 16.6 — Coordinatore (`LiteModeManager`)
+### 16.7 — Coordinatore (`LiteModeManager`)
 
 **File**: `data/lite/LiteModeManager.kt`
 
@@ -682,15 +709,15 @@ Singleton Hilt che orchestra l'intero flusso di importazione. Metodi principali:
 
 | Metodo | Descrizione |
 |--------|-------------|
-| `importAndProcess(zipUri, ownerName)` | Pipeline completa: estrazione -> parsing -> fingerprint -> media -> SQLite |
-| `finalizeOwnerSelection(ownerName)` | Aggiorna il flag `from_me` dopo la scelta del mittente |
-| `clearCache()` | Cancella tutti i dati del DB SQLite Lite |
+| `importAndProcess(zipUri, ownerName)` | Pipeline completa: estrazione → parsing → fingerprint → media → scrittura SQLite |
+| `finalizeOwnerSelection(ownerName)` | Aggiorna `from_me` nel DB per i messaggi del mittente scelto |
+| `getFirstMessageTimestamp()` | Timestamp del messaggio più antico nel DB Lite (usato per `minDate` del DateRangePicker) |
+| `notifyImportDone()` | Bumpa `importCompleted` StateFlow per notificare i ViewModel |
+| `clearCache()` | Cancella `lite_msgstore.db` e `lite_wa.db` |
 
 #### Estrazione nome chat (`normalizeExportName`)
 
-Il nome della chat viene estratto dal nome del file ZIP/TXT rimuovendo il prefisso standard di WhatsApp. La regex e' **ancorata alla parola "WhatsApp"** per evitare match accidentali dentro i nomi dei contatti.
-
-**Problema risolto**: la vecchia regex usava `.*` greedy con congiunzioni corte (`o`, `s`, `de`), causando match dentro nomi propri (es. "Matilde Barbar**o** lavoro" → "lavoro").
+Il nome della chat viene estratto dal nome del file ZIP/TXT rimuovendo il prefisso standard di WhatsApp. La regex è **ancorata alla parola "WhatsApp"** per evitare match accidentali dentro i nomi dei contatti.
 
 **Regex attuale**:
 ```kotlin
@@ -702,96 +729,46 @@ Regex(
 
 **Lingue supportate**: IT (`con`), EN (`with`), FR (`avec`), DE (`mit`), PT (`com`), RU (`с`), PL (`z użytkownikiem`/`z grupą`), NL/AF (`met`), NO/SE/DA (`med`).
 
-Se "WhatsApp" non e' presente nel nome del file (es. file rinominato manualmente), il nome viene restituito intero.
+Se "WhatsApp" non è presente nel nome del file (es. file rinominato manualmente), il nome viene restituito intero.
 
 #### Content fingerprint (deduplicazione chat omonime)
 
-Quando piu' chat condividono lo stesso nome contatto (es. stesso contatto con 3 numeri WhatsApp), il fingerprint evita la sovrascrittura accidentale.
+Quando più chat condividono lo stesso nome contatto (es. stesso contatto su numeri diversi), il fingerprint evita la sovrascrittura accidentale.
 
 **Come funziona**:
 1. `computeContentFingerprint()` calcola un hash MD5 dei timestamp dei primi 10 messaggi
 2. I primi 6 caratteri hex dell'hash diventano il fingerprint (16^6 = ~16M combinazioni)
 3. Il fingerprint viene incluso nell'`importKey`: `"dm:matilde_barbaro:a3f7c1"`
+4. `importKey` è una colonna UNIQUE nella tabella `chat`: re-import dello stesso ZIP → stessa chiave → sovrascrittura (UPDATE); ZIP diverso dello stesso contatto → fingerprint diverso → nuova chat (INSERT)
 
-**Risultato**:
-- Re-import dello stesso ZIP → stesso fingerprint → sovrascrittura corretta
-- ZIP diverso dello stesso contatto → fingerprint diverso → chat nuova
-
-La disambiguazione del display name e' delegata a `LiteDbWriter.disambiguateDisplayName()`: se il nome esiste gia' nel DB, appende un suffisso progressivo `(2)`, `(3)`, ecc.
-
----
-
-### 16.7 — Integrazione in `AnalyticsRepository`
-
-**File**: `data/repository/AnalyticsRepository.kt`
-
-`AnalyticsRepository` è il punto di integrazione tra Root Mode e Lite Mode. Ogni metodo pubblico ha un branch `if (isLiteMode.value)` che reindirizza la logica alla cache Lite invece che al database.
-
-**Flag di stato**:
-```kotlin
-private val _isLiteMode = MutableStateFlow(false)
-val isLiteMode: StateFlow<Boolean>
-
-private val _liteCacheVersion = MutableStateFlow(0L)
-val liteCacheVersion: StateFlow<Long>   // bumped a ogni import, ascoltato dai ViewModel
-```
-
-**Helper centrale**:
-```kotlin
-private suspend fun filteredLiteMessages(
-    startTime: Long?, endTime: Long?, jid: String? = null
-): List<ParsedMessage>
-```
-Filtra i messaggi cached per intervallo temporale e, opzionalmente, per mittente. Il `jid` passato dalla Root Mode (es. `"me@s.whatsapp.net"`) non esiste in Lite Mode: la distinzione usa invece `msg.isCurrentUser` (per il mittente corrente) o `msg.senderName == jid` per gli altri.
-
-**Metodi chiave con branch Lite**:
-
-| Metodo | Comportamento Lite |
-|--------|--------------------|
-| `getQuickGlobalStats(chatId, startTime, endTime)` | Per intervalli non-ALL_TIME: ricalcola da `filteredLiteMessages` invece di ritornare la cache grezza |
-| `getMediaFiles(chatId, jid, startTime, endTime)` | Filtra `LiteMediaItem` per `senderName == jid` (o `senderName == null` per il mittente corrente) |
-| `getLinkStats(chatId, jid, startTime, endTime)` | Usa `filteredLiteMessages`; mappa `ownerName → "Tu"` |
-| `getTopEmojis(chatId, startTime, endTime, limit)` | Usa `filteredLiteMessages` |
-| `getEmojiStatsBySender(chatId, startTime, endTime)` | Usa `filteredLiteMessages`; mappa `ownerName → "Tu"` |
-| `getWordSuggestions(chatId, prefix)` | Scansiona in-memory i messaggi cached cercando parole che iniziano con `prefix` |
-
-**Mappatura `ownerName → "Tu"**: ogni metodo che restituisce breakdown per mittente deve confrontare il `senderName` con `liteModeManager.getOwnerName()` e sostituirlo con `"Tu"` prima di restituire i dati alla UI.
-
-**Invalidazione cache**:
-```kotlin
-fun notifyLiteImportDone() {
-    _liteCacheVersion.value = System.currentTimeMillis()
-    CoroutineScope(Dispatchers.IO).launch { cacheManager.clearCache() }  // svuota DataStore
-}
-
-fun resetLiteMode() {
-    _isLiteMode.value = false           // sincrono — SetupViewModel lo legge subito
-    CoroutineScope(Dispatchers.IO).launch { liteModeManager.clearCache() }
-}
-```
+La disambiguazione del display name è delegata a `LiteDbWriter.disambiguateDisplayName()`: se il nome esiste già nel DB, appende un suffisso progressivo `(2)`, `(3)`, ecc.
 
 ---
 
 ### 16.8 — Invalidazione e ricarica dei ViewModel
 
-Quando viene importato un nuovo ZIP, `notifyLiteImportDone()` bumpa `liteCacheVersion`. Ogni ViewModel che consuma dati Lite osserva questa `StateFlow` nel proprio `init` block e reagisce:
+Quando viene importato un nuovo ZIP, `notifyLiteImportDone()` chiama `liteModeManager.notifyImportDone()` che bumpa `importCompleted: StateFlow<Long>`. Ogni ViewModel che consuma dati Lite osserva questa `StateFlow` nel proprio `init` block e reagisce:
 
-| ViewModel | Reazione al bump di `liteCacheVersion` |
-|-----------|----------------------------------------|
+| ViewModel | Reazione al bump di `importCompleted` |
+|-----------|---------------------------------------|
 | `ChatDetailViewModel` | Chiama `loadChatStats()` direttamente (skippa la prima emissione per evitare doppio carico) |
 | `MediaStatsViewModel` | Resetta `initialized = false` e chiama subito `loadStats()` |
 | `WordSearchViewModel` | Resetta `initialized = false` (la `LaunchedEffect` richiamerà `initialize()` alla prossima navigazione) |
+
+Quando si passa da Root a Lite Mode o viceversa, `FilterStateHolder.resetAll()` viene chiamato da `AnalyticsRepository.setLiteMode()` per azzerare i filtri temporali attivi ed evitare stati persistenti inconsistenti tra le due modalità.
 
 ---
 
 ### 16.9 — Navigazione in Lite Mode
 
-**File**: `ui/navigation/AppNavigation.kt`, `ui/screen/dashboard/DashboardScreen.kt`
+**File**: `ui/navigation/AppNavigation.kt`
 
-- **Dopo l'import**: `LiteSetupViewModel` imposta `isComplete = true` → la navigazione usa `popUpTo(0) { inclusive = true }` per svuotare tutto il back stack e portare a `NavGraphRoute.Main`.
-- **Dashboard in Lite Mode**: `DashboardScreen` rileva `isLiteMode == true` e renderizza direttamente `ChatDetailScreen` con `chatId = -1L` (sentinella per Lite). Non mostra la lista chat.
-- **Tasto back dal Dashboard**: `BackHandler` chiama `onNavigateBack()` → `mainViewModel.resetLiteMode()` (imposta `_isLiteMode = false` + cancella cache) → naviga a Setup con `popUpTo(0) { inclusive = true }`.
-- **`SetupViewModel` all'avvio**: controlla `analyticsRepository.isLiteMode.value && liteModeManager.getCachedStats() != null`. Poiché `resetLiteMode()` ha già impostato `_isLiteMode = false` in modo sincrono, questa condizione è `false` e non scatta l'auto-navigazione al Main, evitando il loop.
+La Lite Mode ha un proprio grafo di navigazione `NavGraphRoute.Lite`, con la stessa struttura a 5 tab del Root Mode. Questo elimina la necessità di casi speciali (come il vecchio `chatId = -1L`) e rende la UX identica nelle due modalità.
+
+- **Dopo il primo import**: `LiteSetupViewModel` imposta `isComplete = true` → la navigazione usa `popUpTo(NavGraphRoute.Setup)` e naviga a `NavGraphRoute.Lite`.
+- **ChatList in Lite Mode**: mostra tutte le chat importate con pulsante "Aggiungi chat" che naviga a `Screen.LiteSetupAdd` (route `lite_setup_add?zipUri={zipUri}`). Ogni chat ha le azioni rename e delete.
+- **Tasto back dalla Dashboard**: `BackHandler` chiama `onNavigateBack()` → `mainViewModel.resetLiteMode()` (imposta `isLiteMode = false` in `ActiveDatabaseProvider` + cancella DB Lite) → naviga a Setup con `popUpTo("app_graph") { inclusive = false }`.
+- **Condivisione ZIP diretta**: se l'app riceve un `Intent.ACTION_SEND` con URI di uno ZIP, la navigazione porta direttamente a `LiteSetupAdd` con l'URI pre-compilato.
 
 ---
 
@@ -799,16 +776,17 @@ Quando viene importato un nuovo ZIP, `notifyLiteImportDone()` bumpa `liteCacheVe
 
 | Funzionalità | Root Mode | Lite Mode |
 |--------------|-----------|-----------|
-| Numero di chat analizzabili | Tutte | Solo 1 per import |
-| Risoluzione nomi contatti | Sì (da `contacts.db`) | No (nome grezzo dell'export) |
-| Query al database SQLite | Sì | No (tutto in-memory) |
-| Filtro media per mittente | Esatto (jid) | Euristico (basato su filename-match) |
-| Timestamp media | Esatto (db) | Derivato dal messaggio; fallback a `file.lastModified()` |
-| Sticker (conteggio ripetizioni) | Sì | No (sempre 1 per item) |
-| Chiamate | Sì | No (nessun dato nel `.txt`) |
-| `isCurrentUser` per "me@s.whatsapp.net" | Sì | No — usa `ownerName` scelto dall'utente |
-| Supporto emoji con skin tone | Sì | Sì (via `LiteMetricsCalculator.stripSkinTone()`) |
-| Supporto lingue export | Italiano | Solo italiano (keyword `"omesso"`, `"allegato"`, ecc.) |
+| Numero di chat analizzabili | Tutte (da `msgstore.db`) | Multiple (un import ZIP per chat) |
+| Risoluzione nomi contatti | Sì (da `wa.db`) | No (nome grezzo dall'export `.txt`) |
+| Chiamate | Sì (tabella `call_log`) | No (nessun dato nel `.txt`) |
+| Sticker tab analisi testi | Sì | No (nascosto in Lite Mode) |
+| Milestone prediction | Sì | No (nascosta in Lite Mode) |
+| Rank badge in ChatList | Sì | No (nascosto in Lite Mode) |
+| Filtro media per mittente | Esatto (JID) | Euristico (filename-match) |
+| Timestamp media | Esatto (DB) | Derivato dal messaggio; fallback a `file.lastModified()` |
+| `isCurrentUser` | `from_me=1` da DB WhatsApp | Aggiornato da `finalizeOwnerSelection()` |
+| Analisi lessicale incrementale | Sì (indice gzipped delta) | No (query SQL diretta ogni volta) |
+| Supporto lingue export | N/A | Solo italiano (keyword `"omesso"`, `"allegato"`, ecc.) |
 
 ---
 
@@ -817,16 +795,16 @@ Quando viene importato un nuovo ZIP, `notifyLiteImportDone()` bumpa `liteCacheVe
 | File | Ruolo |
 |------|-------|
 | `data/lite/TextChatParser.kt` | Parsing del file `.txt` WhatsApp |
-| `data/lite/LiteMediaManager.kt` | Scansione media e associazione file -> mittente |
-| `data/lite/LiteDatabase.kt` | Gestione del database SQLite Lite |
+| `data/lite/LiteMediaManager.kt` | Scansione media e associazione file → mittente |
+| `data/lite/LiteDatabase.kt` | Gestione dei database SQLite Lite (`lite_msgstore.db`, `lite_wa.db`) |
 | `data/lite/LiteDbWriter.kt` | Scrittura chat/messaggi/media su SQLite, rename chat, disambiguazione nomi |
-| `data/lite/LiteModeManager.kt` | Coordinatore: parsing, fingerprint, normalizzazione nomi, scrittura DB |
+| `data/lite/LiteModeManager.kt` | Coordinatore: parsing, fingerprint, normalizzazione nomi, scrittura DB, progress |
+| `data/db/ActiveDatabaseProvider.kt` | Routing trasparente Root vs Lite per tutti i DAO |
 | `data/root/FileExtractor.kt` | Estrazione ZIP (condiviso con Root) |
-| `data/repository/AnalyticsRepository.kt` | Branch Lite in ogni metodo dati pubblico |
-| `ui/screen/setup/LiteSetupScreen.kt` | UI onboarding Lite |
-| `ui/screen/setup/LiteSetupViewModel.kt` | Logica onboarding (double-processing) |
-| `ui/screen/chatlist/ChatListScreen.kt` | Lista chat con azioni rename/delete (Lite) |
+| `data/repository/AnalyticsRepository.kt` | Espone `isLiteMode`, `liteCacheVersion`, `notifyLiteImportDone()` |
+| `service/LiteImportService.kt` | Foreground service per progress overlay durante l'import |
+| `ui/screen/setup/LiteSetupScreen.kt` | UI onboarding Lite (primo import) |
+| `ui/screen/setup/LiteSetupViewModel.kt` | Logica onboarding (doppio processing + sender selection) |
+| `ui/screen/chatlist/ChatListScreen.kt` | Lista chat con azioni rename/delete e pulsante "Aggiungi chat" |
 | `ui/screen/chatlist/ChatListViewModel.kt` | Logica rename/delete chat |
-| `ui/screen/dashboard/DashboardScreen.kt` | Renderizza `ChatDetailScreen` con `chatId = -1L` |
-| `ui/component/DoubleBackToExitHandler.kt` | Protezione back button: "premi di nuovo per uscire" |
-| `ui/navigation/AppNavigation.kt` | Navigazione post-import, back-to-setup, exit handler |
+| `ui/navigation/AppNavigation.kt` | Grafo `NavGraphRoute.Lite`, navigazione post-import, condivisione ZIP |
