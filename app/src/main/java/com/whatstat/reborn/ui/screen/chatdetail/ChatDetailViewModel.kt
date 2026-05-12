@@ -141,6 +141,13 @@ class ChatDetailViewModel @Inject constructor(
                     loadChatStats()
                 }
             }
+            // Osserva i rename di chat Lite: aggiorna solo il nome nell'header
+            // senza rieseguire le query pesanti di emoji, parole, ecc.
+            viewModelScope.launch {
+                analyticsRepository.liteRenameVersion.collect { _ ->
+                    refreshHeaderOnly()
+                }
+            }
         } else {
             loadChatStats()
         }
@@ -230,6 +237,105 @@ class ChatDetailViewModel @Inject constructor(
                 _isLoadingSlow.value = false
                 _loadingProgress.value = null
                 _loadingProgressSlow.value = null
+            }
+        }
+    }
+
+    /**
+     * Ricarica dal DB solo il nome della chat (campo [subject] aggiornato dal rename)
+     * e patcha [_headerInfo] e [_chatStats].contactName senza rieseguire le query
+     * pesanti di emoji, parole, sticker o distribuzioni temporali.
+     *
+     * Chiamato quando [analyticsRepository.liteRenameVersion] emette un nuovo valore,
+     * ovvero subito dopo [ChatListViewModel.renameChat].
+     */
+    private fun refreshHeaderOnly() {
+        if (chatId == -1L) {
+            // chatId = -1L e' la sentinella Lite da Dashboard: non ha una riga chat
+            // direttamente accessibile via chatDao, ma getQuickChatStats risolve il nome
+            // dalla prima chat Lite disponibile. Forziamo un reload leggero ripartendo
+            // da getQuickChatStats senza le slow stats.
+            viewModelScope.launch(Dispatchers.IO) {
+                runCatching {
+                    val (startTime, endTime) = getTimeBounds()
+                    val quickStats = analyticsRepository.getQuickChatStats(
+                        chatId = chatId,
+                        startTime = startTime,
+                        endTime = endTime
+                    )
+                    // Patch del solo contactName per non perdere i dati slow gia' caricati
+                    val currentStats = _chatStats.value
+                    if (currentStats != null) {
+                        val updatedSenderBreakdown = currentStats.senderBreakdown.map {
+                            it.copy(displayName = contactDao.resolveContactName(it.jid) ?: it.displayName)
+                        }
+                        val updatedStarterBreakdown = currentStats.conversationStarterBreakdown.map {
+                            it.copy(displayName = contactDao.resolveContactName(it.jid) ?: it.displayName)
+                        }
+                        _chatStats.value = currentStats.copy(
+                            contactName = quickStats.contactName,
+                            senderBreakdown = updatedSenderBreakdown,
+                            conversationStarterBreakdown = updatedStarterBreakdown
+                        )
+                        // Patch anche dei mittenti selezionati per filtri parole/emoji
+                        _selectedSenderForWords.value = _selectedSenderForWords.value?.let { sel ->
+                            updatedSenderBreakdown.find { it.jid == sel.jid } ?: sel
+                        }
+                        _selectedSenderForEmojis.value = _selectedSenderForEmojis.value?.let { sel ->
+                            updatedSenderBreakdown.find { it.jid == sel.jid } ?: sel
+                        }
+                        _selectedSenderForStickers.value = _selectedSenderForStickers.value?.let { sel ->
+                            updatedSenderBreakdown.find { it.jid == sel.jid } ?: sel
+                        }
+                    }
+                    _headerInfo.value = _headerInfo.value?.copy(name = quickStats.contactName)
+                }.onFailure { e ->
+                    android.util.Log.w("WhatStat", "refreshHeaderOnly (chatId=-1): ${e.message}")
+                }
+            }
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val basic = chatDao.getChatBasicInfo(chatId)
+                // Il subject e' il campo aggiornato da LiteDbWriter.renameChat()
+                val name = basic.subject
+                    ?: contactDao.resolveContactName(basic.jid)
+                    ?: basic.jid.substringBefore("@")
+                _headerInfo.value = HeaderInfo(
+                    name = name,
+                    jid = basic.jid,
+                    isGroup = basic.isGroup,
+                    avatarPath = getAvatarPath(basic.jid)
+                )
+                // Patcha anche chatStats e breakdowns
+                val currentStats = _chatStats.value
+                if (currentStats != null) {
+                    val updatedSenderBreakdown = currentStats.senderBreakdown.map {
+                        it.copy(displayName = contactDao.resolveContactName(it.jid) ?: it.displayName)
+                    }
+                    val updatedStarterBreakdown = currentStats.conversationStarterBreakdown.map {
+                        it.copy(displayName = contactDao.resolveContactName(it.jid) ?: it.displayName)
+                    }
+                    _chatStats.value = currentStats.copy(
+                        contactName = name,
+                        senderBreakdown = updatedSenderBreakdown,
+                        conversationStarterBreakdown = updatedStarterBreakdown
+                    )
+                    // Patch anche dei mittenti selezionati per filtri parole/emoji
+                    _selectedSenderForWords.value = _selectedSenderForWords.value?.let { sel ->
+                        updatedSenderBreakdown.find { it.jid == sel.jid } ?: sel
+                    }
+                    _selectedSenderForEmojis.value = _selectedSenderForEmojis.value?.let { sel ->
+                        updatedSenderBreakdown.find { it.jid == sel.jid } ?: sel
+                    }
+                    _selectedSenderForStickers.value = _selectedSenderForStickers.value?.let { sel ->
+                        updatedSenderBreakdown.find { it.jid == sel.jid } ?: sel
+                    }
+                }
+            }.onFailure { e ->
+                android.util.Log.w("WhatStat", "refreshHeaderOnly: ${e.message}")
             }
         }
     }

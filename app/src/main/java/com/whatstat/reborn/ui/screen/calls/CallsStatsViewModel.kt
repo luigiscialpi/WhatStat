@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.whatstat.reborn.data.db.model.CallStat
 import com.whatstat.reborn.data.db.model.DateRange
 import com.whatstat.reborn.data.db.model.TimeRange
+import com.whatstat.reborn.data.db.dao.ContactDao
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.root.FileExtractor
 import com.whatstat.reborn.ui.state.FilterStateHolder
@@ -22,6 +23,7 @@ import javax.inject.Inject
 @HiltViewModel
 class CallsStatsViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
+    private val contactDao: ContactDao,
     private val filterState: FilterStateHolder,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -65,6 +67,53 @@ class CallsStatsViewModel @Inject constructor(
     val chatContextAvatarPath: StateFlow<String?> = _chatContextAvatarPath.asStateFlow()
 
     private var initialized = false
+
+    init {
+        // In Lite mode, osserva i rename di chat: aggiorna solo il nome nel titolo
+        // senza ricaricare le statistiche delle chiamate.
+        if (analyticsRepository.isLiteMode.value) {
+            viewModelScope.launch {
+                analyticsRepository.liteRenameVersion.collect { _ ->
+                    refreshContextName()
+                    refreshGlobalNames()
+                }
+            }
+        }
+    }
+
+    /**
+     * Rilegge dal DB solo il nome della chat corrente e aggiorna [_chatContextName].
+     * Chiamato su [analyticsRepository.liteRenameVersion] senza toccare le statistiche chiamate.
+     */
+    private fun refreshContextName() {
+        val chatId = _chatId.value ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                analyticsRepository.getChatContextInfo(chatId)
+            }.onSuccess { info ->
+                _chatContextName.value = info.displayName
+            }.onFailure { e ->
+                android.util.Log.w("WhatStat", "refreshContextName (Calls): ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Ricarica solo i nomi dei contatti nella lista delle chiamate.
+     */
+    private fun refreshGlobalNames() {
+        if (_chatId.value != null) return // Solo vista globale
+        val currentStats = _callStats.value
+        if (currentStats.isEmpty()) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val jids = currentStats.map { it.jid }
+            val contactNames = contactDao.resolveContactNames(jids)
+            _callStats.value = currentStats.map { stat ->
+                stat.copy(displayName = contactNames[stat.jid] ?: stat.displayName)
+            }
+        }
+    }
 
     fun initialize(chatId: Long?) {
         if (!initialized) {

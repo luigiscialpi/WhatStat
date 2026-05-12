@@ -7,6 +7,7 @@ import com.whatstat.reborn.data.db.model.DateRange
 import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.db.model.WordSearchResult
 import com.whatstat.reborn.data.db.model.WordMessageResult
+import com.whatstat.reborn.data.db.dao.ContactDao
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.root.FileExtractor
 import com.whatstat.reborn.ui.state.FilterStateHolder
@@ -31,6 +32,7 @@ enum class MultiWordMode {
 @HiltViewModel
 class WordSearchViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
+    private val contactDao: ContactDao,
     private val filterState: FilterStateHolder,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -124,10 +126,52 @@ class WordSearchViewModel @Inject constructor(
                     }
                 }
             }
+            // Osserva i rename di chat Lite: aggiorna solo il nome nel titolo
+            // senza re-inizializzare la ricerca o svuotare i risultati.
+            viewModelScope.launch {
+                analyticsRepository.liteRenameVersion.collect { _ ->
+                    refreshContextName()
+                    refreshGlobalNames()
+                }
+            }
         }
         // Carica il timestamp del primo messaggio
         viewModelScope.launch(Dispatchers.IO) {
             _firstMessageTimestamp.value = analyticsRepository.getFirstMessageTimestamp()
+        }
+    }
+
+    /**
+     * Rilegge dal DB solo il nome della chat corrente e aggiorna [_chatContextName].
+     * Chiamato su [analyticsRepository.liteRenameVersion] senza toccare i risultati di ricerca.
+     */
+    private fun refreshContextName() {
+        val chatId = _chatId.value ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                analyticsRepository.getChatContextInfo(chatId)
+            }.onSuccess { info ->
+                _chatContextName.value = info.displayName
+            }.onFailure { e ->
+                android.util.Log.w("WhatStat", "refreshContextName (Words): ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Ricarica solo i nomi dei contatti nei risultati di ricerca globali.
+     */
+    private fun refreshGlobalNames() {
+        if (_chatId.value != null) return
+        val currentResults = _results.value
+        if (currentResults.isEmpty()) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val jids = currentResults.map { it.jid }
+            val contactNames = contactDao.resolveContactNames(jids)
+            _results.value = currentResults.map { res ->
+                res.copy(displayName = contactNames[res.jid] ?: res.displayName)
+            }
         }
     }
 

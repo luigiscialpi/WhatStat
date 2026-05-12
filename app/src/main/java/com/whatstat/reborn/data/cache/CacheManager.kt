@@ -715,4 +715,71 @@ class CacheManager @Inject constructor(
                 ?.forEach { it.delete() }
         }
     }
+
+    /**
+     * Patcha il nome visualizzato di una chat in tutte le cache persistenti in cui compare.
+     * Evita di ricalcolare statistiche pesanti solo per un cambio di nome.
+     */
+    suspend fun patchChatNameInCache(chatId: Long, jid: String, newName: String) {
+        dataStore.edit { prefs ->
+            // 1. Patch Quick Chat Stats
+            val chatKey = stringPreferencesKey("chat_quick_${chatId}_v3")
+            prefs[chatKey]?.let { json ->
+                try {
+                    val cached = cacheJson.decodeFromString<CachedQuickChatStats>(json)
+                    val updated = cached.copy(contactName = newName)
+                    prefs[chatKey] = cacheJson.encodeToString(updated)
+                } catch (_: Exception) {}
+            }
+
+            // 2. Patch Global Stats (se la chat rinominata e' la piu' attiva)
+            val globalKey = stringPreferencesKey("global_stats_v3")
+            prefs[globalKey]?.let { json ->
+                try {
+                    val cached = cacheJson.decodeFromString<CachedGlobalStats>(json)
+                    if (cached.mostActiveChat == jid || cached.mostActiveChat.contains(jid.substringBefore("@"))) {
+                        val updated = cached.copy(mostActiveChat = newName)
+                        prefs[globalKey] = cacheJson.encodeToString(updated)
+                    }
+                } catch (_: Exception) {}
+            }
+
+            // 3. Patch Media Global Stats
+            val mediaKey = stringPreferencesKey("media_global_v2")
+            prefs[mediaKey]?.let { json ->
+                try {
+                    val cached = cacheJson.decodeFromString<CachedMediaPageStats>(json)
+                    val anyChange = cached.linkStats.any { it.jid == jid }
+                    if (anyChange) {
+                        val updatedList = cached.linkStats.map {
+                            if (it.jid == jid) it.copy(displayName = newName) else it
+                        }
+                        val updated = cached.copy(linkStats = updatedList)
+                        prefs[mediaKey] = cacheJson.encodeToString(updated)
+                    }
+                } catch (_: Exception) {}
+            }
+
+            // 4. Patch Slow Chat Stats (breakdowns)
+            val slowKey = stringPreferencesKey("chat_slow_${chatId}_v3")
+            prefs[slowKey]?.let { json ->
+                try {
+                    val cached = cacheJson.decodeFromString<CachedSlowChatStats>(json)
+                    // Nelle chat 1-1 Lite, il JID del mittente e' lo stesso della chat.
+                    // Aggiorniamo i nomi nei breakdown se il JID corrisponde.
+                    val updatedSenderBreakdown = cached.senderBreakdown.map {
+                        if (it.jid == jid) it.copy(displayName = newName) else it
+                    }
+                    val updatedStarterBreakdown = cached.conversationStarterBreakdown.map {
+                        if (it.jid == jid) it.copy(displayName = newName) else it
+                    }
+                    val updated = cached.copy(
+                        senderBreakdown = updatedSenderBreakdown,
+                        conversationStarterBreakdown = updatedStarterBreakdown
+                    )
+                    prefs[slowKey] = cacheJson.encodeToString(updated)
+                } catch (_: Exception) {}
+            }
+        }
+    }
 }

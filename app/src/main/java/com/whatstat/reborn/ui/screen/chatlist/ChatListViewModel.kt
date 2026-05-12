@@ -167,16 +167,23 @@ class ChatListViewModel @Inject constructor(
     /**
      * Rinomina una chat Lite aggiornando il DB e la lista in-memory.
      * Aggiorna la lista locale senza ricaricare tutto dal DB per feedback istantaneo.
+     * Notifica [analyticsRepository] con un segnale leggero affinche' la ChatDetailScreen
+     * aggiorni il nome nell'header senza rieseguire le query pesanti.
      */
     fun renameChat(chatId: Long, newName: String) {
         val trimmed = newName.trim()
         if (trimmed.isBlank()) return
+        val chatToRename = _allChats.value.find { it.chatId == chatId } ?: return
+        val jid = chatToRename.jid
+
         viewModelScope.launch {
             liteDbWriter.renameChat(chatId, trimmed)
             // Aggiorna la lista in-memory per riflesso immediato nella UI
             _allChats.value = _allChats.value.map { chat ->
                 if (chat.chatId == chatId) chat.copy(displayName = trimmed) else chat
             }
+            // Segnala agli altri ViewModel di aggiornare il nome e patcha la cache
+            analyticsRepository.notifyLiteChatRenamed(chatId, jid, trimmed)
         }
     }
 

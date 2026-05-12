@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import java.io.File
 import java.net.URI
 import java.time.ZoneId
@@ -57,6 +59,19 @@ class AnalyticsRepository @Inject constructor(
     /** Delega a LiteModeManager: sorgente di verita' per il refresh post-import nei ViewModel Lite. */
     val liteCacheVersion: kotlinx.coroutines.flow.StateFlow<Long> get() = liteModeManager.importCompleted
 
+    /**
+     * Segnale leggero emesso dopo ogni rename di chat Lite.
+     * Implementato come SharedFlow (replay=1) per semantica di evento:
+     * - nuovi subscriber (nuovi ViewModel) ricevono il segnale anche se navigano
+     *   verso la chat DOPO che il rename e' stato completato, garantendo che
+     *   refreshHeaderOnly() parta sempre DA un DataStore gia' aggiornato
+     *   (la patch e' bloccante in notifyLiteChatRenamed e precede tryEmit).
+     * - replay=0 lascerebbe un edge case: navigazione rapida post-rename potrebbe
+     *   perdere il segnale e mostrare il vecchio nome.
+     */
+    private val _liteRenameVersion = MutableSharedFlow<Unit>(replay = 1, extraBufferCapacity = 1)
+    val liteRenameVersion: kotlinx.coroutines.flow.SharedFlow<Unit> = _liteRenameVersion.asSharedFlow()
+
     fun setLiteMode(enabled: Boolean) {
         _isLiteMode.value = enabled
         activeDatabaseProvider.isLiteMode = enabled
@@ -78,6 +93,22 @@ class AnalyticsRepository @Inject constructor(
             cacheManager.clearCache(resetWordIndexes = true)
         }
         liteModeManager.notifyImportDone()
+    }
+
+    /**
+     * Chiamato dopo il rename di una chat Lite (suspend).
+     * Patcha il nome nelle cache persistenti in modo atomico e SOLO DOPO emette il
+     * segnale [liteRenameVersion], garantendo che quando i ViewModel ascoltatori
+     * eseguono refreshHeaderOnly() la cache e' gia' aggiornata.
+     * Nessun GlobalScope: viene eseguito nel viewModelScope del chiamante.
+     */
+    suspend fun notifyLiteChatRenamed(chatId: Long, jid: String, newName: String) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            // Patch della cache bloccante: completa prima di emettere il segnale
+            cacheManager.patchChatNameInCache(chatId, jid, newName)
+        }
+        // Emissione post-patch: i ViewModel ricevono questo DOPO che la cache e' coerente
+        _liteRenameVersion.tryEmit(Unit)
     }
 
     /**

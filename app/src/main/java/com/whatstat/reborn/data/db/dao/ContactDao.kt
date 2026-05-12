@@ -37,12 +37,25 @@ class ContactDao @Inject constructor(
      * @return nome del contatto o numero di telefono
      */
     fun resolveContactName(jid: String): String? {
-        return try {
+        // 1. Try wa_contacts (display_name)
+        val fromWa = try {
             val cursor = database.getWaDb()?.rawQuery(
                 """SELECT COALESCE(display_name, given_name, number) AS name 
                    FROM wa_contacts WHERE jid = ? LIMIT 1""",
                 arrayOf(jid)
-            ) ?: return null
+            )
+            cursor?.use { if (it.moveToFirst()) it.getString(0) else null }
+        } catch (_: Exception) {
+            null
+        }
+        if (fromWa != null) return fromWa
+
+        // 2. Fallback to jid table (user field)
+        return try {
+            val cursor = database.getMsgDb().rawQuery(
+                "SELECT user FROM jid WHERE raw_string = ? LIMIT 1",
+                arrayOf(jid)
+            )
             cursor.use { if (it.moveToFirst()) it.getString(0) else null }
         } catch (_: Exception) {
             null
@@ -57,9 +70,6 @@ class ContactDao @Inject constructor(
     fun resolveContactNames(jids: List<String>): Map<String, String> {
         if (jids.isEmpty()) return emptyMap()
         val result = mutableMapOf<String, String>()
-        
-        // Debug: log input jids
-        android.util.Log.d("WhatStat", "resolveContactNames INPUT: $jids")
         
         // Try wa_contacts first
         jids.chunked(50).forEach { batch ->
@@ -82,14 +92,10 @@ class ContactDao @Inject constructor(
             }
         }
         
-        android.util.Log.d("WhatStat", "resolveContactNames after wa_contacts: $result")
-        
         // Resolve @lid JIDs via jid_map → jid → wa_contacts
         val unresolvedLid = jids.filter { it !in result && it.endsWith("@lid") }
         if (unresolvedLid.isNotEmpty()) {
             val lidToReal = resolveLidToRealJid(unresolvedLid)
-            android.util.Log.d("WhatStat", "resolveContactNames @lid map: $lidToReal")
-            
             // For each @lid, use the name already resolved for the real JID, or resolve it
             val needResolve = lidToReal.values.filter { it !in result }
             if (needResolve.isNotEmpty()) {
@@ -135,9 +141,8 @@ class ContactDao @Inject constructor(
                 while (it.moveToNext()) {
                     val jid = it.getString(0) ?: continue
                     val user = it.getString(1) ?: continue
-                    if (jid !in result) {
-                        result[jid] = user
-                    }
+                    // In Lite mode, preferiamo il valore della tabella jid se wa_contacts non ha dati nuovi
+                    result[jid] = user
                 }
             }
         } catch (_: Exception) {
@@ -150,7 +155,6 @@ class ContactDao @Inject constructor(
             }
         }
         
-        android.util.Log.d("WhatStat", "resolveContactNames RESULT: $result")
         return result
     }
 

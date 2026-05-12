@@ -312,10 +312,42 @@ class LiteDbWriter @Inject constructor(
      */
     suspend fun renameChat(chatId: Long, newName: String) = withContext(Dispatchers.IO) {
         val db = liteDatabase.getOrCreate()
+        val waDb = liteDatabase.getWaDb()
+        val trimmedName = newName.trim()
+
+        // 1. Recupera il JID associato alla chat per aggiornare anche wa_contacts
+        val jid = db.rawQuery(
+            """
+            SELECT j.raw_string 
+            FROM jid j
+            JOIN chat c ON c.jid_row_id = j._id
+            WHERE c._id = ?
+            """.trimIndent(),
+            arrayOf(chatId.toString())
+        ).use { if (it.moveToFirst()) it.getString(0) else null }
+
+        // 2. Aggiorna il subject nel database principale (per la lista chat)
         val values = ContentValues().apply {
-            put("subject", newName.trim())
+            put("subject", trimmedName)
         }
         db.update("chat", values, "_id = ?", arrayOf(chatId.toString()))
+
+        // 3. Aggiorna display_name in wa_contacts (per la risoluzione nomi globale/dashboard)
+        // Usiamo insertWithOnConflict perche' in Lite mode wa_contacts potrebbe essere vuota.
+        if (jid != null) {
+            val waValues = ContentValues().apply {
+                put("jid", jid)
+                put("display_name", trimmedName)
+            }
+            waDb.insertWithOnConflict("wa_contacts", null, waValues, SQLiteDatabase.CONFLICT_REPLACE)
+            
+            // 4. Aggiorna anche il campo 'user' nella tabella jid per evitare che il fallback
+            // di ContactDao ripristini il nome originale dell'importazione.
+            val jidValues = ContentValues().apply {
+                put("user", trimmedName)
+            }
+            db.update("jid", jidValues, "raw_string = ?", arrayOf(jid))
+        }
     }
 
     /**

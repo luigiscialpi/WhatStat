@@ -28,8 +28,11 @@ fun ContactNameWithPhone(
     nameStyle: TextStyle = MaterialTheme.typography.titleMedium,
     enableHorizontalScroll: Boolean = true
 ) {
-    val phone = if (!isGroup && jid?.endsWith("@lid") == false) {
-        jid?.substringBefore("@")?.takeIf { it.any { c -> c.isDigit() } }
+    // Mostra il numero solo per JID WhatsApp reali (@s.whatsapp.net).
+    // In Lite mode il JID e' l'importKey (es. "dm:mario_rossi:a3f7c1") che non ha
+    // il suffisso @s.whatsapp.net, quindi non viene mai interpretato come numero.
+    val phone = if (!isGroup && jid?.endsWith("@s.whatsapp.net") == true) {
+        jid.substringBefore("@").takeIf { it.any { c -> c.isDigit() } }
     } else null
 
     val showPhone = phone != null && phone != name

@@ -31,7 +31,7 @@ class LiteDatabase @Inject constructor(
         if (waDb?.isOpen == true) return waDb!!
         val file = File(context.filesDir, "lite_wa.db")
         waDb = SQLiteDatabase.openOrCreateDatabase(file, null)
-        waDb!!.execSQL("CREATE TABLE IF NOT EXISTS wa_contacts (_id INTEGER PRIMARY KEY, jid TEXT UNIQUE, display_name TEXT)")
+        waDb!!.execSQL("CREATE TABLE IF NOT EXISTS wa_contacts (_id INTEGER PRIMARY KEY, jid TEXT UNIQUE, display_name TEXT, given_name TEXT, number TEXT)")
         return waDb!!
     }
 

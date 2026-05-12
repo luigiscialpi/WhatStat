@@ -11,6 +11,7 @@ import com.whatstat.reborn.data.db.model.DomainStat
 import com.whatstat.reborn.data.db.model.LinkStat
 import com.whatstat.reborn.data.db.model.MediaStat
 import com.whatstat.reborn.data.db.model.TimeRange
+import com.whatstat.reborn.data.db.dao.ContactDao
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.root.FileExtractor
 import com.whatstat.reborn.ui.state.FilterStateHolder
@@ -27,6 +28,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MediaStatsViewModel @Inject constructor(
     private val analyticsRepository: AnalyticsRepository,
+    private val contactDao: ContactDao,
     private val cacheManager: CacheManager,
     private val filterState: FilterStateHolder,
     @ApplicationContext private val context: Context
@@ -144,6 +146,15 @@ class MediaStatsViewModel @Inject constructor(
                         _topDomains.value = emptyList()
                         initialize(_chatId.value, force = true)
                     }
+                }
+            }
+            // Osserva i rename di chat Lite: aggiorna solo il nome nel titolo
+            // senza re-inizializzare le statistiche media.
+            viewModelScope.launch {
+                analyticsRepository.liteRenameVersion.collect { _ ->
+                    refreshContextName()
+                    refreshGlobalMediaNames()
+                }
             }
         }
         // Carica il timestamp del primo messaggio
@@ -151,6 +162,53 @@ class MediaStatsViewModel @Inject constructor(
             _firstMessageTimestamp.value = analyticsRepository.getFirstMessageTimestamp()
         }
     }
+
+    /**
+     * Rilegge dal DB solo il nome della chat corrente e aggiorna [_chatContextName].
+     * Chiamato su [analyticsRepository.liteRenameVersion] senza toccare le statistiche media.
+     */
+    private fun refreshContextName() {
+        val chatId = _chatId.value ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                analyticsRepository.getChatContextInfo(chatId)
+            }.onSuccess { info ->
+                _chatContextName.value = info.displayName
+            }.onFailure { e ->
+                android.util.Log.w("WhatStat", "refreshContextName (Media): ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Ricarica solo i nomi dei contatti nella lista globale dei link
+     * senza rieseguire il conteggio dei messaggi o dei media.
+     */
+    private fun refreshGlobalMediaNames() {
+        if (_chatId.value != null) return // Solo per la vista globale
+        val currentLinks = _linkStats.value
+        val currentSenders = _linkStatsBySender.value
+        if (currentLinks.isEmpty() && currentSenders.isEmpty()) return
+        
+        viewModelScope.launch(Dispatchers.IO) {
+            // 1. Refresh Link Stats (chats)
+            if (currentLinks.isNotEmpty()) {
+                val jids = currentLinks.map { it.jid }
+                val contactNames = contactDao.resolveContactNames(jids)
+                _linkStats.value = currentLinks.map { stat ->
+                    stat.copy(displayName = contactNames[stat.jid] ?: stat.displayName)
+                }
+            }
+
+            // 2. Refresh Sender Stats
+            if (currentSenders.isNotEmpty()) {
+                val jids = currentSenders.map { it.jid }
+                val contactNames = contactDao.resolveContactNames(jids)
+                _linkStatsBySender.value = currentSenders.map { stat ->
+                    stat.copy(displayName = contactNames[stat.jid] ?: stat.displayName)
+                }
+            }
+        }
     }
 
     fun initialize(chatId: Long?, force: Boolean = false) {
