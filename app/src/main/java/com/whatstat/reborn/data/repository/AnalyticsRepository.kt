@@ -315,6 +315,21 @@ class AnalyticsRepository @Inject constructor(
      *   - Usa l'indice mensile se disponibile e aggiornato.
      *   - Fallback: query SQL come in precedenza.
      */
+    /**
+     * Ritorna le slow stats solo se già presenti nel DataStore (cache).
+     * Non avvia mai il calcolo dell'indice lessicale.
+     * Usato da tryLoadSlowStatsFromCache() nel DashboardViewModel.
+     */
+    suspend fun getCachedSlowGlobalStats(): GlobalStats? = withContext(Dispatchers.IO) {
+        val cached = cacheManager.getGlobalSlowStats() ?: return@withContext null
+        GlobalStats(
+            totalMessages = 0, totalChats = 0, totalContacts = 0, totalMediaFiles = 0,
+            oldestMessageDate = 0, mostActiveChat = "", mostActiveHour = 0,
+            mostActiveDayOfWeek = 0, averageMessagesPerDay = 0f, longestStreak = 0,
+            topWords = cached.first, topEmojis = cached.second, topStickers = cached.third
+        )
+    }
+
     suspend fun getSlowGlobalStats(
         startTime: Long? = null,
         endTime: Long? = null,

@@ -175,11 +175,9 @@ class DashboardViewModel @Inject constructor(
     private fun tryLoadSlowStatsFromCache() {
         viewModelScope.launch {
             try {
-                val slowStats = analyticsRepository.getSlowGlobalStats(
-                    startTime = null,
-                    endTime = null,
-                    onProgress = {}
-                )
+                // Legge SOLO dalla cache DataStore: non avvia mai il calcolo dell'indice.
+                // Il calcolo completo parte solo quando l'utente preme "Avvia analisi".
+                val slowStats = analyticsRepository.getCachedSlowGlobalStats() ?: return@launch
                 if (slowStats.topWords.isNotEmpty() || slowStats.topEmojis.isNotEmpty() || slowStats.topStickers.isNotEmpty()) {
                     _globalStats.value = _globalStats.value?.copy(
                         topWords = slowStats.topWords,
