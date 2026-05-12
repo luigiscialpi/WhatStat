@@ -364,514 +364,478 @@ fun ChatDetailScreen(
             } else if (stats != null) {
                 val s = stats!!
                 LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // ── Sent / Received ──────────────────────────────────
-                        item {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = stringResource(R.string.chatdetail_sent),
-                                    value = "%,d".format(s.sentByMe),
-                                    icon = Icons.AutoMirrored.Filled.Send
-                                )
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = stringResource(R.string.chatdetail_received),
-                                    value = "%,d".format(s.receivedFromThem),
-                                    icon = Icons.Filled.CallReceived
-                                )
-                            }
-                        }
-
-                        // ── Density Stats ──────────────────────────────────
-                        item {
-                            val totalMessages = s.sentByMe + s.receivedFromThem
-                            val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
-                            val meName = stringResource(R.string.fallback_me)
-
-                            // Words
-                            val totalWords = s.sentWords + s.receivedWords
-                            val avgWords = if (totalMessages > 0) "%.1f".format(totalWords.toFloat() / totalMessages) else "—"
-                            val sentWpm = if (s.sentByMe > 0) "%.1f".format(s.sentWords.toFloat() / s.sentByMe) else "0"
-                            val recvWpm = if (s.receivedFromThem > 0) "%.1f".format(s.receivedWords.toFloat() / s.receivedFromThem) else "0"
-                            val wordsSubtitle = stringResource(R.string.stat_split_format, meName, sentWpm, otherName, recvWpm)
-
-                            // Emojis
-                            val totalEmojis = s.sentEmojis + s.receivedEmojis
-                            val avgEmojis = if (totalMessages > 0) "%.1f".format(totalEmojis.toFloat() / totalMessages) else "—"
-                            val sentEpm = if (s.sentByMe > 0) "%.1f".format(s.sentEmojis.toFloat() / s.sentByMe) else "0"
-                            val recvEpm = if (s.receivedFromThem > 0) "%.1f".format(s.receivedEmojis.toFloat() / s.receivedFromThem) else "0"
-                            val emojisSubtitle = stringResource(R.string.stat_split_format, meName, sentEpm, otherName, recvEpm)
-
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.height(IntrinsicSize.Min)
-                            ) {
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = stringResource(R.string.chatdetail_words_per_msg),
-                                    value = avgWords,
-                                    subtitle = wordsSubtitle,
-                                    icon = Icons.Outlined.TextFields
-                                )
-                                if (isLoadingSlow) {
-                                    ShimmerBox(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight(),
-                                        brush = rememberShimmerBrush(),
-                                        shape = RoundedCornerShape(16.dp)
-                                    )
-                                } else {
-                                    StatCard(
-                                        modifier = Modifier.weight(1f),
-                                        label = stringResource(R.string.chatdetail_emoji_per_msg),
-                                        value = avgEmojis,
-                                        subtitle = emojisSubtitle,
-                                        icon = Icons.Outlined.EmojiEmotions
-                                    )
-                                }
-                            }
-                        }
-
-                        // ── Milestone Prediction ───────────────────────────
-                        item {
-                            MilestonePredictionCard(
-                                state = s.milestonePredictionState,
-                                periodLabel = if (selectedRange != TimeRange.ALL_TIME) {
-                                    stringResource(R.string.prediction_period_filtered_label)
-                                } else null
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // ── 3. Sent / Received ───────────────────────────────────
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            StatCard(
+                                modifier = Modifier.weight(1f),
+                                label = stringResource(R.string.chatdetail_sent),
+                                value = "%,d".format(s.sentByMe),
+                                icon = Icons.AutoMirrored.Filled.Send
+                            )
+                            StatCard(
+                                modifier = Modifier.weight(1f),
+                                label = stringResource(R.string.chatdetail_received),
+                                value = "%,d".format(s.receivedFromThem),
+                                icon = Icons.Filled.CallReceived
                             )
                         }
+                    }
 
-                        // ── Distribuzione messaggi (Pie Chart) ───────────
-                        item {
-                            SectionCard(title = stringResource(R.string.chatdetail_top_sender_title)) {
-                                if (s.senderBreakdown.isNotEmpty()) {
-                                    MessagePieChart(
-                                        senders = s.senderBreakdown,
-                                        totalMessages = s.totalMessages
-                                    )
-                                } else if (isLoadingSlow) {
-                                    LoadingSection(progress = progressSlow)
-                                } else {
-                                    val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
-                                    MessagePieChart(
-                                        senders = listOf(
-                                            com.whatstat.reborn.data.db.model.SenderStat("me", stringResource(R.string.fallback_me), s.sentByMe),
-                                            com.whatstat.reborn.data.db.model.SenderStat("other", otherName, s.receivedFromThem)
-                                        ),
-                                        totalMessages = s.totalMessages
-                                    )
-                                }
-                            }
-                        }
+                    // ── 4. Density Stats ─────────────────────────────────────
+                    item {
+                        val totalMessages = s.sentByMe + s.receivedFromThem
+                        val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
+                        val meName = stringResource(R.string.fallback_me)
 
-                        // ── Info Cards ───────────────────────────────────────
-                        item {
-                            Row(
-                                modifier = Modifier.height(IntrinsicSize.Min),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                DateRangeCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = stringResource(R.string.activity_period_label),
-                                    startTimestamp = s.firstMessageDate,
-                                    endTimestamp = s.lastMessageDate,
-                                    dateFormatter = dateFormatter,
-                                    icon = Icons.Outlined.CalendarMonth,
-                                    isSmallText = true
-                                )
-                                if (isLoadingSlow) {
-                                    ShimmerBox(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight(),
-                                        brush = rememberShimmerBrush(),
-                                        shape = RoundedCornerShape(16.dp)
-                                    )
-                                } else {
-                                    StatCard(
-                                        modifier = Modifier.weight(1f),
-                                        label = stringResource(R.string.avg_response_time),
-                                        value = formatDuration(s.averageResponseTimeMs),
-                                        icon = Icons.Outlined.AccessTime,
-                                        isSmallText = true
-                                    )
-                                }
-                            }
-                        }
+                        // Words
+                        val totalWords = s.sentWords + s.receivedWords
+                        val avgWords = if (totalMessages > 0) "%.1f".format(totalWords.toFloat() / totalMessages) else "—"
+                        val sentWpm = if (s.sentByMe > 0) "%.1f".format(s.sentWords.toFloat() / s.sentByMe) else "0"
+                        val recvWpm = if (s.receivedFromThem > 0) "%.1f".format(s.receivedWords.toFloat() / s.receivedFromThem) else "0"
+                        val wordsSubtitle = stringResource(R.string.stat_split_format, meName, sentWpm, otherName, recvWpm)
 
-                        item {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = stringResource(R.string.stat_total_media),
-                                    value = "%,d".format(s.mediaCount),
-                                    icon = Icons.Outlined.PhotoLibrary,
-                                    isSmallText = true
-                                )
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = stringResource(R.string.media_length_label),
-                                    value = "%.0f ${stringResource(R.string.chars_abbr)}".format(s.averageMessageLength),
-                                    icon = Icons.Outlined.TextFields,
-                                    isSmallText = true
-                                )
-                            }
-                        }
+                        // Emojis
+                        val totalEmojis = s.sentEmojis + s.receivedEmojis
+                        val avgEmojis = if (totalMessages > 0) "%.1f".format(totalEmojis.toFloat() / totalMessages) else "—"
+                        val sentEpm = if (s.sentByMe > 0) "%.1f".format(s.sentEmojis.toFloat() / s.sentByMe) else "0"
+                        val recvEpm = if (s.receivedFromThem > 0) "%.1f".format(s.receivedEmojis.toFloat() / s.receivedFromThem) else "0"
+                        val emojisSubtitle = stringResource(R.string.stat_split_format, meName, sentEpm, otherName, recvEpm)
 
-                        // ── Conversation Starters ────────────────────────────
-                        item {
-                            SectionCard(
-                                title = stringResource(R.string.conv_starters_title),
-                                onInfoClick = { showInfoDialog = true }
-                            ) {
-                                if (s.conversationStarterBreakdown.isNotEmpty()) {
-                                    val breakdownTotal = s.conversationStarterBreakdown.sumOf { it.count }.coerceAtLeast(1)
-                                    MessagePieChart(
-                                        senders = s.conversationStarterBreakdown,
-                                        totalMessages = breakdownTotal,
-                                        centerLabel = stringResource(R.string.conv_starters_center)
-                                    )
-                                } else if (isLoadingSlow) {
-                                    LoadingSection(progress = progressSlow)
-                                } else {
-                                    val starterTotal = (s.iStartedConversations + s.theyStartedConversations)
-                                        .coerceAtLeast(1)
-                                    val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
-                                    MessagePieChart(
-                                        senders = listOf(
-                                            com.whatstat.reborn.data.db.model.SenderStat("me", stringResource(R.string.fallback_me), s.iStartedConversations),
-                                            com.whatstat.reborn.data.db.model.SenderStat("other", otherName, s.theyStartedConversations)
-                                        ),
-                                        totalMessages = starterTotal,
-                                        centerLabel = stringResource(R.string.conv_starters_center)
-                                    )
-                                }
-                            }
-                        }
-
-                        // ── Activity Recap Card (Tabbed) ──────────────────────────
-                        item {
-                            ActivityRecapCard(
-                                hourlyData = s.hourlyDistribution,
-                                weeklyData = s.weeklyDistribution,
-                                dailyData = s.dayOfMonthDistribution,
-                                monthlyData = s.monthOfYearDistribution,
-                                yearlyData = s.yearTrendDistribution,
-                                referenceSenders = s.senderBreakdown,
-                                dismissSignal = chartDismissSignal
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.height(IntrinsicSize.Min)
+                        ) {
+                            StatCard(
+                                modifier = Modifier.weight(1f),
+                                label = stringResource(R.string.chatdetail_words_per_msg),
+                                value = avgWords,
+                                subtitle = wordsSubtitle,
+                                icon = Icons.Outlined.TextFields
                             )
-                        }
-
-                        // ── Analisi Testi (Parole / Emoji / Sticker) ──────
-                        // In Lite mode lo Sticker tab viene nascosto.
-                        item {
-                            val tabs = if (isLiteMode) listOf(stringResource(R.string.tab_words), stringResource(R.string.tab_emojis)) else listOf(stringResource(R.string.tab_words), stringResource(R.string.tab_emojis), stringResource(R.string.tab_stickers))
-                            var selectedTab by remember { mutableIntStateOf(0) }
-                            if (selectedTab >= tabs.size) selectedTab = 0
-
-                            SectionCard(
-                                title = stringResource(R.string.text_analysis_title),
-                                trailingContent = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        val limits = when (selectedTab) {
-                                            0 -> listOf(10, 20, 30, 50)
-                                            1 -> listOf(3, 5, 10, 20, 30, 50)
-                                            else -> listOf(10, 20, 30, 50)
-                                        }
-                                        val currentLimit = when (selectedTab) {
-                                            0 -> topWordsLimit
-                                            1 -> topEmojiLimit
-                                            else -> topStickerLimit
-                                        }
-                                        val onLimitChange: (Int) -> Unit = when (selectedTab) {
-                                            0 -> { l -> viewModel.setTopWordsLimit(l) }
-                                            1 -> { l -> viewModel.setTopEmojiLimit(l) }
-                                            else -> { l -> viewModel.setTopStickerLimit(l) }
-                                        }
-                                        limits.forEach { limit ->
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(
-                                                        if (currentLimit == limit) MaterialTheme.colorScheme.primary
-                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                                    )
-                                                    .clickable { onLimitChange(limit) }
-                                                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    limit.toString(),
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    color = if (currentLimit == limit) MaterialTheme.colorScheme.onPrimary
-                                                            else MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            ) {
-                                val sharedIndicator: @Composable (List<androidx.compose.material3.TabPosition>) -> Unit = { tabPositions ->
-                                    if (selectedTab < tabPositions.size) {
-                                        TabRowDefaults.SecondaryIndicator(
-                                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                                if (isLiteMode) {
-                                    TabRow(
-                                        selectedTabIndex = selectedTab,
-                                        containerColor = Color.Transparent,
-                                        contentColor = MaterialTheme.colorScheme.primary,
-                                        divider = {},
-                                        modifier = Modifier.padding(bottom = 12.dp),
-                                        indicator = sharedIndicator
-                                    ) {
-                                        tabs.forEachIndexed { index, title ->
-                                            Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(title, fontSize = 12.sp) })
-                                        }
-                                    }
-                                } else {
-                                    ScrollableTabRow(
-                                        selectedTabIndex = selectedTab,
-                                        containerColor = Color.Transparent,
-                                        contentColor = MaterialTheme.colorScheme.primary,
-                                        edgePadding = 0.dp,
-                                        divider = {},
-                                        modifier = Modifier.padding(bottom = 12.dp),
-                                        indicator = sharedIndicator
-                                    ) {
-                                        tabs.forEachIndexed { index, title ->
-                                            Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(title, fontSize = 12.sp) })
-                                        }
-                                    }
-                                }
-
-                                val currentViewModeIsIndividual = when (selectedTab) {
-                                    0 -> wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL
-                                    1 -> emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL
-                                    else -> stickerViewMode == ChatDetailViewModel.StickerViewMode.INDIVIDUAL
-                                }
-                                val onSwitchMode: (Boolean) -> Unit = { toIndividual ->
-                                    when (selectedTab) {
-                                        0 -> viewModel.setWordViewMode(
-                                            if (toIndividual) ChatDetailViewModel.WordViewMode.INDIVIDUAL
-                                            else ChatDetailViewModel.WordViewMode.AGGREGATED
-                                        )
-                                        1 -> viewModel.setEmojiViewMode(
-                                            if (toIndividual) ChatDetailViewModel.EmojiViewMode.INDIVIDUAL
-                                            else ChatDetailViewModel.EmojiViewMode.AGGREGATED
-                                        )
-                                        else -> viewModel.setStickerViewMode(
-                                            if (toIndividual) ChatDetailViewModel.StickerViewMode.INDIVIDUAL
-                                            else ChatDetailViewModel.StickerViewMode.AGGREGATED
-                                        )
-                                    }
-                                }
-
-                                Row(
+                            if (isLoadingSlow) {
+                                ShimmerBox(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 12.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                        .padding(4.dp),
+                                        .weight(1f)
+                                        .fillMaxHeight(),
+                                    brush = rememberShimmerBrush(),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                            } else {
+                                StatCard(
+                                    modifier = Modifier.weight(1f),
+                                    label = stringResource(R.string.chatdetail_emoji_per_msg),
+                                    value = avgEmojis,
+                                    subtitle = emojisSubtitle,
+                                    icon = Icons.Outlined.EmojiEmotions
+                                )
+                            }
+                        }
+                    }
+
+                    // ── 5. Chi scrive di più? (Distribuzione messaggi) ───────
+                    item {
+                        SectionCard(title = stringResource(R.string.chatdetail_top_sender_title)) {
+                            if (s.senderBreakdown.isNotEmpty()) {
+                                MessagePieChart(
+                                    senders = s.senderBreakdown,
+                                    totalMessages = s.totalMessages
+                                )
+                            } else if (isLoadingSlow) {
+                                LoadingSection(progress = progressSlow)
+                            } else {
+                                val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
+                                MessagePieChart(
+                                    senders = listOf(
+                                        com.whatstat.reborn.data.db.model.SenderStat("me", stringResource(R.string.fallback_me), s.sentByMe),
+                                        com.whatstat.reborn.data.db.model.SenderStat("other", otherName, s.receivedFromThem)
+                                    ),
+                                    totalMessages = s.totalMessages
+                                )
+                            }
+                        }
+                    }
+
+                    // ── 6. Activity Recap Card (Grafici interattivi a tab) ───
+                    item {
+                        ActivityRecapCard(
+                            hourlyData = s.hourlyDistribution,
+                            weeklyData = s.weeklyDistribution,
+                            dailyData = s.dayOfMonthDistribution,
+                            monthlyData = s.monthOfYearDistribution,
+                            yearlyData = s.yearTrendDistribution,
+                            referenceSenders = s.senderBreakdown,
+                            dismissSignal = chartDismissSignal
+                        )
+                    }
+
+                    // ── 7. Info Cards (Periodo / Risposta e Media / Lunghezza) ─
+                    item {
+                        Row(
+                            modifier = Modifier.height(IntrinsicSize.Min),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            DateRangeCard(
+                                modifier = Modifier.weight(1f),
+                                label = stringResource(R.string.activity_period_label),
+                                startTimestamp = s.firstMessageDate,
+                                endTimestamp = s.lastMessageDate,
+                                dateFormatter = dateFormatter,
+                                icon = Icons.Outlined.CalendarMonth,
+                                isSmallText = true
+                            )
+                            if (isLoadingSlow) {
+                                ShimmerBox(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(),
+                                    brush = rememberShimmerBrush(),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                            } else {
+                                StatCard(
+                                    modifier = Modifier.weight(1f),
+                                    label = stringResource(R.string.avg_response_time),
+                                    value = formatDuration(s.averageResponseTimeMs),
+                                    icon = Icons.Outlined.AccessTime,
+                                    isSmallText = true
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            StatCard(
+                                modifier = Modifier.weight(1f),
+                                label = stringResource(R.string.stat_total_media),
+                                value = "%,d".format(s.mediaCount),
+                                icon = Icons.Outlined.PhotoLibrary,
+                                isSmallText = true
+                            )
+                            StatCard(
+                                modifier = Modifier.weight(1f),
+                                label = stringResource(R.string.media_length_label),
+                                value = "%.0f ${stringResource(R.string.chars_abbr)}".format(s.averageMessageLength),
+                                icon = Icons.Outlined.TextFields,
+                                isSmallText = true
+                            )
+                        }
+                    }
+
+                    // ── 8. Chi inizia le conversazioni? ─────────────────────
+                    item {
+                        SectionCard(
+                            title = stringResource(R.string.conv_starters_title),
+                            onInfoClick = { showInfoDialog = true }
+                        ) {
+                            if (s.conversationStarterBreakdown.isNotEmpty()) {
+                                val breakdownTotal = s.conversationStarterBreakdown.sumOf { it.count }.coerceAtLeast(1)
+                                MessagePieChart(
+                                    senders = s.conversationStarterBreakdown,
+                                    totalMessages = breakdownTotal,
+                                    centerLabel = stringResource(R.string.conv_starters_center)
+                                )
+                            } else if (isLoadingSlow) {
+                                LoadingSection(progress = progressSlow)
+                            } else {
+                                val starterTotal = (s.iStartedConversations + s.theyStartedConversations)
+                                    .coerceAtLeast(1)
+                                val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
+                                MessagePieChart(
+                                    senders = listOf(
+                                        com.whatstat.reborn.data.db.model.SenderStat("me", stringResource(R.string.fallback_me), s.iStartedConversations),
+                                        com.whatstat.reborn.data.db.model.SenderStat("other", otherName, s.theyStartedConversations)
+                                    ),
+                                    totalMessages = starterTotal,
+                                    centerLabel = stringResource(R.string.conv_starters_center)
+                                )
+                            }
+                        }
+                    }
+
+                    // ── 9. Milestone Prediction ──────────────────────────────
+                    item {
+                        MilestonePredictionCard(
+                            state = s.milestonePredictionState,
+                            periodLabel = if (selectedRange != TimeRange.ALL_TIME) {
+                                stringResource(R.string.prediction_period_filtered_label)
+                            } else null
+                        )
+                    }
+
+                    // ── 10. Analisi Testi (Parole / Emoji / Sticker) ─────────
+                    // In Lite mode lo Sticker tab viene nascosto.
+                    item {
+                        val tabs = if (isLiteMode) listOf(stringResource(R.string.tab_words), stringResource(R.string.tab_emojis)) else listOf(stringResource(R.string.tab_words), stringResource(R.string.tab_emojis), stringResource(R.string.tab_stickers))
+                        var selectedTab by remember { mutableIntStateOf(0) }
+                        if (selectedTab >= tabs.size) selectedTab = 0
+
+                        SectionCard(
+                            title = stringResource(R.string.text_analysis_title),
+                            trailingContent = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    listOf(false to stringResource(R.string.view_mode_all), true to stringResource(R.string.view_mode_person)).forEach { (isIndividual, label) ->
+                                    val limits = when (selectedTab) {
+                                        0 -> listOf(10, 20, 30, 50)
+                                        1 -> listOf(3, 5, 10, 20, 30, 50)
+                                        else -> listOf(10, 20, 30, 50)
+                                    }
+                                    val currentLimit = when (selectedTab) {
+                                        0 -> topWordsLimit
+                                        1 -> topEmojiLimit
+                                        else -> topStickerLimit
+                                    }
+                                    val onLimitChange: (Int) -> Unit = when (selectedTab) {
+                                        0 -> { l -> viewModel.setTopWordsLimit(l) }
+                                        1 -> { l -> viewModel.setTopEmojiLimit(l) }
+                                        else -> { l -> viewModel.setTopStickerLimit(l) }
+                                    }
+                                    limits.forEach { limit ->
                                         Box(
                                             modifier = Modifier
-                                                .weight(1f)
                                                 .clip(RoundedCornerShape(6.dp))
                                                 .background(
-                                                    if (currentViewModeIsIndividual == isIndividual) MaterialTheme.colorScheme.primary
-                                                    else Color.Transparent
+                                                    if (currentLimit == limit) MaterialTheme.colorScheme.primary
+                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                                 )
-                                                .clickable { onSwitchMode(isIndividual) }
-                                                .padding(vertical = 6.dp),
+                                                .clickable { onLimitChange(limit) }
+                                                .padding(horizontal = 8.dp, vertical = 2.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                label,
-                                                style = MaterialTheme.typography.labelLarge,
-                                                color = if (currentViewModeIsIndividual == isIndividual) MaterialTheme.colorScheme.onPrimary
+                                                limit.toString(),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = if (currentLimit == limit) MaterialTheme.colorScheme.onPrimary
                                                         else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
                                 }
+                            }
+                        ) {
+                            val sharedIndicator: @Composable (List<androidx.compose.material3.TabPosition>) -> Unit = { tabPositions ->
+                                if (selectedTab < tabPositions.size) {
+                                    TabRowDefaults.SecondaryIndicator(
+                                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                            if (isLiteMode) {
+                                TabRow(
+                                    selectedTabIndex = selectedTab,
+                                    containerColor = Color.Transparent,
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                    divider = {},
+                                    modifier = Modifier.padding(bottom = 12.dp),
+                                    indicator = sharedIndicator
+                                ) {
+                                    tabs.forEachIndexed { index, title ->
+                                        Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(title, fontSize = 12.sp) })
+                                    }
+                                }
+                            } else {
+                                ScrollableTabRow(
+                                    selectedTabIndex = selectedTab,
+                                    containerColor = Color.Transparent,
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                    edgePadding = 0.dp,
+                                    divider = {},
+                                    modifier = Modifier.padding(bottom = 12.dp),
+                                    indicator = sharedIndicator
+                                ) {
+                                    tabs.forEachIndexed { index, title ->
+                                        Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(title, fontSize = 12.sp) })
+                                    }
+                                }
+                            }
 
-                                if (currentViewModeIsIndividual) {
-                                    stats?.let { s ->
-                                        LazyRow(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            modifier = Modifier.padding(bottom = 16.dp)
-                                        ) {
-                                            // "me" viene sempre mostrato per primo nei chip di selezione persona.
-                                            // Il dato grezzo (senderBreakdown) non viene alterato per non
-                                            // influenzare altre sezioni come "Chi scrive di piu'".
-                                            val sendersForChips = s.senderBreakdown
-                                                .sortedWith(compareBy { if (it.jid == "me@s.whatsapp.net") 0 else 1 })
-                                            items(sendersForChips) { sender ->
-                                                val isSelected = when (selectedTab) {
-                                                    0 -> selectedSenderWords?.jid == sender.jid
-                                                    1 -> selectedSenderEmojis?.jid == sender.jid
-                                                    else -> selectedSenderStickers?.jid == sender.jid
-                                                }
-                                                val onSelect: () -> Unit = when (selectedTab) {
-                                                    0 -> { { viewModel.setSelectedSenderForWords(sender) } }
-                                                    1 -> { { viewModel.setSelectedSenderForEmojis(sender) } }
-                                                    else -> { { viewModel.setSelectedSenderForStickers(sender) } }
-                                                }
-                                                FilterChip(
-                                                    selected = isSelected,
-                                                    onClick = onSelect,
-                                                    label = { 
-                                                        ContactNameWithPhone(
-                                                            name = sender.displayName,
-                                                            jid = sender.jid,
-                                                            nameStyle = MaterialTheme.typography.bodyMedium,
-                                                            enableHorizontalScroll = false
-                                                        )
-                                                    },
-                                                    colors = FilterChipDefaults.filterChipColors(
-                                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                                    )
-                                                )
+                            val currentViewModeIsIndividual = when (selectedTab) {
+                                0 -> wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL
+                                1 -> emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL
+                                else -> stickerViewMode == ChatDetailViewModel.StickerViewMode.INDIVIDUAL
+                            }
+                            val onSwitchMode: (Boolean) -> Unit = { toIndividual ->
+                                when (selectedTab) {
+                                    0 -> viewModel.setWordViewMode(
+                                        if (toIndividual) ChatDetailViewModel.WordViewMode.INDIVIDUAL
+                                        else ChatDetailViewModel.WordViewMode.AGGREGATED
+                                    )
+                                    1 -> viewModel.setEmojiViewMode(
+                                        if (toIndividual) ChatDetailViewModel.EmojiViewMode.INDIVIDUAL
+                                        else ChatDetailViewModel.EmojiViewMode.AGGREGATED
+                                    )
+                                    else -> viewModel.setStickerViewMode(
+                                        if (toIndividual) ChatDetailViewModel.StickerViewMode.INDIVIDUAL
+                                        else ChatDetailViewModel.StickerViewMode.AGGREGATED
+                                    )
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                    .padding(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                listOf(false to stringResource(R.string.view_mode_all), true to stringResource(R.string.view_mode_person)).forEach { (isIndividual, label) ->
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(
+                                                if (currentViewModeIsIndividual == isIndividual) MaterialTheme.colorScheme.primary
+                                                else Color.Transparent
+                                            )
+                                            .clickable { onSwitchMode(isIndividual) }
+                                            .padding(vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            label,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = if (currentViewModeIsIndividual == isIndividual) MaterialTheme.colorScheme.onPrimary
+                                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (currentViewModeIsIndividual) {
+                                stats?.let { s ->
+                                    LazyRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(bottom = 16.dp)
+                                    ) {
+                                        // "me" viene sempre mostrato per primo nei chip di selezione persona.
+                                        // Il dato grezzo (senderBreakdown) non viene alterato per non
+                                        // influenzare altre sezioni come "Chi scrive di piu'".
+                                        val sendersForChips = s.senderBreakdown
+                                            .sortedWith(compareBy { if (it.jid == "me@s.whatsapp.net") 0 else 1 })
+                                        items(sendersForChips) { sender ->
+                                            val isSelected = when (selectedTab) {
+                                                0 -> selectedSenderWords?.jid == sender.jid
+                                                1 -> selectedSenderEmojis?.jid == sender.jid
+                                                else -> selectedSenderStickers?.jid == sender.jid
                                             }
+                                            val onSelect: () -> Unit = when (selectedTab) {
+                                                0 -> { { viewModel.setSelectedSenderForWords(sender) } }
+                                                1 -> { { viewModel.setSelectedSenderForEmojis(sender) } }
+                                                else -> { { viewModel.setSelectedSenderForStickers(sender) } }
+                                            }
+                                            FilterChip(
+                                                selected = isSelected,
+                                                onClick = onSelect,
+                                                label = {
+                                                    ContactNameWithPhone(
+                                                        name = sender.displayName,
+                                                        jid = sender.jid,
+                                                        nameStyle = MaterialTheme.typography.bodyMedium,
+                                                        enableHorizontalScroll = false
+                                                    )
+                                                },
+                                                colors = FilterChipDefaults.filterChipColors(
+                                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                            )
                                         }
                                     }
                                 }
+                            }
 
-                                stats?.let { s ->
-                                    when (selectedTab) {
-                                        0 -> {
-                                            val currentWords = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED)
-                                                s.topWords.take(topWordsLimit.toInt()) else senderTopWords
-                                            when {
-                                                (wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL && isSenderWordsLoading) ||
-                                                (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED && isLoadingSlow && currentWords.isEmpty()) ->
-                                                    LoadingSection(progress = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED) progressSlow else null)
-                                                currentWords.isEmpty() ->
-                                                    Text(stringResource(R.string.no_words_found), style = MaterialTheme.typography.bodyMedium,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
-                                                else ->
-                                                    InteractiveWordCloud(words = currentWords)
-                                            }
+                            stats?.let { s ->
+                                when (selectedTab) {
+                                    0 -> {
+                                        val currentWords = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED)
+                                            s.topWords.take(topWordsLimit.toInt()) else senderTopWords
+                                        when {
+                                            (wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL && isSenderWordsLoading) ||
+                                            (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED && isLoadingSlow && currentWords.isEmpty()) ->
+                                                LoadingSection(progress = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED) progressSlow else null)
+                                            currentWords.isEmpty() ->
+                                                Text(stringResource(R.string.no_words_found), style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                            else ->
+                                                InteractiveWordCloud(words = currentWords)
                                         }
-                                        1 -> {
-                                            val currentEmojis = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED)
-                                                s.topEmojis.take(topEmojiLimit.toInt()) else senderTopEmojis
-                                            when {
-                                                (emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL && isSenderEmojisLoading) ||
-                                                (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED && isLoadingSlow && currentEmojis.isEmpty()) ->
-                                                    LoadingSection(progress = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED) progressSlow else null)
-                                                currentEmojis.isEmpty() ->
-                                                    Text(stringResource(R.string.no_emojis_found), style = MaterialTheme.typography.bodyMedium,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
-                                                else ->
-                                                    InteractiveEmojiCloud(
-                                                        emojis = currentEmojis,
-                                                        onEmojiClick = { emoji, count ->
-                                                            previewEmoji = emoji
-                                                            previewEmojiCount = count
-                                                        }
-                                                    )
-                                            }
+                                    }
+                                    1 -> {
+                                        val currentEmojis = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED)
+                                            s.topEmojis.take(topEmojiLimit.toInt()) else senderTopEmojis
+                                        when {
+                                            (emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL && isSenderEmojisLoading) ||
+                                            (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED && isLoadingSlow && currentEmojis.isEmpty()) ->
+                                                LoadingSection(progress = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED) progressSlow else null)
+                                            currentEmojis.isEmpty() ->
+                                                Text(stringResource(R.string.no_emojis_found), style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                            else ->
+                                                InteractiveEmojiCloud(
+                                                    emojis = currentEmojis,
+                                                    onEmojiClick = { emoji, count ->
+                                                        previewEmoji = emoji
+                                                        previewEmojiCount = count
+                                                    }
+                                                )
                                         }
-                                        2 -> {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.padding(bottom = 8.dp)
-                                            ) {
-                                                Icon(
-                                                    Icons.Outlined.Info,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                                    modifier = Modifier.size(14.dp)
+                                    }
+                                    2 -> {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(bottom = 8.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Outlined.Info,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                stringResource(R.string.sticker_info_hint),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        val currentStickers = if (stickerViewMode == ChatDetailViewModel.StickerViewMode.AGGREGATED)
+                                            topStickers.take(topStickerLimit) else senderTopStickers
+                                        when {
+                                            isStickerLoading ->
+                                                LoadingSection()
+                                            currentStickers.isEmpty() ->
+                                                Text(stringResource(R.string.no_stickers_found), style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                            else ->
+                                                InteractiveStickerCloud(
+                                                    stickers = currentStickers,
+                                                    onStickerClick = { fileName, count ->
+                                                        previewSticker = fileName
+                                                        previewStickerCount = count
+                                                    }
                                                 )
-                                                Spacer(Modifier.width(4.dp))
-                                                Text(
-                                                    stringResource(R.string.sticker_info_hint),
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                            val currentStickers = if (stickerViewMode == ChatDetailViewModel.StickerViewMode.AGGREGATED)
-                                                topStickers.take(topStickerLimit) else senderTopStickers
-                                            when {
-                                                isStickerLoading ->
-                                                    LoadingSection()
-                                                currentStickers.isEmpty() ->
-                                                    Text(stringResource(R.string.no_stickers_found), style = MaterialTheme.typography.bodyMedium,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
-                                                else ->
-                                                    InteractiveStickerCloud(
-                                                        stickers = currentStickers,
-                                                        onStickerClick = { fileName, count ->
-                                                            previewSticker = fileName
-                                                            previewStickerCount = count
-                                                        }
-                                                    )
-                                            }
                                         }
                                     }
                                 }
                             }
                         }
+                    }
 
-
-                        // ── Action Row ────────────────────────────────
-                        item {
-                            if (!isLiteMode) {
-                                if (stats?.isGroup == true) {
-                                    // Layout 2x2 per i gruppi
-                                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                                ActionCard(
-                                                    modifier = Modifier.weight(1f),
-                                                    title = stringResource(R.string.radar_parole_title),
-                                                    subtitle = stringResource(R.string.radar_parole_sub),
-                                                    icon = Icons.Outlined.Search,
-                                                    onClick = onNavigateToWordSearch
-                                                )
-                                                ActionCard(
-                                                    modifier = Modifier.weight(1f),
-                                                    title = stringResource(R.string.log_chiamate_title),
-                                                    subtitle = stringResource(R.string.log_chiamate_sub),
-                                                    icon = Icons.Outlined.Call,
-                                                    onClick = onNavigateToCalls
-                                                )
-                                        }
-                                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                            ActionCard(
-                                                modifier = Modifier.weight(1f),
-                                                title = stringResource(R.string.media_link_title),
-                                                subtitle = stringResource(R.string.media_link_sub),
-                                                icon = Icons.Outlined.Link,
-                                                onClick = onNavigateToMedia
-                                            )
-                                            ActionCard(
-                                                modifier = Modifier.weight(1f),
-                                                title = stringResource(R.string.group_history_title),
-                                                subtitle = stringResource(R.string.group_history_sub),
-                                                icon = Icons.Outlined.History,
-                                                onClick = onNavigateToHistory
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    // Layout 1x3 per le chat singole
+                    // ── 11. Action Cards (Scorciatoie) ───────────────────────
+                    item {
+                        if (!isLiteMode) {
+                            if (stats?.isGroup == true) {
+                                // Layout 2x2 per i gruppi
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                         ActionCard(
                                             modifier = Modifier.weight(1f),
@@ -887,6 +851,8 @@ fun ChatDetailScreen(
                                             icon = Icons.Outlined.Call,
                                             onClick = onNavigateToCalls
                                         )
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                         ActionCard(
                                             modifier = Modifier.weight(1f),
                                             title = stringResource(R.string.media_link_title),
@@ -894,16 +860,49 @@ fun ChatDetailScreen(
                                             icon = Icons.Outlined.Link,
                                             onClick = onNavigateToMedia
                                         )
+                                        ActionCard(
+                                            modifier = Modifier.weight(1f),
+                                            title = stringResource(R.string.group_history_title),
+                                            subtitle = stringResource(R.string.group_history_sub),
+                                            icon = Icons.Outlined.History,
+                                            onClick = onNavigateToHistory
+                                        )
                                     }
+                                }
+                            } else {
+                                // Layout 1x3 per le chat singole
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = stringResource(R.string.radar_parole_title),
+                                        subtitle = stringResource(R.string.radar_parole_sub),
+                                        icon = Icons.Outlined.Search,
+                                        onClick = onNavigateToWordSearch
+                                    )
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = stringResource(R.string.log_chiamate_title),
+                                        subtitle = stringResource(R.string.log_chiamate_sub),
+                                        icon = Icons.Outlined.Call,
+                                        onClick = onNavigateToCalls
+                                    )
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = stringResource(R.string.media_link_title),
+                                        subtitle = stringResource(R.string.media_link_sub),
+                                        icon = Icons.Outlined.Link,
+                                        onClick = onNavigateToMedia
+                                    )
                                 }
                             }
                         }
+                    }
 
-                        // ── Bottom spacer ────────────────────────────────────
-                        item { Spacer(Modifier.height(32.dp)) }
+                    // ── Bottom spacer ────────────────────────────────────────
+                    item { Spacer(Modifier.height(32.dp)) }
 
-                    } // end LazyColumn
-                } // end else if (stats != null)
+                } // end LazyColumn
+            } // end else if (stats != null)
         } // end Column
 
         // ── Info Dialog ────────────────────────────────────────
@@ -911,7 +910,7 @@ fun ChatDetailScreen(
             AlertDialog(
                 onDismissRequest = { showInfoDialog = false },
                 title = { Text(stringResource(R.string.info_dialog_title)) },
-                text = { 
+                text = {
                     Text(stringResource(R.string.conv_starters_info))
                 },
                 confirmButton = {

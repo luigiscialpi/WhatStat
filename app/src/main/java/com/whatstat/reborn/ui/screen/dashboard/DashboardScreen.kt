@@ -314,18 +314,6 @@ fun DashboardScreen(
                     }
                 }
 
-                // ── Milestone Prediction (Root Only) ──────────────────────
-                if (s != null && !isLiteMode) {
-                    item {
-                        MilestonePredictionCard(
-                            state = s.milestonePredictionState,
-                            periodLabel = if (selectedRange != TimeRange.ALL_TIME) {
-                                stringResource(R.string.prediction_period_filtered_label)
-                            } else null
-                        )
-                    }
-                }
-
                 // ── Activity Recap Card (Tabbed) ──────────────────────────
                 item {
                     ActivityRecapCard(
@@ -336,6 +324,18 @@ fun DashboardScreen(
                         yearlyData = yearlyData,
                         dismissSignal = chartDismissSignal
                     )
+                }
+
+                // ── Milestone Prediction (Root Only) ──────────────────────
+                if (s != null && !isLiteMode) {
+                    item {
+                        MilestonePredictionCard(
+                            state = s.milestonePredictionState,
+                            periodLabel = if (selectedRange != TimeRange.ALL_TIME) {
+                                stringResource(R.string.prediction_period_filtered_label)
+                            } else null
+                        )
+                    }
                 }
 
                 // ── Analisi Lessicale (opt-in) ───────────────────────

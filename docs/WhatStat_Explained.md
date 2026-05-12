@@ -339,21 +339,11 @@ L'intestazione viene caricata in anticipo (`HeaderInfo` state) con shimmer place
 - **Media parole per messaggio** — Due StatCard mostrano la media globale di parole per messaggio e il dettaglio suddiviso per mittente (inviati vs ricevuti). Calcolato da `sentWords` e `receivedWords` in `ChatStats` tramite tokenizzazione per spazi nel DAO.
 - **Media emoji per messaggio** — Analoga alla card delle parole: media globale e breakdown per mittente (`sentEmojis`, `receivedEmojis`). Aggiornato dalla stessa pipeline temporale delle altre statistiche, quindi rispetta i filtri attivi.
 
-### Previsione Traguardi
-
-Presente anche nel dettaglio chat, fornisce una stima specifica per la conversazione corrente, permettendo di vedere quanto manca a raggiungere cifre tonde di messaggi con quel particolare contatto.
-
 ### Chi scrive di più (`SenderBreakdown`)
 
 Donut chart (grafico a ciambella) che visualizza la proporzione di messaggi per partecipante. Il dato si basa su `getSenderBreakdown` in `MessageDao`, che raggruppa per mittente (`from_me` + `sender_jid_row_id`). Nei gruppi con più di 10 partecipanti viene mostrato un pulsante "Mostra tutti" per espandere la lista. La legenda include nome e numero di telefono di ogni partecipante. I mittenti sono mostrati nell'ordine naturale del database (volume di messaggi decrescente).
 
 Nota: nella sezione **Analisi testi → Per Persona** i chip di selezione mittente applicano un ordinamento locale che porta sempre "Tu" (`me@s.whatsapp.net`) in prima posizione. Questo sort avviene esclusivamente al livello UI (`sendersForChips` in `ChatDetailScreen`) e non altera il dato grezzo `senderBreakdown`, preservando l'ordine per volume in tutte le altre sezioni.
-
-### Chi inizia le conversazioni (`ConversationStarterBreakdown`)
-
-Donut chart analogo che conta quante volte ogni partecipante ha inviato il primo messaggio dopo almeno 3 ore di silenzio (10.800.000 ms). La logica usa `LAG()` sulla colonna `timestamp` ordinata per tempo: se la differenza con il messaggio precedente è nulla (primo messaggio in assoluto) o supera 3 ore, si conta come "inizio conversazione". La spiegazione della definizione è mostrata in un `AlertDialog` modale accessibile tramite pulsante info. La breakdown è per mittente con nome e numero di telefono.
-
-Nota tecnica rilevante: il totale della breakdown viene calcolato sommando i valori della breakdown stessa, non con una query separata, per evitare discrepanze con i filtri temporali.
 
 ### Grafici di attività
 
@@ -368,6 +358,23 @@ Questa funzionalità permette di vedere *chi* ha scritto in determinati momenti 
     - Il colore è determinato dalla posizione del mittente nel ranking principale della chat ("Chi scrive di più").
     - Se un mittente non è presente nel ranking (es. ha scritto pochissimi messaggi globalmente ma molti in un'ora specifica), il colore viene generato in modo deterministico dal JID tramite hash.
 - **Interfaccia**: Il breakdown è visualizzabile tramite il tocco sulle barre dei grafici (anteprima veloce) e approfondibile tramite l' `ActivityDetailDialog`.
+
+### Info Cards (Periodo, Risposta e Media)
+
+- **Periodo di attività**: Data del primo e dell'ultimo messaggio nel filtro selezionato (`DateRangeCard`).
+- **Tempo medio di risposta**: Il calcolo considera solo i cambi di mittente consecutivi (es. da `from_me=1` a `from_me=0` e viceversa) e scarta i gap superiori a 24 ore per non inquinare la media.
+- **Media totale**: Conteggio totale dei file multimediali, con dettaglio audio e video.
+- **Lunghezza media messaggi**: Lunghezza media in caratteri dei messaggi di testo.
+
+### Chi inizia le conversazioni (`ConversationStarterBreakdown`)
+
+Donut chart analogo che conta quante volte ogni partecipante ha inviato il primo messaggio dopo almeno 3 ore di silenzio (10.800.000 ms). La logica usa `LAG()` sulla colonna `timestamp` ordinata per tempo: se la differenza con il messaggio precedente è nulla (primo messaggio in assoluto) o supera 3 ore, si conta come "inizio conversazione". La spiegazione della definizione è mostrata in un `AlertDialog` modale accessibile tramite pulsante info. La breakdown è per mittente con nome e numero di telefono.
+
+Nota tecnica rilevante: il totale della breakdown viene calcolato sommando i valori della breakdown stessa, non con una query separata, per evitare discrepanze con i filtri temporali.
+
+### Previsione Traguardi
+
+Presente anche nel dettaglio chat, fornisce una stima specifica per la conversazione corrente (solo in Root Mode), permettendo di vedere quanto manca a raggiungere cifre tonde di messaggi con quel particolare contatto.
 
 ### Evoluzione mensile
 
