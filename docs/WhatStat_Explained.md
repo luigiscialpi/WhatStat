@@ -70,6 +70,50 @@ Il pulsante "Avvia analisi" diventa "Analizza di nuovo" in caso di sessione già
 
 Ad ogni avvio l'app calcola l'hash SHA-256 del file `msgstore.db.crypt14` e lo confronta con quello dell'ultima sessione. Se l'hash non è cambiato, i dati vengono caricati dalla cache in modo istantaneo. Se l'hash è cambiato (WhatsApp ha aggiunto messaggi), la cache viene invalidata completamente e il processo di estrazione/decifratura riparte da capo.
 
+### Flusso di navigazione al primo avvio
+
+Il `NavHost` parte sempre da `NavGraphRoute.Setup` (`setup_graph`). `SetupScreen` controlla se esiste già un DB valido:
+
+- **Modalità Root pronta** → `state.isRootReady = true` → auto-naviga a `root_mode_graph`
+- **Modalità Lite pronta** → `state.hasLiteDb = true` → auto-naviga a `lite_mode_graph`
+- **Primo avvio assoluto** → nessun DB trovato → l'utente sceglie tra tab Root e tab Lite
+
+L'auto-navigazione avviene solo se il parametro `autoNavigate = true` nella route di Setup (vedi sotto).
+
+### Condivisione ZIP da WhatsApp
+
+Quando l'utente condivide un file ZIP direttamente da WhatsApp, l'app riceve un `Intent` con `ACTION_SEND`. Il flusso attraversa tre componenti:
+
+**Ricezione (`MainActivity`)** — `handleIncomingIntent()` viene chiamato sia in `onCreate()` sia in `onNewIntent()`: valida che il tipo sia ZIP, applica un guard anti-duplicati (stesso URI entro 8 s), chiama `mainViewModel.setIncomingZipUri(uri)` e azzera `intent.action` per evitare re-delivery. Il `MainViewModel` espone l'URI via `incomingZipUri: StateFlow<String?>`.
+
+**Intercettazione in `AppNavigation`** — Un `LaunchedEffect(Unit)` osserva il flow dell'URI. Se arriva un URI mentre la destinazione corrente non è Setup, naviga direttamente a Setup con `autoNavigate = true`:
+
+```kotlin
+mainViewModel.incomingZipUri.collect { uri ->
+    val currentRoute = navController.currentDestination?.route ?: ""
+    if (uri != null && !currentRoute.startsWith("setup")) {
+        navController.navigate(Screen.Setup.createRoute(autoNavigate = true)) {
+            popUpTo("app_graph") { inclusive = false }
+            launchSingleTop = true
+        }
+    }
+}
+```
+
+> Si usa `navigate()` anziché `popBackStack(NavGraphRoute.Setup)` perché `setup_graph` potrebbe non essere nel backstack quando l'app era in background sulla Dashboard.
+
+**Elaborazione in `SetupScreen`** — `SetupScreen` riceve `incomingZipUri` come parametro reattivo (via `collectAsState()`). Quando l'URI cambia: imposta `awaitLiteImport = true` e `shouldAutoNavigate = true`, chiama `liteViewModel.onZipSelected(uri)`, poi consuma l'URI (`mainViewModel.setIncomingZipUri(null)`). Al completamento (`liteState.isComplete = true`), naviga a `lite_mode_graph` con `popUpTo(setup_graph) { inclusive = false }` — Setup rimane nello stack per permettere il ritorno.
+
+### Il parametro `autoNavigate`
+
+Questo parametro della route di Setup distingue il **primo avvio** dal **ritorno manuale da Dashboard**.
+
+**`autoNavigate = true`** (default): SetupScreen naviga automaticamente alla Dashboard non appena rileva `state.isComplete = true`. Usato al primo avvio dell'app, alla condivisione da WhatsApp, all'avvio manuale di un'analisi Root (`checkAndStart`) e all'import da file picker.
+
+**`autoNavigate = false`**: Quando l'utente preme back dalla Dashboard, entrambe le modalità navigano a Setup con questo flag. SetupScreen blocca l'auto-nav (`if (!shouldAutoNavigate) return@LaunchedEffect`) e mostra la schermata con i dati già caricati, permettendo di scegliere se tornare alla Dashboard, importare un nuovo ZIP o avviare una nuova analisi Root.
+
+`shouldAutoNavigate` torna `true` automaticamente in tre casi: arriva un nuovo URI da share WhatsApp, l'utente preme "Avvia analisi" Root (`checkAndStart()`), oppure seleziona un file ZIP dal picker (`zipLauncher` callback).
+
 ---
 
 ## 3. Sistema di cache e prestazioni
@@ -101,6 +145,75 @@ La cache viene salvata **solo per il filtro `ALL_TIME`**. Quando l'utente applic
 ### Ottimizzazioni database
 
 Sono presenti 7 indici SQL compositi sulle colonne più usate nelle query: `chat_row_id`, `message_type`, `timestamp`. Il database è aperto in WAL mode (Write-Ahead Logging) per supportare letture concorrenti. Le query pesanti sono parallelizzate con `async`/`await` (fino a 14 query in parallelo per il calcolo delle statistiche globali).
+
+### Architettura DataStore e chiavi di cache
+
+La cache usa **DataStore Preferences** (Jetpack) con due namespace separati, uno per Root Mode e uno per Lite Mode:
+
+| Namespace | DataStore name |
+|-----------|---------------|
+| Root | `stats_cache_root` |
+| Lite | `stats_cache_lite` |
+
+Il `CacheManager` seleziona il DataStore corretto in base a `ActiveDatabaseProvider.isLiteMode`:
+
+```kotlin
+private val dataStore: DataStore<Preferences>
+    get() = if (activeDb.isLiteMode) context.liteCacheDataStore else context.rootCacheDataStore
+```
+
+Le chiavi di cache disponibili:
+
+| Chiave | Contenuto |
+|--------|-----------|
+| `global_stats_v3` | `GlobalStats` (quick stats: conteggi, distribuzioni orarie/settimanali/mensili) |
+| `global_slow_v4` | Slow stats (top parole, emoji, sticker) |
+| `chat_quick_{id}` | Stats rapide per singola chat |
+| `chat_slow_{id}` | Stats lente per singola chat |
+
+### Invalidazione della cache
+
+La cache viene invalidata esplicitamente in quattro occasioni:
+
+1. **Nuovo import Lite** (`AnalyticsRepository.notifyLiteImportDone()`):
+   ```kotlin
+   setLiteMode(true)           // ← prima, per puntare al DataStore Lite
+   cacheManager.clearCache()   // ← poi, cancella il DataStore Lite
+   liteModeManager.notifyImportDone()
+   ```
+   > **Importante:** `setLiteMode(true)` va chiamato *prima* di `clearCache()`, altrimenti viene cancellato il DataStore Root invece del Lite.
+
+2. **Eliminazione chat Lite** (`AnalyticsRepository.notifyLiteChatDeleted()`):
+   ```kotlin
+   cacheManager.clearCache(resetWordIndexes = true)
+   liteModeManager.notifyImportDone()  // aggiorna liteCacheVersion → Dashboard si aggiorna
+   ```
+   Chiamato da `ChatListViewModel.deleteChat()` quando restano ancora altre chat. Se viene eliminata l'ultima chat, viene invece chiamato `fullResetLiteMode()` per un reset completo.
+
+3. **Eliminazione sessione Root** (`WhatsAppRepository.cleanup()`): cancella la cache Root quando l'utente preme l'icona del cestino nella tab Root.
+
+4. **DB Root modificato** (hash SHA-256 diverso): `CacheManager` confronta l'hash del `msgstore.db` corrente con quello salvato e invalida automaticamente se diverso.
+
+### Refresh reattivo in Lite Mode (`liteCacheVersion`)
+
+Il `DashboardViewModel` usa `liteCacheVersion` (un `StateFlow<Long>` di timestamp esposto da `AnalyticsRepository`) per sapere quando ricaricare i dati. Al `init`:
+
+```kotlin
+loadStats(forceRefresh = false)  // usa la cache se disponibile
+
+if (isLite) {
+    val baselineVersion = analyticsRepository.liteCacheVersion.value
+    viewModelScope.launch {
+        analyticsRepository.liteCacheVersion.collect { version ->
+            if (version > baselineVersion) {
+                loadStats(forceRefresh = true)  // nuovo import → ricalcola
+            }
+        }
+    }
+}
+```
+
+Poiché `notifyLiteImportDone()` chiama già `clearCache()`, il primo `loadStats(forceRefresh = false)` non troverà cache e ricalcolerà comunque. Alle riaperture successive (senza nuovi import), la cache è presente e viene usata.
 
 ---
 
@@ -454,6 +567,74 @@ WhatsApp 2.23+ ha separato i dati in più tabelle rispetto allo schema monolitic
 
 ## 14. Struttura della navigazione
 
+L'app usa **Jetpack Navigation Compose** con un sistema a tre livelli di grafi annidati. Il `NavHost` è definito in `ui/navigation/AppNavigation.kt`.
+
+```
+app_graph  (NavHost root)
+├── setup_graph
+│   └── setup?autoNavigate={autoNavigate}
+├── root_mode_graph
+│   ├── overview_graph
+│   │   └── dashboard
+│   ├── chats_graph
+│   │   ├── chat_list
+│   │   └── chat_detail/{chatId}
+│   │       ├── word_search/{chatId}
+│   │       ├── calls_stats/{chatId}
+│   │       ├── media_stats/{chatId}
+│   │       └── group_history/{chatId}
+│   ├── media_graph
+│   │   └── media_stats
+│   ├── radar_graph
+│   │   └── word_search
+│   └── calls_graph
+│       └── calls_stats
+└── lite_mode_graph
+    ├── overview_graph
+    │   └── dashboard
+    ├── chats_graph
+    │   ├── chat_list
+    │   ├── lite_setup_add?zipUri={zipUri}
+    │   └── chat_detail/{chatId}
+    │       ├── word_search/{chatId}
+    │       ├── calls_stats/{chatId}
+    │       ├── media_stats/{chatId}
+    │       └── group_history/{chatId}
+    ├── media_graph
+    │   └── media_stats
+    └── radar_graph
+        └── word_search
+```
+
+### Classi e costanti di navigazione
+
+**`Screen`** (sealed class) — route string di ogni schermata:
+
+| Oggetto | Route |
+|---------|-------|
+| `Screen.Setup` | `setup?autoNavigate={autoNavigate}` |
+| `Screen.Dashboard` | `dashboard` |
+| `Screen.ChatList` | `chat_list` |
+| `Screen.ChatDetail` | `chat_detail/{chatId}` |
+| `Screen.WordSearch` | `word_search` / `word_search/{chatId}` |
+| `Screen.CallsStats` | `calls_stats` / `calls_stats/{chatId}` |
+| `Screen.MediaStats` | `media_stats` / `media_stats/{chatId}` |
+| `Screen.GroupHistory` | `group_history/{chatId}` |
+| `Screen.LiteSetupAdd` | `lite_setup_add?zipUri={zipUri}` |
+
+**`NavGraphRoute`** (object) — costanti per i grafi:
+
+| Costante | Valore |
+|----------|--------|
+| `Setup` | `"setup_graph"` |
+| `Root` | `"root_mode_graph"` |
+| `Lite` | `"lite_mode_graph"` |
+| `Overview` | `"overview_graph"` |
+| `Chats` | `"chats_graph"` |
+| `Media` | `"media_graph"` |
+| `Radar` | `"radar_graph"` |
+| `Calls` | `"calls_graph"` |
+
 L'app utilizza una `BottomNavigationBar` Material 3 a 5 tab: **Panoramica**, **Chat**, **Media**, **Radar**, **Chiamate**. Ogni tab mantiene il proprio back stack indipendente tramite `saveState`/`restoreState`.
 
 Il `NavHost` è strutturato con grafi annidati: un grafo Setup e un grafo Main contenente i 5 sotto-grafi per tab. Le schermate Radar, Chiamate e Media sono accessibili sia come radici di tab globali (senza `chatId`) sia come destinazioni chat-specifiche (con `chatId` nel path, es. `word_search/{chatId}`) all'interno del grafo Chat. Quando aperte da una chat, le schermate mostrano un header contestuale con nome chat, avatar e pulsante back tramite il componente `SimpleScreenHeader`. Il nome/avatar della chat è caricato da `AnalyticsRepository.getChatContextInfo(chatId)` e esposto come `StateFlow` nei rispettivi ViewModel (`WordSearchViewModel`, `CallsStatsViewModel`, `MediaStatsViewModel`).
@@ -487,6 +668,67 @@ Il composable `DoubleBackToExitHandler` implementa il pattern standard Android "
 | Lite  | WordSearch (tab) | Si' |
 
 **Non applicato** alle schermate di dettaglio (`sharedChatDetailRoutes`): MediaStats/{chatId}, WordSearch/{chatId}, CallsStats/{chatId}, ChatDetail, GroupHistory — queste usano `navController.popBackStack()` tramite il pulsante back nell'header e funzionano correttamente.
+
+### Route condivise (`sharedChatDetailRoutes`)
+
+Le route di dettaglio chat sono definite una volta sola nella funzione `sharedChatDetailRoutes()` e registrate in entrambi i grafi (Root e Lite):
+
+- `chat_detail/{chatId}`
+- `word_search/{chatId}`
+- `calls_stats/{chatId}`
+- `media_stats/{chatId}`
+- `group_history/{chatId}`
+
+Il back da queste schermate usa sempre `navController.popBackStack()`.
+
+### Aggiunta chat in Lite (`LiteSetupAdd`)
+
+Disponibile solo in Lite Mode dalla ChatList. Naviga a `Screen.LiteSetupAdd` (route `lite_setup_add?zipUri={zipUri}`), che apre `AddChatZipScreen` e lancia automaticamente il file picker (`OpenDocument`). Al completamento dell'import, `navController.popBackStack()` torna alla ChatList. Il completamento è notificato da `LiteSetupViewModel.state.isComplete`.
+
+### Flussi principali di navigazione
+
+**Avvio normale (app chiusa, nessun share)**
+```
+MainActivity.onCreate
+    → SetupScreen (autoNavigate=true)
+    → isRootReady || hasLiteDb?
+        → sì: auto-naviga al mode graph corrispondente
+        → no: l'utente sceglie manualmente
+```
+
+**Share da WhatsApp (app chiusa)**
+```
+Intent ACTION_SEND
+    → MainActivity.handleIncomingIntent()
+    → mainViewModel.setIncomingZipUri(uri)
+    → SetupScreen (autoNavigate=true)
+    → LaunchedEffect(incomingZipUri): liteViewModel.onZipSelected()
+    → import ZIP → SenderSelectionDialog → conferma
+    → liteState.isComplete = true
+    → onSetupComplete() → naviga a lite_mode_graph
+    → Dashboard Lite (dati freschi, cache invalidata)
+```
+
+**Back dalla Dashboard Lite**
+```
+DashboardScreen.onNavigateBack()
+    → mainViewModel.setIncomingZipUri(null)  ← pulizia URI
+    → navigate(Setup, autoNavigate=false) {
+          popUpTo("app_graph") { inclusive = false }
+      }
+    → SetupScreen (autoNavigate=false)
+    → shouldAutoNavigate = false → auto-nav bloccata
+    → l'utente vede Setup con hasLiteDb=true
+```
+
+**Nuovo share su Setup con autoNavigate=false**
+```
+Intent → mainViewModel.setIncomingZipUri(nuovoUri)
+    → SetupScreen: LaunchedEffect(incomingZipUri) scatta
+    → shouldAutoNavigate = true  ← riabilitato
+    → liteViewModel.onZipSelected(nuovoUri)
+    → import → completamento → naviga a lite_mode_graph
+```
 
 ---
 
