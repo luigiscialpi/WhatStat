@@ -471,7 +471,10 @@ fun ChatDetailScreen(
 
                         // ── Info Cards ───────────────────────────────────────
                         item {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(
+                                modifier = Modifier.height(IntrinsicSize.Min),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
                                 DateRangeCard(
                                     modifier = Modifier.weight(1f),
                                     label = stringResource(R.string.activity_period_label),
@@ -481,13 +484,23 @@ fun ChatDetailScreen(
                                     icon = Icons.Outlined.CalendarMonth,
                                     isSmallText = true
                                 )
-                                StatCard(
-                                    modifier = Modifier.weight(1f),
-                                    label = stringResource(R.string.avg_response_time),
-                                    value = formatDuration(s.averageResponseTimeMs),
-                                    icon = Icons.Outlined.AccessTime,
-                                    isSmallText = true
-                                )
+                                if (isLoadingSlow) {
+                                    ShimmerBox(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight(),
+                                        brush = rememberShimmerBrush(),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                } else {
+                                    StatCard(
+                                        modifier = Modifier.weight(1f),
+                                        label = stringResource(R.string.avg_response_time),
+                                        value = formatDuration(s.averageResponseTimeMs),
+                                        icon = Icons.Outlined.AccessTime,
+                                        isSmallText = true
+                                    )
+                                }
                             }
                         }
 
