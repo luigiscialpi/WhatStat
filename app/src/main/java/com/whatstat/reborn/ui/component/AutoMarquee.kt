@@ -2,14 +2,15 @@ package com.whatstat.reborn.ui.component
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 /**
  * Wrapper che aggiunge lo scorrimento orizzontale automatico (Marquee) al contenuto.
@@ -29,30 +30,38 @@ fun AutoMarquee(
 ) {
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(scrollState.maxValue) {
-        if (scrollState.maxValue > 0) {
-            while (true) {
-                // Se l'utente non sta interagendo manualmente
-                if (!scrollState.isScrollInProgress) {
-                    delay(delayMillis)
-                    
-                    if (!scrollState.isScrollInProgress) {
-                        // Scorrimento verso la fine
-                        scrollState.animateScrollTo(
-                            scrollState.maxValue,
-                            animationSpec = tween(
-                                durationMillis = (scrollState.maxValue * speedMultiplier),
-                                easing = LinearEasing
-                            )
+    LaunchedEffect(delayMillis, speedMultiplier) {
+        var attempts = 0
+        while (scrollState.maxValue <= 0 && attempts < 20) {
+            delay(100)
+            attempts++
+        }
+
+        if (scrollState.maxValue <= 0) return@LaunchedEffect
+
+        while (true) {
+            if (!scrollState.isScrollInProgress) {
+                delay(delayMillis)
+                try {
+                    scrollState.animateScrollTo(
+                        scrollState.maxValue,
+                        animationSpec = tween(
+                            durationMillis = scrollState.maxValue * speedMultiplier,
+                            easing = LinearEasing
                         )
-                        
-                        delay(delayMillis)
-                        
-                        // Ritorno fluido all'inizio
-                        scrollState.animateScrollTo(0, animationSpec = tween(1000))
-                    }
+                    )
+                    delay(delayMillis)
+                    scrollState.animateScrollTo(0, animationSpec = tween(1000))
+                } catch (e: CancellationException) {
+                    // Se il coroutine stesso è stato cancellato (es. composable rimosso),
+                    // rilancia per permettere la cancellazione corretta.
+                    if (!isActive) throw e
+                    // Altrimenti l'animazione è stata interrotta da un gesto dell'utente
+                    // o dallo scroll del parent: aspetta che finisca e ricomincia.
+                    while (scrollState.isScrollInProgress) delay(200)
                 }
-                delay(1000) // Ciclo di controllo
+            } else {
+                delay(200)
             }
         }
     }
