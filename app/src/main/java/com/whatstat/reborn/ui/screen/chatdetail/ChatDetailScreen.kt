@@ -562,6 +562,7 @@ fun ChatDetailScreen(
                                 dailyData = s.dayOfMonthDistribution,
                                 monthlyData = s.monthOfYearDistribution,
                                 yearlyData = s.yearTrendDistribution,
+                                referenceSenders = s.senderBreakdown,
                                 dismissSignal = chartDismissSignal
                             )
                         }
@@ -1063,20 +1064,7 @@ private fun formatDuration(ms: Long): String {
 
 // ── Pie Chart messaggi per mittente ──────────────────────────────────────────
 
-private val pieColors = listOf(
-    Color(0xFFE53935), // Red
-    Color(0xFF1E88E5), // Blue
-    Color(0xFF43A047), // Green
-    Color(0xFFFF9800), // Orange
-    Color(0xFF9C27B0), // Purple
-    Color(0xFF00ACC1), // Cyan
-    Color(0xFFE91E63), // Pink
-    Color(0xFFFFD600), // Yellow
-    Color(0xFF3949AB), // Indigo
-    Color(0xFF795548), // Brown
-    Color(0xFF00695C), // Dark Teal
-    Color(0xFF7CB342), // Light Green
-)
+private val pieColors = com.whatstat.reborn.ui.theme.senderPieColors
 
 @Composable
 private fun MessagePieChart(

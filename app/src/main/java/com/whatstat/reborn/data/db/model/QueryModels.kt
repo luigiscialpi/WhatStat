@@ -43,37 +43,43 @@ data class ChatMessageCount(
 @Serializable
 data class HourlyCount(
     val hour: Int,
-    val count: Int
+    val count: Int,
+    val senderBreakdown: List<SenderStat> = emptyList()
 )
 
 @Serializable
 data class DayCount(
     val dayOfWeek: Int,
-    val count: Int
+    val count: Int,
+    val senderBreakdown: List<SenderStat> = emptyList()
 )
 
 @Serializable
 data class MonthlyCount(
     val month: String,
-    val count: Int
+    val count: Int,
+    val senderBreakdown: List<SenderStat> = emptyList()
 )
 
 @Serializable
 data class DayOfMonthCount(
     val day: Int,
-    val count: Int
+    val count: Int,
+    val senderBreakdown: List<SenderStat> = emptyList()
 )
 
 @Serializable
 data class MonthOfYearCount(
     val month: Int,
-    val count: Int
+    val count: Int,
+    val senderBreakdown: List<SenderStat> = emptyList()
 )
 
 @Serializable
 data class YearTrendCount(
     val year: Int,
-    val count: Int
+    val count: Int,
+    val senderBreakdown: List<SenderStat> = emptyList()
 )
 
 @Serializable
@@ -147,6 +153,7 @@ data class WordSearchResult(
 )
 
 /** Conteggio messaggi per singolo mittente (pie chart) */
+@Serializable
 data class SenderStat(
     val jid: String,
     val displayName: String,

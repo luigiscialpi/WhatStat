@@ -27,6 +27,9 @@
     <string name="nav_media">मीडिया</string>
     <string name="nav_radar">रडार</string>
     <string name="nav_calls">कॉल्स</string>
+    <string name="close">रुकना</string>
+    <string name="activity_breakdown_title">एक्टिविटी डिटेल्स</string>
+    <string name="activity_breakdown_subtitle">कुल %d मैसेज</string>
 
     <string name="group_history_title">ग्रुप इतिहास</string>
     <string name="group_history_no_events">इस ग्रुप के लिए कोई ऐतिहासिक घटना नहीं मिली।</string>

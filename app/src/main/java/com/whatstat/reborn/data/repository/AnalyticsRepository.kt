@@ -51,7 +51,8 @@ class AnalyticsRepository @Inject constructor(
     private val liteDatabase: com.whatstat.reborn.data.lite.LiteDatabase,
     private val activeDatabaseProvider: com.whatstat.reborn.data.db.ActiveDatabaseProvider,
     private val liteModeManager: LiteModeManager,
-    private val filterStateHolder: FilterStateHolder
+    private val filterStateHolder: FilterStateHolder,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) {
     private val _isLiteMode = kotlinx.coroutines.flow.MutableStateFlow(activeDatabaseProvider.isLiteMode)
     val isLiteMode: kotlinx.coroutines.flow.StateFlow<Boolean> = _isLiteMode.asStateFlow()
@@ -226,15 +227,48 @@ class AnalyticsRepository @Inject constructor(
             onProgress(20)
             val totalChats = dTotalChats.await()
             onProgress(30)
-            val hourly = dHourly.await()
-            onProgress(40)
-            val weekly = dWeekly.await()
-            onProgress(50)
-            val dayOfMonth = dDayOfMonth.await()
-            onProgress(60)
-            val monthOfYear = dMonthOfYear.await()
-            onProgress(70)
-            val yearTrend = dYearTrend.await()
+            val rawHourly = dHourly.await()
+            val rawWeekly = dWeekly.await()
+            val rawDayOfMonth = dDayOfMonth.await()
+            val rawMonthOfYear = dMonthOfYear.await()
+            val rawYearTrend = dYearTrend.await()
+
+            // Risoluzione nomi per i breakdown
+            val allJids = mutableSetOf<String>()
+            rawHourly.forEach { h -> h.senderBreakdown.forEach { allJids.add(it.jid) } }
+            rawWeekly.forEach { w -> w.senderBreakdown.forEach { allJids.add(it.jid) } }
+            rawDayOfMonth.forEach { d -> d.senderBreakdown.forEach { allJids.add(it.jid) } }
+            rawMonthOfYear.forEach { m -> m.senderBreakdown.forEach { allJids.add(it.jid) } }
+            rawYearTrend.forEach { y -> y.senderBreakdown.forEach { allJids.add(it.jid) } }
+            
+            val namesMap = if (allJids.isNotEmpty()) contactDao.resolveContactNames(allJids.toList()) else emptyMap()
+            val meName = context.getString(com.whatstat.reborn.R.string.fallback_me)
+
+            val hourly = rawHourly.map { h -> 
+                h.copy(senderBreakdown = h.senderBreakdown.map { s -> 
+                    s.copy(displayName = if (s.jid == "me@s.whatsapp.net") meName else namesMap[s.jid] ?: s.jid.substringBefore("@"))
+                })
+            }
+            val weekly = rawWeekly.map { w -> 
+                w.copy(senderBreakdown = w.senderBreakdown.map { s -> 
+                    s.copy(displayName = if (s.jid == "me@s.whatsapp.net") meName else namesMap[s.jid] ?: s.jid.substringBefore("@"))
+                })
+            }
+            val dayOfMonth = rawDayOfMonth.map { d -> 
+                d.copy(senderBreakdown = d.senderBreakdown.map { s -> 
+                    s.copy(displayName = if (s.jid == "me@s.whatsapp.net") meName else namesMap[s.jid] ?: s.jid.substringBefore("@"))
+                })
+            }
+            val monthOfYear = rawMonthOfYear.map { m -> 
+                m.copy(senderBreakdown = m.senderBreakdown.map { s -> 
+                    s.copy(displayName = if (s.jid == "me@s.whatsapp.net") meName else namesMap[s.jid] ?: s.jid.substringBefore("@"))
+                })
+            }
+            val yearTrend = rawYearTrend.map { y -> 
+                y.copy(senderBreakdown = y.senderBreakdown.map { s -> 
+                    s.copy(displayName = if (s.jid == "me@s.whatsapp.net") meName else namesMap[s.jid] ?: s.jid.substringBefore("@"))
+                })
+            }
             onProgress(80)
             val streak = dStreak.await()
             onProgress(90)
@@ -494,10 +528,56 @@ class AnalyticsRepository @Inject constructor(
             onProgress(40)
             val mediaStats = dMediaStats.await()
             onProgress(60)
-            val hourly = dHourly.await()
-            onProgress(75)
-            val weekly = dWeekly.await()
-            onProgress(90)
+            
+            val rawHourly = dHourly.await()
+            val rawWeekly = dWeekly.await()
+            val rawDayOfMonth = dDayOfMonth.await()
+            val rawMonthOfYear = dMonthOfYear.await()
+            val rawYearTrend = dYearTrend.await()
+            val rawMonthly = dMonthly.await()
+
+            // Risoluzione nomi per i breakdown
+            val allJids = mutableSetOf<String>()
+            rawHourly.forEach { h -> h.senderBreakdown.forEach { allJids.add(it.jid) } }
+            rawWeekly.forEach { w -> w.senderBreakdown.forEach { allJids.add(it.jid) } }
+            rawDayOfMonth.forEach { d -> d.senderBreakdown.forEach { allJids.add(it.jid) } }
+            rawMonthOfYear.forEach { m -> m.senderBreakdown.forEach { allJids.add(it.jid) } }
+            rawYearTrend.forEach { y -> y.senderBreakdown.forEach { allJids.add(it.jid) } }
+            rawMonthly.forEach { m -> m.senderBreakdown.forEach { allJids.add(it.jid) } }
+
+            val namesMap = if (allJids.isNotEmpty()) contactDao.resolveContactNames(allJids.toList()) else emptyMap()
+            val meName = context.getString(com.whatstat.reborn.R.string.fallback_me)
+
+            val hourly = rawHourly.map { h -> 
+                h.copy(senderBreakdown = h.senderBreakdown.map { s -> 
+                    s.copy(displayName = if (s.jid == "me@s.whatsapp.net") meName else namesMap[s.jid] ?: s.jid.substringBefore("@"))
+                })
+            }
+            val weekly = rawWeekly.map { w -> 
+                w.copy(senderBreakdown = w.senderBreakdown.map { s -> 
+                    s.copy(displayName = if (s.jid == "me@s.whatsapp.net") meName else namesMap[s.jid] ?: s.jid.substringBefore("@"))
+                })
+            }
+            val dayOfMonth = rawDayOfMonth.map { d -> 
+                d.copy(senderBreakdown = d.senderBreakdown.map { s -> 
+                    s.copy(displayName = if (s.jid == "me@s.whatsapp.net") meName else namesMap[s.jid] ?: s.jid.substringBefore("@"))
+                })
+            }
+            val monthOfYear = rawMonthOfYear.map { m -> 
+                m.copy(senderBreakdown = m.senderBreakdown.map { s -> 
+                    s.copy(displayName = if (s.jid == "me@s.whatsapp.net") meName else namesMap[s.jid] ?: s.jid.substringBefore("@"))
+                })
+            }
+            val yearTrend = rawYearTrend.map { y -> 
+                y.copy(senderBreakdown = y.senderBreakdown.map { s -> 
+                    s.copy(displayName = if (s.jid == "me@s.whatsapp.net") meName else namesMap[s.jid] ?: s.jid.substringBefore("@"))
+                })
+            }
+            val monthly = rawMonthly.map { m -> 
+                m.copy(senderBreakdown = m.senderBreakdown.map { s -> 
+                    s.copy(displayName = if (s.jid == "me@s.whatsapp.net") meName else namesMap[s.jid] ?: s.jid.substringBefore("@"))
+                })
+            }
             
             val firstTs = dFirstTs.await()
             val lastTs = dLastTs.await()
@@ -544,10 +624,10 @@ class AnalyticsRepository @Inject constructor(
                 videoCount               = mediaStats.filter { it.mimeType.startsWith("video") }.sumOf { it.count },
                 hourlyDistribution       = hourly,
                 weeklyDistribution       = weekly,
-                dayOfMonthDistribution   = dDayOfMonth.await(),
-                monthOfYearDistribution  = dMonthOfYear.await(),
-                yearTrendDistribution    = dYearTrend.await(),
-                monthlyTrend             = dMonthly.await(),
+                dayOfMonthDistribution   = dayOfMonth,
+                monthOfYearDistribution  = monthOfYear,
+                yearTrendDistribution    = yearTrend,
+                monthlyTrend             = monthly,
                 topWords                 = emptyList(),
                 senderBreakdown          = emptyList(),
                 conversationStarterBreakdown = emptyList()

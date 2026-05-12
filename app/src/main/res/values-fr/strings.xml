@@ -27,6 +27,9 @@
     <string name="nav_media">Médias</string>
     <string name="nav_radar">Radar</string>
     <string name="nav_calls">Appels</string>
+    <string name="close">Fermer</string>
+    <string name="activity_breakdown_title">Détail de l\'activité</string>
+    <string name="activity_breakdown_subtitle">%d messages au total</string>
 
     <string name="group_history_title">Historique du groupe</string>
     <string name="group_history_no_events">Aucun événement historique trouvé pour ce groupe.</string>

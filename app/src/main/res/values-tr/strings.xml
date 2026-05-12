@@ -27,6 +27,9 @@
     <string name="nav_media">Medya</string>
     <string name="nav_radar">Radar</string>
     <string name="nav_calls">Aramalar</string>
+    <string name="close">Kapat</string>
+    <string name="activity_breakdown_title">Aktivite Detayları</string>
+    <string name="activity_breakdown_subtitle">Toplam %d mesaj</string>
 
     <string name="group_history_title">Grup Geçmişi</string>
     <string name="group_history_no_events">Bu grup için geçmiş etkinlik bulunamadı.</string>

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import com.whatstat.reborn.data.db.model.SenderStat
 import com.whatstat.reborn.data.db.model.DayCount
 import com.whatstat.reborn.data.db.model.HourlyCount
 
@@ -43,8 +45,9 @@ import com.whatstat.reborn.data.db.model.HourlyCount
 fun InteractiveHourlyHeatmap(
     hourlyData: List<HourlyCount>,
     modifier: Modifier = Modifier,
-    onHourClick: ((Int, Int) -> Unit)? = null,
-    dismissSignal: Int = 0
+    referenceSenders: List<SenderStat> = emptyList(),
+    dismissSignal: Int = 0,
+    onHourClick: ((HourlyCount) -> Unit)? = null
 ) {
     if (hourlyData.isEmpty()) return
 
@@ -58,7 +61,8 @@ fun InteractiveHourlyHeatmap(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         (0..23).forEach { hour ->
-            val count = hourlyData.find { it.hour == hour }?.count ?: 0
+            val data = hourlyData.find { it.hour == hour }
+            val count = data?.count ?: 0
             val ratio = count / maxCount
             val isSelected = selectedHour == hour
 
@@ -67,7 +71,6 @@ fun InteractiveHourlyHeatmap(
                 modifier = Modifier
                     .clickable {
                         selectedHour = if (isSelected) -1 else hour
-                        onHourClick?.invoke(hour, count)
                     }
                     .padding(vertical = 4.dp)
             ) {
@@ -79,10 +82,18 @@ fun InteractiveHourlyHeatmap(
                 ) {
                     if (isSelected) {
                         Popup(
-                            alignment = Alignment.TopCenter,
+                            alignment = Alignment.BottomCenter,
+                            offset = androidx.compose.ui.unit.IntOffset(0, -50),
                             properties = PopupProperties(focusable = false)
                         ) {
-                            ChartPointBubble(text = "$count")
+                            val data = hourlyData.find { it.hour == hour }
+                            ChartPointBubble(
+                                title = "%02d:00 - %02d:00".format(hour, (hour + 1) % 24),
+                                total = count,
+                                breakdown = data?.senderBreakdown ?: emptyList(),
+                                referenceSenders = referenceSenders,
+                                onClick = { if (data != null) onHourClick?.invoke(data) }
+                            )
                         }
                     }
 
@@ -129,7 +140,8 @@ fun InteractiveHourlyHeatmap(
 fun InteractiveBarChart(
     data: List<StatPoint>,
     modifier: Modifier = Modifier,
-    barWidth: Dp = 12.dp,
+    referenceSenders: List<SenderStat> = emptyList(),
+    barWidth: Dp = 20.dp,
     barHeight: Dp = 60.dp,
     spacing: Dp = 8.dp,
     showLabels: Boolean = true,
@@ -160,7 +172,6 @@ fun InteractiveBarChart(
                 modifier = Modifier
                     .clickable {
                         selectedIndex = if (isSelected) -1 else index
-                        onPointClick?.invoke(point)
                     }
                     .padding(vertical = 4.dp)
             ) {
@@ -172,10 +183,17 @@ fun InteractiveBarChart(
                 ) {
                     if (isSelected) {
                         Popup(
-                            alignment = Alignment.TopCenter,
+                            alignment = Alignment.BottomCenter,
+                            offset = androidx.compose.ui.unit.IntOffset(0, -70),
                             properties = PopupProperties(focusable = false)
                         ) {
-                            ChartPointBubble(text = "${point.count}")
+                            ChartPointBubble(
+                                title = point.label,
+                                total = point.count,
+                                breakdown = point.senderBreakdown,
+                                referenceSenders = referenceSenders,
+                                onClick = { onPointClick?.invoke(point) }
+                            )
                         }
                     }
 
@@ -217,37 +235,109 @@ fun InteractiveBarChart(
 data class StatPoint(
     val id: Any,
     val label: String,
-    val count: Int
+    val count: Int,
+    val senderBreakdown: List<SenderStat> = emptyList()
 )
 
 @Composable
 private fun ChartPointBubble(
-    text: String,
-    modifier: Modifier = Modifier
+    title: String,
+    total: Int,
+    breakdown: List<SenderStat>,
+    referenceSenders: List<SenderStat> = emptyList(),
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
 ) {
     val bubbleColor = MaterialTheme.colorScheme.inverseSurface
+    val onBubbleColor = MaterialTheme.colorScheme.inverseOnSurface
+    val secondaryColor = onBubbleColor.copy(alpha = 0.7f)
 
     Column(
-        modifier = modifier,
+        modifier = modifier.clickable { onClick?.invoke() },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Surface(
-            modifier = Modifier.widthIn(min = 32.dp),
-            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.widthIn(min = 80.dp, max = 180.dp),
+            shape = RoundedCornerShape(12.dp),
             color = bubbleColor,
-            contentColor = MaterialTheme.colorScheme.inverseOnSurface,
-            shadowElevation = 4.dp,
-            tonalElevation = 2.dp
+            contentColor = onBubbleColor,
+            shadowElevation = 6.dp,
+            tonalElevation = 4.dp
         ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-            )
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = secondaryColor,
+                    fontSize = 10.sp
+                )
+                Text(
+                    text = "$total messaggi",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = onBubbleColor,
+                    fontSize = 13.sp
+                )
+
+                if (breakdown.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(onBubbleColor.copy(alpha = 0.15f))
+                    )
+                    Spacer(Modifier.height(6.dp))
+
+                    breakdown.take(3).forEach { sender ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(com.whatstat.reborn.ui.theme.getSenderColor(sender.jid, referenceSenders))
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = sender.displayName,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = secondaryColor,
+                                    fontSize = 10.sp,
+                                    maxLines = 1,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = "${sender.count}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = onBubbleColor,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    if (breakdown.size > 3) {
+                        Text(
+                            text = "+ Altri ${breakdown.size - 3}...",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = secondaryColor,
+                            fontSize = 9.sp,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            }
         }
 
-        Canvas(modifier = Modifier.size(width = 10.dp, height = 6.dp)) {
+        Canvas(modifier = Modifier.size(width = 12.dp, height = 8.dp)) {
             val path = Path().apply {
                 moveTo(0f, 0f)
                 lineTo(size.width, 0f)

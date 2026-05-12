@@ -60,6 +60,9 @@
     <string name="nav_media">Media</string>
     <string name="nav_radar">Radar</string>
     <string name="nav_calls">Calls</string>
+    <string name="close">Close</string>
+    <string name="activity_breakdown_title">Activity Detail</string>
+    <string name="activity_breakdown_subtitle">%d total messages</string>
 
     <string name="group_history_title">Group History</string>
     <string name="group_history_no_events">No history events found for this group.</string>

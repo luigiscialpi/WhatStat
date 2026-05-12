@@ -131,22 +131,30 @@ class MessageDao @Inject constructor(
     fun getHourlyDistribution(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<HourlyCount> {
         val queryBuilder = StringBuilder("""
             SELECT
-                CAST(strftime('%H', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS hour,
+                CAST(strftime('%H', datetime(m.timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS hour,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
+                    ELSE j_chat.raw_string
+                END AS jid,
                 COUNT(*) AS count
-            FROM message
-            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
+            FROM message m
+            LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+            JOIN chat c ON m.chat_row_id = c._id
+            JOIN jid j_chat ON c.jid_row_id = j_chat._id
+            WHERE m.chat_row_id = ? AND m.message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf(chatId.toString())
         
         if (startTime != null) {
-            queryBuilder.append(" AND timestamp >= ?")
+            queryBuilder.append(" AND m.timestamp >= ?")
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            queryBuilder.append(" AND timestamp <= ?")
+            queryBuilder.append(" AND m.timestamp <= ?")
             args.add(endTime.toString())
         }
-        queryBuilder.append(" GROUP BY hour ORDER BY hour")
+        queryBuilder.append(" GROUP BY hour, jid ORDER BY hour")
         
         val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseHourlyCount(it) }
@@ -156,21 +164,29 @@ class MessageDao @Inject constructor(
     fun getGlobalHourlyDistribution(startTime: Long? = null, endTime: Long? = null): List<HourlyCount> {
         val queryBuilder = StringBuilder("""
             SELECT
-                CAST(strftime('%H', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS hour,
+                CAST(strftime('%H', datetime(m.timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS hour,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
+                    ELSE j_chat.raw_string
+                END AS jid,
                 COUNT(*) AS count
-            FROM message
-            WHERE message_type NOT IN (7, 15, 90)
+            FROM message m
+            LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+            JOIN chat c ON m.chat_row_id = c._id
+            JOIN jid j_chat ON c.jid_row_id = j_chat._id
+            WHERE m.message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf<String>()
         if (startTime != null) {
-            queryBuilder.append(" AND timestamp >= ?")
+            queryBuilder.append(" AND m.timestamp >= ?")
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            queryBuilder.append(" AND timestamp <= ?")
+            queryBuilder.append(" AND m.timestamp <= ?")
             args.add(endTime.toString())
         }
-        queryBuilder.append(" GROUP BY hour ORDER BY hour")
+        queryBuilder.append(" GROUP BY hour, jid ORDER BY hour")
         
         val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseHourlyCount(it) }
@@ -262,21 +278,29 @@ class MessageDao @Inject constructor(
     fun getGlobalDayOfMonthDistribution(startTime: Long? = null, endTime: Long? = null): List<DayOfMonthCount> {
         val queryBuilder = StringBuilder("""
             SELECT
-                CAST(strftime('%d', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
+                CAST(strftime('%d', datetime(m.timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
+                    ELSE j_chat.raw_string
+                END AS jid,
                 COUNT(*) AS count
-            FROM message
-            WHERE message_type NOT IN (7, 15, 90)
+            FROM message m
+            LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+            JOIN chat c ON m.chat_row_id = c._id
+            JOIN jid j_chat ON c.jid_row_id = j_chat._id
+            WHERE m.message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf<String>()
         if (startTime != null) {
-            queryBuilder.append(" AND timestamp >= ?")
+            queryBuilder.append(" AND m.timestamp >= ?")
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            queryBuilder.append(" AND timestamp <= ?")
+            queryBuilder.append(" AND m.timestamp <= ?")
             args.add(endTime.toString())
         }
-        queryBuilder.append(" GROUP BY day ORDER BY day")
+        queryBuilder.append(" GROUP BY day, jid ORDER BY day")
         
         val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseDayOfMonthCount(it) }
@@ -286,21 +310,29 @@ class MessageDao @Inject constructor(
     fun getGlobalMonthOfYearDistribution(startTime: Long? = null, endTime: Long? = null): List<MonthOfYearCount> {
         val queryBuilder = StringBuilder("""
             SELECT
-                CAST(strftime('%m', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS month,
+                CAST(strftime('%m', datetime(m.timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS month,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
+                    ELSE j_chat.raw_string
+                END AS jid,
                 COUNT(*) AS count
-            FROM message
-            WHERE message_type NOT IN (7, 15, 90)
+            FROM message m
+            LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+            JOIN chat c ON m.chat_row_id = c._id
+            JOIN jid j_chat ON c.jid_row_id = j_chat._id
+            WHERE m.message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf<String>()
         if (startTime != null) {
-            queryBuilder.append(" AND timestamp >= ?")
+            queryBuilder.append(" AND m.timestamp >= ?")
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            queryBuilder.append(" AND timestamp <= ?")
+            queryBuilder.append(" AND m.timestamp <= ?")
             args.add(endTime.toString())
         }
-        queryBuilder.append(" GROUP BY month ORDER BY month")
+        queryBuilder.append(" GROUP BY month, jid ORDER BY month")
         
         val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseMonthOfYearCount(it) }
@@ -310,21 +342,29 @@ class MessageDao @Inject constructor(
     fun getGlobalYearTrendDistribution(startTime: Long? = null, endTime: Long? = null): List<YearTrendCount> {
         val queryBuilder = StringBuilder("""
             SELECT
-                CAST(strftime('%Y', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS year,
+                CAST(strftime('%Y', datetime(m.timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS year,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
+                    ELSE j_chat.raw_string
+                END AS jid,
                 COUNT(*) AS count
-            FROM message
-            WHERE message_type NOT IN (7, 15, 90)
+            FROM message m
+            LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+            JOIN chat c ON m.chat_row_id = c._id
+            JOIN jid j_chat ON c.jid_row_id = j_chat._id
+            WHERE m.message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf<String>()
         if (startTime != null) {
-            queryBuilder.append(" AND timestamp >= ?")
+            queryBuilder.append(" AND m.timestamp >= ?")
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            queryBuilder.append(" AND timestamp <= ?")
+            queryBuilder.append(" AND m.timestamp <= ?")
             args.add(endTime.toString())
         }
-        queryBuilder.append(" GROUP BY year ORDER BY year")
+        queryBuilder.append(" GROUP BY year, jid ORDER BY year")
         
         val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseYearTrendCount(it) }
@@ -334,22 +374,30 @@ class MessageDao @Inject constructor(
     fun getDayOfWeekDistribution(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<DayCount> {
         val queryBuilder = StringBuilder("""
             SELECT
-                CAST(strftime('%w', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
+                CAST(strftime('%w', datetime(m.timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
+                    ELSE j_chat.raw_string
+                END AS jid,
                 COUNT(*) AS count
-            FROM message
-            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
+            FROM message m
+            LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+            JOIN chat c ON m.chat_row_id = c._id
+            JOIN jid j_chat ON c.jid_row_id = j_chat._id
+            WHERE m.chat_row_id = ? AND m.message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf(chatId.toString())
         
         if (startTime != null) {
-            queryBuilder.append(" AND timestamp >= ?")
+            queryBuilder.append(" AND m.timestamp >= ?")
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            queryBuilder.append(" AND timestamp <= ?")
+            queryBuilder.append(" AND m.timestamp <= ?")
             args.add(endTime.toString())
         }
-        queryBuilder.append(" GROUP BY day ORDER BY day")
+        queryBuilder.append(" GROUP BY day, jid ORDER BY day")
         
         val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseDayCount(it) }
@@ -359,21 +407,29 @@ class MessageDao @Inject constructor(
     fun getGlobalWeeklyDistribution(startTime: Long? = null, endTime: Long? = null): List<DayCount> {
         val queryBuilder = StringBuilder("""
             SELECT
-                CAST(strftime('%w', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
+                CAST(strftime('%w', datetime(m.timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
+                    ELSE j_chat.raw_string
+                END AS jid,
                 COUNT(*) AS count
-            FROM message
-            WHERE message_type NOT IN (7, 15, 90)
+            FROM message m
+            LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+            JOIN chat c ON m.chat_row_id = c._id
+            JOIN jid j_chat ON c.jid_row_id = j_chat._id
+            WHERE m.message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf<String>()
         if (startTime != null) {
-            queryBuilder.append(" AND timestamp >= ?")
+            queryBuilder.append(" AND m.timestamp >= ?")
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            queryBuilder.append(" AND timestamp <= ?")
+            queryBuilder.append(" AND m.timestamp <= ?")
             args.add(endTime.toString())
         }
-        queryBuilder.append(" GROUP BY day ORDER BY day")
+        queryBuilder.append(" GROUP BY day, jid ORDER BY day")
         
         val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseDayCount(it) }
@@ -383,21 +439,29 @@ class MessageDao @Inject constructor(
     fun getDayOfMonthDistribution(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<DayOfMonthCount> {
         val queryBuilder = StringBuilder("""
             SELECT
-                CAST(strftime('%d', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
+                CAST(strftime('%d', datetime(m.timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS day,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
+                    ELSE j_chat.raw_string
+                END AS jid,
                 COUNT(*) AS count
-            FROM message
-            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
+            FROM message m
+            LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+            JOIN chat c ON m.chat_row_id = c._id
+            JOIN jid j_chat ON c.jid_row_id = j_chat._id
+            WHERE m.chat_row_id = ? AND m.message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf(chatId.toString())
         if (startTime != null) {
-            queryBuilder.append(" AND timestamp >= ?")
+            queryBuilder.append(" AND m.timestamp >= ?")
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            queryBuilder.append(" AND timestamp <= ?")
+            queryBuilder.append(" AND m.timestamp <= ?")
             args.add(endTime.toString())
         }
-        queryBuilder.append(" GROUP BY day ORDER BY day")
+        queryBuilder.append(" GROUP BY day, jid ORDER BY day")
         
         val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseDayOfMonthCount(it) }
@@ -407,21 +471,29 @@ class MessageDao @Inject constructor(
     fun getMonthOfYearDistribution(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<MonthOfYearCount> {
         val queryBuilder = StringBuilder("""
             SELECT
-                CAST(strftime('%m', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS month,
+                CAST(strftime('%m', datetime(m.timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS month,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
+                    ELSE j_chat.raw_string
+                END AS jid,
                 COUNT(*) AS count
-            FROM message
-            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
+            FROM message m
+            LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+            JOIN chat c ON m.chat_row_id = c._id
+            JOIN jid j_chat ON c.jid_row_id = j_chat._id
+            WHERE m.chat_row_id = ? AND m.message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf(chatId.toString())
         if (startTime != null) {
-            queryBuilder.append(" AND timestamp >= ?")
+            queryBuilder.append(" AND m.timestamp >= ?")
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            queryBuilder.append(" AND timestamp <= ?")
+            queryBuilder.append(" AND m.timestamp <= ?")
             args.add(endTime.toString())
         }
-        queryBuilder.append(" GROUP BY month ORDER BY month")
+        queryBuilder.append(" GROUP BY month, jid ORDER BY month")
         
         val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseMonthOfYearCount(it) }
@@ -431,21 +503,29 @@ class MessageDao @Inject constructor(
     fun getYearTrendDistribution(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<YearTrendCount> {
         val queryBuilder = StringBuilder("""
             SELECT
-                CAST(strftime('%Y', datetime(timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS year,
+                CAST(strftime('%Y', datetime(m.timestamp / 1000, 'unixepoch', 'localtime')) AS INTEGER) AS year,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
+                    ELSE j_chat.raw_string
+                END AS jid,
                 COUNT(*) AS count
-            FROM message
-            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
+            FROM message m
+            LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+            JOIN chat c ON m.chat_row_id = c._id
+            JOIN jid j_chat ON c.jid_row_id = j_chat._id
+            WHERE m.chat_row_id = ? AND m.message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf(chatId.toString())
         if (startTime != null) {
-            queryBuilder.append(" AND timestamp >= ?")
+            queryBuilder.append(" AND m.timestamp >= ?")
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            queryBuilder.append(" AND timestamp <= ?")
+            queryBuilder.append(" AND m.timestamp <= ?")
             args.add(endTime.toString())
         }
-        queryBuilder.append(" GROUP BY year ORDER BY year")
+        queryBuilder.append(" GROUP BY year, jid ORDER BY year")
         
         val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseYearTrendCount(it) }
@@ -455,23 +535,31 @@ class MessageDao @Inject constructor(
     fun getMonthlyTrend(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<MonthlyCount> {
         val queryBuilder = StringBuilder("""
             SELECT
-                strftime('%Y-%m', datetime(timestamp / 1000, 'unixepoch')) AS month,
+                strftime('%Y-%m', datetime(m.timestamp / 1000, 'unixepoch')) AS month,
+                CASE 
+                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                    WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
+                    ELSE j_chat.raw_string
+                END AS jid,
                 COUNT(*) AS count
-            FROM message
-            WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
+            FROM message m
+            LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+            JOIN chat c ON m.chat_row_id = c._id
+            JOIN jid j_chat ON c.jid_row_id = j_chat._id
+            WHERE m.chat_row_id = ? AND m.message_type NOT IN (7, 15, 90)
         """.trimIndent())
         val args = mutableListOf(chatId.toString())
 
         if (startTime != null) {
-            queryBuilder.append(" AND timestamp >= ?")
+            queryBuilder.append(" AND m.timestamp >= ?")
             args.add(startTime.toString())
         }
         if (endTime != null) {
-            queryBuilder.append(" AND timestamp <= ?")
+            queryBuilder.append(" AND m.timestamp <= ?")
             args.add(endTime.toString())
         }
 
-        queryBuilder.append(" GROUP BY month ORDER BY month")
+        queryBuilder.append(" GROUP BY month, jid ORDER BY month")
 
         val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), args.toTypedArray())
         return cursor.use { parseMonthlyCount(it) }
@@ -1913,40 +2001,88 @@ class MessageDao @Inject constructor(
         }
     }
 
-    private fun parseHourlyCount(cursor: Cursor): List<HourlyCount> = buildList {
+    private fun parseHourlyCount(cursor: Cursor): List<HourlyCount> {
+        val hourlyMap = mutableMapOf<Int, MutableList<SenderStat>>()
         while (cursor.moveToNext()) {
-            add(HourlyCount(hour = cursor.getInt(0), count = cursor.getInt(1)))
+            val hour = cursor.getInt(0)
+            val jid = cursor.getString(1) ?: "unknown"
+            val count = cursor.getInt(2)
+            val stats = hourlyMap.getOrPut(hour) { mutableListOf() }
+            stats.add(SenderStat(jid = jid, displayName = "", count = count))
         }
+        return hourlyMap.map { (hour, breakdown) ->
+            HourlyCount(hour = hour, count = breakdown.sumOf { it.count }, senderBreakdown = breakdown.sortedByDescending { it.count })
+        }.sortedBy { it.hour }
     }
 
-    private fun parseDayCount(cursor: Cursor): List<DayCount> = buildList {
+    private fun parseDayCount(cursor: Cursor): List<DayCount> {
+        val dailyMap = mutableMapOf<Int, MutableList<SenderStat>>()
         while (cursor.moveToNext()) {
-            add(DayCount(dayOfWeek = cursor.getInt(0), count = cursor.getInt(1)))
+            val day = cursor.getInt(0)
+            val jid = cursor.getString(1) ?: "unknown"
+            val count = cursor.getInt(2)
+            val stats = dailyMap.getOrPut(day) { mutableListOf() }
+            stats.add(SenderStat(jid = jid, displayName = "", count = count))
         }
+        return dailyMap.map { (day, breakdown) ->
+            DayCount(dayOfWeek = day, count = breakdown.sumOf { it.count }, senderBreakdown = breakdown.sortedByDescending { it.count })
+        }.sortedBy { it.dayOfWeek }
     }
 
-    private fun parseMonthlyCount(cursor: Cursor): List<MonthlyCount> = buildList {
+    private fun parseMonthlyCount(cursor: Cursor): List<MonthlyCount> {
+        val monthlyMap = mutableMapOf<String, MutableList<SenderStat>>()
         while (cursor.moveToNext()) {
-            add(MonthlyCount(month = cursor.getString(0) ?: "", count = cursor.getInt(1)))
+            val month = cursor.getString(0) ?: ""
+            val jid = cursor.getString(1) ?: "unknown"
+            val count = cursor.getInt(2)
+            val stats = monthlyMap.getOrPut(month) { mutableListOf() }
+            stats.add(SenderStat(jid = jid, displayName = "", count = count))
         }
+        return monthlyMap.map { (month, breakdown) ->
+            MonthlyCount(month = month, count = breakdown.sumOf { it.count }, senderBreakdown = breakdown.sortedByDescending { it.count })
+        }.sortedBy { it.month }
     }
 
-    private fun parseDayOfMonthCount(cursor: Cursor): List<DayOfMonthCount> = buildList {
+    private fun parseDayOfMonthCount(cursor: Cursor): List<DayOfMonthCount> {
+        val dailyMap = mutableMapOf<Int, MutableList<SenderStat>>()
         while (cursor.moveToNext()) {
-            add(DayOfMonthCount(day = cursor.getInt(0), count = cursor.getInt(1)))
+            val day = cursor.getInt(0)
+            val jid = cursor.getString(1) ?: "unknown"
+            val count = cursor.getInt(2)
+            val stats = dailyMap.getOrPut(day) { mutableListOf() }
+            stats.add(SenderStat(jid = jid, displayName = "", count = count))
         }
+        return dailyMap.map { (day, breakdown) ->
+            DayOfMonthCount(day = day, count = breakdown.sumOf { it.count }, senderBreakdown = breakdown.sortedByDescending { it.count })
+        }.sortedBy { it.day }
     }
 
-    private fun parseMonthOfYearCount(cursor: Cursor): List<MonthOfYearCount> = buildList {
+    private fun parseMonthOfYearCount(cursor: Cursor): List<MonthOfYearCount> {
+        val monthlyMap = mutableMapOf<Int, MutableList<SenderStat>>()
         while (cursor.moveToNext()) {
-            add(MonthOfYearCount(month = cursor.getInt(0), count = cursor.getInt(1)))
+            val month = cursor.getInt(0)
+            val jid = cursor.getString(1) ?: "unknown"
+            val count = cursor.getInt(2)
+            val stats = monthlyMap.getOrPut(month) { mutableListOf() }
+            stats.add(SenderStat(jid = jid, displayName = "", count = count))
         }
+        return monthlyMap.map { (month, breakdown) ->
+            MonthOfYearCount(month = month, count = breakdown.sumOf { it.count }, senderBreakdown = breakdown.sortedByDescending { it.count })
+        }.sortedBy { it.month }
     }
 
-    private fun parseYearTrendCount(cursor: Cursor): List<YearTrendCount> = buildList {
+    private fun parseYearTrendCount(cursor: Cursor): List<YearTrendCount> {
+        val yearlyMap = mutableMapOf<Int, MutableList<SenderStat>>()
         while (cursor.moveToNext()) {
-            add(YearTrendCount(year = cursor.getInt(0), count = cursor.getInt(1)))
+            val year = cursor.getInt(0)
+            val jid = cursor.getString(1) ?: "unknown"
+            val count = cursor.getInt(2)
+            val stats = yearlyMap.getOrPut(year) { mutableListOf() }
+            stats.add(SenderStat(jid = jid, displayName = "", count = count))
         }
+        return yearlyMap.map { (year, breakdown) ->
+            YearTrendCount(year = year, count = breakdown.sumOf { it.count }, senderBreakdown = breakdown.sortedByDescending { it.count })
+        }.sortedBy { it.year }
     }
 
     private fun parseMediaStats(cursor: Cursor): List<MediaTypeStat> = buildList {
