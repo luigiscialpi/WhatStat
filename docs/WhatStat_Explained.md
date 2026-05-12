@@ -122,7 +122,7 @@ La cache è il meccanismo centrale per garantire aperture veloci. Usa `kotlinx.s
 
 ### Tipi di cache
 
-**Cache Quick Stats globali** — Contiene `GlobalStats` con tutte le distribuzioni (oraria, settimanale, mensile, annuale). Viene popolata dopo la prima analisi completa e viene mostrata istantaneamente alle aperture successive, senza alcun calcolo.
+**Cache Quick Stats globali** — Contiene `GlobalStats` con tutte le distribuzioni (oraria, settimanale, mensile, annuale). Ogni punto della distribuzione (es. una specifica ora o un giorno) include un `senderBreakdown`, ovvero la lista dei mittenti che hanno contribuito a quel volume di messaggi. Viene popolata dopo la prima analisi completa e mostrata istantaneamente alle aperture successive.
 
 **Cache Slow Stats globali** — Contiene le parole più usate e le emoji più usate a livello globale. Queste analisi sono più lente perché richiedono di scorrere i testi di tutti i messaggi. Vengono cachate dopo la prima analisi manuale (opt-in) e mostrate automaticamente alle riaperture.
 
@@ -132,7 +132,7 @@ I modelli che strutturano l'indice sono `WordFrequencyIndexData` e `MonthlyWordI
 
 **Indice mensile** — Accanto all'indice globale viene mantenuto `word_index_monthly.gz` (in `filesDir`), che bucket-izza le frequenze per mese ("YYYY-MM"). Per query con filtri temporali che coprono ≥ 28 giorni e il cui `endTime` ricade entro 7 giorni dall'ultimo aggiornamento dell'indice, le parole/emoji vengono calcolate sommando i bucket mensili pertinenti in memoria — zero accessi a SQLite. Per range più brevi (es. Ultimi 7/30 giorni o range custom ravvicinati) continua ad essere usata la query SQL diretta.
 
-**Cache Quick Stats per chat** — Contiene distribuzioni orarie, settimanali, mensili e annuali per ogni singola chat, oltre ai conteggi base. Indicizzata per `chatId`. Garantisce l'apertura istantanea del dettaglio di una chat.
+**Cache Quick Stats per chat** — Contiene distribuzioni orarie, settimanali, mensili e annuali per ogni singola chat, inclusi i breakdown dei mittenti per ogni punto dati. Indicizzata per `chatId`. Garantisce l'apertura istantanea del dettaglio di una chat.
 
 **Cache Slow Stats per chat** — Contiene le analisi testuali per chat: parole più usate, emoji più usate, sticker più usati, breakdown per mittente, breakdown degli starter, tempo medio di risposta. Cachata per `chatId` dopo la prima analisi opt-in.
 
@@ -260,12 +260,10 @@ Le card mostrano i valori principali per il periodo selezionato:
 
 Quattro schede selezionabili, ciascuna con un grafico a barre con scrolling orizzontale:
 
-- **Oraria** — 24 barre, una per ogni ora del giorno (0–23)
-- **Settimanale** — 7 barre, una per ogni giorno della settimana
-- **Mensile** — barre per giorno del mese (1–31)
-- **Annuale** — una barra per ogni anno con dati
-
-I grafici sono interattivi: toccando una barra appare un popup di selezione inline con il valore esatto; toccare fuori dall'area del grafico chiude la selezione tramite il meccanismo `dismissSignal`.
+I grafici sono interattivi:
+- **Tooltip (Bubble)**: toccando una barra appare una nuvoletta che mostra il totale dei messaggi e i primi 3 contributori (mittenti) per quel periodo, con pallini colorati coerenti.
+- **Dettaglio esteso**: toccando la nuvoletta si apre un `ActivityDetailDialog` con la lista completa dei mittenti, i conteggi esatti e le percentuali di contribuzione.
+- **Auto-dismiss**: toccare fuori dall'area del grafico chiude la selezione tramite il meccanismo `dismissSignal`.
 
 ### Previsione Traguardi (Milestone Prediction)
 
@@ -359,7 +357,17 @@ Nota tecnica rilevante: il totale della breakdown viene calcolato sommando i val
 
 ### Grafici di attività
 
-Stesse quattro schede della Dashboard (oraria, settimanale, mensile, annuale), filtrate sulla chat corrente. Implementate con `InteractiveBarChart` con scrolling orizzontale.
+Stesse quattro schede della Dashboard (oraria, settimanale, mensile, annuale), filtrate sulla chat corrente. Implementate con `InteractiveBarChart` e `InteractiveHourlyHeatmap` con supporto al breakdown dei mittenti e dialog di dettaglio.
+
+### Activity Breakdown e Colorazione Stabile
+
+Questa funzionalità permette di vedere *chi* ha scritto in determinati momenti della giornata o del mese.
+
+- **Logica di aggregazione**: Le query SQL nei DAO (es. `getHourlyDistributionWithBreakdown`) eseguono una `JOIN` con la tabella `jid` per raggruppare i messaggi non solo per tempo ma anche per mittente all'interno di ogni slot temporale.
+- **Sistema di Colorazione (SenderColors)**: Per garantire che un utente abbia lo stesso colore in tutti i grafici e breakdown dell'app, è stato implementato un sistema di colorazione stabile (`getSenderColor` in `ui.theme`).
+    - Il colore è determinato dalla posizione del mittente nel ranking principale della chat ("Chi scrive di più").
+    - Se un mittente non è presente nel ranking (es. ha scritto pochissimi messaggi globalmente ma molti in un'ora specifica), il colore viene generato in modo deterministico dal JID tramite hash.
+- **Interfaccia**: Il breakdown è visualizzabile tramite il tocco sulle barre dei grafici (anteprima veloce) e approfondibile tramite l' `ActivityDetailDialog`.
 
 ### Evoluzione mensile
 
