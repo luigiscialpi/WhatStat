@@ -194,6 +194,8 @@ La cache viene invalidata esplicitamente in quattro occasioni:
 
 4. **DB Root modificato** (hash SHA-256 diverso): `CacheManager` confronta l'hash del `msgstore.db` corrente con quello salvato e invalida automaticamente se diverso.
 
+5. **Rename chat Lite** (AnalyticsRepository.notifyLiteRenameChat()): La cache slow stats della chat (chat_slow_{id}) viene invalidata completamente. Non viene tentato alcun aggiornamento parziale (patch) del senderBreakdown, perché in Lite Mode i JID del mittente e della chat divergono nelle chat 1-1, rendendo il match inaffidabile. Al successivo accesso, getSlowChatStats ricalcola da zero leggendo wa_contacts aggiornata.
+
 ### Refresh reattivo in Lite Mode (`liteCacheVersion`)
 
 Il `DashboardViewModel` usa `liteCacheVersion` (un `StateFlow<Long>` di timestamp esposto da `AnalyticsRepository`) per sapere quando ricaricare i dati. Al `init`:
@@ -820,7 +822,7 @@ Il risultato pratico è che tutti i DAO (MessageDao, ChatDao, ecc.) eseguono le 
 `LiteDatabase` gestisce due file SQLite in `filesDir`:
 
 - **`lite_msgstore.db`** — database principale, con schema compatibile con `msgstore.db` Root. Tabelle create: `jid`, `chat`, `message`, `message_media`. Gli indici SQL sono identici al Root per garantire le stesse prestazioni.
-- **`lite_wa.db`** — stub minimale con la tabella `wa_contacts` (colonne: `_id`, `jid`, `display_name`). Serve per la risoluzione nomi in `AnalyticsRepository.resolveDisplayName()`. In Lite Mode `jid` contiene il nome del mittente grezzo dall'export (es. `"Mario Rossi"`), non un JID reale.
+- **`lite_wa.db`** — stub minimale con la tabella `wa_contacts` (colonne: `_id`, `jid`, `display_name`). Serve per la risoluzione nomi in `AnalyticsRepository.resolveDisplayName()`. In Lite Mode `jid` contiene il nome del mittente grezzo dall'export (es. "Mario Rossi"), non un JID reale. Per le chat 1-1, `LiteDbWriter.upsertChat` popola `wa_contacts` con una riga sender→chatName, in modo che `resolveContactName` restituisca il nome della chat (derivato dal filename ZIP) invece del nome grezzo del mittente. Al rename, `LiteDbWriter.renameChat` aggiorna le righe corrispondenti in `wa_contacts` e in `jid` per tutti i mittenti della chat.
 
 **Nota su `jid` in Lite Mode**: il campo `raw_string` nella tabella `jid` contiene il nome del mittente (es. `"Mario Rossi"`), non un JID reale WhatsApp. Questo è l'unico dato disponibile dall'export `.txt`. Per l'utente corrente, `raw_string` è il `ownerName` scelto durante il setup.
 
@@ -971,6 +973,8 @@ Singleton Hilt che orchestra l'intero flusso di importazione. Metodi principali:
 | `getFirstMessageTimestamp()` | Timestamp del messaggio più antico nel DB Lite (usato per `minDate` del DateRangePicker) |
 | `notifyImportDone()` | Bumpa `importCompleted` StateFlow per notificare i ViewModel |
 | `clearCache()` | Cancella `lite_msgstore.db` e `lite_wa.db` |
+| `upsertChat` | Scrive la chat nel DB. Per le chat 1-1, popola anche `wa_contacts` con la mappatura sender→chatName per permettere a `resolveContactName` di restituire il nome corretto. |
+| `renameChat` | Aggiorna il nome della chat. Per le chat 1-1, aggiorna anche `wa_contacts` e `jid.raw_string` per tutti i mittenti della chat, in modo che le slow stats ricalcolate riflettano il nuovo nome. |
 
 #### Estrazione nome chat (`normalizeExportName`)
 
@@ -1058,7 +1062,7 @@ La Lite Mode ha un proprio grafo di navigazione `NavGraphRoute.Lite`, con la ste
 | `data/lite/LiteModeManager.kt` | Coordinatore: parsing, fingerprint, normalizzazione nomi, scrittura DB, progress |
 | `data/db/ActiveDatabaseProvider.kt` | Routing trasparente Root vs Lite per tutti i DAO |
 | `data/root/FileExtractor.kt` | Estrazione ZIP (condiviso con Root) |
-| `data/repository/AnalyticsRepository.kt` | Espone `isLiteMode`, `liteCacheVersion`, `notifyLiteImportDone()` |
+| `data/repository/AnalyticsRepository.kt` | Espone `isLiteMode`, `liteCacheVersion`, `notifyLiteImportDone()`. Garantisce che `isLiteMode` sia attivo prima di qualsiasi operazione di cache; al rename in Lite Mode invalida `chat_slow_{id}` invece di tentare una patch del `senderBreakdown`. |
 | `service/LiteImportService.kt` | Foreground service per progress overlay durante l'import |
 | `ui/screen/setup/LiteSetupScreen.kt` | UI onboarding Lite (primo import) |
 | `ui/screen/setup/LiteSetupViewModel.kt` | Logica onboarding (doppio processing + sender selection) |
