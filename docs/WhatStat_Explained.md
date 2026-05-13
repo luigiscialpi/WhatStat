@@ -173,6 +173,8 @@ Le chiavi di cache disponibili:
 | `chat_quick_{id}` | Stats rapide per singola chat |
 | `chat_slow_{id}` | Stats lente per singola chat |
 
+**DataStore colori mittente** — Le personalizzazioni di colore per i mittenti sono persistite in un DataStore dedicato tramite `SenderColorOverrideStore`. Le chiavi sono composte da `chatId|jid` e il valore è il colore ARGB scelto dall'utente. Questo DataStore è separato da `stats_cache_root` e `stats_cache_lite` e non viene invalidato al cambio del database.
+
 ### Invalidazione della cache
 
 La cache viene invalidata esplicitamente in quattro occasioni:
@@ -348,6 +350,8 @@ L'intestazione viene caricata in anticipo (`HeaderInfo` state) con shimmer place
 Donut chart (grafico a ciambella) che visualizza la proporzione di messaggi per partecipante. Il dato si basa su `getSenderBreakdown` in `MessageDao`, che raggruppa per mittente (`from_me` + `sender_jid_row_id`). Nei gruppi con più di 10 partecipanti viene mostrato un pulsante "Mostra tutti" per espandere la lista. La legenda include nome e numero di telefono di ogni partecipante. I mittenti sono mostrati nell'ordine naturale del database (volume di messaggi decrescente).
 
 Nota: nella sezione **Analisi testi → Per Persona** i chip di selezione mittente applicano un ordinamento locale che porta sempre "Tu" (`me@s.whatsapp.net`) in prima posizione. Questo sort avviene esclusivamente al livello UI (`sendersForChips` in `ChatDetailScreen`) e non altera il dato grezzo `senderBreakdown`, preservando l'ordine per volume in tutte le altre sezioni.
+
+Nota: **Personalizzazione colori mittente** — Ogni mittente nei grafici a torta e nelle visualizzazioni di attività può avere un colore personalizzato dall'utente. Toccando il colore di un mittente si apre `SenderColorPickerDialog`, che permette di scegliere un colore alternativo. Il colore scelto sovrascrive l'assegnazione automatica di `SenderColors.getSenderColor` e viene persistito per quella chat tramite `SenderColorOverrideStore` (chiave `chatId|jid`). I colori personalizzati sopravvivono ai riavvii dell'app e sono indipendenti dalla cache delle statistiche.
 
 ### Grafici di attività
 
@@ -1065,6 +1069,7 @@ La Lite Mode ha un proprio grafo di navigazione `NavGraphRoute.Lite`, con la ste
 | `data/db/ActiveDatabaseProvider.kt` | Routing trasparente Root vs Lite per tutti i DAO |
 | `data/root/FileExtractor.kt` | Estrazione ZIP (condiviso con Root) |
 | `data/repository/AnalyticsRepository.kt` | Espone `isLiteMode`, `liteCacheVersion`, `notifyLiteImportDone()`. Garantisce che `isLiteMode` sia attivo prima di qualsiasi operazione di cache; al rename in Lite Mode invalida `chat_slow_{id}` invece di tentare una patch del `senderBreakdown`. |
+| `data/store/SenderColorOverrideStore.kt` | Persistenza DataStore dei colori personalizzati per mittente. Chiave: `chatId|jid`, valore: ARGB. |
 | `service/LiteImportService.kt` | Foreground service per progress overlay durante l'import |
 | `ui/screen/setup/LiteSetupScreen.kt` | UI onboarding Lite (primo import) |
 | `ui/screen/setup/LiteSetupViewModel.kt` | Logica onboarding (doppio processing + sender selection) |
