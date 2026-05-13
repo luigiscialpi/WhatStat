@@ -3,6 +3,9 @@ package com.whatstat.reborn.ui.theme
 import androidx.compose.ui.graphics.Color
 import com.whatstat.reborn.data.db.model.SenderStat
 
+/** Chiave univoca per override colore: stessa chat + stesso JID del mittente. */
+fun senderColorOverrideKey(chatId: Long, jid: String): String = "$chatId|$jid"
+
 /**
  * Palette colori coerente per i mittenti, utilizzata in PieChart e Breakdown.
  */
@@ -23,18 +26,19 @@ val senderPieColors = listOf(
 
 /**
  * Risolve il colore per un mittente basandosi sulla sua posizione in un breakdown di riferimento.
- * Se non trovato, usa un fallback basato sul JID.
+ * Se [overrideArgb] è valorizzato (scelta utente per questa chat), quello ha priorità.
+ * Se il mittente non è nel breakdown di riferimento, usa un fallback stabile basato sull'hash del JID.
  */
 fun getSenderColor(
     senderJid: String,
     referenceBreakdown: List<SenderStat>,
-    fallbackColor: Color = Color(0xFF9E9E9E)
+    overrideArgb: Int? = null
 ): Color {
+    if (overrideArgb != null) return Color(overrideArgb)
     val index = referenceBreakdown.indexOfFirst { it.jid == senderJid }
     return if (index != -1) {
         senderPieColors[index % senderPieColors.size]
     } else {
-        // Fallback stabile basato sull'hash del JID
         val hash = senderJid.hashCode()
         senderPieColors[Math.abs(hash) % senderPieColors.size]
     }

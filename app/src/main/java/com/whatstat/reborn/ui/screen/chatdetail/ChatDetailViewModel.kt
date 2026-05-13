@@ -9,6 +9,7 @@ import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.data.repository.AnalyticsRepository
 import com.whatstat.reborn.data.db.dao.ChatDao
 import com.whatstat.reborn.data.db.dao.ContactDao
+import com.whatstat.reborn.data.preferences.SenderColorOverrideStore
 import com.whatstat.reborn.data.root.FileExtractor
 import com.whatstat.reborn.domain.model.ChatStats
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,6 +24,7 @@ import com.whatstat.reborn.data.db.model.WordFrequency
 import com.whatstat.reborn.data.db.model.SenderStat
 import com.whatstat.reborn.data.db.model.EmojiStat
 import com.whatstat.reborn.ui.state.FilterStateHolder
+import com.whatstat.reborn.ui.theme.senderColorOverrideKey
 import java.io.File
 import javax.inject.Inject
 
@@ -33,6 +35,7 @@ class ChatDetailViewModel @Inject constructor(
     private val contactDao: ContactDao,
     @ApplicationContext private val context: Context,
     private val filterState: FilterStateHolder,
+    private val senderColorOverrideStore: SenderColorOverrideStore,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -59,6 +62,8 @@ class ChatDetailViewModel @Inject constructor(
     val chatStats: StateFlow<ChatStats?> = _chatStats.asStateFlow()
     
     val isLiteMode = analyticsRepository.isLiteMode
+
+    val senderColorArgbOverrides: StateFlow<Map<String, Int>> = senderColorOverrideStore.overrides
 
     // Nome + avatar caricati immediatamente prima delle stats complete
     data class HeaderInfo(val name: String, val jid: String, val isGroup: Boolean, val avatarPath: String?)
@@ -608,6 +613,18 @@ class ChatDetailViewModel @Inject constructor(
             } finally {
                 _isStickerLoading.value = false
             }
+        }
+    }
+
+    fun setSenderColorOverride(jid: String, colorArgb: Int) {
+        viewModelScope.launch {
+            senderColorOverrideStore.setOverride(senderColorOverrideKey(chatId, jid), colorArgb)
+        }
+    }
+
+    fun clearSenderColorOverride(jid: String) {
+        viewModelScope.launch {
+            senderColorOverrideStore.removeOverride(senderColorOverrideKey(chatId, jid))
         }
     }
 }

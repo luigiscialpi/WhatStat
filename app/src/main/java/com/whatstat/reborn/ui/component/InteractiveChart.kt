@@ -40,12 +40,16 @@ import androidx.compose.ui.window.PopupProperties
 import com.whatstat.reborn.data.db.model.SenderStat
 import com.whatstat.reborn.data.db.model.DayCount
 import com.whatstat.reborn.data.db.model.HourlyCount
+import com.whatstat.reborn.ui.theme.getSenderColor
+import com.whatstat.reborn.ui.theme.senderColorOverrideKey
 
 @Composable
 fun InteractiveHourlyHeatmap(
     hourlyData: List<HourlyCount>,
     modifier: Modifier = Modifier,
     referenceSenders: List<SenderStat> = emptyList(),
+    scopeChatId: Long = 0L,
+    senderColorArgbOverrides: Map<String, Int> = emptyMap(),
     dismissSignal: Int = 0,
     onHourClick: ((HourlyCount) -> Unit)? = null
 ) {
@@ -92,6 +96,8 @@ fun InteractiveHourlyHeatmap(
                                 total = count,
                                 breakdown = data?.senderBreakdown ?: emptyList(),
                                 referenceSenders = referenceSenders,
+                                scopeChatId = scopeChatId,
+                                senderColorArgbOverrides = senderColorArgbOverrides,
                                 onClick = { if (data != null) onHourClick?.invoke(data) }
                             )
                         }
@@ -141,6 +147,8 @@ fun InteractiveBarChart(
     data: List<StatPoint>,
     modifier: Modifier = Modifier,
     referenceSenders: List<SenderStat> = emptyList(),
+    scopeChatId: Long = 0L,
+    senderColorArgbOverrides: Map<String, Int> = emptyMap(),
     barWidth: Dp = 20.dp,
     barHeight: Dp = 60.dp,
     spacing: Dp = 8.dp,
@@ -192,6 +200,8 @@ fun InteractiveBarChart(
                                 total = point.count,
                                 breakdown = point.senderBreakdown,
                                 referenceSenders = referenceSenders,
+                                scopeChatId = scopeChatId,
+                                senderColorArgbOverrides = senderColorArgbOverrides,
                                 onClick = { onPointClick?.invoke(point) }
                             )
                         }
@@ -245,6 +255,8 @@ private fun ChartPointBubble(
     total: Int,
     breakdown: List<SenderStat>,
     referenceSenders: List<SenderStat> = emptyList(),
+    scopeChatId: Long = 0L,
+    senderColorArgbOverrides: Map<String, Int> = emptyMap(),
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
@@ -297,7 +309,13 @@ private fun ChartPointBubble(
                                 modifier = Modifier
                                     .size(6.dp)
                                     .clip(CircleShape)
-                                    .background(com.whatstat.reborn.ui.theme.getSenderColor(sender.jid, referenceSenders))
+                                    .background(
+                                        getSenderColor(
+                                            sender.jid,
+                                            referenceSenders,
+                                            senderColorArgbOverrides[senderColorOverrideKey(scopeChatId, sender.jid)]
+                                        )
+                                    )
                             )
                             Spacer(Modifier.width(6.dp))
                             Row(

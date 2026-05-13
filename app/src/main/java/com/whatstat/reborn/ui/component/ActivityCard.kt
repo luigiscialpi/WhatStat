@@ -41,6 +41,8 @@ fun ActivityRecapCard(
     monthlyData: List<MonthOfYearCount>,
     yearlyData: List<YearTrendCount>,
     referenceSenders: List<SenderStat> = emptyList(),
+    scopeChatId: Long = 0L,
+    senderColorArgbOverrides: Map<String, Int> = emptyMap(),
     dismissSignal: Int = 0,
     onPointClick: ((String, String) -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -146,6 +148,8 @@ fun ActivityRecapCard(
                         InteractiveHourlyHeatmap(
                             hourlyData = hourlyData,
                             referenceSenders = referenceSenders,
+                            scopeChatId = scopeChatId,
+                            senderColorArgbOverrides = senderColorArgbOverrides,
                             dismissSignal = dismissSignal,
                             onHourClick = { data ->
                                 val title = "%02d:00 - %02d:00".format(data.hour, (data.hour + 1) % 24)
@@ -168,6 +172,8 @@ fun ActivityRecapCard(
                         InteractiveBarChart(
                             data = points,
                             referenceSenders = referenceSenders,
+                            scopeChatId = scopeChatId,
+                            senderColorArgbOverrides = senderColorArgbOverrides,
                             barWidth = 32.dp,
                             spacing = 12.dp,
                             dismissSignal = dismissSignal,
@@ -188,6 +194,8 @@ fun ActivityRecapCard(
                         InteractiveBarChart(
                             data = points,
                             referenceSenders = referenceSenders,
+                            scopeChatId = scopeChatId,
+                            senderColorArgbOverrides = senderColorArgbOverrides,
                             barWidth = 14.dp,
                             spacing = 6.dp,
                             labelFrequency = 5,
@@ -215,6 +223,8 @@ fun ActivityRecapCard(
                         InteractiveBarChart(
                             data = points,
                             referenceSenders = referenceSenders,
+                            scopeChatId = scopeChatId,
+                            senderColorArgbOverrides = senderColorArgbOverrides,
                             barWidth = 24.dp,
                             spacing = 8.dp,
                             dismissSignal = dismissSignal,
@@ -235,6 +245,8 @@ fun ActivityRecapCard(
                         InteractiveBarChart(
                             data = points,
                             referenceSenders = referenceSenders,
+                            scopeChatId = scopeChatId,
+                            senderColorArgbOverrides = senderColorArgbOverrides,
                             barWidth = 48.dp,
                             spacing = 16.dp,
                             dismissSignal = dismissSignal,
@@ -257,6 +269,8 @@ fun ActivityRecapCard(
             totalMessages = total,
             breakdown = breakdown,
             referenceSenders = referenceSenders,
+            scopeChatId = scopeChatId,
+            senderColorArgbOverrides = senderColorArgbOverrides,
             onDismiss = { detailDialogData = null }
         )
     }

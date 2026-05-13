@@ -63,6 +63,10 @@
     <string name="close">Close</string>
     <string name="activity_breakdown_title">Activity Detail</string>
     <string name="activity_breakdown_subtitle">%d total messages</string>
+    <string name="sender_color_picker_title">Color for %1$s</string>
+    <string name="sender_color_picker_subtitle">Pick a color. It applies to pie charts and activity charts in this chat.</string>
+    <string name="sender_color_reset">Restore default</string>
+    <string name="sender_color_change_cd">Change color for this participant</string>
 
     <string name="group_history_title">Group History</string>
     <string name="group_history_no_events">No history events found for this group.</string>
@@ -167,6 +171,8 @@
     <string name="chatdetail_sent">Sent</string>
     <string name="chatdetail_received">Received</string>
     <string name="chatdetail_top_sender_title">Who writes most</string>
+    <string name="top_senders_info_title">About this chart</string>
+    <string name="top_senders_info_desc">This pie chart shows how messages are distributed among participants in this chat.\n\nTip: tap the colored square next to a name to choose a custom color for that participant.</string>
     <string name="fallback_them">Them</string>
     <string name="fallback_me">You</string>
     <string name="activity_period_label">Activity period</string>
@@ -180,7 +186,7 @@
     <string name="conv_starters_center">conversations</string>
     <string name="view_mode_all">All</string>
     <string name="view_mode_person">Per Person</string>
-    <string name="conv_starters_info">A new conversation is counted when a message is sent after at least 3 hours of silence from the previous message.</string>
+    <string name="conv_starters_info">A new conversation is counted when a message is sent after at least 3 hours of silence from the previous message.\n\nTip: tap the colored square next to a name to customize that participant color.</string>
     
     <!-- Action Cards -->
     <string name="radar_parole_title">Word Radar</string>

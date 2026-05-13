@@ -30,6 +30,10 @@
     <string name="close">Chiudi</string>
     <string name="activity_breakdown_title">Dettaglio Attività</string>
     <string name="activity_breakdown_subtitle">%d messaggi totali</string>
+    <string name="sender_color_picker_title">Colore per %1$s</string>
+    <string name="sender_color_picker_subtitle">Scegli un colore: vale per i grafici a torta e per i grafici di attività in questa chat.</string>
+    <string name="sender_color_reset">Ripristina predefinito</string>
+    <string name="sender_color_change_cd">Cambia colore di questo partecipante</string>
 
     <string name="group_history_title">Storia del Gruppo</string>
     <string name="group_history_no_events">Nessun evento storico trovato per questo gruppo.</string>
@@ -134,6 +138,8 @@
     <string name="chatdetail_sent">Inviati</string>
     <string name="chatdetail_received">Ricevuti</string>
     <string name="chatdetail_top_sender_title">Chi scrive di più</string>
+    <string name="top_senders_info_title">Informazioni su questo grafico</string>
+    <string name="top_senders_info_desc">Questo grafico a torta mostra come sono distribuiti i messaggi tra i partecipanti di questa chat.\n\nSuggerimento: tocca il quadratino colorato accanto a un nome per scegliere un colore personalizzato per quel partecipante.</string>
     <string name="fallback_them">Loro</string>
     <string name="fallback_me">Tu</string>
     <string name="activity_period_label">Periodo di attività</string>
@@ -147,7 +153,7 @@
     <string name="conv_starters_center">conversazioni</string>
     <string name="view_mode_all">Tutti</string>
     <string name="view_mode_person">Per Persona</string>
-    <string name="conv_starters_info">Una nuova conversazione viene contata quando un messaggio viene inviato dopo almeno 3 ore di silenzio rispetto all\'ultimo messaggio precedente.</string>
+    <string name="conv_starters_info">Una nuova conversazione viene contata quando un messaggio viene inviato dopo almeno 3 ore di silenzio rispetto all\'ultimo messaggio precedente.\n\nSuggerimento: tocca il quadratino colorato accanto a un nome per personalizzare il colore di quel partecipante.</string>
     
     <!-- Action Cards -->
     <string name="radar_parole_title">Radar Parole</string>
@@ -291,4 +297,3 @@
     <string name="time_range_custom">Personalizzato</string>
     <string name="time_range_custom_button">Personalizzato</string>
 </resources>
-

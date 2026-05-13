@@ -22,6 +22,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.whatstat.reborn.R
 import com.whatstat.reborn.data.db.model.SenderStat
+import com.whatstat.reborn.ui.theme.getSenderColor
+import com.whatstat.reborn.ui.theme.senderColorOverrideKey
 
 @Composable
 fun ActivityDetailDialog(
@@ -29,6 +31,8 @@ fun ActivityDetailDialog(
     totalMessages: Int,
     breakdown: List<SenderStat>,
     referenceSenders: List<SenderStat> = emptyList(),
+    scopeChatId: Long = 0L,
+    senderColorArgbOverrides: Map<String, Int> = emptyMap(),
     onDismiss: () -> Unit
 ) {
     Dialog(
@@ -74,7 +78,9 @@ fun ActivityDetailDialog(
                             SenderBreakdownItem(
                                 sender = sender,
                                 totalMessages = totalMessages,
-                                referenceSenders = referenceSenders
+                                referenceSenders = referenceSenders,
+                                scopeChatId = scopeChatId,
+                                senderColorArgbOverrides = senderColorArgbOverrides
                             )
                         }
                     }
@@ -98,10 +104,16 @@ fun ActivityDetailDialog(
 private fun SenderBreakdownItem(
     sender: SenderStat,
     totalMessages: Int,
-    referenceSenders: List<SenderStat>
+    referenceSenders: List<SenderStat>,
+    scopeChatId: Long,
+    senderColorArgbOverrides: Map<String, Int>
 ) {
     val percentage = (sender.count.toFloat() / totalMessages.coerceAtLeast(1))
-    val color = com.whatstat.reborn.ui.theme.getSenderColor(sender.jid, referenceSenders)
+    val color = getSenderColor(
+        sender.jid,
+        referenceSenders,
+        senderColorArgbOverrides[senderColorOverrideKey(scopeChatId, sender.jid)]
+    )
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(

@@ -84,11 +84,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstat.reborn.data.db.model.TimeRange
+import com.whatstat.reborn.data.db.model.SenderStat
+import com.whatstat.reborn.ui.theme.getSenderColor
+import com.whatstat.reborn.ui.theme.senderColorOverrideKey
 import com.whatstat.reborn.ui.component.ActivityRecapCard
+import com.whatstat.reborn.ui.component.SenderColorPickerDialog
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.DateRangePicker
 import com.whatstat.reborn.ui.component.LoadingSection
@@ -166,8 +172,11 @@ fun ChatDetailScreen(
     var previewSticker by remember { mutableStateOf<String?>(null) }
     var previewStickerCount by remember { mutableIntStateOf(0) }
     var chartDismissSignal by remember { mutableIntStateOf(0) }
-    // Dialog per "Chi inizia le conversazioni"
+    // Dialog informativi sezioni pie chart
+    var showTopSendersInfoDialog by remember { mutableStateOf(false) }
     var showInfoDialog by remember { mutableStateOf(false) }
+    var colorPickerSender by remember { mutableStateOf<SenderStat?>(null) }
+    val senderColorArgbOverrides by viewModel.senderColorArgbOverrides.collectAsState()
 
     Box(
         modifier = Modifier
@@ -438,22 +447,34 @@ fun ChatDetailScreen(
 
                     // ── 5. Chi scrive di più? (Distribuzione messaggi) ───────
                     item {
-                        SectionCard(title = stringResource(R.string.chatdetail_top_sender_title)) {
+                        SectionCard(
+                            title = stringResource(R.string.chatdetail_top_sender_title),
+                            onInfoClick = { showTopSendersInfoDialog = true }
+                        ) {
                             if (s.senderBreakdown.isNotEmpty()) {
                                 MessagePieChart(
+                                    chatId = chatId,
                                     senders = s.senderBreakdown,
-                                    totalMessages = s.totalMessages
+                                    referenceSenders = s.senderBreakdown,
+                                    totalMessages = s.totalMessages,
+                                    senderColorArgbOverrides = senderColorArgbOverrides,
+                                    onLegendColorClick = { colorPickerSender = it }
                                 )
                             } else if (isLoadingSlow) {
                                 LoadingSection(progress = progressSlow)
                             } else {
                                 val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
+                                val fallbackSenders = listOf(
+                                    SenderStat("me", stringResource(R.string.fallback_me), s.sentByMe),
+                                    SenderStat("other", otherName, s.receivedFromThem)
+                                )
                                 MessagePieChart(
-                                    senders = listOf(
-                                        com.whatstat.reborn.data.db.model.SenderStat("me", stringResource(R.string.fallback_me), s.sentByMe),
-                                        com.whatstat.reborn.data.db.model.SenderStat("other", otherName, s.receivedFromThem)
-                                    ),
-                                    totalMessages = s.totalMessages
+                                    chatId = chatId,
+                                    senders = fallbackSenders,
+                                    referenceSenders = fallbackSenders,
+                                    totalMessages = s.totalMessages,
+                                    senderColorArgbOverrides = senderColorArgbOverrides,
+                                    onLegendColorClick = { colorPickerSender = it }
                                 )
                             }
                         }
@@ -468,6 +489,8 @@ fun ChatDetailScreen(
                             monthlyData = s.monthOfYearDistribution,
                             yearlyData = s.yearTrendDistribution,
                             referenceSenders = s.senderBreakdown,
+                            scopeChatId = chatId,
+                            senderColorArgbOverrides = senderColorArgbOverrides,
                             dismissSignal = chartDismissSignal
                         )
                     }
@@ -535,8 +558,12 @@ fun ChatDetailScreen(
                             if (s.conversationStarterBreakdown.isNotEmpty()) {
                                 val breakdownTotal = s.conversationStarterBreakdown.sumOf { it.count }.coerceAtLeast(1)
                                 MessagePieChart(
+                                    chatId = chatId,
                                     senders = s.conversationStarterBreakdown,
+                                    referenceSenders = s.senderBreakdown,
                                     totalMessages = breakdownTotal,
+                                    senderColorArgbOverrides = senderColorArgbOverrides,
+                                    onLegendColorClick = { colorPickerSender = it },
                                     centerLabel = stringResource(R.string.conv_starters_center)
                                 )
                             } else if (isLoadingSlow) {
@@ -545,12 +572,17 @@ fun ChatDetailScreen(
                                 val starterTotal = (s.iStartedConversations + s.theyStartedConversations)
                                     .coerceAtLeast(1)
                                 val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
+                                val starterSyn = listOf(
+                                    SenderStat("me", stringResource(R.string.fallback_me), s.iStartedConversations),
+                                    SenderStat("other", otherName, s.theyStartedConversations)
+                                )
                                 MessagePieChart(
-                                    senders = listOf(
-                                        com.whatstat.reborn.data.db.model.SenderStat("me", stringResource(R.string.fallback_me), s.iStartedConversations),
-                                        com.whatstat.reborn.data.db.model.SenderStat("other", otherName, s.theyStartedConversations)
-                                    ),
+                                    chatId = chatId,
+                                    senders = starterSyn,
+                                    referenceSenders = starterSyn,
                                     totalMessages = starterTotal,
+                                    senderColorArgbOverrides = senderColorArgbOverrides,
+                                    onLegendColorClick = { colorPickerSender = it },
                                     centerLabel = stringResource(R.string.conv_starters_center)
                                 )
                             }
@@ -906,6 +938,24 @@ fun ChatDetailScreen(
         } // end Column
 
         // ── Info Dialog ────────────────────────────────────────
+        if (showTopSendersInfoDialog) {
+            AlertDialog(
+                onDismissRequest = { showTopSendersInfoDialog = false },
+                title = { Text(stringResource(R.string.top_senders_info_title)) },
+                text = {
+                    Text(stringResource(R.string.top_senders_info_desc))
+                },
+                confirmButton = {
+                    TextButton(onClick = { showTopSendersInfoDialog = false }) {
+                        Text(stringResource(R.string.ho_capito))
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         if (showInfoDialog) {
             AlertDialog(
                 onDismissRequest = { showInfoDialog = false },
@@ -921,6 +971,16 @@ fun ChatDetailScreen(
                 containerColor = MaterialTheme.colorScheme.surface,
                 titleContentColor = MaterialTheme.colorScheme.onSurface,
                 textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        val pickerSender = colorPickerSender
+        if (pickerSender != null) {
+            SenderColorPickerDialog(
+                contactName = pickerSender.displayName,
+                onDismiss = { colorPickerSender = null },
+                onColorChosen = { argb -> viewModel.setSenderColorOverride(pickerSender.jid, argb) },
+                onReset = { viewModel.clearSenderColorOverride(pickerSender.jid) }
             )
         }
 
@@ -970,30 +1030,32 @@ private fun SectionCard(
         Column(Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    if (onInfoClick != null) {
-                        IconButton(
-                            onClick = onInfoClick,
-                            modifier = Modifier.size(24.dp).padding(start = 4.dp)
-                        ) {
-                            Icon(
-                                Icons.Outlined.Info,
-                                contentDescription = stringResource(R.string.info_dialog_title),
-                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                modifier = Modifier.size(16.dp)
-                            )
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
+                )
+
+                if (trailingContent != null || onInfoClick != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        trailingContent?.invoke()
+                        if (onInfoClick != null) {
+                            IconButton(onClick = onInfoClick) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Info,
+                                    contentDescription = stringResource(R.string.info_dialog_title),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }
-                trailingContent?.invoke()
             }
             Spacer(Modifier.height(16.dp))
             content()
@@ -1063,17 +1125,20 @@ private fun formatDuration(ms: Long): String {
 
 // ── Pie Chart messaggi per mittente ──────────────────────────────────────────
 
-private val pieColors = com.whatstat.reborn.ui.theme.senderPieColors
-
 @Composable
 private fun MessagePieChart(
-    senders: List<com.whatstat.reborn.data.db.model.SenderStat>,
+    chatId: Long,
+    senders: List<SenderStat>,
+    referenceSenders: List<SenderStat>,
     totalMessages: Int,
+    senderColorArgbOverrides: Map<String, Int>,
+    onLegendColorClick: (SenderStat) -> Unit,
     centerLabel: String = stringResource(R.string.messages_label)
 ) {
     val total = totalMessages.coerceAtLeast(1)
     var expanded by remember { mutableStateOf(false) }
-    val showExpand = senders.size > 10
+    val showExpand = senders.size > 7
+    val colorChangeLabel = stringResource(R.string.sender_color_change_cd)
 
     Column {
         Row(
@@ -1097,10 +1162,16 @@ private fun MessagePieChart(
                     val arcRect = androidx.compose.ui.geometry.Size(arcSize, arcSize)
                     var startAngle = -90f
 
-                    senders.forEachIndexed { index, sender ->
+                    senders.forEach { sender ->
                         val sweep = (sender.count.toFloat() / total) * 360f
+                        val key = senderColorOverrideKey(chatId, sender.jid)
+                        val sliceColor = getSenderColor(
+                            sender.jid,
+                            referenceSenders,
+                            senderColorArgbOverrides[key]
+                        )
                         drawArc(
-                            color = pieColors[index % pieColors.size],
+                            color = sliceColor,
                             startAngle = startAngle,
                             sweepAngle = sweep,
                             useCenter = false,
@@ -1138,38 +1209,47 @@ private fun MessagePieChart(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 val displayCount = if (expanded) senders.size else minOf(senders.size, 10)
-                senders.take(displayCount).forEachIndexed { index, sender ->
+                senders.take(displayCount).forEach { sender ->
                     val pct = (sender.count.toFloat() / total * 100)
+                    val key = senderColorOverrideKey(chatId, sender.jid)
+                    val legendColor = getSenderColor(
+                        sender.jid,
+                        referenceSenders,
+                        senderColorArgbOverrides[key]
+                    )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(10.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(pieColors[index % pieColors.size])
+                                .semantics { contentDescription = colorChangeLabel }
+                                .size(16.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { onLegendColorClick(sender) }
+                                .background(legendColor)
                         )
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(6.dp))
                         ContactNameWithPhone(
                             name = sender.displayName,
                             jid = sender.jid,
                             nameStyle = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.weight(1f)
                         )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            "%,d".format(sender.count),
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            "(%.0f%%)".format(pct),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Spacer(Modifier.width(6.dp))
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                "%,d".format(sender.count),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "%.0f%%".format(pct),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
