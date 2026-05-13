@@ -77,6 +77,26 @@ class LiteDbWriter @Inject constructor(
         updateChatSummary(db, chatId, chatName, chatImportKey, isGroup, lastMessageId, lastMessageTimestamp)
         cleanupMediaFolders(upsertResult.obsoleteMediaFolders)
 
+        // 4b. Per chat 1-1: registra in wa_contacts la mappatura sender→chatName.
+        // In Lite mode il chatName viene estratto dal nome file ZIP (es. "Matilde lavoro"),
+        // mentre il senderName nei messaggi è il nome WhatsApp della persona (es. "Matilde Barbaro").
+        // Senza questa mappatura, resolveContactNames non riesce a risolvere il senderJID
+        // al nome personalizzato, e le slow stats mostrano il nome raw del file .txt.
+        // CONFLICT_IGNORE: preserva eventuali rename manuali già presenti in wa_contacts.
+        if (!isGroup) {
+            val waDb = liteDatabase.getWaDb()
+            messages.filter { !it.isCurrentUser }
+                .map { it.senderName }
+                .distinct()
+                .forEach { senderName ->
+                    val waValues = ContentValues().apply {
+                        put("jid", senderName)
+                        put("display_name", chatName)
+                    }
+                    waDb.insertWithOnConflict("wa_contacts", null, waValues, SQLiteDatabase.CONFLICT_IGNORE)
+                }
+        }
+
         progressCallback(1f)
         chatId
     }
@@ -315,16 +335,18 @@ class LiteDbWriter @Inject constructor(
         val waDb = liteDatabase.getWaDb()
         val trimmedName = newName.trim()
 
-        // 1. Recupera il JID associato alla chat per aggiornare anche wa_contacts
-        val jid = db.rawQuery(
+        // 1. Recupera il JID e il tipo (gruppo/1-1) associati alla chat
+        data class ChatMeta(val jid: String, val isGroup: Boolean)
+        val chatMeta = db.rawQuery(
             """
-            SELECT j.raw_string 
+            SELECT j.raw_string, c.group_type
             FROM jid j
             JOIN chat c ON c.jid_row_id = j._id
             WHERE c._id = ?
             """.trimIndent(),
             arrayOf(chatId.toString())
-        ).use { if (it.moveToFirst()) it.getString(0) else null }
+        ).use { if (it.moveToFirst()) ChatMeta(it.getString(0), it.getInt(1) == 1) else null }
+        val jid = chatMeta?.jid
 
         // 2. Aggiorna il subject nel database principale (per la lista chat)
         val values = ContentValues().apply {
@@ -347,6 +369,32 @@ class LiteDbWriter @Inject constructor(
                 put("user", trimmedName)
             }
             db.update("jid", jidValues, "raw_string = ?", arrayOf(jid))
+
+            // 5. Solo per chat 1-1: aggiorna wa_contacts e jid.user per i sender.
+            // In Lite mode il chatName (dal nome file ZIP) e il senderName (dal .txt) sono diversi;
+            // questa mappatura garantisce che resolveContactName(senderJID) ritorni il nome
+            // personalizzato della chat nelle slow stats (senderBreakdown, ecc.).
+            // NON eseguire per gruppi: i membri hanno identità indipendenti dalla chat.
+            if (chatMeta?.isGroup == false) {
+                db.rawQuery(
+                    """
+                    SELECT DISTINCT j.raw_string
+                    FROM message m
+                    JOIN jid j ON m.sender_jid_row_id = j._id
+                    WHERE m.chat_row_id = ? AND m.from_me = 0
+                    """.trimIndent(),
+                    arrayOf(chatId.toString())
+                ).use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val senderRaw = cursor.getString(0) ?: continue
+                        db.update("jid", ContentValues().apply { put("user", trimmedName) }, "raw_string = ?", arrayOf(senderRaw))
+                        waDb.insertWithOnConflict("wa_contacts", null, ContentValues().apply {
+                            put("jid", senderRaw)
+                            put("display_name", trimmedName)
+                        }, SQLiteDatabase.CONFLICT_REPLACE)
+                    }
+                }
+            }
         }
     }
 

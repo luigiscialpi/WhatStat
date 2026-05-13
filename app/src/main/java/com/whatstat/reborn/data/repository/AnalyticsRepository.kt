@@ -104,6 +104,8 @@ class AnalyticsRepository @Inject constructor(
      * Nessun GlobalScope: viene eseguito nel viewModelScope del chiamante.
      */
     suspend fun notifyLiteChatRenamed(chatId: Long, jid: String, newName: String) {
+        // Assicura che il DataStore Lite sia selezionato
+        setLiteMode(true)
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             // Patch della cache bloccante: completa prima di emettere il segnale
             cacheManager.patchChatNameInCache(chatId, jid, newName)

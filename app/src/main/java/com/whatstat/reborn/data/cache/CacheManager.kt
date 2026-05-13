@@ -760,26 +760,14 @@ class CacheManager @Inject constructor(
                 } catch (_: Exception) {}
             }
 
-            // 4. Patch Slow Chat Stats (breakdowns)
+            // 4. Invalida la Slow Chat Stats cache.
+            // Il senderBreakdown in cache ha il nome originale del sender (es. "Matilde Barbaro"),
+            // mentre il jid della chat è diverso (es. "Matilde lavoro") — non è possibile fare
+            // un patch affidabile per JID comparison. È più corretto invalidare la voce così che
+            // getSlowChatStats la ricalcoli da zero, trovando il nome aggiornato in wa_contacts
+            // (aggiornato dal passo 5 di LiteDbWriter.renameChat).
             val slowKey = stringPreferencesKey("chat_slow_${chatId}_v3")
-            prefs[slowKey]?.let { json ->
-                try {
-                    val cached = cacheJson.decodeFromString<CachedSlowChatStats>(json)
-                    // Nelle chat 1-1 Lite, il JID del mittente e' lo stesso della chat.
-                    // Aggiorniamo i nomi nei breakdown se il JID corrisponde.
-                    val updatedSenderBreakdown = cached.senderBreakdown.map {
-                        if (it.jid == jid) it.copy(displayName = newName) else it
-                    }
-                    val updatedStarterBreakdown = cached.conversationStarterBreakdown.map {
-                        if (it.jid == jid) it.copy(displayName = newName) else it
-                    }
-                    val updated = cached.copy(
-                        senderBreakdown = updatedSenderBreakdown,
-                        conversationStarterBreakdown = updatedStarterBreakdown
-                    )
-                    prefs[slowKey] = cacheJson.encodeToString(updated)
-                } catch (_: Exception) {}
-            }
+            prefs.remove(slowKey)
         }
     }
 }
