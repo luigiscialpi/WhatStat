@@ -283,10 +283,11 @@
     <string name="prediction_period_filtered_label">Baseado no ritmo do período selecionado</string>
 
     <!-- Time Range Filters -->
+    <string name="time_range_label">Período analisado</string>
     <string name="time_range_all">Tudo</string>
     <string name="time_range_30_days">30 dias</string>
     <string name="time_range_6_months">6 meses</string>
     <string name="time_range_year">Ano</string>
     <string name="time_range_custom">Personalizado</string>
-    <string name="time_range_custom_button">Escolher</string>
+    <string name="time_range_custom_button">Personalizado</string>
 </resources>

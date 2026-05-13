@@ -283,10 +283,11 @@
     <string name="prediction_period_filtered_label">Seçilen dönemin hızına göre</string>
 
     <!-- Time Range Filters -->
+    <string name="time_range_label">Analiz edilen dönem</string>
     <string name="time_range_all">Tümü</string>
     <string name="time_range_30_days">30 gün</string>
     <string name="time_range_6_months">6 ay</string>
     <string name="time_range_year">Yıl</string>
     <string name="time_range_custom">Özel</string>
-    <string name="time_range_custom_button">Seç</string>
+    <string name="time_range_custom_button">Özelleştir</string>
 </resources>

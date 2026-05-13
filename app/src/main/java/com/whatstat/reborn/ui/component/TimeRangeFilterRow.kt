@@ -4,13 +4,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,6 +61,15 @@ fun TimeRangeFilterRow(
         }
     }
     Column(modifier = modifier) {
+        /* Label contestuale sopra al carosello: chiarisce allo sguardo che i chip
+         * controllano il periodo di analisi di tutte le statistiche a schermo. */
+        Text(
+            text = stringResource(R.string.time_range_label),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 0.dp)
+        )
         LazyRow(
             state = listState,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -85,6 +98,16 @@ fun TimeRangeFilterRow(
                          }
                          Text(stringResource(labelRes))
                      },
+                     /* Icona calendario solo per il chip CUSTOM, per comunicare visivamente
+                      * che aprira' un date picker. Negli altri chip nessuna icona. */
+                     leadingIcon = if (range == TimeRange.CUSTOM) {
+                         {
+                             Icon(
+                                 imageVector = Icons.Filled.DateRange,
+                                 contentDescription = null
+                             )
+                         }
+                     } else null,
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer

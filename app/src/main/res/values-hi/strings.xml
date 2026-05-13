@@ -283,10 +283,11 @@
     <string name="prediction_period_filtered_label">चयनित अवधि की दर के आधार पर</string>
 
     <!-- Time Range Filters -->
+    <string name="time_range_label">विश्लेषित अवधि</string>
     <string name="time_range_all">सभी</string>
     <string name="time_range_30_days">30 दिन</string>
     <string name="time_range_6_months">6 महीने</string>
     <string name="time_range_year">साल</string>
     <string name="time_range_custom">कस्टम</string>
-    <string name="time_range_custom_button">चुनें</string>
+    <string name="time_range_custom_button">कस्टम</string>
 </resources>
