@@ -126,6 +126,8 @@ La cache è il meccanismo centrale per garantire aperture veloci. Usa `kotlinx.s
 
 **Cache Slow Stats globali** — Contiene le parole più usate e le emoji più usate a livello globale. Queste analisi sono più lente perché richiedono di scorrere i testi di tutti i messaggi. Vengono cachate dopo la prima analisi manuale (opt-in) e mostrate automaticamente alle riaperture.
 
+**Pool in-memory per modalità mittente singolo** — Il `ChatDetailViewModel` mantiene tre dizionari in memoria (`senderWordsPool`, `senderEmojisPool`, `senderStickersPool`) che cachano i risultati delle analisi testuali per singolo mittente. Le chiavi dei pool combinano il JID del mittente e i bounds temporali (`senderJid` + `startTime` + `endTime`). Quando l'utente cambia solo il limite di visualizzazione (es. da 10 a 20 parole), il risultato viene estratto dal pool senza rieseguire la query SQL. I pool vengono svuotati quando cambia il mittente selezionato, per garantire dati freschi.
+
 **Indice lessicale incrementale** — Le frequenze di parole ed emoji globali e per-chat vengono persistite su disco come file gzippati (`word_index_global.gz`, `word_index_chat_{id}.gz` in `filesDir`/`cacheDir`). Ogni file memorizza la mappa completa `parola → conteggio`, il timestamp dell'ultimo messaggio processato e il totale dei messaggi come sanity check. Quando il DB cambia (SHA-256 diverso), l'app esegue un **delta**: legge solo i messaggi con `timestamp > lastProcessedTimestamp`, unisce le frequenze e aggiorna il file. Il rebuild completo avviene solo al primo avvio o se il totale messaggi nel nuovo DB è inferiore a quello registrato nell'indice (cambio account/device).
 
 I modelli che strutturano l'indice sono `WordFrequencyIndexData` e `MonthlyWordIndexData`. Gli helper principali in `AnalyticsRepository` sono `buildOrUpdateGlobalWordIndex`, `buildOrUpdateChatWordIndex` e `computeFromMonthlyIndex`. I metodi DAO coinvolti in `MessageDao` sono `getTextsWithTimestamps`, `buildWordFrequencyMap`, `buildEmojiFrequencyMap`, `getGlobalTextMessageCount` e `getChatTextMessageCount`. La stop-word list è definita in `MessageDao.STOP_WORDS` (companion object).
@@ -1067,5 +1069,6 @@ La Lite Mode ha un proprio grafo di navigazione `NavGraphRoute.Lite`, con la ste
 | `ui/screen/setup/LiteSetupScreen.kt` | UI onboarding Lite (primo import) |
 | `ui/screen/setup/LiteSetupViewModel.kt` | Logica onboarding (doppio processing + sender selection) |
 | `ui/screen/chatlist/ChatListScreen.kt` | Lista chat con azioni rename/delete e pulsante "Aggiungi chat" |
+| `ui/screen/chatdetail/ChatDetailViewModel.kt` | Logica dettaglio chat. Mantiene `senderWordsPool`, `senderEmojisPool`, `senderStickersPool` per evitare query DB al cambio limite in modalità mittente singolo. |
 | `ui/screen/chatlist/ChatListViewModel.kt` | Logica rename/delete chat |
 | `ui/navigation/AppNavigation.kt` | Grafo `NavGraphRoute.Lite`, navigazione post-import, condivisione ZIP |
