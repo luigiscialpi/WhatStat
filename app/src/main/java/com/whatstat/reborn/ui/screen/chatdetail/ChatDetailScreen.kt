@@ -1137,7 +1137,8 @@ private fun MessagePieChart(
 ) {
     val total = totalMessages.coerceAtLeast(1)
     var expanded by remember { mutableStateOf(false) }
-    val showExpand = senders.size > 7
+    val collapsedLegendCount = 7
+    val showExpand = senders.size > collapsedLegendCount
     val colorChangeLabel = stringResource(R.string.sender_color_change_cd)
 
     Column {
@@ -1208,7 +1209,7 @@ private fun MessagePieChart(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                val displayCount = if (expanded) senders.size else minOf(senders.size, 10)
+                val displayCount = if (expanded) senders.size else minOf(senders.size, collapsedLegendCount)
                 senders.take(displayCount).forEach { sender ->
                     val pct = (sender.count.toFloat() / total * 100)
                     val key = senderColorOverrideKey(chatId, sender.jid)
