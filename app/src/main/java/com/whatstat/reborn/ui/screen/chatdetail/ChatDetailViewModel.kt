@@ -103,6 +103,12 @@ class ChatDetailViewModel @Inject constructor(
 
     private val _isSenderWordsLoading = MutableStateFlow(false)
     val isSenderWordsLoading: StateFlow<Boolean> = _isSenderWordsLoading.asStateFlow()
+    
+    // Pool for individual mode words to avoid DB queries on limit changes
+    private var senderWordsPool: List<WordFrequency> = emptyList()
+    private var senderWordsPoolSender: String? = null
+    private var senderWordsPoolStartTime: Long? = null
+    private var senderWordsPoolEndTime: Long? = null
 
     private val _emojiViewMode = MutableStateFlow(EmojiViewMode.AGGREGATED)
     val emojiViewMode: StateFlow<EmojiViewMode> = _emojiViewMode.asStateFlow()
@@ -114,6 +120,12 @@ class ChatDetailViewModel @Inject constructor(
     val senderTopEmojis: StateFlow<List<EmojiStat>> = _senderTopEmojis.asStateFlow()
     private val _isSenderEmojisLoading = MutableStateFlow(false)
     val isSenderEmojisLoading: StateFlow<Boolean> = _isSenderEmojisLoading.asStateFlow()
+    
+    // Pool for individual mode emojis to avoid DB queries on limit changes
+    private var senderEmojisPool: List<EmojiStat> = emptyList()
+    private var senderEmojisPoolSender: String? = null
+    private var senderEmojisPoolStartTime: Long? = null
+    private var senderEmojisPoolEndTime: Long? = null
 
     enum class StickerViewMode { AGGREGATED, INDIVIDUAL }
     private val _stickerViewMode = MutableStateFlow(StickerViewMode.AGGREGATED)
@@ -128,6 +140,12 @@ class ChatDetailViewModel @Inject constructor(
     val senderTopStickers: StateFlow<List<com.whatstat.reborn.data.db.model.StickerStat>> = _senderTopStickers.asStateFlow()
     private val _isStickerLoading = MutableStateFlow(false)
     val isStickerLoading: StateFlow<Boolean> = _isStickerLoading.asStateFlow()
+    
+    // Pool for individual mode stickers to avoid DB queries on limit changes
+    private var senderStickersPool: List<com.whatstat.reborn.data.db.model.StickerStat> = emptyList()
+    private var senderStickersPoolSender: String? = null
+    private var senderStickersPoolStartTime: Long? = null
+    private var senderStickersPoolEndTime: Long? = null
     // Pool di 50 sticker caricato con slow stats — evita query DB per cambi di limite in modalità AGGREGATED
     private var stickerPool: List<com.whatstat.reborn.data.db.model.StickerStat> = emptyList()
 
@@ -393,6 +411,11 @@ class ChatDetailViewModel @Inject constructor(
 
     fun setSelectedSenderForWords(sender: SenderStat?) {
         _selectedSenderForWords.value = sender
+        // Clear pool when sender changes
+        senderWordsPool = emptyList()
+        senderWordsPoolSender = null
+        senderWordsPoolStartTime = null
+        senderWordsPoolEndTime = null
         loadSenderTopWords()
     }
 
@@ -406,21 +429,41 @@ class ChatDetailViewModel @Inject constructor(
         
         val sender = _selectedSenderForWords.value ?: return
         val limit = _topWordsLimit.value.toInt()
+        val (startTime, endTime) = getTimeBounds()
+
+        // Check if we can use cached pool (same sender and time bounds)
+        if (senderWordsPoolSender == sender.jid && 
+            senderWordsPoolStartTime == startTime && 
+            senderWordsPoolEndTime == endTime) {
+            // Use cached pool, just apply limit
+            _senderTopWords.value = senderWordsPool.take(limit)
+            return
+        }
 
         viewModelScope.launch {
             _isSenderWordsLoading.value = true
             try {
-                val (startTime, endTime) = getTimeBounds()
                 val words = analyticsRepository.getTopWordsBySender(
                     chatId = chatId,
                     jid = sender.jid,
                     startTime = startTime,
                     endTime = endTime,
-                    limit = limit
+                    limit = 50 // Load pool of 50 like other individual modes
                 )
-                _senderTopWords.value = words
+                // Update cache
+                senderWordsPool = words
+                senderWordsPoolSender = sender.jid
+                senderWordsPoolStartTime = startTime
+                senderWordsPoolEndTime = endTime
+                // Apply requested limit
+                _senderTopWords.value = words.take(limit)
             } catch (e: Exception) {
                 _senderTopWords.value = emptyList()
+                // Clear cache on error
+                senderWordsPool = emptyList()
+                senderWordsPoolSender = null
+                senderWordsPoolStartTime = null
+                senderWordsPoolEndTime = null
             } finally {
                 _isSenderWordsLoading.value = false
             }
@@ -452,6 +495,11 @@ class ChatDetailViewModel @Inject constructor(
 
     fun setSelectedSenderForEmojis(sender: SenderStat?) {
         _selectedSenderForEmojis.value = sender
+        // Clear pool when sender changes
+        senderEmojisPool = emptyList()
+        senderEmojisPoolSender = null
+        senderEmojisPoolStartTime = null
+        senderEmojisPoolEndTime = null
         loadSenderTopEmojis()
     }
 
@@ -463,13 +511,36 @@ class ChatDetailViewModel @Inject constructor(
     private fun loadSenderTopEmojis() {
         if (_emojiViewMode.value == EmojiViewMode.AGGREGATED) return
         val sender = _selectedSenderForEmojis.value ?: return
+        val limit = _topEmojiLimit.value.toInt()
+        val (startTime, endTime) = getTimeBounds()
+
+        // Check if we can use cached pool (same sender and time bounds)
+        if (senderEmojisPoolSender == sender.jid && 
+            senderEmojisPoolStartTime == startTime && 
+            senderEmojisPoolEndTime == endTime) {
+            // Use cached pool, just apply limit
+            _senderTopEmojis.value = senderEmojisPool.take(limit)
+            return
+        }
+
         viewModelScope.launch {
             _isSenderEmojisLoading.value = true
             try {
-                val (startTime, endTime) = getTimeBounds()
-                _senderTopEmojis.value = analyticsRepository.getTopEmojisBySender(chatId, sender.jid, startTime, endTime, _topEmojiLimit.value.toInt())
+                val emojis = analyticsRepository.getTopEmojisBySender(chatId, sender.jid, startTime, endTime, 50) // Load pool of 50
+                // Update cache
+                senderEmojisPool = emojis
+                senderEmojisPoolSender = sender.jid
+                senderEmojisPoolStartTime = startTime
+                senderEmojisPoolEndTime = endTime
+                // Apply requested limit
+                _senderTopEmojis.value = emojis.take(limit)
             } catch (e: Exception) {
                 _senderTopEmojis.value = emptyList()
+                // Clear cache on error
+                senderEmojisPool = emptyList()
+                senderEmojisPoolSender = null
+                senderEmojisPoolStartTime = null
+                senderEmojisPoolEndTime = null
             } finally {
                 _isSenderEmojisLoading.value = false
             }
@@ -491,6 +562,11 @@ class ChatDetailViewModel @Inject constructor(
 
     fun setSelectedSenderForStickers(sender: SenderStat?) {
         _selectedSenderForStickers.value = sender
+        // Clear pool when sender changes
+        senderStickersPool = emptyList()
+        senderStickersPoolSender = null
+        senderStickersPoolStartTime = null
+        senderStickersPoolEndTime = null
         loadTopStickers()
     }
 
@@ -510,12 +586,25 @@ class ChatDetailViewModel @Inject constructor(
             try {
                 val (startTime, endTime) = getTimeBounds()
                 val sender = _selectedSenderForStickers.value ?: return@launch
-                val stickers = analyticsRepository.getTopStickersBySender(chatId, sender.jid, startTime, endTime, _topStickerLimit.value)
-                _topStickers.value = stickers
-                _senderTopStickers.value = stickers
+                val limit = _topStickerLimit.value
+
+                // Check if we can use cached pool (same sender and time bounds)
+                if (senderStickersPoolSender == sender.jid && 
+                    senderStickersPoolStartTime == startTime && 
+                    senderStickersPoolEndTime == endTime) {
+                    // Use cached pool, just apply limit
+                    _topStickers.value = senderStickersPool.take(limit)
+                    _senderTopStickers.value = senderStickersPool.take(limit)
+                    return@launch
+                }
             } catch (e: Exception) {
                 _topStickers.value = emptyList()
                 _senderTopStickers.value = emptyList()
+                // Clear cache on error
+                senderStickersPool = emptyList()
+                senderStickersPoolSender = null
+                senderStickersPoolStartTime = null
+                senderStickersPoolEndTime = null
             } finally {
                 _isStickerLoading.value = false
             }

@@ -583,7 +583,7 @@ fun ChatDetailScreen(
                                 ) {
                                     val limits = when (selectedTab) {
                                         0 -> listOf(10, 20, 30, 50)
-                                        1 -> listOf(3, 5, 10, 20, 30, 50)
+                                        1 -> listOf(10, 20, 30, 50)
                                         else -> listOf(10, 20, 30, 50)
                                     }
                                     val currentLimit = when (selectedTab) {
