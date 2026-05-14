@@ -98,6 +98,7 @@ import com.whatstat.reborn.data.db.model.DomainStat
 import com.whatstat.reborn.data.db.model.LinkStat
 import com.whatstat.reborn.data.db.model.MediaStat
 import com.whatstat.reborn.data.db.model.TimeRange
+import com.whatstat.reborn.ui.component.AutoMarquee
 import com.whatstat.reborn.data.db.model.UrlFrequency
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.DateRangePicker
@@ -494,35 +495,61 @@ private fun MediaGallerySheet(
             .padding(horizontal = 24.dp)
             .padding(bottom = 32.dp)
     ) {
-        // Header con avatar
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (avatarPath != null) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(java.io.File(avatarPath))
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-                Spacer(Modifier.width(12.dp))
-            }
-            Column {
-                Text(
-                    stringResource(R.string.media_link_title),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    contactName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
+// Header con avatar e info button sulla destra
+         Row(verticalAlignment = Alignment.CenterVertically) {
+             if (avatarPath != null) {
+                 AsyncImage(
+                     model = ImageRequest.Builder(LocalContext.current)
+                         .data(java.io.File(avatarPath))
+                         .crossfade(true)
+                         .build(),
+                     contentDescription = null,
+                     modifier = Modifier
+                         .size(48.dp)
+                         .clip(CircleShape),
+                     contentScale = ContentScale.Crop
+                 )
+                 Spacer(Modifier.width(12.dp))
+             }
+             Column(modifier = Modifier.weight(1f)) {
+                 Text(
+                     stringResource(R.string.media_link_title),
+                     style = MaterialTheme.typography.labelMedium,
+                     color = MaterialTheme.colorScheme.primary
+                 )
+                 Text(
+                     contactName,
+                     style = MaterialTheme.typography.headlineSmall,
+                     color = MaterialTheme.colorScheme.onSurface
+                 )
+             }
+             var showInfoDialog by remember { mutableStateOf(false) }
+             IconButton(onClick = { showInfoDialog = true }, modifier = Modifier.size(32.dp)) {
+                 Icon(
+                     Icons.Outlined.Info,
+                     contentDescription = stringResource(R.string.info_dialog_title),
+                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                     modifier = Modifier.size(18.dp)
+                 )
+             }
+             if (showInfoDialog) {
+                 AlertDialog(
+                     onDismissRequest = { showInfoDialog = false },
+                     title = { Text(stringResource(R.string.media_info_title)) },
+                     text = {
+                         Text(stringResource(R.string.media_info_text_gallery))
+                     },
+                     confirmButton = {
+                         TextButton(onClick = { showInfoDialog = false }) {
+                             Text(stringResource(R.string.ho_capito))
+                         }
+                     },
+                     containerColor = MaterialTheme.colorScheme.surface,
+                     titleContentColor = MaterialTheme.colorScheme.onSurface,
+                     textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                 )
+             }
+         }
         Spacer(Modifier.height(16.dp))
 
         // ── Tab Galleria / Sticker (solo Lite mode quando ci sono sticker) ────
@@ -560,59 +587,36 @@ private fun MediaGallerySheet(
             Spacer(Modifier.height(12.dp))
         }
 
-        // Contatori e toggle ordinamento
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    if (activeTab == 1) "$stickerCount ${stringResource(R.string.tab_stickers)}"
-                    else "${photoCount} ${stringResource(R.string.type_images)} · $videoCount ${stringResource(R.string.type_videos)}" + if (audioCount > 0) " · $audioCount ${stringResource(R.string.type_audio)}" else "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                var showInfoDialog by remember { mutableStateOf(false) }
-                IconButton(onClick = { showInfoDialog = true }, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        Icons.Outlined.Info,
-                        contentDescription = stringResource(R.string.info_dialog_title),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp).padding(start = 4.dp)
-                    )
-                }
-
-                if (showInfoDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showInfoDialog = false },
-                        title = { Text(stringResource(R.string.media_info_title)) },
-                        text = { 
-                            Text(stringResource(R.string.media_info_text_gallery))
-                        },
-                        confirmButton = {
-                            TextButton(onClick = { showInfoDialog = false }) {
-                                Text(stringResource(R.string.ho_capito))
-                            }
-                        },
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            val rotation by animateFloatAsState(if (sortAscending) 180f else 0f)
-            TextButton(onClick = { sortAscending = !sortAscending }) {
-                Icon(
-                    Icons.Outlined.SwapVert,
-                    contentDescription = stringResource(R.string.radar_parole_title),
-                    modifier = Modifier.rotate(rotation)
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(if (sortAscending) stringResource(R.string.sort_oldest) else stringResource(R.string.sort_newest))
-            }
-        }
+// Contatori e toggle ordinamento
+         Row(
+             modifier = Modifier.fillMaxWidth(),
+             horizontalArrangement = Arrangement.SpaceBetween,
+             verticalAlignment = Alignment.CenterVertically
+         ) {
+             Row(
+                 verticalAlignment = Alignment.CenterVertically,
+                 modifier = Modifier.weight(1f)
+             ) {
+                 AutoMarquee {
+                     Text(
+                         if (activeTab == 1) "$stickerCount ${stringResource(R.string.tab_stickers)}"
+                         else "${photoCount} ${stringResource(R.string.type_images)} · $videoCount ${stringResource(R.string.type_videos)}" + if (audioCount > 0) " · $audioCount ${stringResource(R.string.type_audio)}" else "",
+                         style = MaterialTheme.typography.bodyMedium,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                     )
+}
+              }
+              val rotation by animateFloatAsState(if (sortAscending) 180f else 0f)
+             TextButton(onClick = { sortAscending = !sortAscending }) {
+                 Icon(
+                     Icons.Outlined.SwapVert,
+                     contentDescription = stringResource(R.string.radar_parole_title),
+                     modifier = Modifier.rotate(rotation)
+                 )
+                 Spacer(Modifier.width(4.dp))
+                 Text(if (sortAscending) stringResource(R.string.sort_oldest) else stringResource(R.string.sort_newest))
+             }
+         }
         Spacer(Modifier.height(12.dp))
 
         // Contenuto
