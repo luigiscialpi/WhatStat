@@ -431,7 +431,7 @@ class CacheManager @Inject constructor(
     // ── Media & Link Stats (global) ───────────────────────────────
 
     suspend fun getGlobalMediaStats(): Pair<List<LinkStat>, List<DomainStat>>? {
-        val key = stringPreferencesKey("media_global_v2")
+        val key = stringPreferencesKey("media_global_v3")
         val json = dataStore.data.first()[key] ?: return null
         return try {
             val cached = cacheJson.decodeFromString<CachedMediaPageStats>(json)
@@ -443,7 +443,7 @@ class CacheManager @Inject constructor(
     }
 
     suspend fun saveGlobalMediaStats(linkStats: List<LinkStat>, topDomains: List<DomainStat>) {
-        val key = stringPreferencesKey("media_global_v2")
+        val key = stringPreferencesKey("media_global_v3")
         val cached = CachedMediaPageStats(
             linkStats = linkStats.map { CachedLinkStat(it.jid, it.displayName, it.totalLinks, it.mediaCount) },
             topDomains = topDomains.map { CachedDomainStat(it.domain, it.count) }
@@ -454,7 +454,7 @@ class CacheManager @Inject constructor(
     // ── Media & Link Stats (per chat) ────────────────────────────
 
     suspend fun getChatMediaStats(chatId: Long): Pair<List<LinkStat>, List<DomainStat>>? {
-        val key = stringPreferencesKey("media_chat_${chatId}_v2")
+        val key = stringPreferencesKey("media_chat_${chatId}_v3")
         val json = dataStore.data.first()[key] ?: return null
         return try {
             val cached = cacheJson.decodeFromString<CachedMediaPageStats>(json)
@@ -466,7 +466,7 @@ class CacheManager @Inject constructor(
     }
 
     suspend fun saveChatMediaStats(chatId: Long, linkStats: List<LinkStat>, topDomains: List<DomainStat>) {
-        val key = stringPreferencesKey("media_chat_${chatId}_v2")
+        val key = stringPreferencesKey("media_chat_${chatId}_v3")
         val cached = CachedMediaPageStats(
             linkStats = linkStats.map { CachedLinkStat(it.jid, it.displayName, it.totalLinks, it.mediaCount) },
             topDomains = topDomains.map { CachedDomainStat(it.domain, it.count) }
@@ -745,7 +745,7 @@ class CacheManager @Inject constructor(
             }
 
             // 3. Patch Media Global Stats
-            val mediaKey = stringPreferencesKey("media_global_v2")
+            val mediaKey = stringPreferencesKey("media_global_v3")
             prefs[mediaKey]?.let { json ->
                 try {
                     val cached = cacheJson.decodeFromString<CachedMediaPageStats>(json)

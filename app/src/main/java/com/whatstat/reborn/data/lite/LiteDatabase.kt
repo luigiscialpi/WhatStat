@@ -144,7 +144,7 @@ class LiteDatabase @Inject constructor(
         """.trimIndent())
 
         db.execSQL("""
-            CREATE TABLE IF NOT EXISTS call_log_participant_v2 (
+            CREATE TABLE IF NOT EXISTS call_log_participant_v3 (
                 _id INTEGER PRIMARY KEY, 
                 call_log_row_id INTEGER, 
                 jid_row_id INTEGER, 

@@ -529,7 +529,7 @@ Le tabelle principali usate dall'app:
 - `from_me`: 0 = messaggio ricevuto, 1 = messaggio inviato
 - `sender_jid_row_id`: FK verso `jid._id` del mittente. Attenzione: nelle chat 1-a-1 questo campo è sempre 0 (vedi sezione 12).
 - `timestamp`: Unix timestamp in millisecondi (UTC)
-- `message_type`: 0 = testo, 1 = foto, 2 = audio, 3 = video, altri valori per sticker, documenti, ecc.
+- `message_type`: 0 = testo, 1 = foto, 2 = audio, 3 = video, 20 = sticker, altri valori per documenti, ecc. In Lite Mode, i messaggi `message_type = 20` vengono conteggiati come media nelle query statistiche.  
 - `text_data`: contenuto testuale del messaggio (null per messaggi non testuali)
 - `starred`: 1 se il messaggio ha la stella
 
