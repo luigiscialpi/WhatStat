@@ -458,6 +458,8 @@ Le statistiche media hanno cache dedicata con chiavi `media_global_v3` e `media_
 
 **Risultato** — Tempo di caricamento passato da secondi a millisecondi nelle riaperture consecutive.
 
+**Nota sticker in Lite Mode** — nella `MediaStatsScreen`, il conteggio dei media in Lite Mode include anche i messaggi sticker (`message_type = 20`), sommati ai media normali. Questo comportamento è controllato dal parametro `includeStickers` nel DAO, che viene abilitato automaticamente dal repository quando `isLiteMode = true`. In Root Mode il parametro è `false` e gli sticker restano esclusi dal conteggio media.
+
 ---
 
 ## 9. Radar Parole
@@ -832,7 +834,7 @@ Il risultato pratico è che tutti i DAO (MessageDao, ChatDao, ecc.) eseguono le 
 
 **Nota su `jid` in Lite Mode**: il campo `raw_string` nella tabella `jid` contiene il nome del mittente (es. `"Mario Rossi"`), non un JID reale WhatsApp. Questo è l'unico dato disponibile dall'export `.txt`. Per l'utente corrente, `raw_string` è il `ownerName` scelto durante il setup.
 
-**Nota sugli sticker**: in Root Mode i messaggi sticker (`message_type=20`) vengono esclusi dalle query media perché mancano di `mime_type`. In Lite Mode vengono inclusi, poiché i file `.webp` estratti dallo ZIP hanno `mime_type='image/webp'` impostato da `LiteDbWriter`.
+**Nota sugli sticker**: in Root Mode i messaggi sticker (`message_type=20`) vengono esclusi dalle query media perché mancano di `mime_type`. In Lite Mode vengono inclusi, poiché i file `.webp` estratti dallo ZIP hanno `mime_type='image/webp'` impostato da `LiteDbWriter`. Inoltre, le query sulle statistiche media accettano il parametro  `includeStickers` nel DAO: in Lite Mode il repository lo imposta automaticamente a `true`, in modo che il conteggio dei media nella `MediaStatsScreen` sia la somma di media normali e sticker, senza query aggiuntive.
 
 ---
 
@@ -1047,6 +1049,7 @@ La Lite Mode ha un proprio grafo di navigazione `NavGraphRoute.Lite`, con la ste
 | Risoluzione nomi contatti | Sì (da `wa.db`) | No (nome grezzo dall'export `.txt`) |
 | Chiamate | Sì (tabella `call_log`) | No (nessun dato nel `.txt`) |
 | Sticker tab analisi testi | Sì | No (nascosto in Lite Mode) |
+| Conteggio sticker nei media | Separato dai media | Incluso nel conteggio media (tipo 20 sommato a media normali) |
 | Milestone prediction | Sì | No (nascosta in Lite Mode) |
 | Rank badge in ChatList | Sì | No (nascosto in Lite Mode) |
 | Filtro media per mittente | Esatto (JID) | Euristico (filename-match) |
