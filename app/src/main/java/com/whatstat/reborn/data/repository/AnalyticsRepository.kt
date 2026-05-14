@@ -939,9 +939,10 @@ class AnalyticsRepository @Inject constructor(
     /**
      * Statistiche link globali o per chat con filtro temporale.
      */
-    suspend fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<LinkStat> = withContext(Dispatchers.IO) {
-        val limit = if (activeDatabaseProvider.isLiteMode) 50 else 20
-        val linkStats = messageDao.getLinkStats(chatId, startTime, endTime, limit)
+suspend fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null): List<LinkStat> = withContext(Dispatchers.IO) {
+         val limit = if (activeDatabaseProvider.isLiteMode) 50 else 20
+         val includeStickers = activeDatabaseProvider.isLiteMode
+         val linkStats = messageDao.getLinkStats(chatId, startTime, endTime, limit, includeStickers)
         if (linkStats.isEmpty()) return@withContext emptyList()
         
         val jids = linkStats.map { it.jid }
@@ -962,8 +963,9 @@ class AnalyticsRepository @Inject constructor(
      * Per chat singole: Tu vs Altro.
      * Per gruppi: tutti i partecipanti.
      */
-    suspend fun getLinkStatsBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<LinkStat> = withContext(Dispatchers.IO) {
-        val linkStats = messageDao.getLinkStatsBySender(chatId, startTime, endTime)
+suspend fun getLinkStatsBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null, includeStickers: Boolean = false): List<LinkStat> = withContext(Dispatchers.IO) {
+         val includeStickers = activeDatabaseProvider.isLiteMode
+         val linkStats = messageDao.getLinkStatsBySender(chatId, startTime, endTime, includeStickers)
         if (linkStats.isEmpty()) return@withContext emptyList()
         
         val jids = linkStats.map { it.jid }
@@ -1020,7 +1022,7 @@ class AnalyticsRepository @Inject constructor(
      */
     suspend fun getLinkStatsByJid(jid: String, startTime: Long? = null, endTime: Long? = null): List<LinkStat> = withContext(Dispatchers.IO) {
         val chatId = messageDao.getChatIdByJid(jid) ?: return@withContext emptyList()
-        getLinkStatsBySender(chatId, startTime, endTime)
+        getLinkStatsBySender(chatId, startTime, endTime, activeDatabaseProvider.isLiteMode)
     }
 
     /**

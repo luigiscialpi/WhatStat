@@ -1824,44 +1824,54 @@ class MessageDao @Inject constructor(
      * Estrazione statistiche link E media.
      * Raggruppa per chat - mostra link e media per ogni conversazione.
      */
-    fun getLinkStats(chatId: Long? = null, startTime: Long? = null, endTime: Long? = null, limit: Int = 20): List<com.whatstat.reborn.data.db.model.LinkStat> {
-        val conditions = mutableListOf<String>("m.message_type != 7")
-        val args = mutableListOf<String>()
-        
-        if (chatId != null) {
-            conditions.add("m.chat_row_id = ?")
-            args.add(chatId.toString())
-        }
-        if (startTime != null) {
-            conditions.add("m.timestamp >= ?")
-            args.add(startTime.toString())
-        }
-        if (endTime != null) {
-            conditions.add("m.timestamp <= ?")
-            args.add(endTime.toString())
-        }
-        
-        val query = """
-            WITH all_media AS (
-                SELECT message_row_id, mime_type FROM message_media
-                UNION ALL
-                SELECT message_row_id, mime_type FROM addon_message_media
-            )
-            SELECT
-                j.raw_string AS jid,
-                j.raw_string AS display_name,
-                COUNT(DISTINCT CASE WHEN m.text_data LIKE 'http%' OR m.text_data LIKE 'https%' THEN m._id ELSE NULL END) AS total_links,
-                SUM(CASE WHEN mm.mime_type LIKE 'image/%' OR mm.mime_type LIKE 'video/%' OR mm.mime_type LIKE 'audio/%' OR (mm.mime_type IS NULL AND m.message_type IN (1, 2, 3, 13)) THEN 1 ELSE 0 END) AS media_count
-            FROM message m
-            INNER JOIN chat c ON m.chat_row_id = c._id
-            INNER JOIN jid j ON c.jid_row_id = j._id
-            LEFT JOIN all_media mm ON m._id = mm.message_row_id AND m.message_type != 20
-            WHERE ${conditions.joinToString(" AND ")}
-            GROUP BY j.raw_string
-            HAVING total_links > 0 OR media_count > 0
-            ORDER BY (total_links + media_count) DESC
-            LIMIT $limit
-        """.trimIndent()
+fun getLinkStats(
+         chatId: Long? = null,
+         startTime: Long? = null,
+         endTime: Long? = null,
+         limit: Int = 20,
+         includeStickers: Boolean = false
+     ): List<com.whatstat.reborn.data.db.model.LinkStat> {
+         val conditions = mutableListOf<String>("m.message_type != 7")
+         val args = mutableListOf<String>()
+
+         if (chatId != null) {
+             conditions.add("m.chat_row_id = ?")
+             args.add(chatId.toString())
+         }
+         if (startTime != null) {
+             conditions.add("m.timestamp >= ?")
+             args.add(startTime.toString())
+         }
+         if (endTime != null) {
+             conditions.add("m.timestamp <= ?")
+             args.add(endTime.toString())
+         }
+
+         // Condizione per includere sticker nel conteggio media se richiesto
+         val stickerJoin = if (includeStickers) "" else "AND m.message_type != 20"
+         val stickerCase = if (includeStickers) "OR m.message_type = 20" else ""
+
+         val query = """
+             WITH all_media AS (
+                 SELECT message_row_id, mime_type FROM message_media
+                 UNION ALL
+                 SELECT message_row_id, mime_type FROM addon_message_media
+             )
+             SELECT
+                 j.raw_string AS jid,
+                 j.raw_string AS display_name,
+COUNT(DISTINCT CASE WHEN m.text_data LIKE 'http%' OR m.text_data LIKE 'https%' THEN m._id ELSE NULL END) AS total_links,
+                  COUNT(DISTINCT CASE WHEN mm.mime_type LIKE 'image/%' OR mm.mime_type LIKE 'video/%' OR mm.mime_type LIKE 'audio/%' OR (mm.mime_type IS NULL AND m.message_type IN (1, 2, 3, 13)) $stickerCase THEN m._id ELSE NULL END) AS media_count
+              FROM message m
+              INNER JOIN chat c ON m.chat_row_id = c._id
+              INNER JOIN jid j ON c.jid_row_id = j._id
+              LEFT JOIN all_media mm ON m._id = mm.message_row_id $stickerJoin
+              WHERE ${conditions.joinToString(" AND ")}
+              GROUP BY j.raw_string
+              HAVING total_links > 0 OR media_count > 0
+              ORDER BY (total_links + media_count) DESC
+              LIMIT $limit
+          """.trimIndent()
         
         val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
         return cursor.use { cursor ->
@@ -1883,53 +1893,61 @@ class MessageDao @Inject constructor(
      * Per chat singole: ritorna Tu vs Altro.
      * Per gruppi: ritorna tutti i partecipanti con i rispettivi link.
      */
-    fun getLinkStatsBySender(chatId: Long, startTime: Long? = null, endTime: Long? = null): List<com.whatstat.reborn.data.db.model.LinkStat> {
-        val conditions = mutableListOf("m.chat_row_id = ?", "m.message_type != 7")
-        val args = mutableListOf(chatId.toString())
-        
-        if (startTime != null) {
-            conditions.add("m.timestamp >= ?")
-            args.add(startTime.toString())
-        }
-        if (endTime != null) {
-            conditions.add("m.timestamp <= ?")
-            args.add(endTime.toString())
-        }
-        
-        // Usa from_me + chat_jid per distinguere correttamente nelle chat 1-a-1
-        val query = """
-            WITH all_media AS (
-                SELECT message_row_id, mime_type FROM message_media
-                UNION ALL
-                SELECT message_row_id, mime_type FROM addon_message_media
-            )
-            SELECT
-                CASE 
-                    WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
-                    WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
-                    ELSE COALESCE(chat_jid.raw_string, 'other@s.whatsapp.net')
-                END AS sender_jid,
-                CASE 
-                    WHEN m.from_me = 1 THEN 'Tu'
-                    WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
-                    ELSE chat_jid.raw_string
-                END AS sender_name,
-                COUNT(DISTINCT CASE WHEN m.text_data LIKE 'http%' OR m.text_data LIKE 'https%' THEN m._id ELSE NULL END) AS total_links,
-                SUM(CASE WHEN mm.mime_type LIKE 'image/%' OR mm.mime_type LIKE 'video/%' OR mm.mime_type LIKE 'audio/%' OR (mm.mime_type IS NULL AND m.message_type IN (1, 2, 3, 13)) THEN 1 ELSE 0 END) AS media_count
-            FROM message m
-            LEFT JOIN jid sender_jid ON m.sender_jid_row_id = sender_jid._id AND m.sender_jid_row_id > 0
-            LEFT JOIN chat c ON m.chat_row_id = c._id
-            LEFT JOIN jid chat_jid ON c.jid_row_id = chat_jid._id
-            LEFT JOIN all_media mm ON m._id = mm.message_row_id AND m.message_type != 20
-            WHERE ${conditions.joinToString(" AND ")}
-            GROUP BY m.from_me, CASE 
-                WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
-                WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
-                ELSE COALESCE(chat_jid.raw_string, 'other@s.whatsapp.net')
-            END
-            HAVING total_links > 0 OR media_count > 0
-            ORDER BY (total_links + media_count) DESC
-        """.trimIndent()
+fun getLinkStatsBySender(
+         chatId: Long,
+         startTime: Long? = null,
+         endTime: Long? = null,
+         includeStickers: Boolean = false
+     ): List<com.whatstat.reborn.data.db.model.LinkStat> {
+         val conditions = mutableListOf("m.chat_row_id = ?", "m.message_type != 7")
+         val args = mutableListOf(chatId.toString())
+
+         if (startTime != null) {
+             conditions.add("m.timestamp >= ?")
+             args.add(startTime.toString())
+         }
+         if (endTime != null) {
+             conditions.add("m.timestamp <= ?")
+             args.add(endTime.toString())
+         }
+
+         val stickerJoin = if (includeStickers) "" else "AND m.message_type != 20"
+         val stickerCase = if (includeStickers) "OR m.message_type = 20" else ""
+
+         // Usa from_me + chat_jid per distinguere correttamente nelle chat 1-a-1
+         val query = """
+             WITH all_media AS (
+                 SELECT message_row_id, mime_type FROM message_media
+                 UNION ALL
+                 SELECT message_row_id, mime_type FROM addon_message_media
+             )
+             SELECT
+                 CASE
+                     WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                     WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
+                     ELSE COALESCE(chat_jid.raw_string, 'other@s.whatsapp.net')
+                 END AS sender_jid,
+                 CASE
+                     WHEN m.from_me = 1 THEN 'Tu'
+                     WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
+                     ELSE chat_jid.raw_string
+                 END AS sender_name,
+COUNT(DISTINCT CASE WHEN m.text_data LIKE 'http%' OR m.text_data LIKE 'https%' THEN m._id ELSE NULL END) AS total_links,
+                  COUNT(DISTINCT CASE WHEN mm.mime_type LIKE 'image/%' OR mm.mime_type LIKE 'video/%' OR mm.mime_type LIKE 'audio/%' OR (mm.mime_type IS NULL AND m.message_type IN (1, 2, 3, 13)) $stickerCase THEN m._id ELSE NULL END) AS media_count
+              FROM message m
+              LEFT JOIN jid sender_jid ON m.sender_jid_row_id = sender_jid._id AND m.sender_jid_row_id > 0
+              LEFT JOIN chat c ON m.chat_row_id = c._id
+              LEFT JOIN jid chat_jid ON c.jid_row_id = chat_jid._id
+              LEFT JOIN all_media mm ON m._id = mm.message_row_id $stickerJoin
+              WHERE ${conditions.joinToString(" AND ")}
+              GROUP BY m.from_me, CASE
+                  WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
+                  WHEN sender_jid.raw_string IS NOT NULL THEN sender_jid.raw_string
+                  ELSE COALESCE(chat_jid.raw_string, 'other@s.whatsapp.net')
+              END
+              HAVING total_links > 0 OR media_count > 0
+              ORDER BY (total_links + media_count) DESC
+          """.trimIndent()
         
         val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
         return cursor.use { cursor ->
@@ -2513,13 +2531,14 @@ class MessageDao @Inject constructor(
 
         // Escludi messaggi di sistema (7)
         conditions.add("m.message_type != 7")
-        
-        // Escludi sticker (20) solo se richiesto (es. Root mode Gallery)
-        if (!includeStickers) {
-            conditions.add("m.message_type != 20")
-        }
 
-        conditions.add("(mm.mime_type LIKE 'image/%' OR mm.mime_type LIKE 'video/%' OR mm.mime_type LIKE 'audio/%' OR (mm.mime_type IS NULL AND m.message_type IN (1, 2, 3, 13)))")
+        // Condizione MIME: includi foto/video/audio, oppure sticker se richiesto
+        val stickerOr = if (includeStickers) " OR m.message_type = 20" else ""
+        conditions.add(
+            "(mm.mime_type LIKE 'image/%' OR mm.mime_type LIKE 'video/%' OR mm.mime_type LIKE 'audio/%' " +
+                    "OR (mm.mime_type IS NULL AND m.message_type IN (1, 2, 3, 13))" +
+                    "$stickerOr)"
+        )
         queryBuilder.append(" WHERE ${conditions.joinToString(" AND ")}")
         queryBuilder.append(" ORDER BY m.timestamp DESC")
 
