@@ -7,12 +7,14 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("org.jlleitschuh.gradle.ktlint")
 }
 
-val localProps = Properties().also { props ->
-    val f = rootProject.file("local.properties")
-    if (f.exists()) f.inputStream().use { props.load(it) }
-}
+val localProps =
+    Properties().also { props ->
+        val f = rootProject.file("local.properties")
+        if (f.exists()) f.inputStream().use { props.load(it) }
+    }
 
 android {
     namespace = "com.whatstat.reborn"
@@ -44,7 +46,7 @@ android {
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
         debug {

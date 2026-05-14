@@ -12,17 +12,19 @@ import javax.inject.Singleton
  * aggiornato dal [com.whatstat.reborn.ui.screen.dashboard.DashboardViewModel].
  */
 @Singleton
-class LexicalAnalysisManager @Inject constructor() {
+class LexicalAnalysisManager
+    @Inject
+    constructor() {
+        private val _progress = MutableStateFlow(-1)
 
-    private val _progress = MutableStateFlow(-1)
-    /** Progresso 0-100 durante l'analisi, -1 = idle. */
-    val progress: StateFlow<Int> = _progress.asStateFlow()
+        /** Progresso 0-100 durante l'analisi, -1 = idle. */
+        val progress: StateFlow<Int> = _progress.asStateFlow()
 
-    fun updateProgress(value: Int) {
-        _progress.value = value.coerceIn(0, 100)
+        fun updateProgress(value: Int) {
+            _progress.value = value.coerceIn(0, 100)
+        }
+
+        fun reset() {
+            _progress.value = -1
+        }
     }
-
-    fun reset() {
-        _progress.value = -1
-    }
-}

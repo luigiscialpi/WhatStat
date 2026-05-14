@@ -17,34 +17,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 
 @Composable
+@Suppress("FunctionName")
 fun ChartTooltip(
     title: String,
     value: String,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            modifier = Modifier
-                .shadow(8.dp, RoundedCornerShape(12.dp)),
+            modifier =
+                Modifier
+                    .shadow(8.dp, RoundedCornerShape(12.dp)),
             shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surface
+            color = MaterialTheme.colorScheme.surface,
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     title,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
+                    style =
+                        MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     value,
                     style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }

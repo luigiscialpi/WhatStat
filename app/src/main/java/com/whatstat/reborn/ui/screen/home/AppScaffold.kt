@@ -11,19 +11,21 @@ import com.whatstat.reborn.ui.navigation.BottomNavigationBar
 import com.whatstat.reborn.ui.navigation.NavGraphRoute
 
 @Composable
+@Suppress("FunctionName")
 fun AppScaffold(
     navController: NavHostController,
     currentDestination: NavDestination?,
     isLiteMode: Boolean = false,
-    content: @Composable (PaddingValues) -> Unit
+    content: @Composable (PaddingValues) -> Unit,
 ) {
     val route = currentDestination?.route.orEmpty()
     val isLiteImportRoute = route.contains("lite_setup")
-    val showBottomBar = currentDestination
-        ?.hierarchy
-        ?.any { destination ->
-            destination.route == NavGraphRoute.Root || destination.route == NavGraphRoute.Lite
-        } == true && !isLiteImportRoute
+    val showBottomBar =
+        currentDestination
+            ?.hierarchy
+            ?.any { destination ->
+                destination.route == NavGraphRoute.ROOT || destination.route == NavGraphRoute.LITE
+            } == true && !isLiteImportRoute
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -32,10 +34,10 @@ fun AppScaffold(
                 BottomNavigationBar(
                     navController = navController,
                     currentDestination = currentDestination,
-                    isLiteMode = isLiteMode
+                    isLiteMode = isLiteMode,
                 )
             }
-        }
+        },
     ) { innerPadding ->
         content(innerPadding)
     }

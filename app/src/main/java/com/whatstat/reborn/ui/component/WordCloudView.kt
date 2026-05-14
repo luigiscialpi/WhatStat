@@ -26,15 +26,17 @@ import com.whatstat.reborn.data.db.model.WordFrequency
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+@Suppress("FunctionName")
 fun WordCloudView(
     words: List<WordFrequency>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     if (words.isEmpty()) return
 
-    val maxFreq = remember(words) {
-        words.maxOf { it.frequency }.toFloat().coerceAtLeast(1f)
-    }
+    val maxFreq =
+        remember(words) {
+            words.maxOf { it.frequency }.toFloat().coerceAtLeast(1f)
+        }
 
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.secondary
@@ -43,30 +45,32 @@ fun WordCloudView(
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         words.forEachIndexed { index, word ->
             val ratio = word.frequency / maxFreq
             val fontSize = (12 + ratio * 14).sp
             val alpha = 0.4f + ratio * 0.6f
 
-            val color = when (index % 3) {
-                0 -> primary
-                1 -> secondary
-                else -> tertiary
-            }
+            val color =
+                when (index % 3) {
+                    0 -> primary
+                    1 -> secondary
+                    else -> tertiary
+                }
 
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(color.copy(alpha = alpha * 0.15f))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(color.copy(alpha = alpha * 0.15f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
                 Text(
                     word.word,
                     fontSize = fontSize,
                     fontWeight = if (ratio > 0.5f) FontWeight.SemiBold else FontWeight.Normal,
-                    color = color.copy(alpha = alpha)
+                    color = color.copy(alpha = alpha),
                 )
             }
         }
@@ -78,16 +82,18 @@ fun WordCloudView(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+@Suppress("FunctionName")
 fun InteractiveWordCloud(
     words: List<WordFrequency>,
     modifier: Modifier = Modifier,
-    onWordClick: ((String, Int) -> Unit)? = null
+    onWordClick: ((String, Int) -> Unit)? = null,
 ) {
     if (words.isEmpty()) return
 
-    val maxFreq = remember(words) {
-        words.maxOf { it.frequency }.toFloat().coerceAtLeast(1f)
-    }
+    val maxFreq =
+        remember(words) {
+            words.maxOf { it.frequency }.toFloat().coerceAtLeast(1f)
+        }
 
     val primary = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.secondary
@@ -96,39 +102,41 @@ fun InteractiveWordCloud(
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         words.forEachIndexed { index, word ->
             val ratio = word.frequency / maxFreq
             val fontSize = (12 + ratio * 14).sp
             val alpha = 0.4f + ratio * 0.6f
 
-            val color = when (index % 3) {
-                0 -> primary
-                1 -> secondary
-                else -> tertiary
-            }
+            val color =
+                when (index % 3) {
+                    0 -> primary
+                    1 -> secondary
+                    else -> tertiary
+                }
 
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(color.copy(alpha = alpha * 0.15f))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(color.copy(alpha = alpha * 0.15f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
                 ) {
                     Text(
                         word.word,
                         fontSize = fontSize,
                         fontWeight = if (ratio > 0.5f) FontWeight.SemiBold else FontWeight.Normal,
-                        color = color.copy(alpha = alpha)
+                        color = color.copy(alpha = alpha),
                     )
                 }
                 Text(
                     "(%,d)".format(word.frequency),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

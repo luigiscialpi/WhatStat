@@ -9,19 +9,21 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 @HiltViewModel
-class MainViewModel @Inject constructor(
-    private val analyticsRepository: AnalyticsRepository
-) : ViewModel() {
-    val isLiteMode: StateFlow<Boolean> = analyticsRepository.isLiteMode
-    
-    private val _incomingZipUri = MutableStateFlow<String?>(null)
-    val incomingZipUri: StateFlow<String?> = _incomingZipUri.asStateFlow()
+class MainViewModel
+    @Inject
+    constructor(
+        private val analyticsRepository: AnalyticsRepository,
+    ) : ViewModel() {
+        val isLiteMode: StateFlow<Boolean> = analyticsRepository.isLiteMode
 
-    fun setIncomingZipUri(uri: String?) {
-        _incomingZipUri.value = uri
-    }
+        private val _incomingZipUri = MutableStateFlow<String?>(null)
+        val incomingZipUri: StateFlow<String?> = _incomingZipUri.asStateFlow()
 
-    fun resetLiteMode() {
-        analyticsRepository.resetLiteMode()
+        fun setIncomingZipUri(uri: String?) {
+            _incomingZipUri.value = uri
+        }
+
+        fun resetLiteMode() {
+            analyticsRepository.resetLiteMode()
+        }
     }
-}

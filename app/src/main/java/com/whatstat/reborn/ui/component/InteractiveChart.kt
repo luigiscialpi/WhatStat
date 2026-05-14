@@ -31,19 +31,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import com.whatstat.reborn.data.db.model.SenderStat
-import com.whatstat.reborn.data.db.model.DayCount
 import com.whatstat.reborn.data.db.model.HourlyCount
+import com.whatstat.reborn.data.db.model.SenderStat
 import com.whatstat.reborn.ui.theme.getSenderColor
 import com.whatstat.reborn.ui.theme.senderColorOverrideKey
 
 @Composable
+@Suppress("FunctionName")
 fun InteractiveHourlyHeatmap(
     hourlyData: List<HourlyCount>,
     modifier: Modifier = Modifier,
@@ -51,7 +50,7 @@ fun InteractiveHourlyHeatmap(
     scopeChatId: Long = 0L,
     senderColorArgbOverrides: Map<String, Int> = emptyMap(),
     dismissSignal: Int = 0,
-    onHourClick: ((HourlyCount) -> Unit)? = null
+    onHourClick: ((HourlyCount) -> Unit)? = null,
 ) {
     if (hourlyData.isEmpty()) return
 
@@ -62,7 +61,7 @@ fun InteractiveHourlyHeatmap(
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         (0..23).forEach { hour ->
             val data = hourlyData.find { it.hour == hour }
@@ -72,23 +71,25 @@ fun InteractiveHourlyHeatmap(
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .clickable {
-                        selectedHour = if (isSelected) -1 else hour
-                    }
-                    .padding(vertical = 4.dp)
+                modifier =
+                    Modifier
+                        .clickable {
+                            selectedHour = if (isSelected) -1 else hour
+                        }
+                        .padding(vertical = 4.dp),
             ) {
                 Box(
-                    modifier = Modifier
-                        .width(10.dp)
-                        .height(44.dp),
-                    contentAlignment = Alignment.BottomCenter
+                    modifier =
+                        Modifier
+                            .width(10.dp)
+                            .height(44.dp),
+                    contentAlignment = Alignment.BottomCenter,
                 ) {
                     if (isSelected) {
                         Popup(
                             alignment = Alignment.BottomCenter,
                             offset = androidx.compose.ui.unit.IntOffset(0, -50),
-                            properties = PopupProperties(focusable = false)
+                            properties = PopupProperties(focusable = false),
                         ) {
                             val data = hourlyData.find { it.hour == hour }
                             ChartPointBubble(
@@ -98,33 +99,36 @@ fun InteractiveHourlyHeatmap(
                                 referenceSenders = referenceSenders,
                                 scopeChatId = scopeChatId,
                                 senderColorArgbOverrides = senderColorArgbOverrides,
-                                onClick = { if (data != null) onHourClick?.invoke(data) }
+                                onClick = { if (data != null) onHourClick?.invoke(data) },
                             )
                         }
                     }
 
                     if (count > 0) {
                         Box(
-                            modifier = Modifier
-                                .width(10.dp)
-                                .height(44.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(primary.copy(alpha = 0.08f))
+                            modifier =
+                                Modifier
+                                    .width(10.dp)
+                                    .height(44.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(primary.copy(alpha = 0.08f)),
                         )
                         Box(
-                            modifier = Modifier
-                                .width(10.dp)
-                                .height((44 * ratio).dp.coerceAtLeast(2.dp))
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(primary.copy(alpha = 0.15f + ratio * 0.85f))
+                            modifier =
+                                Modifier
+                                    .width(10.dp)
+                                    .height((44 * ratio).dp.coerceAtLeast(2.dp))
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(primary.copy(alpha = 0.15f + ratio * 0.85f)),
                         )
                     } else {
                         Box(
-                            modifier = Modifier
-                                .width(10.dp)
-                                .height(44.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(primary.copy(alpha = 0.05f))
+                            modifier =
+                                Modifier
+                                    .width(10.dp)
+                                    .height(44.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(primary.copy(alpha = 0.05f)),
                         )
                     }
                 }
@@ -134,7 +138,7 @@ fun InteractiveHourlyHeatmap(
                         "%02d".format(hour),
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 8.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -143,6 +147,7 @@ fun InteractiveHourlyHeatmap(
 }
 
 @Composable
+@Suppress("FunctionName")
 fun InteractiveBarChart(
     data: List<StatPoint>,
     modifier: Modifier = Modifier,
@@ -155,7 +160,7 @@ fun InteractiveBarChart(
     showLabels: Boolean = true,
     labelFrequency: Int = 1,
     onPointClick: ((StatPoint) -> Unit)? = null,
-    dismissSignal: Int = 0
+    dismissSignal: Int = 0,
 ) {
     if (data.isEmpty()) return
 
@@ -166,10 +171,11 @@ fun InteractiveBarChart(
     LaunchedEffect(dismissSignal) { if (dismissSignal > 0) selectedIndex = -1 }
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .horizontalScroll(scrollState),
-        horizontalArrangement = Arrangement.spacedBy(spacing)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .horizontalScroll(scrollState),
+        horizontalArrangement = Arrangement.spacedBy(spacing),
     ) {
         data.forEachIndexed { index, point ->
             val ratio = point.count / maxCount
@@ -177,23 +183,25 @@ fun InteractiveBarChart(
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .clickable {
-                        selectedIndex = if (isSelected) -1 else index
-                    }
-                    .padding(vertical = 4.dp)
+                modifier =
+                    Modifier
+                        .clickable {
+                            selectedIndex = if (isSelected) -1 else index
+                        }
+                        .padding(vertical = 4.dp),
             ) {
                 Box(
-                    modifier = Modifier
-                        .width(barWidth)
-                        .height(barHeight),
-                    contentAlignment = Alignment.BottomCenter
+                    modifier =
+                        Modifier
+                            .width(barWidth)
+                            .height(barHeight),
+                    contentAlignment = Alignment.BottomCenter,
                 ) {
                     if (isSelected) {
                         Popup(
                             alignment = Alignment.BottomCenter,
                             offset = androidx.compose.ui.unit.IntOffset(0, -70),
-                            properties = PopupProperties(focusable = false)
+                            properties = PopupProperties(focusable = false),
                         ) {
                             ChartPointBubble(
                                 title = point.label,
@@ -202,25 +210,27 @@ fun InteractiveBarChart(
                                 referenceSenders = referenceSenders,
                                 scopeChatId = scopeChatId,
                                 senderColorArgbOverrides = senderColorArgbOverrides,
-                                onClick = { onPointClick?.invoke(point) }
+                                onClick = { onPointClick?.invoke(point) },
                             )
                         }
                     }
 
                     Box(
-                        modifier = Modifier
-                            .width(barWidth)
-                            .height(barHeight)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(primary.copy(alpha = 0.08f))
+                        modifier =
+                            Modifier
+                                .width(barWidth)
+                                .height(barHeight)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(primary.copy(alpha = 0.08f)),
                     )
                     if (point.count > 0) {
                         Box(
-                            modifier = Modifier
-                                .width(barWidth)
-                                .height((barHeight.value * ratio).dp.coerceAtLeast(2.dp))
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(primary.copy(alpha = 0.15f + ratio * 0.85f))
+                            modifier =
+                                Modifier
+                                    .width(barWidth)
+                                    .height((barHeight.value * ratio).dp.coerceAtLeast(2.dp))
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(primary.copy(alpha = 0.15f + ratio * 0.85f)),
                         )
                     }
                 }
@@ -232,7 +242,7 @@ fun InteractiveBarChart(
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 9.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
+                        maxLines = 1,
                     )
                 } else if (showLabels) {
                     Spacer(Modifier.height(14.dp))
@@ -246,10 +256,11 @@ data class StatPoint(
     val id: Any,
     val label: String,
     val count: Int,
-    val senderBreakdown: List<SenderStat> = emptyList()
+    val senderBreakdown: List<SenderStat> = emptyList(),
 )
 
 @Composable
+@Suppress("FunctionName")
 private fun ChartPointBubble(
     title: String,
     total: Int,
@@ -258,7 +269,7 @@ private fun ChartPointBubble(
     scopeChatId: Long = 0L,
     senderColorArgbOverrides: Map<String, Int> = emptyMap(),
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
 ) {
     val bubbleColor = MaterialTheme.colorScheme.inverseSurface
     val onBubbleColor = MaterialTheme.colorScheme.inverseOnSurface
@@ -266,7 +277,7 @@ private fun ChartPointBubble(
 
     Column(
         modifier = modifier.clickable { onClick?.invoke() },
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Surface(
             modifier = Modifier.widthIn(min = 80.dp, max = 180.dp),
@@ -274,23 +285,23 @@ private fun ChartPointBubble(
             color = bubbleColor,
             contentColor = onBubbleColor,
             shadowElevation = 6.dp,
-            tonalElevation = 4.dp
+            tonalElevation = 4.dp,
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalAlignment = Alignment.Start
+                horizontalAlignment = Alignment.Start,
             ) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelSmall,
                     color = secondaryColor,
-                    fontSize = 10.sp
+                    fontSize = 10.sp,
                 )
                 Text(
                     text = "$total messaggi",
                     style = MaterialTheme.typography.labelMedium,
                     color = onBubbleColor,
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
 
                 if (breakdown.isNotEmpty()) {
@@ -299,29 +310,30 @@ private fun ChartPointBubble(
                         Modifier
                             .fillMaxWidth()
                             .height(1.dp)
-                            .background(onBubbleColor.copy(alpha = 0.15f))
+                            .background(onBubbleColor.copy(alpha = 0.15f)),
                     )
                     Spacer(Modifier.height(6.dp))
 
                     breakdown.take(3).forEach { sender ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        getSenderColor(
-                                            sender.jid,
-                                            referenceSenders,
-                                            senderColorArgbOverrides[senderColorOverrideKey(scopeChatId, sender.jid)]
-                                        )
-                                    )
+                                modifier =
+                                    Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            getSenderColor(
+                                                sender.jid,
+                                                referenceSenders,
+                                                senderColorArgbOverrides[senderColorOverrideKey(scopeChatId, sender.jid)],
+                                            ),
+                                        ),
                             )
                             Spacer(Modifier.width(6.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
                                     text = sender.displayName,
@@ -329,14 +341,14 @@ private fun ChartPointBubble(
                                     color = secondaryColor,
                                     fontSize = 10.sp,
                                     maxLines = 1,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(1f),
                                 )
                                 Text(
                                     text = "${sender.count}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = onBubbleColor,
                                     fontSize = 10.sp,
-                                    modifier = Modifier.padding(start = 8.dp)
+                                    modifier = Modifier.padding(start = 8.dp),
                                 )
                             }
                         }
@@ -348,7 +360,7 @@ private fun ChartPointBubble(
                             style = MaterialTheme.typography.labelSmall,
                             color = secondaryColor,
                             fontSize = 9.sp,
-                            modifier = Modifier.padding(top = 4.dp)
+                            modifier = Modifier.padding(top = 4.dp),
                         )
                     }
                 }
@@ -356,12 +368,13 @@ private fun ChartPointBubble(
         }
 
         Canvas(modifier = Modifier.size(width = 12.dp, height = 8.dp)) {
-            val path = Path().apply {
-                moveTo(0f, 0f)
-                lineTo(size.width, 0f)
-                lineTo(size.width / 2f, size.height)
-                close()
-            }
+            val path =
+                Path().apply {
+                    moveTo(0f, 0f)
+                    lineTo(size.width, 0f)
+                    lineTo(size.width / 2f, size.height)
+                    close()
+                }
             drawPath(path = path, color = bubbleColor)
         }
     }

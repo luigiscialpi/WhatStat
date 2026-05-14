@@ -1,23 +1,21 @@
 package com.whatstat.reborn.ui.navigation
 
-import androidx.compose.foundation.layout.PaddingValues
+import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavGraphBuilder
 import androidx.compose.ui.res.stringResource
-import com.whatstat.reborn.R
-import androidx.navigation.NavBackStackEntry
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -25,30 +23,28 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
-import android.net.Uri
+import com.whatstat.reborn.R
 import com.whatstat.reborn.data.repository.WhatsAppRepository
+import com.whatstat.reborn.ui.MainViewModel
+import com.whatstat.reborn.ui.component.DoubleBackToExitHandler
 import com.whatstat.reborn.ui.screen.calls.CallsStatsScreen
 import com.whatstat.reborn.ui.screen.chatdetail.ChatDetailScreen
 import com.whatstat.reborn.ui.screen.chatlist.ChatListScreen
 import com.whatstat.reborn.ui.screen.dashboard.DashboardScreen
-import com.whatstat.reborn.ui.screen.home.AppScaffold
-import com.whatstat.reborn.ui.screen.media.MediaStatsScreen
-import com.whatstat.reborn.ui.screen.setup.SetupScreen
-import com.whatstat.reborn.ui.screen.setup.LiteSetupViewModel
-import com.whatstat.reborn.ui.screen.setup.SenderSelectionDialog
-import com.whatstat.reborn.ui.screen.wordsearch.WordSearchScreen
 import com.whatstat.reborn.ui.screen.history.GroupHistoryScreen
-import com.whatstat.reborn.ui.MainViewModel
-import androidx.compose.runtime.collectAsState
+import com.whatstat.reborn.ui.screen.home.AppScaffold
+import com.whatstat.reborn.ui.screen.media.mediaStatsScreen
+import com.whatstat.reborn.ui.screen.setup.LiteSetupViewModel
+import com.whatstat.reborn.ui.screen.setup.senderSelectionDialog
+import com.whatstat.reborn.ui.screen.setup.setupScreen
+import com.whatstat.reborn.ui.screen.wordsearch.WordSearchScreen
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.filterNotNull
-import com.whatstat.reborn.ui.component.DoubleBackToExitHandler
 
 sealed class Screen(val route: String) {
     data object Setup : Screen("setup?autoNavigate={autoNavigate}") {
         fun createRoute(autoNavigate: Boolean = true) = "setup?autoNavigate=$autoNavigate"
     }
+
     data object LiteSetup : Screen("lite_setup") {
         fun createRoute(zipUri: String? = null): String {
             return if (zipUri != null) {
@@ -58,8 +54,11 @@ sealed class Screen(val route: String) {
             }
         }
     }
+
     data object Dashboard : Screen("dashboard")
+
     data object ChatList : Screen("chat_list")
+
     data object LiteSetupAdd : Screen("lite_setup_add") {
         fun createRoute(zipUri: String? = null): String {
             return if (zipUri != null) {
@@ -92,26 +91,27 @@ sealed class Screen(val route: String) {
 }
 
 object NavGraphRoute {
-    const val Setup    = "setup_graph"
-    const val Root     = "root_mode_graph"
-    const val Lite     = "lite_mode_graph"
+    const val SETUP = "setup_graph"
+    const val ROOT = "root_mode_graph"
+    const val LITE = "lite_mode_graph"
+
     // sub-graph shared keys
-    const val Overview = "overview_graph"
-    const val Chats    = "chats_graph"
-    const val Media    = "media_graph"
-    const val Radar    = "radar_graph"
-    const val Calls    = "calls_graph"
+    const val OVERVIEW = "overview_graph"
+    const val CHATS = "chats_graph"
+    const val MEDIA = "media_graph"
+    const val RADAR = "radar_graph"
+    const val CALLS = "calls_graph"
 }
 
 @Composable
-fun AppNavigation(
+fun appNavigation(
     navController: NavHostController,
     repository: WhatsAppRepository,
-    mainViewModel: MainViewModel
+    mainViewModel: MainViewModel,
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    
+
     val isLiteMode by mainViewModel.isLiteMode.collectAsState()
 
     // Quando arriva un URI da share intent e NON siamo su Setup,
@@ -131,26 +131,26 @@ fun AppNavigation(
     AppScaffold(
         navController = navController,
         currentDestination = currentDestination,
-        isLiteMode = isLiteMode
+        isLiteMode = isLiteMode,
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = NavGraphRoute.Setup,
+            startDestination = NavGraphRoute.SETUP,
             route = "app_graph",
-            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
+            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
         ) {
             setupGraph(
                 navController = navController,
                 mainViewModel = mainViewModel,
                 resolveTargetGraph = {
-                    if (mainViewModel.isLiteMode.value) NavGraphRoute.Lite else NavGraphRoute.Root
-                }
+                    if (mainViewModel.isLiteMode.value) NavGraphRoute.LITE else NavGraphRoute.ROOT
+                },
             )
             rootModeGraph(navController, repository)
             liteModeGraph(
                 navController = navController,
                 mainViewModel = mainViewModel,
-                onResetLite = { mainViewModel.resetLiteMode() }
+                onResetLite = { mainViewModel.resetLiteMode() },
             )
         }
     }
@@ -159,41 +159,42 @@ fun AppNavigation(
 private fun NavGraphBuilder.setupGraph(
     navController: NavHostController,
     mainViewModel: MainViewModel,
-    resolveTargetGraph: () -> String
+    resolveTargetGraph: () -> String,
 ) {
     navigation(
         startDestination = Screen.Setup.route,
-        route = NavGraphRoute.Setup
+        route = NavGraphRoute.SETUP,
     ) {
         composable(
             route = Screen.Setup.route,
-            arguments = listOf(
-                navArgument("autoNavigate") {
-                    type = NavType.BoolType
-                    defaultValue = true
-                }
-            )
+            arguments =
+                listOf(
+                    navArgument("autoNavigate") {
+                        type = NavType.BoolType
+                        defaultValue = true
+                    },
+                ),
         ) { backStackEntry ->
             val autoNavigate = backStackEntry.arguments?.getBoolean("autoNavigate", true) ?: true
             val incomingZipUri by mainViewModel.incomingZipUri.collectAsState()
-            SetupScreen(
+            setupScreen(
                 autoNavigate = autoNavigate,
                 incomingZipUri = incomingZipUri,
                 onUriConsumed = { mainViewModel.setIncomingZipUri(null) },
                 onSetupComplete = {
                     val target = resolveTargetGraph()
                     navController.navigate(target) {
-                        popUpTo(NavGraphRoute.Setup) { inclusive = false }
+                        popUpTo(NavGraphRoute.SETUP) { inclusive = false }
                         launchSingleTop = true
                     }
                 },
                 onNavigateToDashboard = {
                     val target = resolveTargetGraph()
                     navController.navigate(target) {
-                        popUpTo(NavGraphRoute.Setup) { inclusive = false }
+                        popUpTo(NavGraphRoute.SETUP) { inclusive = false }
                         launchSingleTop = true
                     }
-                }
+                },
             )
         }
     }
@@ -203,15 +204,15 @@ private fun NavGraphBuilder.setupGraph(
 
 private fun NavGraphBuilder.rootModeGraph(
     navController: NavHostController,
-    repository: WhatsAppRepository
+    repository: WhatsAppRepository,
 ) {
     navigation(
-        startDestination = NavGraphRoute.Overview,
-        route = NavGraphRoute.Root
+        startDestination = NavGraphRoute.OVERVIEW,
+        route = NavGraphRoute.ROOT,
     ) {
         navigation(
             startDestination = Screen.Dashboard.route,
-            route = NavGraphRoute.Overview
+            route = NavGraphRoute.OVERVIEW,
         ) {
             composable(Screen.Dashboard.route) {
                 val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -224,14 +225,14 @@ private fun NavGraphBuilder.rootModeGraph(
                                 launchSingleTop = true
                             }
                         }
-                    }
+                    },
                 )
             }
         }
 
         navigation(
             startDestination = Screen.ChatList.route,
-            route = NavGraphRoute.Chats
+            route = NavGraphRoute.CHATS,
         ) {
             composable(Screen.ChatList.route) {
                 DoubleBackToExitHandler()
@@ -240,8 +241,9 @@ private fun NavGraphBuilder.rootModeGraph(
                         navController.navigate(Screen.ChatDetail.createRoute(chatId))
                     },
                     onNavigateBack = { navController.popBackStack() },
-                    onImportChat = {},  // non disponibile in Root mode
-                    onAllChatsDeleted = {}
+                    // non disponibile in Root mode
+                    onImportChat = {},
+                    onAllChatsDeleted = {},
                 )
             }
 
@@ -250,17 +252,17 @@ private fun NavGraphBuilder.rootModeGraph(
 
         navigation(
             startDestination = Screen.MediaStats.route,
-            route = NavGraphRoute.Media
+            route = NavGraphRoute.MEDIA,
         ) {
             composable(Screen.MediaStats.route) {
                 DoubleBackToExitHandler()
-                MediaStatsScreen(chatId = null, onNavigateBack = {})
+                mediaStatsScreen(chatId = null, onNavigateBack = {})
             }
         }
 
         navigation(
             startDestination = Screen.WordSearch.route,
-            route = NavGraphRoute.Radar
+            route = NavGraphRoute.RADAR,
         ) {
             composable(Screen.WordSearch.route) {
                 DoubleBackToExitHandler()
@@ -270,7 +272,7 @@ private fun NavGraphBuilder.rootModeGraph(
 
         navigation(
             startDestination = Screen.CallsStats.route,
-            route = NavGraphRoute.Calls
+            route = NavGraphRoute.CALLS,
         ) {
             composable(Screen.CallsStats.route) {
                 DoubleBackToExitHandler()
@@ -285,15 +287,15 @@ private fun NavGraphBuilder.rootModeGraph(
 private fun NavGraphBuilder.liteModeGraph(
     navController: NavHostController,
     mainViewModel: MainViewModel,
-    onResetLite: () -> Unit
+    onResetLite: () -> Unit,
 ) {
     navigation(
-        startDestination = NavGraphRoute.Overview,
-        route = NavGraphRoute.Lite
+        startDestination = NavGraphRoute.OVERVIEW,
+        route = NavGraphRoute.LITE,
     ) {
         navigation(
             startDestination = Screen.Dashboard.route,
-            route = NavGraphRoute.Overview
+            route = NavGraphRoute.OVERVIEW,
         ) {
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
@@ -303,14 +305,14 @@ private fun NavGraphBuilder.liteModeGraph(
                             popUpTo("app_graph") { inclusive = false }
                             launchSingleTop = true
                         }
-                    }
+                    },
                 )
             }
         }
 
         navigation(
             startDestination = Screen.ChatList.route,
-            route = NavGraphRoute.Chats
+            route = NavGraphRoute.CHATS,
         ) {
             composable(Screen.ChatList.route) {
                 DoubleBackToExitHandler()
@@ -326,26 +328,27 @@ private fun NavGraphBuilder.liteModeGraph(
                         navController.navigate(Screen.Setup.route) {
                             popUpTo("app_graph") { inclusive = false }
                         }
-                    }
+                    },
                 )
             }
 
             // Route esclusiva Lite per aggiungere una chat ZIP
             composable(
                 route = "lite_setup_add?zipUri={zipUri}",
-                arguments = listOf(
-                    navArgument("zipUri") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    }
-                )
+                arguments =
+                    listOf(
+                        navArgument("zipUri") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                    ),
             ) { backStackEntry ->
                 val zipUri = backStackEntry.arguments?.getString("zipUri")?.let { Uri.decode(it) }
                 AddChatZipScreen(
                     incomingZipUri = zipUri,
                     onNavigateBack = { navController.popBackStack() },
-                    onImportComplete = { navController.popBackStack() }
+                    onImportComplete = { navController.popBackStack() },
                 )
             }
 
@@ -354,17 +357,17 @@ private fun NavGraphBuilder.liteModeGraph(
 
         navigation(
             startDestination = Screen.MediaStats.route,
-            route = NavGraphRoute.Media
+            route = NavGraphRoute.MEDIA,
         ) {
             composable(Screen.MediaStats.route) {
                 DoubleBackToExitHandler()
-                MediaStatsScreen(chatId = null, onNavigateBack = {})
+                mediaStatsScreen(chatId = null, onNavigateBack = {})
             }
         }
 
         navigation(
             startDestination = Screen.WordSearch.route,
-            route = NavGraphRoute.Radar
+            route = NavGraphRoute.RADAR,
         ) {
             composable(Screen.WordSearch.route) {
                 DoubleBackToExitHandler()
@@ -379,7 +382,7 @@ private fun NavGraphBuilder.liteModeGraph(
 private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostController) {
     composable(
         route = Screen.ChatDetail.route,
-        arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+        arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId") ?: return@composable
         ChatDetailScreen(
@@ -396,13 +399,13 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostControl
             },
             onNavigateToHistory = {
                 navController.navigate(Screen.GroupHistory.createRoute(chatId))
-            }
+            },
         )
     }
 
     composable(
         route = "${Screen.WordSearch.route}/{chatId}",
-        arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+        arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId")
         WordSearchScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() })
@@ -410,7 +413,7 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostControl
 
     composable(
         route = "${Screen.CallsStats.route}/{chatId}",
-        arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+        arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId")
         CallsStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() })
@@ -418,15 +421,15 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostControl
 
     composable(
         route = "${Screen.MediaStats.route}/{chatId}",
-        arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+        arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId")
-        MediaStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() })
+        mediaStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() })
     }
 
     composable(
         route = "${Screen.GroupHistory.route}/{chatId}",
-        arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+        arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId")
         GroupHistoryScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() })
@@ -437,11 +440,12 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostControl
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("FunctionName")
 private fun AddChatZipScreen(
     incomingZipUri: String? = null,
     viewModel: LiteSetupViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onImportComplete: () -> Unit
+    onImportComplete: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -456,9 +460,10 @@ private fun AddChatZipScreen(
 
     // Lancia il picker automaticamente all'apertura della schermata.
     // L'URI rimane nell'Activity context — nessuna serializzazione nel route.
-    val zipLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
-    ) { uri -> uri?.let { viewModel.onZipSelected(it) } }
+    val zipLauncher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            contract = androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
+        ) { uri -> uri?.let { viewModel.onZipSelected(it) } }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         if (incomingZipUri == null && !viewModel.state.value.isLoading) {
@@ -474,50 +479,53 @@ private fun AddChatZipScreen(
                     if (!state.isLoading && !state.showSenderSelection) {
                         androidx.compose.material3.IconButton(onClick = onNavigateBack) {
                             androidx.compose.material3.Icon(
-                                androidx.compose.material.icons.Icons.Default.ArrowBack,
-                                contentDescription = stringResource(R.string.back_button_desc)
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.back_button_desc),
                             )
                         }
                     }
-                }
+                },
             )
-        }
+        },
     ) { padding ->
         androidx.compose.foundation.layout.Box(
-            modifier = androidx.compose.ui.Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentAlignment = androidx.compose.ui.Alignment.Center
+            modifier =
+                androidx.compose.ui.Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+            contentAlignment = androidx.compose.ui.Alignment.Center,
         ) {
             androidx.compose.foundation.layout.Column(
-                modifier = androidx.compose.ui.Modifier
-                    .fillMaxWidth()
-                    .padding(32.dp),
+                modifier =
+                    androidx.compose.ui.Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
                 horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
             ) {
                 if (state.isLoading) {
                     androidx.compose.material3.Text(
                         text = state.progressLabel.ifEmpty { stringResource(R.string.processing_label) },
                         style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                        color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     androidx.compose.material3.LinearProgressIndicator(
                         progress = { state.progressPercent },
-                        modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+                        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
                     )
                     androidx.compose.material3.Text(
                         text = "${(state.progressPercent * 100).toInt()}%",
                         style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
-                        color = androidx.compose.material3.MaterialTheme.colorScheme.primary
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
                     )
                 } else {
                     androidx.compose.material3.Button(
                         onClick = { zipLauncher.launch(arrayOf("application/zip")) },
-                        modifier = androidx.compose.ui.Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                        modifier =
+                            androidx.compose.ui.Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
                     ) {
                         androidx.compose.material3.Text(stringResource(R.string.select_zip_file))
                     }
@@ -525,7 +533,7 @@ private fun AddChatZipScreen(
                 state.error?.let {
                     androidx.compose.material3.Text(
                         it,
-                        color = androidx.compose.material3.MaterialTheme.colorScheme.error
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.error,
                     )
                 }
             }
@@ -533,9 +541,9 @@ private fun AddChatZipScreen(
     }
 
     if (state.showSenderSelection) {
-        SenderSelectionDialog(
+        senderSelectionDialog(
             senders = state.identifiedSenders,
-            onSenderSelected = { viewModel.onSenderSelected(it) }
+            onSenderSelected = { viewModel.onSenderSelected(it) },
         )
     }
 }

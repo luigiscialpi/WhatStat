@@ -1,21 +1,28 @@
 package com.whatstat.reborn.ui.screen.chatdetail
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,70 +31,55 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.CallReceived
+import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.EmojiEmotions
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TextFields
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.EmojiEmotions
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.core.tween
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.res.stringResource
-import com.whatstat.reborn.R
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -97,45 +89,46 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.whatstat.reborn.data.db.model.TimeRange
+import com.whatstat.reborn.R
 import com.whatstat.reborn.data.db.model.SenderStat
-import com.whatstat.reborn.ui.theme.getSenderColor
-import com.whatstat.reborn.ui.theme.senderColorOverrideKey
+import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.ActivityRecapCard
-import com.whatstat.reborn.ui.component.SenderColorPickerDialog
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
-import com.whatstat.reborn.ui.component.DateRangePicker
-import com.whatstat.reborn.ui.component.LoadingSection
-import com.whatstat.reborn.ui.component.TimeRangeFilterRow
-import com.whatstat.reborn.ui.component.InteractiveHourlyHeatmap
-import com.whatstat.reborn.ui.component.StatCard
 import com.whatstat.reborn.ui.component.DateRangeCard
-import com.whatstat.reborn.ui.component.WordCloudView
-import com.whatstat.reborn.ui.component.InteractiveWordCloud
+import com.whatstat.reborn.ui.component.EmojiPreviewModal
 import com.whatstat.reborn.ui.component.InteractiveEmojiCloud
 import com.whatstat.reborn.ui.component.InteractiveStickerCloud
+import com.whatstat.reborn.ui.component.InteractiveWordCloud
 import com.whatstat.reborn.ui.component.LoadingSection
-import com.whatstat.reborn.ui.component.EmojiPreviewModal
-import com.whatstat.reborn.ui.component.StickerPreviewModal
-import com.whatstat.reborn.ui.component.ZoomableImageViewer
 import com.whatstat.reborn.ui.component.MilestonePredictionCard
+import com.whatstat.reborn.ui.component.SenderColorPickerDialog
 import com.whatstat.reborn.ui.component.ShimmerBox
+import com.whatstat.reborn.ui.component.StatCard
+import com.whatstat.reborn.ui.component.StickerPreviewModal
+import com.whatstat.reborn.ui.component.TimeRangeFilterRow
+import com.whatstat.reborn.ui.component.ZoomableImageViewer
 import com.whatstat.reborn.ui.component.rememberShimmerBrush
+import com.whatstat.reborn.ui.theme.getSenderColor
+import com.whatstat.reborn.ui.theme.senderColorOverrideKey
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.atan2
@@ -143,13 +136,11 @@ import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.sin
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 private val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
 @Composable
+@Suppress("FunctionName")
 fun ChatDetailScreen(
     chatId: Long,
     viewModel: ChatDetailViewModel = hiltViewModel(),
@@ -157,7 +148,7 @@ fun ChatDetailScreen(
     onNavigateToWordSearch: () -> Unit = {},
     onNavigateToCalls: () -> Unit = {},
     onNavigateToMedia: () -> Unit = {},
-    onNavigateToHistory: () -> Unit = {}
+    onNavigateToHistory: () -> Unit = {},
 ) {
     val stats by viewModel.chatStats.collectAsState()
     val headerInfo by viewModel.headerInfo.collectAsState()
@@ -207,36 +198,39 @@ fun ChatDetailScreen(
     val senderColorArgbOverrides by viewModel.senderColorArgbOverrides.collectAsState()
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Final)
-                        if (event.changes.any { it.changedToUp() }) {
-                            chartDismissSignal++
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Final)
+                            if (event.changes.any { it.changedToUp() }) {
+                                chartDismissSignal++
+                            }
                         }
                     }
-                }
-            }
+                },
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding(),
         ) {
             // ── Header ───────────────────────────────────────────────
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.back_desc),
-                        tint = MaterialTheme.colorScheme.onBackground
+                        tint = MaterialTheme.colorScheme.onBackground,
                     )
                 }
 
@@ -244,54 +238,59 @@ fun ChatDetailScreen(
                     val s = stats!!
                     if (s.avatarPath != null) {
                         AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(java.io.File(s.avatarPath))
-                                .crossfade(true)
-                                .build(),
+                            model =
+                                ImageRequest.Builder(LocalContext.current)
+                                    .data(java.io.File(s.avatarPath))
+                                    .crossfade(true)
+                                    .build(),
                             contentDescription = stringResource(R.string.avatar_desc),
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .clickable {
-                                    zoomAvatarPath = s.avatarPath
-                                    showAvatarZoom = true
-                                },
-                            contentScale = ContentScale.Crop
+                            modifier =
+                                Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        zoomAvatarPath = s.avatarPath
+                                        showAvatarZoom = true
+                                    },
+                            contentScale = ContentScale.Crop,
                         )
                     } else {
                         Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentAlignment = Alignment.Center
+                            modifier =
+                                Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 if (s.isGroup) Icons.Outlined.Group else Icons.Outlined.Person,
                                 contentDescription = null,
                                 modifier = Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(
-                        modifier = Modifier.clickable(enabled = s.avatarPath != null) {
-                            zoomAvatarPath = s.avatarPath
-                            showAvatarZoom = true
-                        }
+                        modifier =
+                            Modifier.clickable(enabled = s.avatarPath != null) {
+                                zoomAvatarPath = s.avatarPath
+                                showAvatarZoom = true
+                            },
                     ) {
                         ContactNameWithPhone(
                             name = s.contactName,
                             jid = s.jid,
-                            nameStyle = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            nameStyle =
+                                MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                ),
                         )
                         Text(
                             stringResource(R.string.messages_count_suffix, s.totalMessages),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 } else {
@@ -301,29 +300,32 @@ fun ChatDetailScreen(
                     if (hi != null) {
                         if (hi.avatarPath != null) {
                             AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(java.io.File(hi.avatarPath))
-                                    .crossfade(true)
-                                    .build(),
+                                model =
+                                    ImageRequest.Builder(LocalContext.current)
+                                        .data(java.io.File(hi.avatarPath))
+                                        .crossfade(true)
+                                        .build(),
                                 contentDescription = stringResource(R.string.avatar_desc),
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
+                                modifier =
+                                    Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape),
+                                contentScale = ContentScale.Crop,
                             )
                         } else {
                             Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
+                                modifier =
+                                    Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
                                     if (hi.isGroup) Icons.Outlined.Group else Icons.Outlined.Person,
                                     contentDescription = null,
                                     modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
@@ -332,11 +334,11 @@ fun ChatDetailScreen(
                             Text(
                                 hi.name,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                             ShimmerBox(
                                 modifier = Modifier.width(80.dp).height(10.dp),
-                                brush = shimmerBrush
+                                brush = shimmerBrush,
                             )
                         }
                     } else {
@@ -344,7 +346,7 @@ fun ChatDetailScreen(
                         ShimmerBox(
                             modifier = Modifier.size(40.dp),
                             brush = shimmerBrush,
-                            shape = CircleShape
+                            shape = CircleShape,
                         )
                         Spacer(Modifier.width(12.dp))
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -356,16 +358,17 @@ fun ChatDetailScreen(
             }
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(4.dp),
             ) {
                 if (isLoading) {
                     val p = progress
                     if (p != null) {
                         LinearProgressIndicator(
                             progress = { p / 100f },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     } else {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -381,7 +384,7 @@ fun ChatDetailScreen(
                     customDateRange = customDateRange,
                     onDateRangeChanged = { viewModel.setCustomDateRange(it) },
                     onSubmitClicked = { viewModel.applyCustomDateRange() },
-                    minDate = firstMessageTimestamp
+                    minDate = firstMessageTimestamp,
                 )
             }
 
@@ -394,7 +397,7 @@ fun ChatDetailScreen(
                             text = errorMsg ?: stringResource(R.string.error_unknown, ""),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(16.dp)
+                            modifier = Modifier.padding(16.dp),
                         )
                     }
                 }
@@ -402,7 +405,7 @@ fun ChatDetailScreen(
                 val s = stats!!
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     // ── 3. Sent / Received ───────────────────────────────────
                     item {
@@ -411,13 +414,13 @@ fun ChatDetailScreen(
                                 modifier = Modifier.weight(1f),
                                 label = stringResource(R.string.chatdetail_sent),
                                 value = "%,d".format(s.sentByMe),
-                                icon = Icons.AutoMirrored.Filled.Send
+                                icon = Icons.AutoMirrored.Filled.Send,
                             )
                             StatCard(
                                 modifier = Modifier.weight(1f),
                                 label = stringResource(R.string.chatdetail_received),
                                 value = "%,d".format(s.receivedFromThem),
-                                icon = Icons.Filled.CallReceived
+                                icon = Icons.AutoMirrored.Filled.CallReceived,
                             )
                         }
                     }
@@ -444,22 +447,23 @@ fun ChatDetailScreen(
 
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.height(IntrinsicSize.Min)
+                            modifier = Modifier.height(IntrinsicSize.Min),
                         ) {
                             StatCard(
                                 modifier = Modifier.weight(1f),
                                 label = stringResource(R.string.chatdetail_words_per_msg),
                                 value = avgWords,
                                 subtitle = wordsSubtitle,
-                                icon = Icons.Outlined.TextFields
+                                icon = Icons.Outlined.TextFields,
                             )
                             if (isLoadingSlow) {
                                 ShimmerBox(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
+                                    modifier =
+                                        Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight(),
                                     brush = rememberShimmerBrush(),
-                                    shape = RoundedCornerShape(16.dp)
+                                    shape = RoundedCornerShape(16.dp),
                                 )
                             } else {
                                 StatCard(
@@ -467,7 +471,7 @@ fun ChatDetailScreen(
                                     label = stringResource(R.string.chatdetail_emoji_per_msg),
                                     value = avgEmojis,
                                     subtitle = emojisSubtitle,
-                                    icon = Icons.Outlined.EmojiEmotions
+                                    icon = Icons.Outlined.EmojiEmotions,
                                 )
                             }
                         }
@@ -477,7 +481,7 @@ fun ChatDetailScreen(
                     item {
                         SectionCard(
                             title = stringResource(R.string.chatdetail_top_sender_title),
-                            onInfoClick = { showTopSendersInfoDialog = true }
+                            onInfoClick = { showTopSendersInfoDialog = true },
                         ) {
                             if (s.senderBreakdown.isNotEmpty()) {
                                 MessagePieChart(
@@ -487,16 +491,17 @@ fun ChatDetailScreen(
                                     totalMessages = s.totalMessages,
                                     senderColorArgbOverrides = senderColorArgbOverrides,
                                     onLegendColorClick = { colorPickerSender = it },
-                                    dismissSignal = chartDismissSignal
+                                    dismissSignal = chartDismissSignal,
                                 )
                             } else if (isLoadingSlow) {
                                 LoadingSection(progress = progressSlow)
                             } else {
                                 val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
-                                val fallbackSenders = listOf(
-                                    SenderStat("me", stringResource(R.string.fallback_me), s.sentByMe),
-                                    SenderStat("other", otherName, s.receivedFromThem)
-                                )
+                                val fallbackSenders =
+                                    listOf(
+                                        SenderStat("me", stringResource(R.string.fallback_me), s.sentByMe),
+                                        SenderStat("other", otherName, s.receivedFromThem),
+                                    )
                                 MessagePieChart(
                                     chatId = chatId,
                                     senders = fallbackSenders,
@@ -504,7 +509,7 @@ fun ChatDetailScreen(
                                     totalMessages = s.totalMessages,
                                     senderColorArgbOverrides = senderColorArgbOverrides,
                                     onLegendColorClick = { colorPickerSender = it },
-                                    dismissSignal = chartDismissSignal
+                                    dismissSignal = chartDismissSignal,
                                 )
                             }
                         }
@@ -521,7 +526,7 @@ fun ChatDetailScreen(
                             referenceSenders = s.senderBreakdown,
                             scopeChatId = chatId,
                             senderColorArgbOverrides = senderColorArgbOverrides,
-                            dismissSignal = chartDismissSignal
+                            dismissSignal = chartDismissSignal,
                         )
                     }
 
@@ -529,7 +534,7 @@ fun ChatDetailScreen(
                     item {
                         Row(
                             modifier = Modifier.height(IntrinsicSize.Min),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             DateRangeCard(
                                 modifier = Modifier.weight(1f),
@@ -538,15 +543,16 @@ fun ChatDetailScreen(
                                 endTimestamp = s.lastMessageDate,
                                 dateFormatter = dateFormatter,
                                 icon = Icons.Outlined.CalendarMonth,
-                                isSmallText = true
+                                isSmallText = true,
                             )
                             if (isLoadingSlow) {
                                 ShimmerBox(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
+                                    modifier =
+                                        Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight(),
                                     brush = rememberShimmerBrush(),
-                                    shape = RoundedCornerShape(16.dp)
+                                    shape = RoundedCornerShape(16.dp),
                                 )
                             } else {
                                 StatCard(
@@ -554,7 +560,7 @@ fun ChatDetailScreen(
                                     label = stringResource(R.string.avg_response_time),
                                     value = formatDuration(s.averageResponseTimeMs),
                                     icon = Icons.Outlined.AccessTime,
-                                    isSmallText = true
+                                    isSmallText = true,
                                 )
                             }
                         }
@@ -567,14 +573,14 @@ fun ChatDetailScreen(
                                 label = stringResource(R.string.stat_total_media),
                                 value = "%,d".format(s.mediaCount),
                                 icon = Icons.Outlined.PhotoLibrary,
-                                isSmallText = true
+                                isSmallText = true,
                             )
                             StatCard(
                                 modifier = Modifier.weight(1f),
                                 label = stringResource(R.string.media_length_label),
                                 value = "%.0f ${stringResource(R.string.chars_abbr)}".format(s.averageMessageLength),
                                 icon = Icons.Outlined.TextFields,
-                                isSmallText = true
+                                isSmallText = true,
                             )
                         }
                     }
@@ -583,7 +589,7 @@ fun ChatDetailScreen(
                     item {
                         SectionCard(
                             title = stringResource(R.string.conv_starters_title),
-                            onInfoClick = { showInfoDialog = true }
+                            onInfoClick = { showInfoDialog = true },
                         ) {
                             if (s.conversationStarterBreakdown.isNotEmpty()) {
                                 val breakdownTotal = s.conversationStarterBreakdown.sumOf { it.count }.coerceAtLeast(1)
@@ -595,18 +601,20 @@ fun ChatDetailScreen(
                                     senderColorArgbOverrides = senderColorArgbOverrides,
                                     onLegendColorClick = { colorPickerSender = it },
                                     dismissSignal = chartDismissSignal,
-                                    centerLabel = stringResource(R.string.conv_starters_center)
+                                    centerLabel = stringResource(R.string.conv_starters_center),
                                 )
                             } else if (isLoadingSlow) {
                                 LoadingSection(progress = progressSlow)
                             } else {
-                                val starterTotal = (s.iStartedConversations + s.theyStartedConversations)
-                                    .coerceAtLeast(1)
+                                val starterTotal =
+                                    (s.iStartedConversations + s.theyStartedConversations)
+                                        .coerceAtLeast(1)
                                 val otherName = if (!s.isGroup) s.contactName else stringResource(R.string.fallback_them)
-                                val starterSyn = listOf(
-                                    SenderStat("me", stringResource(R.string.fallback_me), s.iStartedConversations),
-                                    SenderStat("other", otherName, s.theyStartedConversations)
-                                )
+                                val starterSyn =
+                                    listOf(
+                                        SenderStat("me", stringResource(R.string.fallback_me), s.iStartedConversations),
+                                        SenderStat("other", otherName, s.theyStartedConversations),
+                                    )
                                 MessagePieChart(
                                     chatId = chatId,
                                     senders = starterSyn,
@@ -615,7 +623,7 @@ fun ChatDetailScreen(
                                     senderColorArgbOverrides = senderColorArgbOverrides,
                                     onLegendColorClick = { colorPickerSender = it },
                                     dismissSignal = chartDismissSignal,
-                                    centerLabel = stringResource(R.string.conv_starters_center)
+                                    centerLabel = stringResource(R.string.conv_starters_center),
                                 )
                             }
                         }
@@ -625,16 +633,31 @@ fun ChatDetailScreen(
                     item {
                         MilestonePredictionCard(
                             state = s.milestonePredictionState,
-                            periodLabel = if (selectedRange != TimeRange.ALL_TIME) {
-                                stringResource(R.string.prediction_period_filtered_label)
-                            } else null
+                            periodLabel =
+                                if (selectedRange != TimeRange.ALL_TIME) {
+                                    stringResource(R.string.prediction_period_filtered_label)
+                                } else {
+                                    null
+                                },
                         )
                     }
 
                     // ── 10. Analisi Testi (Parole / Emoji / Sticker) ─────────
                     // In Lite mode lo Sticker tab viene nascosto.
                     item {
-                        val tabs = if (isLiteMode) listOf(stringResource(R.string.tab_words), stringResource(R.string.tab_emojis)) else listOf(stringResource(R.string.tab_words), stringResource(R.string.tab_emojis), stringResource(R.string.tab_stickers))
+                        val tabs =
+                            if (isLiteMode) {
+                                listOf(
+                                    stringResource(R.string.tab_words),
+                                    stringResource(R.string.tab_emojis),
+                                )
+                            } else {
+                                listOf(
+                                    stringResource(R.string.tab_words),
+                                    stringResource(R.string.tab_emojis),
+                                    stringResource(R.string.tab_stickers),
+                                )
+                            }
                         var selectedTab by remember { mutableIntStateOf(0) }
                         if (selectedTab >= tabs.size) selectedTab = 0
 
@@ -643,51 +666,62 @@ fun ChatDetailScreen(
                             trailingContent = {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
-                                    val limits = when (selectedTab) {
-                                        0 -> listOf(10, 20, 30, 50)
-                                        1 -> listOf(10, 20, 30, 50)
-                                        else -> listOf(10, 20, 30, 50)
-                                    }
-                                    val currentLimit = when (selectedTab) {
-                                        0 -> topWordsLimit
-                                        1 -> topEmojiLimit
-                                        else -> topStickerLimit
-                                    }
-                                    val onLimitChange: (Int) -> Unit = when (selectedTab) {
-                                        0 -> { l -> viewModel.setTopWordsLimit(l) }
-                                        1 -> { l -> viewModel.setTopEmojiLimit(l) }
-                                        else -> { l -> viewModel.setTopStickerLimit(l) }
-                                    }
+                                    val limits =
+                                        when (selectedTab) {
+                                            0 -> listOf(10, 20, 30, 50)
+                                            1 -> listOf(10, 20, 30, 50)
+                                            else -> listOf(10, 20, 30, 50)
+                                        }
+                                    val currentLimit =
+                                        when (selectedTab) {
+                                            0 -> topWordsLimit
+                                            1 -> topEmojiLimit
+                                            else -> topStickerLimit
+                                        }
+                                    val onLimitChange: (Int) -> Unit =
+                                        when (selectedTab) {
+                                            0 -> { l -> viewModel.setTopWordsLimit(l) }
+                                            1 -> { l -> viewModel.setTopEmojiLimit(l) }
+                                            else -> { l -> viewModel.setTopStickerLimit(l) }
+                                        }
                                     limits.forEach { limit ->
                                         Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(
-                                                    if (currentLimit == limit) MaterialTheme.colorScheme.primary
-                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                                )
-                                                .clickable { onLimitChange(limit) }
-                                                .padding(horizontal = 8.dp, vertical = 2.dp),
-                                            contentAlignment = Alignment.Center
+                                            modifier =
+                                                Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(
+                                                        if (currentLimit == limit) {
+                                                            MaterialTheme.colorScheme.primary
+                                                        } else {
+                                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                        },
+                                                    )
+                                                    .clickable { onLimitChange(limit) }
+                                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                                            contentAlignment = Alignment.Center,
                                         ) {
                                             Text(
                                                 limit.toString(),
                                                 style = MaterialTheme.typography.labelMedium,
-                                                color = if (currentLimit == limit) MaterialTheme.colorScheme.onPrimary
-                                                        else MaterialTheme.colorScheme.onSurfaceVariant
+                                                color =
+                                                    if (currentLimit == limit) {
+                                                        MaterialTheme.colorScheme.onPrimary
+                                                    } else {
+                                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                                    },
                                             )
                                         }
                                     }
                                 }
-                            }
+                            },
                         ) {
                             val sharedIndicator: @Composable (List<androidx.compose.material3.TabPosition>) -> Unit = { tabPositions ->
                                 if (selectedTab < tabPositions.size) {
                                     TabRowDefaults.SecondaryIndicator(
                                         modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                             }
@@ -698,10 +732,14 @@ fun ChatDetailScreen(
                                     contentColor = MaterialTheme.colorScheme.primary,
                                     divider = {},
                                     modifier = Modifier.padding(bottom = 12.dp),
-                                    indicator = sharedIndicator
+                                    indicator = sharedIndicator,
                                 ) {
                                     tabs.forEachIndexed { index, title ->
-                                        Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(title, fontSize = 12.sp) })
+                                        Tab(
+                                            selected = selectedTab == index,
+                                            onClick = { selectedTab = index },
+                                            text = { Text(title, fontSize = 12.sp) },
+                                        )
                                     }
                                 }
                             } else {
@@ -712,63 +750,93 @@ fun ChatDetailScreen(
                                     edgePadding = 0.dp,
                                     divider = {},
                                     modifier = Modifier.padding(bottom = 12.dp),
-                                    indicator = sharedIndicator
+                                    indicator = sharedIndicator,
                                 ) {
                                     tabs.forEachIndexed { index, title ->
-                                        Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(title, fontSize = 12.sp) })
+                                        Tab(
+                                            selected = selectedTab == index,
+                                            onClick = { selectedTab = index },
+                                            text = { Text(title, fontSize = 12.sp) },
+                                        )
                                     }
                                 }
                             }
 
-                            val currentViewModeIsIndividual = when (selectedTab) {
-                                0 -> wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL
-                                1 -> emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL
-                                else -> stickerViewMode == ChatDetailViewModel.StickerViewMode.INDIVIDUAL
-                            }
+                            val currentViewModeIsIndividual =
+                                when (selectedTab) {
+                                    0 -> wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL
+                                    1 -> emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL
+                                    else -> stickerViewMode == ChatDetailViewModel.StickerViewMode.INDIVIDUAL
+                                }
                             val onSwitchMode: (Boolean) -> Unit = { toIndividual ->
                                 when (selectedTab) {
-                                    0 -> viewModel.setWordViewMode(
-                                        if (toIndividual) ChatDetailViewModel.WordViewMode.INDIVIDUAL
-                                        else ChatDetailViewModel.WordViewMode.AGGREGATED
-                                    )
-                                    1 -> viewModel.setEmojiViewMode(
-                                        if (toIndividual) ChatDetailViewModel.EmojiViewMode.INDIVIDUAL
-                                        else ChatDetailViewModel.EmojiViewMode.AGGREGATED
-                                    )
-                                    else -> viewModel.setStickerViewMode(
-                                        if (toIndividual) ChatDetailViewModel.StickerViewMode.INDIVIDUAL
-                                        else ChatDetailViewModel.StickerViewMode.AGGREGATED
-                                    )
+                                    0 ->
+                                        viewModel.setWordViewMode(
+                                            if (toIndividual) {
+                                                ChatDetailViewModel.WordViewMode.INDIVIDUAL
+                                            } else {
+                                                ChatDetailViewModel.WordViewMode.AGGREGATED
+                                            },
+                                        )
+                                    1 ->
+                                        viewModel.setEmojiViewMode(
+                                            if (toIndividual) {
+                                                ChatDetailViewModel.EmojiViewMode.INDIVIDUAL
+                                            } else {
+                                                ChatDetailViewModel.EmojiViewMode.AGGREGATED
+                                            },
+                                        )
+                                    else ->
+                                        viewModel.setStickerViewMode(
+                                            if (toIndividual) {
+                                                ChatDetailViewModel.StickerViewMode.INDIVIDUAL
+                                            } else {
+                                                ChatDetailViewModel.StickerViewMode.AGGREGATED
+                                            },
+                                        )
                                 }
                             }
 
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                    .padding(4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 12.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                        .padding(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                listOf(false to stringResource(R.string.view_mode_all), true to stringResource(R.string.view_mode_person)).forEach { (isIndividual, label) ->
+                                listOf(
+                                    false to stringResource(R.string.view_mode_all),
+                                    true to stringResource(R.string.view_mode_person),
+                                ).forEach {
+                                        (isIndividual, label) ->
                                     Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(
-                                                if (currentViewModeIsIndividual == isIndividual) MaterialTheme.colorScheme.primary
-                                                else Color.Transparent
-                                            )
-                                            .clickable { onSwitchMode(isIndividual) }
-                                            .padding(vertical = 6.dp),
-                                        contentAlignment = Alignment.Center
+                                        modifier =
+                                            Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(
+                                                    if (currentViewModeIsIndividual == isIndividual) {
+                                                        MaterialTheme.colorScheme.primary
+                                                    } else {
+                                                        Color.Transparent
+                                                    },
+                                                )
+                                                .clickable { onSwitchMode(isIndividual) }
+                                                .padding(vertical = 6.dp),
+                                        contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
                                             label,
                                             style = MaterialTheme.typography.labelLarge,
-                                            color = if (currentViewModeIsIndividual == isIndividual) MaterialTheme.colorScheme.onPrimary
-                                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                            color =
+                                                if (currentViewModeIsIndividual == isIndividual) {
+                                                    MaterialTheme.colorScheme.onPrimary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                },
                                         )
                                     }
                                 }
@@ -778,24 +846,33 @@ fun ChatDetailScreen(
                                 stats?.let { s ->
                                     LazyRow(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.padding(bottom = 16.dp)
+                                        modifier = Modifier.padding(bottom = 16.dp),
                                     ) {
                                         // "me" viene sempre mostrato per primo nei chip di selezione persona.
                                         // Il dato grezzo (senderBreakdown) non viene alterato per non
                                         // influenzare altre sezioni come "Chi scrive di piu'".
-                                        val sendersForChips = s.senderBreakdown
-                                            .sortedWith(compareBy { if (it.jid == "me@s.whatsapp.net") 0 else 1 })
+                                        val sendersForChips =
+                                            s.senderBreakdown
+                                                .sortedWith(compareBy { if (it.jid == "me@s.whatsapp.net") 0 else 1 })
                                         items(sendersForChips) { sender ->
-                                            val isSelected = when (selectedTab) {
-                                                0 -> selectedSenderWords?.jid == sender.jid
-                                                1 -> selectedSenderEmojis?.jid == sender.jid
-                                                else -> selectedSenderStickers?.jid == sender.jid
-                                            }
-                                            val onSelect: () -> Unit = when (selectedTab) {
-                                                0 -> { { viewModel.setSelectedSenderForWords(sender) } }
-                                                1 -> { { viewModel.setSelectedSenderForEmojis(sender) } }
-                                                else -> { { viewModel.setSelectedSenderForStickers(sender) } }
-                                            }
+                                            val isSelected =
+                                                when (selectedTab) {
+                                                    0 -> selectedSenderWords?.jid == sender.jid
+                                                    1 -> selectedSenderEmojis?.jid == sender.jid
+                                                    else -> selectedSenderStickers?.jid == sender.jid
+                                                }
+                                            val onSelect: () -> Unit =
+                                                when (selectedTab) {
+                                                    0 -> {
+                                                        { viewModel.setSelectedSenderForWords(sender) }
+                                                    }
+                                                    1 -> {
+                                                        { viewModel.setSelectedSenderForEmojis(sender) }
+                                                    }
+                                                    else -> {
+                                                        { viewModel.setSelectedSenderForStickers(sender) }
+                                                    }
+                                                }
                                             FilterChip(
                                                 selected = isSelected,
                                                 onClick = onSelect,
@@ -804,13 +881,14 @@ fun ChatDetailScreen(
                                                         name = sender.displayName,
                                                         jid = sender.jid,
                                                         nameStyle = MaterialTheme.typography.bodyMedium,
-                                                        enableHorizontalScroll = false
+                                                        enableHorizontalScroll = false,
                                                     )
                                                 },
-                                                colors = FilterChipDefaults.filterChipColors(
-                                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                                )
+                                                colors =
+                                                    FilterChipDefaults.filterChipColors(
+                                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    ),
                                             )
                                         }
                                     }
@@ -820,72 +898,122 @@ fun ChatDetailScreen(
                             stats?.let { s ->
                                 when (selectedTab) {
                                     0 -> {
-                                        val currentWords = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED)
-                                            s.topWords.take(topWordsLimit.toInt()) else senderTopWords
+                                        val currentWords =
+                                            if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED) {
+                                                s.topWords.take(topWordsLimit.toInt())
+                                            } else {
+                                                senderTopWords
+                                            }
                                         when {
                                             (wordViewMode == ChatDetailViewModel.WordViewMode.INDIVIDUAL && isSenderWordsLoading) ||
-                                            (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED && isLoadingSlow && currentWords.isEmpty()) ->
-                                                LoadingSection(progress = if (wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED) progressSlow else null)
+                                                (
+                                                    wordViewMode == ChatDetailViewModel.WordViewMode.AGGREGATED &&
+                                                        isLoadingSlow &&
+                                                        currentWords.isEmpty()
+                                                ) ->
+                                                LoadingSection(
+                                                    progress =
+                                                        if (wordViewMode ==
+                                                            ChatDetailViewModel.WordViewMode.AGGREGATED
+                                                        ) {
+                                                            progressSlow
+                                                        } else {
+                                                            null
+                                                        },
+                                                )
                                             currentWords.isEmpty() ->
-                                                Text(stringResource(R.string.no_words_found), style = MaterialTheme.typography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                                Text(
+                                                    stringResource(R.string.no_words_found),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.padding(vertical = 24.dp),
+                                                )
                                             else ->
                                                 InteractiveWordCloud(words = currentWords)
                                         }
                                     }
                                     1 -> {
-                                        val currentEmojis = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED)
-                                            s.topEmojis.take(topEmojiLimit.toInt()) else senderTopEmojis
+                                        val currentEmojis =
+                                            if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED) {
+                                                s.topEmojis.take(topEmojiLimit.toInt())
+                                            } else {
+                                                senderTopEmojis
+                                            }
                                         when {
                                             (emojiViewMode == ChatDetailViewModel.EmojiViewMode.INDIVIDUAL && isSenderEmojisLoading) ||
-                                            (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED && isLoadingSlow && currentEmojis.isEmpty()) ->
-                                                LoadingSection(progress = if (emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED) progressSlow else null)
+                                                (
+                                                    emojiViewMode == ChatDetailViewModel.EmojiViewMode.AGGREGATED &&
+                                                        isLoadingSlow &&
+                                                        currentEmojis.isEmpty()
+                                                ) ->
+                                                LoadingSection(
+                                                    progress =
+                                                        if (emojiViewMode ==
+                                                            ChatDetailViewModel.EmojiViewMode.AGGREGATED
+                                                        ) {
+                                                            progressSlow
+                                                        } else {
+                                                            null
+                                                        },
+                                                )
                                             currentEmojis.isEmpty() ->
-                                                Text(stringResource(R.string.no_emojis_found), style = MaterialTheme.typography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                                Text(
+                                                    stringResource(R.string.no_emojis_found),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.padding(vertical = 24.dp),
+                                                )
                                             else ->
                                                 InteractiveEmojiCloud(
                                                     emojis = currentEmojis,
                                                     onEmojiClick = { emoji, count ->
                                                         previewEmoji = emoji
                                                         previewEmojiCount = count
-                                                    }
+                                                    },
                                                 )
                                         }
                                     }
                                     2 -> {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(bottom = 8.dp)
+                                            modifier = Modifier.padding(bottom = 8.dp),
                                         ) {
                                             Icon(
                                                 Icons.Outlined.Info,
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                                modifier = Modifier.size(14.dp)
+                                                modifier = Modifier.size(14.dp),
                                             )
                                             Spacer(Modifier.width(4.dp))
                                             Text(
                                                 stringResource(R.string.sticker_info_hint),
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                         }
-                                        val currentStickers = if (stickerViewMode == ChatDetailViewModel.StickerViewMode.AGGREGATED)
-                                            topStickers.take(topStickerLimit) else senderTopStickers
+                                        val currentStickers =
+                                            if (stickerViewMode == ChatDetailViewModel.StickerViewMode.AGGREGATED) {
+                                                topStickers.take(topStickerLimit)
+                                            } else {
+                                                senderTopStickers
+                                            }
                                         when {
                                             isStickerLoading ->
                                                 LoadingSection()
                                             currentStickers.isEmpty() ->
-                                                Text(stringResource(R.string.no_stickers_found), style = MaterialTheme.typography.bodyMedium,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 24.dp))
+                                                Text(
+                                                    stringResource(R.string.no_stickers_found),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.padding(vertical = 24.dp),
+                                                )
                                             else ->
                                                 InteractiveStickerCloud(
                                                     stickers = currentStickers,
                                                     onStickerClick = { fileName, count ->
                                                         previewSticker = fileName
                                                         previewStickerCount = count
-                                                    }
+                                                    },
                                                 )
                                         }
                                     }
@@ -906,14 +1034,14 @@ fun ChatDetailScreen(
                                             title = stringResource(R.string.radar_parole_title),
                                             subtitle = stringResource(R.string.radar_parole_sub),
                                             icon = Icons.Outlined.Search,
-                                            onClick = onNavigateToWordSearch
+                                            onClick = onNavigateToWordSearch,
                                         )
                                         ActionCard(
                                             modifier = Modifier.weight(1f),
                                             title = stringResource(R.string.log_chiamate_title),
                                             subtitle = stringResource(R.string.log_chiamate_sub),
                                             icon = Icons.Outlined.Call,
-                                            onClick = onNavigateToCalls
+                                            onClick = onNavigateToCalls,
                                         )
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -922,14 +1050,14 @@ fun ChatDetailScreen(
                                             title = stringResource(R.string.media_link_title),
                                             subtitle = stringResource(R.string.media_link_sub),
                                             icon = Icons.Outlined.Link,
-                                            onClick = onNavigateToMedia
+                                            onClick = onNavigateToMedia,
                                         )
                                         ActionCard(
                                             modifier = Modifier.weight(1f),
                                             title = stringResource(R.string.group_history_title),
                                             subtitle = stringResource(R.string.group_history_sub),
                                             icon = Icons.Outlined.History,
-                                            onClick = onNavigateToHistory
+                                            onClick = onNavigateToHistory,
                                         )
                                     }
                                 }
@@ -941,21 +1069,21 @@ fun ChatDetailScreen(
                                         title = stringResource(R.string.radar_parole_title),
                                         subtitle = stringResource(R.string.radar_parole_sub),
                                         icon = Icons.Outlined.Search,
-                                        onClick = onNavigateToWordSearch
+                                        onClick = onNavigateToWordSearch,
                                     )
                                     ActionCard(
                                         modifier = Modifier.weight(1f),
                                         title = stringResource(R.string.log_chiamate_title),
                                         subtitle = stringResource(R.string.log_chiamate_sub),
                                         icon = Icons.Outlined.Call,
-                                        onClick = onNavigateToCalls
+                                        onClick = onNavigateToCalls,
                                     )
                                     ActionCard(
                                         modifier = Modifier.weight(1f),
                                         title = stringResource(R.string.media_link_title),
                                         subtitle = stringResource(R.string.media_link_sub),
                                         icon = Icons.Outlined.Link,
-                                        onClick = onNavigateToMedia
+                                        onClick = onNavigateToMedia,
                                     )
                                 }
                             }
@@ -964,7 +1092,6 @@ fun ChatDetailScreen(
 
                     // ── Bottom spacer ────────────────────────────────────────
                     item { Spacer(Modifier.height(32.dp)) }
-
                 } // end LazyColumn
             } // end else if (stats != null)
         } // end Column
@@ -984,7 +1111,7 @@ fun ChatDetailScreen(
                 },
                 containerColor = MaterialTheme.colorScheme.surface,
                 titleContentColor = MaterialTheme.colorScheme.onSurface,
-                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -1002,7 +1129,7 @@ fun ChatDetailScreen(
                 },
                 containerColor = MaterialTheme.colorScheme.surface,
                 titleContentColor = MaterialTheme.colorScheme.onSurface,
-                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -1012,7 +1139,7 @@ fun ChatDetailScreen(
                 contactName = pickerSender.displayName,
                 onDismiss = { colorPickerSender = null },
                 onColorChosen = { argb -> viewModel.setSenderColorOverride(pickerSender.jid, argb) },
-                onReset = { viewModel.clearSenderColorOverride(pickerSender.jid) }
+                onReset = { viewModel.clearSenderColorOverride(pickerSender.jid) },
             )
         }
 
@@ -1020,7 +1147,7 @@ fun ChatDetailScreen(
         if (showAvatarZoom && zoomAvatarPath != null) {
             ZoomableImageViewer(
                 filePath = zoomAvatarPath!!,
-                onDismiss = { showAvatarZoom = false }
+                onDismiss = { showAvatarZoom = false },
             )
         }
 
@@ -1029,7 +1156,7 @@ fun ChatDetailScreen(
             EmojiPreviewModal(
                 emoji = previewEmoji!!,
                 count = previewEmojiCount,
-                onDismiss = { previewEmoji = null }
+                onDismiss = { previewEmoji = null },
             )
         }
 
@@ -1038,43 +1165,44 @@ fun ChatDetailScreen(
             StickerPreviewModal(
                 fileName = previewSticker!!,
                 count = previewStickerCount,
-                onDismiss = { previewSticker = null }
+                onDismiss = { previewSticker = null },
             )
         }
-
     } // end Box
 }
 
 @Composable
+@Suppress("FunctionName")
 private fun SectionCard(
     title: String,
     trailingContent: (@Composable () -> Unit)? = null,
     onInfoClick: (() -> Unit)? = null,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(16.dp)
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            ),
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
 
                 if (trailingContent != null || onInfoClick != null) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         trailingContent?.invoke()
                         if (onInfoClick != null) {
@@ -1082,7 +1210,7 @@ private fun SectionCard(
                                 Icon(
                                     imageVector = Icons.Outlined.Info,
                                     contentDescription = stringResource(R.string.info_dialog_title),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.primary,
                                 )
                             }
                         }
@@ -1096,33 +1224,36 @@ private fun SectionCard(
 }
 
 @Composable
+@Suppress("FunctionName")
 private fun ActionCard(
     modifier: Modifier = Modifier,
     title: String,
     subtitle: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
         onClick = onClick,
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(16.dp)
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            ),
+        shape = RoundedCornerShape(16.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 14.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
         ) {
             Icon(
                 icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(28.dp),
             )
             Spacer(Modifier.height(8.dp))
             Text(
@@ -1130,14 +1261,14 @@ private fun ActionCard(
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
         }
     }
@@ -1150,7 +1281,7 @@ private fun formatDuration(ms: Long): String {
     val minutes = TimeUnit.MILLISECONDS.toMinutes(ms) % 60
     return when {
         hours > 0 -> "${hours}${stringResource(R.string.unit_hours)} ${minutes}${stringResource(R.string.unit_minutes)}"
-        minutes > 0 -> "${minutes} ${stringResource(R.string.unit_min_full)}"
+        minutes > 0 -> "$minutes ${stringResource(R.string.unit_min_full)}"
         else -> stringResource(R.string.less_than_one_min)
     }
 }
@@ -1158,6 +1289,7 @@ private fun formatDuration(ms: Long): String {
 // ── Pie Chart messaggi per mittente ──────────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 private fun MessagePieChart(
     chatId: Long,
     senders: List<SenderStat>,
@@ -1166,7 +1298,7 @@ private fun MessagePieChart(
     senderColorArgbOverrides: Map<String, Int>,
     onLegendColorClick: (SenderStat) -> Unit,
     dismissSignal: Int,
-    centerLabel: String = stringResource(R.string.messages_label)
+    centerLabel: String = stringResource(R.string.messages_label),
 ) {
     val total = totalMessages.coerceAtLeast(1)
     var expanded by remember { mutableStateOf(false) }
@@ -1182,13 +1314,14 @@ private fun MessagePieChart(
 
     val selectedSender = senders.getOrNull(selectedSliceIndex)
     val selectedPct = selectedSender?.let { it.count.toFloat() / total * 100f } ?: 0f
-    val selectedSliceOffsets = senders.mapIndexed { index, _ ->
-        animateDpAsState(
-            targetValue = if (index == selectedSliceIndex) 6.dp else 0.dp,
-            animationSpec = spring(),
-            label = "pie_slice_offset_$index"
-        ).value
-    }
+    val selectedSliceOffsets =
+        senders.mapIndexed { index, _ ->
+            animateDpAsState(
+                targetValue = if (index == selectedSliceIndex) 6.dp else 0.dp,
+                animationSpec = spring(),
+                label = "pie_slice_offset_$index",
+            ).value
+        }
     val density = LocalDensity.current
     val outerRadiusPx = with(density) { 140.dp.toPx() / 2f }
     val innerRadiusPx = with(density) { outerRadiusPx - 28.dp.toPx() }
@@ -1212,96 +1345,103 @@ private fun MessagePieChart(
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             // ── Donut Chart ──
             BoxWithConstraints(
-                modifier = Modifier
-                    .size(140.dp)
-                    .pointerInput(senders, total) {
-                        detectTapGestures { tapOffset ->
-                            ignoreDismissSignal = dismissSignal + 1
-                            val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
-                            val dx = tapOffset.x - center.x
-                            val dy = tapOffset.y - center.y
-                            val distance = hypot(dx, dy)
+                modifier =
+                    Modifier
+                        .size(140.dp)
+                        .pointerInput(senders, total) {
+                            detectTapGestures { tapOffset ->
+                                ignoreDismissSignal = dismissSignal + 1
+                                val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+                                val dx = tapOffset.x - center.x
+                                val dy = tapOffset.y - center.y
+                                val distance = hypot(dx, dy)
 
-                            if (distance < innerRadiusPx || distance > outerRadiusPx) {
-                                switchSliceJob?.cancel()
-                                selectedSliceIndex = -1
-                                return@detectTapGestures
-                            }
-
-                            var angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 90f
-                            if (angle < 0f) angle += 360f
-
-                            var runningStart = 0f
-                            var tappedIndex = -1
-                            for (index in senders.indices) {
-                                val sweep = (senders[index].count.toFloat() / total) * 360f
-                                val end = runningStart + sweep
-                                if (sweep > 0f && angle >= runningStart && (angle < end || (index == senders.lastIndex && angle <= end))) {
-                                    tappedIndex = index
-                                    break
-                                }
-                                runningStart = end
-                            }
-
-                            if (tappedIndex == -1) {
-                                switchSliceJob?.cancel()
-                                selectedSliceIndex = -1
-                                return@detectTapGestures
-                            }
-
-                            if (tappedIndex == selectedSliceIndex) {
-                                switchSliceJob?.cancel()
-                                selectedSliceIndex = -1
-                            } else {
-                                val hadActiveSlice = selectedSliceIndex != -1
-                                switchSliceJob?.cancel()
-                                if (hadActiveSlice) {
+                                if (distance < innerRadiusPx || distance > outerRadiusPx) {
+                                    switchSliceJob?.cancel()
                                     selectedSliceIndex = -1
-                                    switchSliceJob = scope.launch {
-                                        delay(110)
+                                    return@detectTapGestures
+                                }
+
+                                var angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 90f
+                                if (angle < 0f) angle += 360f
+
+                                var runningStart = 0f
+                                var tappedIndex = -1
+                                for (index in senders.indices) {
+                                    val sweep = (senders[index].count.toFloat() / total) * 360f
+                                    val end = runningStart + sweep
+                                    if (sweep > 0f && angle >= runningStart &&
+                                        (angle < end || (index == senders.lastIndex && angle <= end))
+                                    ) {
+                                        tappedIndex = index
+                                        break
+                                    }
+                                    runningStart = end
+                                }
+
+                                if (tappedIndex == -1) {
+                                    switchSliceJob?.cancel()
+                                    selectedSliceIndex = -1
+                                    return@detectTapGestures
+                                }
+
+                                if (tappedIndex == selectedSliceIndex) {
+                                    switchSliceJob?.cancel()
+                                    selectedSliceIndex = -1
+                                } else {
+                                    val hadActiveSlice = selectedSliceIndex != -1
+                                    switchSliceJob?.cancel()
+                                    if (hadActiveSlice) {
+                                        selectedSliceIndex = -1
+                                        switchSliceJob =
+                                            scope.launch {
+                                                delay(110)
+                                                selectedTapOffset = tapOffset
+                                                selectedSliceIndex = tappedIndex
+                                            }
+                                    } else {
                                         selectedTapOffset = tapOffset
                                         selectedSliceIndex = tappedIndex
                                     }
-                                } else {
-                                    selectedTapOffset = tapOffset
-                                    selectedSliceIndex = tappedIndex
                                 }
                             }
-                        }
-                    },
-                contentAlignment = Alignment.Center
+                        },
+                contentAlignment = Alignment.Center,
             ) {
                 androidx.compose.foundation.Canvas(
-                    modifier = Modifier.size(140.dp)
+                    modifier = Modifier.size(140.dp),
                 ) {
                     val strokeWidth = 28.dp.toPx()
                     val arcSize = size.minDimension - strokeWidth
-                    val topLeft = androidx.compose.ui.geometry.Offset(
-                        (size.width - arcSize) / 2f,
-                        (size.height - arcSize) / 2f
-                    )
+                    val topLeft =
+                        androidx.compose.ui.geometry.Offset(
+                            (size.width - arcSize) / 2f,
+                            (size.height - arcSize) / 2f,
+                        )
                     val arcRect = androidx.compose.ui.geometry.Size(arcSize, arcSize)
                     var startAngle = -90f
 
                     senders.forEachIndexed { index, sender ->
                         val sweep = (sender.count.toFloat() / total) * 360f
                         val key = senderColorOverrideKey(chatId, sender.jid)
-                        val sliceColor = getSenderColor(
-                            sender.jid,
-                            referenceSenders,
-                            senderColorArgbOverrides[key]
-                        )
+                        val sliceColor =
+                            getSenderColor(
+                                sender.jid,
+                                referenceSenders,
+                                senderColorArgbOverrides[key],
+                            )
                         val offsetPx = selectedSliceOffsets.getOrNull(index)?.toPx() ?: 0f
                         val midAngle = startAngle + (sweep / 2f)
                         val midAngleRad = Math.toRadians(midAngle.toDouble())
-                        val arcOffset = androidx.compose.ui.geometry.Offset(
-                            x = cos(midAngleRad).toFloat() * offsetPx,
-                            y = sin(midAngleRad).toFloat() * offsetPx
-                        )
+                        val arcOffset =
+                            androidx.compose.ui.geometry.Offset(
+                                x = cos(midAngleRad).toFloat() * offsetPx,
+                                y = sin(midAngleRad).toFloat() * offsetPx,
+                            )
                         drawArc(
                             color = sliceColor,
                             startAngle = startAngle,
@@ -1309,10 +1449,11 @@ private fun MessagePieChart(
                             useCenter = false,
                             topLeft = topLeft + arcOffset,
                             size = arcRect,
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(
-                                width = strokeWidth,
-                                cap = androidx.compose.ui.graphics.StrokeCap.Butt
-                            )
+                            style =
+                                androidx.compose.ui.graphics.drawscope.Stroke(
+                                    width = strokeWidth,
+                                    cap = androidx.compose.ui.graphics.StrokeCap.Butt,
+                                ),
                         )
                         startAngle += sweep
                     }
@@ -1323,12 +1464,12 @@ private fun MessagePieChart(
                         "%,d".format(totalMessages),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         centerLabel,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
@@ -1340,25 +1481,30 @@ private fun MessagePieChart(
 
                 androidx.compose.animation.AnimatedVisibility(
                     visible = bubbleVisible,
-                    enter = fadeIn(animationSpec = tween(120)) + scaleIn(
-                        initialScale = 0.92f,
-                        animationSpec = tween(140)
-                    ),
-                    exit = fadeOut(animationSpec = tween(90)) + scaleOut(
-                        targetScale = 0.96f,
-                        animationSpec = tween(90)
-                    ),
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .offset { IntOffset(bubbleX, bubbleY) }
-                        .zIndex(2f)
+                    enter =
+                        fadeIn(animationSpec = tween(120)) +
+                            scaleIn(
+                                initialScale = 0.92f,
+                                animationSpec = tween(140),
+                            ),
+                    exit =
+                        fadeOut(animationSpec = tween(90)) +
+                            scaleOut(
+                                targetScale = 0.96f,
+                                animationSpec = tween(90),
+                            ),
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopStart)
+                            .offset { IntOffset(bubbleX, bubbleY) }
+                            .zIndex(2f),
                 ) {
                     PieSliceBubble(
                         onTap = { ignoreDismissSignal = dismissSignal + 1 },
                         senderName = selectedSender?.displayName.orEmpty(),
                         percentage = selectedPct,
                         count = selectedSender?.count ?: 0,
-                        onMeasured = { bubbleSizePx = it }
+                        onMeasured = { bubbleSizePx = it },
                     )
                 }
             }
@@ -1368,35 +1514,37 @@ private fun MessagePieChart(
             // ── Legenda ──
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 val displayCount = if (expanded) senders.size else minOf(senders.size, collapsedLegendCount)
                 senders.take(displayCount).forEach { sender ->
                     val pct = (sender.count.toFloat() / total * 100)
                     val key = senderColorOverrideKey(chatId, sender.jid)
-                    val legendColor = getSenderColor(
-                        sender.jid,
-                        referenceSenders,
-                        senderColorArgbOverrides[key]
-                    )
+                    val legendColor =
+                        getSenderColor(
+                            sender.jid,
+                            referenceSenders,
+                            senderColorArgbOverrides[key],
+                        )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Box(
-                            modifier = Modifier
-                                .semantics { contentDescription = colorChangeLabel }
-                                .size(16.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .clickable { onLegendColorClick(sender) }
-                                .background(legendColor)
+                            modifier =
+                                Modifier
+                                    .semantics { contentDescription = colorChangeLabel }
+                                    .size(16.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .clickable { onLegendColorClick(sender) }
+                                    .background(legendColor),
                         )
                         Spacer(Modifier.width(6.dp))
                         ContactNameWithPhone(
                             name = sender.displayName,
                             jid = sender.jid,
                             nameStyle = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         )
                         Spacer(Modifier.width(6.dp))
                         Column(horizontalAlignment = Alignment.End) {
@@ -1404,12 +1552,12 @@ private fun MessagePieChart(
                                 "%,d".format(sender.count),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface,
                             )
                             Text(
                                 "%.0f%%".format(pct),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -1423,23 +1571,25 @@ private fun MessagePieChart(
                 text = if (expanded) stringResource(R.string.show_less) else stringResource(R.string.show_more_with_count, senders.size),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(top = 8.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { expanded = !expanded }
+                        .padding(top = 8.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
         }
     }
 }
 
 @Composable
+@Suppress("FunctionName")
 private fun PieSliceBubble(
     onTap: () -> Unit,
     senderName: String,
     percentage: Float,
     count: Int,
-    onMeasured: (IntSize) -> Unit
+    onMeasured: (IntSize) -> Unit,
 ) {
     val bubbleColor = MaterialTheme.colorScheme.inverseSurface
     val onBubbleColor = MaterialTheme.colorScheme.inverseOnSurface
@@ -1447,90 +1597,100 @@ private fun PieSliceBubble(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .onGloballyPositioned { onMeasured(it.size) }
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = { onTap() })
-            }
+        modifier =
+            Modifier
+                .onGloballyPositioned { onMeasured(it.size) }
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { onTap() })
+                },
     ) {
         Surface(
             shape = RoundedCornerShape(12.dp),
             color = bubbleColor,
             contentColor = onBubbleColor,
             shadowElevation = 6.dp,
-            tonalElevation = 4.dp
+            tonalElevation = 4.dp,
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalAlignment = Alignment.Start
+                horizontalAlignment = Alignment.Start,
             ) {
                 Text(
                     text = senderName,
                     style = MaterialTheme.typography.labelSmall,
                     color = secondaryColor,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "%.1f%%".format(percentage),
                     style = MaterialTheme.typography.titleSmall,
                     color = onBubbleColor,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
                 )
                 Text(
                     text = stringResource(R.string.messages_count_suffix, count),
                     style = MaterialTheme.typography.labelSmall,
-                    color = secondaryColor
+                    color = secondaryColor,
                 )
             }
         }
 
         androidx.compose.foundation.Canvas(modifier = Modifier.size(width = 12.dp, height = 8.dp)) {
-            val path = Path().apply {
-                moveTo(0f, 0f)
-                lineTo(size.width, 0f)
-                lineTo(size.width / 2f, size.height)
-                close()
-            }
+            val path =
+                Path().apply {
+                    moveTo(0f, 0f)
+                    lineTo(size.width, 0f)
+                    lineTo(size.width / 2f, size.height)
+                    close()
+                }
             drawPath(path = path, color = bubbleColor)
         }
     }
 }
 
 @Composable
-private fun StickerItem(fileName: String, count: Int) {
+@Suppress("FunctionName")
+private fun StickerItem(
+    fileName: String,
+    count: Int,
+) {
     val context = LocalContext.current
-    val stickerPaths = listOf(
-        "/sdcard/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Stickers",
-        "/sdcard/WhatsApp/Media/WhatsApp Stickers"
-    )
-    val stickerFile = remember(fileName) {
-        stickerPaths.map { File(it, fileName) }.firstOrNull { it.exists() }
-    }
+    val stickerPaths =
+        listOf(
+            "/sdcard/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Stickers",
+            "/sdcard/WhatsApp/Media/WhatsApp Stickers",
+        )
+    val stickerFile =
+        remember(fileName) {
+            stickerPaths.map { File(it, fileName) }.firstOrNull { it.exists() }
+        }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(72.dp)
+        modifier = Modifier.width(72.dp),
     ) {
         Box(
-            modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier.size(64.dp).clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
         ) {
             if (stickerFile != null) {
                 AsyncImage(
-                    model = ImageRequest.Builder(context).data(stickerFile)
-                        .crossfade(true).build(),
+                    model =
+                        ImageRequest.Builder(context).data(stickerFile)
+                            .crossfade(true).build(),
                     contentDescription = fileName,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
+                    contentScale = ContentScale.Fit,
                 )
             } else {
                 Icon(
                     Icons.Outlined.PhotoLibrary,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp),
                 )
             }
         }
@@ -1538,7 +1698,7 @@ private fun StickerItem(fileName: String, count: Int) {
         Text(
             "(%d)".format(count),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

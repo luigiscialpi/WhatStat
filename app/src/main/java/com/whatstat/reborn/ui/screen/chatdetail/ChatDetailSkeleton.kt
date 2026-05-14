@@ -26,16 +26,18 @@ import com.whatstat.reborn.ui.component.rememberShimmerBrush
 // ── Skeleton: coppia di StatCard ──────────────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 private fun SkeletonStatCardPair(brush: androidx.compose.ui.graphics.Brush) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         repeat(2) {
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 ShimmerBox(modifier = Modifier.size(24.dp), brush = brush, shape = RoundedCornerShape(6.dp))
                 ShimmerBox(modifier = Modifier.fillMaxWidth(0.65f).height(24.dp), brush = brush)
@@ -48,22 +50,25 @@ private fun SkeletonStatCardPair(brush: androidx.compose.ui.graphics.Brush) {
 // ── Skeleton: SectionCard con pie chart placeholder ───────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 private fun SkeletonPieChartCard(brush: androidx.compose.ui.graphics.Brush) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         ShimmerBox(modifier = Modifier.fillMaxWidth(0.45f).height(16.dp), brush = brush)
         ShimmerBox(
-            modifier = Modifier
-                .size(140.dp)
-                .align(androidx.compose.ui.Alignment.CenterHorizontally),
+            modifier =
+                Modifier
+                    .size(140.dp)
+                    .align(androidx.compose.ui.Alignment.CenterHorizontally),
             brush = brush,
-            shape = RoundedCornerShape(70.dp)
+            shape = RoundedCornerShape(70.dp),
         )
     }
 }
@@ -71,33 +76,36 @@ private fun SkeletonPieChartCard(brush: androidx.compose.ui.graphics.Brush) {
 // ── Skeleton: ActivityRecapCard (tab + chart) ─────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 private fun SkeletonActivityCard(brush: androidx.compose.ui.graphics.Brush) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .padding(bottom = 16.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(bottom = 16.dp),
     ) {
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         ) {
             items(5) {
                 ShimmerBox(
                     modifier = Modifier.width(72.dp).height(28.dp),
                     brush = brush,
-                    shape = RoundedCornerShape(20.dp)
+                    shape = RoundedCornerShape(20.dp),
                 )
             }
         }
         ShimmerBox(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-                .padding(horizontal = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .padding(horizontal = 16.dp),
             brush = brush,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
         )
     }
 }
@@ -105,13 +113,14 @@ private fun SkeletonActivityCard(brush: androidx.compose.ui.graphics.Brush) {
 // ── Schermata skeleton completa ───────────────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 fun ChatDetailSkeletonContent(modifier: Modifier = Modifier) {
     val brush = rememberShimmerBrush()
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Sent / Received
         item { SkeletonStatCardPair(brush) }
@@ -128,12 +137,13 @@ fun ChatDetailSkeletonContent(modifier: Modifier = Modifier) {
         // Analisi testi placeholder
         item {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 ShimmerBox(modifier = Modifier.fillMaxWidth(0.4f).height(16.dp), brush = brush)
                 ShimmerBox(modifier = Modifier.fillMaxWidth().height(100.dp), brush = brush, shape = RoundedCornerShape(12.dp))

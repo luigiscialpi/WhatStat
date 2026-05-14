@@ -1,7 +1,7 @@
 package com.whatstat.reborn.service
 
-import android.app.NotificationChannel
 import android.app.Notification
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -23,7 +23,6 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class LiteImportService : Service() {
-
     @Inject
     lateinit var liteModeManager: LiteModeManager
 
@@ -36,6 +35,7 @@ class LiteImportService : Service() {
     companion object {
         const val ACTION_START = "ACTION_LITE_START"
         const val ACTION_STOP = "ACTION_LITE_STOP"
+
         // Usa lo stesso canale del SetupService root (già creato in App/SetupService)
         private const val CHANNEL_ID = SetupService.CHANNEL_ID
         private const val NOTIFICATION_ID = 1002
@@ -46,7 +46,11 @@ class LiteImportService : Service() {
         createNotificationChannel()
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
         when (intent?.action) {
             ACTION_START -> {
                 startForeground(NOTIFICATION_ID, buildNotification(LiteImportProgress(0f, "Avvio importazione...")))
@@ -72,34 +76,38 @@ class LiteImportService : Service() {
     }
 
     private fun observeProgress() {
-        progressJob = serviceScope.launch {
-            liteModeManager.importProgress.collect { progress ->
-                notificationManager.notify(NOTIFICATION_ID, buildNotification(progress))
+        progressJob =
+            serviceScope.launch {
+                liteModeManager.importProgress.collect { progress ->
+                    notificationManager.notify(NOTIFICATION_ID, buildNotification(progress))
+                }
             }
-        }
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Setup WhatsApp",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Mostra l'avanzamento dell'importazione Lite"
-            }
+            val channel =
+                NotificationChannel(
+                    CHANNEL_ID,
+                    "Setup WhatsApp",
+                    NotificationManager.IMPORTANCE_LOW,
+                ).apply {
+                    description = "Mostra l'avanzamento dell'importazione Lite"
+                }
             notificationManager.createNotificationChannel(channel)
         }
     }
 
     private fun buildNotification(progress: LiteImportProgress): Notification {
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            },
-            PendingIntent.FLAG_IMMUTABLE
-        )
+        val pendingIntent =
+            PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                },
+                PendingIntent.FLAG_IMMUTABLE,
+            )
         val progressInt = (progress.percent * 100).toInt()
         val isIndeterminate = progressInt == 0
 

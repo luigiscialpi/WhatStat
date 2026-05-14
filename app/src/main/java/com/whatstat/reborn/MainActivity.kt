@@ -7,9 +7,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -18,7 +18,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.rememberNavController
 import com.whatstat.reborn.data.repository.WhatsAppRepository
 import com.whatstat.reborn.ui.MainViewModel
-import com.whatstat.reborn.ui.navigation.AppNavigation
+import com.whatstat.reborn.ui.navigation.appNavigation
 import com.whatstat.reborn.ui.theme.WhatStatTheme
 import com.whatstat.reborn.util.DebugLogManager
 import dagger.hilt.android.AndroidEntryPoint
@@ -26,7 +26,6 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
     @Inject lateinit var repository: WhatsAppRepository
     private lateinit var mainViewModel: MainViewModel
     private var lastHandledIncomingUri: String? = null
@@ -36,10 +35,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
         DebugLogManager.log("MainActivity.onCreate | action=${intent?.action ?: "-"} type=${intent?.type ?: "-"}")
-        
+
         enableEdgeToEdge()
 
         // Gestisci l'intent PRIMA di setContent:
@@ -51,10 +50,10 @@ class MainActivity : ComponentActivity() {
             WhatStatTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
-                    AppNavigation(
+                    appNavigation(
                         navController = navController,
                         repository = repository,
-                        mainViewModel = mainViewModel
+                        mainViewModel = mainViewModel,
                     )
                 }
             }
@@ -74,17 +73,21 @@ class MainActivity : ComponentActivity() {
         val isSendOrView = intent.action == Intent.ACTION_SEND || intent.action == Intent.ACTION_VIEW
         if (!isSendOrView) return
 
-        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-        }
-            ?: intent.data
-            ?: intent.clipData?.getItemAt(0)?.uri
-            ?: return
+        val uri =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+            }
+                ?: intent.data
+                ?: intent.clipData?.getItemAt(0)?.uri
+                ?: return
 
-        DebugLogManager.log("MainActivity.handleIncomingIntent | action=${intent.action} type=${intent.type ?: "-"} uri=$uri isLite=${mainViewModel.isLiteMode.value}")
+        DebugLogManager.log(
+            "MainActivity.handleIncomingIntent | action=${intent.action} " +
+                "type=${intent.type ?: "-"} uri=$uri isLite=${mainViewModel.isLiteMode.value}",
+        )
         if (isLikelyZip(intent.type, uri)) {
             val uriString = uri.toString()
             val now = System.currentTimeMillis()
@@ -108,16 +111,20 @@ class MainActivity : ComponentActivity() {
 
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        val granted = ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.POST_NOTIFICATIONS
-        ) == PackageManager.PERMISSION_GRANTED
+        val granted =
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
         if (!granted) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
-    private fun isLikelyZip(mimeType: String?, uri: Uri): Boolean {
+    private fun isLikelyZip(
+        mimeType: String?,
+        uri: Uri,
+    ): Boolean {
         val type = mimeType?.lowercase().orEmpty()
         if (type.contains("zip")) return true
 

@@ -23,7 +23,6 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class SetupService : Service() {
-
     @Inject
     lateinit var repository: WhatsAppRepository
 
@@ -50,7 +49,11 @@ class SetupService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
         super.onStartCommand(intent, flags, startId)
 
         val action = intent?.action
@@ -77,24 +80,25 @@ class SetupService : Service() {
     private fun startSetup(isManual: Boolean) {
         serviceScope.launch {
             // Monitora il progresso per aggiornare la notifica
-            val progressJob = launch {
-                repository.setupState.collectLatest { state ->
-                    if (state.isLoading) {
-                        updateNotification(state.decryptionProgress)
-                    }
-                    if (state.isComplete || state.error != null) {
-                        stopForeground(STOP_FOREGROUND_REMOVE)
-                        stopSelf()
+            val progressJob =
+                launch {
+                    repository.setupState.collectLatest { state ->
+                        if (state.isLoading) {
+                            updateNotification(state.decryptionProgress)
+                        }
+                        if (state.isComplete || state.error != null) {
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                            stopSelf()
+                        }
                     }
                 }
-            }
 
             if (isManual) {
                 repository.performManualSetup()
             } else {
                 repository.performSetup()
             }
-            
+
             progressJob.cancel()
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
@@ -108,32 +112,37 @@ class SetupService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Setup WhatsApp",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Mostra l'avanzamento della decifratura"
-            }
+            val channel =
+                NotificationChannel(
+                    CHANNEL_ID,
+                    "Setup WhatsApp",
+                    NotificationManager.IMPORTANCE_LOW,
+                ).apply {
+                    description = "Mostra l'avanzamento della decifratura"
+                }
             notificationManager.createNotificationChannel(channel)
         }
     }
 
     private fun createNotification(progress: Float): Notification {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_IMMUTABLE
-        )
+        val intent =
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+        val pendingIntent =
+            PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE,
+            )
 
         val progressInt = (progress * 100).toInt()
-        
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Decifratura Database")
             .setContentText(if (progressInt > 0) "Progresso: $progressInt%" else "Avvio in corso...")
-            .setSmallIcon(R.drawable.ic_launcher) 
+            .setSmallIcon(R.drawable.ic_launcher)
             .setOngoing(true)
             .setProgress(100, progressInt, progress == 0f)
             .setContentIntent(pendingIntent)

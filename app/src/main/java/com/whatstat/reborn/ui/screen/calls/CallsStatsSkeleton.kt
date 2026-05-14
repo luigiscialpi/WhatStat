@@ -27,14 +27,16 @@ import com.whatstat.reborn.ui.component.rememberShimmerBrush
 // ── Skeleton: summary card ────────────────────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 private fun SkeletonCallSummaryCard(brush: androidx.compose.ui.graphics.Brush) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Titolo
         ShimmerBox(modifier = Modifier.fillMaxWidth(0.45f).height(18.dp), brush = brush)
@@ -43,7 +45,7 @@ private fun SkeletonCallSummaryCard(brush: androidx.compose.ui.graphics.Brush) {
             repeat(3) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     ShimmerBox(modifier = Modifier.fillMaxWidth().height(22.dp), brush = brush)
                     ShimmerBox(modifier = Modifier.fillMaxWidth(0.7f).height(11.dp), brush = brush)
@@ -54,7 +56,7 @@ private fun SkeletonCallSummaryCard(brush: androidx.compose.ui.graphics.Brush) {
         ShimmerBox(
             modifier = Modifier.fillMaxWidth().height(8.dp),
             brush = brush,
-            shape = RoundedCornerShape(4.dp)
+            shape = RoundedCornerShape(4.dp),
         )
     }
 }
@@ -62,14 +64,16 @@ private fun SkeletonCallSummaryCard(brush: androidx.compose.ui.graphics.Brush) {
 // ── Skeleton: riga dettaglio chiamata ─────────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 private fun SkeletonCallDetailRow(brush: androidx.compose.ui.graphics.Brush) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         ShimmerBox(modifier = Modifier.size(40.dp), brush = brush, shape = CircleShape)
         Spacer(Modifier.width(12.dp))
@@ -85,19 +89,20 @@ private fun SkeletonCallDetailRow(brush: androidx.compose.ui.graphics.Brush) {
 // ── Schermata skeleton completa ───────────────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 fun CallsStatsSkeletonContent(modifier: Modifier = Modifier) {
     val brush = rememberShimmerBrush()
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item { SkeletonCallSummaryCard(brush) }
         item {
             ShimmerBox(
                 modifier = Modifier.fillMaxWidth(0.3f).height(16.dp).padding(vertical = 4.dp),
-                brush = brush
+                brush = brush,
             )
         }
         items(6) { SkeletonCallDetailRow(brush) }

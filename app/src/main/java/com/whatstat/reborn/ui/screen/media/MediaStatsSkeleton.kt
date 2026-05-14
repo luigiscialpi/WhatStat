@@ -28,21 +28,22 @@ import com.whatstat.reborn.ui.component.rememberShimmerBrush
 // ── Skeleton: riga domain chip ────────────────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 private fun SkeletonDomainChipsRow(brush: androidx.compose.ui.graphics.Brush) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ShimmerBox(modifier = Modifier.fillMaxWidth(0.4f).height(16.dp), brush = brush)
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 8.dp)
+            contentPadding = PaddingValues(bottom = 8.dp),
         ) {
             items(6) {
                 ShimmerBox(
                     modifier = Modifier.width(80.dp).height(32.dp),
                     brush = brush,
-                    shape = RoundedCornerShape(50.dp)
+                    shape = RoundedCornerShape(50.dp),
                 )
             }
         }
@@ -52,14 +53,16 @@ private fun SkeletonDomainChipsRow(brush: androidx.compose.ui.graphics.Brush) {
 // ── Skeleton: riga link/media per contatto ────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 private fun SkeletonLinkStatRow(brush: androidx.compose.ui.graphics.Brush) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         ShimmerBox(modifier = Modifier.size(44.dp), brush = brush, shape = CircleShape)
         Spacer(Modifier.width(12.dp))
@@ -74,19 +77,20 @@ private fun SkeletonLinkStatRow(brush: androidx.compose.ui.graphics.Brush) {
 // ── Schermata skeleton completa ───────────────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 fun MediaStatsSkeletonContent(modifier: Modifier = Modifier) {
     val brush = rememberShimmerBrush()
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item { SkeletonDomainChipsRow(brush) }
         item {
             ShimmerBox(
                 modifier = Modifier.fillMaxWidth(0.35f).height(16.dp).padding(vertical = 4.dp),
-                brush = brush
+                brush = brush,
             )
         }
         items(7) { SkeletonLinkStatRow(brush) }

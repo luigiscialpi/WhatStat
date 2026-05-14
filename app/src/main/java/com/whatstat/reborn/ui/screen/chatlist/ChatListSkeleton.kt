@@ -27,27 +27,29 @@ import com.whatstat.reborn.ui.component.rememberShimmerBrush
 // ── Skeleton: singola riga chat ───────────────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 private fun SkeletonChatRow(brush: androidx.compose.ui.graphics.Brush) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         // Badge rank
         ShimmerBox(
             modifier = Modifier.size(36.dp),
             brush = brush,
-            shape = CircleShape
+            shape = CircleShape,
         )
         Spacer(Modifier.width(12.dp))
         // Avatar
         ShimmerBox(
             modifier = Modifier.size(44.dp),
             brush = brush,
-            shape = CircleShape
+            shape = CircleShape,
         )
         Spacer(Modifier.width(12.dp))
         // Testo
@@ -61,13 +63,14 @@ private fun SkeletonChatRow(brush: androidx.compose.ui.graphics.Brush) {
 // ── Schermata skeleton completa ───────────────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 fun ChatListSkeletonContent(modifier: Modifier = Modifier) {
     val brush = rememberShimmerBrush()
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(10) {
             SkeletonChatRow(brush)

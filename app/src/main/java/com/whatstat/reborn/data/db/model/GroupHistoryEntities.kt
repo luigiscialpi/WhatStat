@@ -8,7 +8,7 @@ data class GroupParticipantHistoryEntity(
     val gjid: String,
     val jid: String,
     val action: Int,
-    val textData: String? = null
+    val textData: String? = null,
 )
 
 @Serializable
@@ -16,5 +16,6 @@ data class GroupNameChangeEntity(
     val timestamp: Long,
     val oldData: String,
     val senderJid: String,
-    val newNameFallback: String? // Fallback nel caso in cui serva il testo del messaggio
+    val newNameFallback: String?,
+    // Fallback nel caso in cui serva il testo del messaggio
 )

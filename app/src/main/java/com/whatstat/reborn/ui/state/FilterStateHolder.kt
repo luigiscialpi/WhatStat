@@ -16,35 +16,42 @@ import javax.inject.Singleton
  * quando l'utente naviga avanti e indietro.
  */
 @Singleton
-class FilterStateHolder @Inject constructor() {
+class FilterStateHolder
+    @Inject
+    constructor() {
+        // ── Contesto globale (Dashboard e schermate senza chatId) ─────────────────
+        var globalTimeRange: TimeRange = TimeRange.ALL_TIME
+            private set
+        var globalCustomRange: DateRange? = null
+            private set
 
-    // ── Contesto globale (Dashboard e schermate senza chatId) ─────────────────
-    var globalTimeRange: TimeRange = TimeRange.ALL_TIME
-        private set
-    var globalCustomRange: DateRange? = null
-        private set
+        fun setGlobal(
+            range: TimeRange,
+            custom: DateRange? = null,
+        ) {
+            globalTimeRange = range
+            globalCustomRange = if (range == TimeRange.CUSTOM) custom else null
+        }
 
-    fun setGlobal(range: TimeRange, custom: DateRange? = null) {
-        globalTimeRange = range
-        globalCustomRange = if (range == TimeRange.CUSTOM) custom else null
+        // ── Contesto chat (ChatDetail e schermate con chatId) ─────────────────────
+        var chatTimeRange: TimeRange = TimeRange.ALL_TIME
+            private set
+        var chatCustomRange: DateRange? = null
+            private set
+
+        fun setChat(
+            range: TimeRange,
+            custom: DateRange? = null,
+        ) {
+            chatTimeRange = range
+            chatCustomRange = if (range == TimeRange.CUSTOM) custom else null
+        }
+
+        /** Azzera entrambi i contesti. Da chiamare al cambio di modalità (Lite ↔ Root). */
+        fun resetAll() {
+            globalTimeRange = TimeRange.ALL_TIME
+            globalCustomRange = null
+            chatTimeRange = TimeRange.ALL_TIME
+            chatCustomRange = null
+        }
     }
-
-    // ── Contesto chat (ChatDetail e schermate con chatId) ─────────────────────
-    var chatTimeRange: TimeRange = TimeRange.ALL_TIME
-        private set
-    var chatCustomRange: DateRange? = null
-        private set
-
-    fun setChat(range: TimeRange, custom: DateRange? = null) {
-        chatTimeRange = range
-        chatCustomRange = if (range == TimeRange.CUSTOM) custom else null
-    }
-
-    /** Azzera entrambi i contesti. Da chiamare al cambio di modalità (Lite ↔ Root). */
-    fun resetAll() {
-        globalTimeRange = TimeRange.ALL_TIME
-        globalCustomRange = null
-        chatTimeRange = TimeRange.ALL_TIME
-        chatCustomRange = null
-    }
-}

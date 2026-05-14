@@ -24,9 +24,10 @@ import com.whatstat.reborn.data.db.model.HourlyCount
  * Le barre più alte / più colorate = ore con più messaggi.
  */
 @Composable
+@Suppress("FunctionName")
 fun HourlyHeatmap(
     hourlyData: List<HourlyCount>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     if (hourlyData.isEmpty()) return
 
@@ -35,37 +36,40 @@ fun HourlyHeatmap(
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         (0..23).forEach { hour ->
             val count = hourlyData.find { it.hour == hour }?.count ?: 0
             val ratio = count / maxCount
 
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // Barra con altezza proporzionale e opacità variabile
                 Box(
-                    modifier = Modifier
-                        .width(10.dp)
-                        .height(44.dp),
-                    contentAlignment = Alignment.BottomCenter
+                    modifier =
+                        Modifier
+                            .width(10.dp)
+                            .height(44.dp),
+                    contentAlignment = Alignment.BottomCenter,
                 ) {
                     // Background molto leggero
                     Box(
-                        modifier = Modifier
-                            .width(10.dp)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(primary.copy(alpha = 0.08f))
+                        modifier =
+                            Modifier
+                                .width(10.dp)
+                                .height(44.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(primary.copy(alpha = 0.08f)),
                     )
                     // Barra colorata proporzionale
                     Box(
-                        modifier = Modifier
-                            .width(10.dp)
-                            .height((44 * ratio).dp.coerceAtLeast(2.dp))
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(primary.copy(alpha = 0.15f + ratio * 0.85f))
+                        modifier =
+                            Modifier
+                                .width(10.dp)
+                                .height((44 * ratio).dp.coerceAtLeast(2.dp))
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(primary.copy(alpha = 0.15f + ratio * 0.85f)),
                     )
                 }
                 // Label solo ogni 3 ore
@@ -74,7 +78,7 @@ fun HourlyHeatmap(
                         "%02d".format(hour),
                         style = MaterialTheme.typography.labelSmall,
                         fontSize = 8.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

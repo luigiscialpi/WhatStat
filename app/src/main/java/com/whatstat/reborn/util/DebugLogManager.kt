@@ -21,14 +21,15 @@ object DebugLogManager {
     fun init(context: Context) {
         if (logFile != null) return
         logFile = File(context.filesDir, "whatstat_debug_logs.txt")
-        val persistedLogs = runCatching {
-            logFile
-                ?.takeIf { it.exists() }
-                ?.readText()
-                ?.split(ENTRY_SEPARATOR)
-                ?.filter { it.isNotBlank() }
-                ?: emptyList()
-        }.getOrDefault(emptyList())
+        val persistedLogs =
+            runCatching {
+                logFile
+                    ?.takeIf { it.exists() }
+                    ?.readText()
+                    ?.split(ENTRY_SEPARATOR)
+                    ?.filter { it.isNotBlank() }
+                    ?: emptyList()
+            }.getOrDefault(emptyList())
 
         if (persistedLogs.isNotEmpty()) {
             _logs.value = persistedLogs
@@ -36,7 +37,10 @@ object DebugLogManager {
     }
 
     @Synchronized
-    fun log(message: String, throwable: Throwable? = null) {
+    fun log(
+        message: String,
+        throwable: Throwable? = null,
+    ) {
         val timestamp = sdf.format(Date())
         val logLine = "[$timestamp] $message" + (throwable?.let { "\n${it.stackTraceToString()}" } ?: "")
 

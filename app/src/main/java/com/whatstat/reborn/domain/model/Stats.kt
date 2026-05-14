@@ -1,17 +1,16 @@
 package com.whatstat.reborn.domain.model
 
-import kotlinx.serialization.Serializable
-
 import com.whatstat.reborn.data.db.model.DayCount
 import com.whatstat.reborn.data.db.model.DayOfMonthCount
 import com.whatstat.reborn.data.db.model.EmojiStat
 import com.whatstat.reborn.data.db.model.HourlyCount
 import com.whatstat.reborn.data.db.model.MonthOfYearCount
 import com.whatstat.reborn.data.db.model.MonthlyCount
-import com.whatstat.reborn.data.db.model.YearTrendCount
 import com.whatstat.reborn.data.db.model.SenderStat
 import com.whatstat.reborn.data.db.model.StickerStat
 import com.whatstat.reborn.data.db.model.WordFrequency
+import com.whatstat.reborn.data.db.model.YearTrendCount
+import kotlinx.serialization.Serializable
 
 /**
  * Statistiche globali aggregate su tutte le chat.
@@ -21,7 +20,7 @@ enum class PredictionConfidence {
     NONE,
     LOW,
     MEDIUM,
-    HIGH
+    HIGH,
 }
 
 @Serializable
@@ -31,7 +30,7 @@ data class MilestonePrediction(
     val daysRemaining: Long?,
     val progress: Float,
     val dailyRate: Float,
-    val confidence: PredictionConfidence
+    val confidence: PredictionConfidence,
 )
 
 @Serializable
@@ -39,7 +38,7 @@ data class MilestonePredictionState(
     val currentCount: Long = 0L,
     val dailyRate: Float = 0f,
     val confidence: PredictionConfidence = PredictionConfidence.NONE,
-    val suggestedPredictions: List<MilestonePrediction> = emptyList()
+    val suggestedPredictions: List<MilestonePrediction> = emptyList(),
 )
 
 @Serializable
@@ -48,13 +47,17 @@ data class GlobalStats(
     val totalChats: Int,
     val totalContacts: Int,
     val totalMediaFiles: Int,
-    val oldestMessageDate: Long,       // Unix timestamp ms
+    // Unix timestamp ms
+    val oldestMessageDate: Long,
     val mostActiveChat: String,
-    val mostActiveHour: Int,           // 0–23
-    val mostActiveDayOfWeek: Int,      // 0=domenica
+    // 0–23
+    val mostActiveHour: Int,
+    // 0=domenica
+    val mostActiveDayOfWeek: Int,
     val averageMessagesPerDay: Float,
     val milestonePredictionState: MilestonePredictionState = MilestonePredictionState(),
-    val longestStreak: Int,             // giorni consecutivi con almeno un messaggio
+    // giorni consecutivi con almeno un messaggio
+    val longestStreak: Int,
     val hourlyDistribution: List<HourlyCount> = emptyList(),
     val weeklyDistribution: List<DayCount> = emptyList(),
     val dayOfMonthDistribution: List<DayOfMonthCount> = emptyList(),
@@ -63,7 +66,7 @@ data class GlobalStats(
     val topWords: List<WordFrequency> = emptyList(),
     val topEmojis: List<EmojiStat> = emptyList(),
     val topStickers: List<StickerStat> = emptyList(),
-    val isLiteMode: Boolean = false
+    val isLiteMode: Boolean = false,
 )
 
 /**
@@ -82,8 +85,10 @@ data class ChatStats(
     val receivedWords: Int = 0,
     val sentEmojis: Int = 0,
     val receivedEmojis: Int = 0,
-    val sentRatio: Float,              // percentuale messaggi inviati (0.0–1.0)
-    val firstMessageDate: Long,        // Unix timestamp ms
+    // percentuale messaggi inviati (0.0–1.0)
+    val sentRatio: Float,
+    // Unix timestamp ms
+    val firstMessageDate: Long,
     val lastMessageDate: Long,
     val averageResponseTimeMs: Long,
     val iStartedConversations: Int,
@@ -93,8 +98,10 @@ data class ChatStats(
     val mediaCount: Int,
     val audioCount: Int,
     val videoCount: Int,
-    val hourlyDistribution: List<HourlyCount>,   // 24 elementi
-    val weeklyDistribution: List<DayCount>,       // 7 elementi
+    // 24 elementi
+    val hourlyDistribution: List<HourlyCount>,
+    // 7 elementi
+    val weeklyDistribution: List<DayCount>,
     val dayOfMonthDistribution: List<DayOfMonthCount> = emptyList(),
     val monthOfYearDistribution: List<MonthOfYearCount> = emptyList(),
     val yearTrendDistribution: List<YearTrendCount> = emptyList(),
@@ -103,7 +110,7 @@ data class ChatStats(
     val topEmojis: List<EmojiStat> = emptyList(),
     val senderBreakdown: List<SenderStat> = emptyList(),
     val conversationStarterBreakdown: List<SenderStat> = emptyList(),
-    val avatarPath: String? = null
+    val avatarPath: String? = null,
 )
 
 /**
@@ -120,5 +127,5 @@ data class SlowChatStats(
     val theyStartedConversations: Int,
     val longestMessage: String,
     val sentEmojis: Int = 0,
-    val receivedEmojis: Int = 0
+    val receivedEmojis: Int = 0,
 )

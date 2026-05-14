@@ -1,7 +1,7 @@
 package com.whatstat.reborn.ui.screen.media
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,64 +11,53 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Clear
-import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhotoLibrary
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material.icons.outlined.SwapVert
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.ui.draw.rotate
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.ui.res.stringResource
-import com.whatstat.reborn.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -77,50 +66,48 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import coil.ImageLoader
 import coil.compose.AsyncImage
+import coil.decode.VideoFrameDecoder
 import coil.request.ImageRequest
+import com.whatstat.reborn.R
 import com.whatstat.reborn.data.db.model.DomainStat
 import com.whatstat.reborn.data.db.model.LinkStat
 import com.whatstat.reborn.data.db.model.MediaStat
-import com.whatstat.reborn.data.db.model.TimeRange
 import com.whatstat.reborn.ui.component.AutoMarquee
-import com.whatstat.reborn.data.db.model.UrlFrequency
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
-import com.whatstat.reborn.ui.component.DateRangePicker
+import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.ui.component.SimpleScreenHeader
 import com.whatstat.reborn.ui.component.TimeRangeFilterRow
-import com.whatstat.reborn.ui.component.LoadingSection
 import com.whatstat.reborn.ui.component.ZoomableImageViewer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import coil.ImageLoader
-import coil.decode.VideoFrameDecoder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MediaStatsScreen(
+fun mediaStatsScreen(
     chatId: Long? = null,
     viewModel: MediaStatsViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
 ) {
     val linkStats by viewModel.linkStats.collectAsState()
     val linkStatsBySender by viewModel.linkStatsBySender.collectAsState()
@@ -154,46 +141,49 @@ fun MediaStatsScreen(
 
     val isChatDetail = chatId != null
     val allDisplayStats = if (isChatDetail) linkStats else linkStatsBySender.ifEmpty { linkStats }
-    val displayStats = remember(allDisplayStats, searchQuery) {
-        if (searchQuery.isBlank()) allDisplayStats
-        else allDisplayStats.filter {
-            (it.displayName ?: it.jid).contains(searchQuery, ignoreCase = true)
+    val displayStats =
+        remember(allDisplayStats, searchQuery) {
+            if (searchQuery.isBlank()) {
+                allDisplayStats
+            } else {
+                allDisplayStats.filter {
+                    (it.displayName ?: it.jid).contains(searchQuery, ignoreCase = true)
+                }
+            }
         }
-    }
     val isShowingBreakdown = !isChatDetail && linkStatsBySender.isNotEmpty()
-    
+
     val globalListState = rememberLazyListState()
     val breakdownListState = rememberLazyListState()
     val currentListState = if (isShowingBreakdown) breakdownListState else globalListState
 
     Box(modifier = Modifier.fillMaxSize()) {
-
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding(),
         ) {
-
             // ── HEADER ─────────────────────────────────────
             var showInfoDialog by remember { mutableStateOf(false) }
             SimpleScreenHeader(
                 title = stringResource(R.string.media_link_title),
                 onBack = if (isChatDetail) onNavigateBack else null,
                 subtitle = chatContextName,
-                avatarPath = chatContextAvatarPath
+                avatarPath = chatContextAvatarPath,
             ) {
                 IconButton(onClick = { showInfoDialog = true }) {
                     Icon(
                         Icons.Outlined.Info,
                         contentDescription = stringResource(R.string.info_dialog_title),
-                        tint = MaterialTheme.colorScheme.onBackground
+                        tint = MaterialTheme.colorScheme.onBackground,
                     )
                 }
                 if (showInfoDialog) {
                     AlertDialog(
                         onDismissRequest = { showInfoDialog = false },
-                    title = { Text(stringResource(R.string.media_info_title)) },
-                        text = { 
+                        title = { Text(stringResource(R.string.media_info_title)) },
+                        text = {
                             Text(stringResource(R.string.media_info_text_global))
                         },
                         confirmButton = {
@@ -203,22 +193,23 @@ fun MediaStatsScreen(
                         },
                         containerColor = MaterialTheme.colorScheme.surface,
                         titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(4.dp),
             ) {
                 if (isLoading) {
                     val p = progress
                     if (p != null) {
                         LinearProgressIndicator(
                             progress = { p / 100f },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     } else {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -233,15 +224,16 @@ fun MediaStatsScreen(
                 customDateRange = customDateRange,
                 onDateRangeChanged = { viewModel.setCustomDateRange(it) },
                 onSubmitClicked = { viewModel.applyCustomDateRange() },
-                minDate = firstMessageTimestamp
+                minDate = firstMessageTimestamp,
             )
 
             // ── SEARCH BAR ───────────────────────────────
             // Slot fisso per evitare layout shift quando il campo appare a fine loading
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(64.dp),
             ) {
                 if (!isLoading && allDisplayStats.isNotEmpty()) {
                     OutlinedTextField(
@@ -257,13 +249,15 @@ fun MediaStatsScreen(
                             }
                         },
                         singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                        )
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            ),
                     )
                 }
             }
@@ -276,15 +270,16 @@ fun MediaStatsScreen(
 
                 displayStats.isEmpty() -> {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(200.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             stringResource(R.string.no_results_word),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -295,7 +290,7 @@ fun MediaStatsScreen(
                         state = currentListState,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         // Torna indietro (solo breakdown attivo)
                         if (isShowingBreakdown) {
@@ -303,22 +298,24 @@ fun MediaStatsScreen(
                                 Card(
                                     onClick = { viewModel.clearSelection() },
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
+                                    colors =
+                                        CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        ),
+                                    shape = RoundedCornerShape(12.dp),
                                 ) {
                                     Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
                                         horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         Text(
                                             stringResource(R.string.back_to_all_links),
                                             style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                                         )
                                     }
                                 }
@@ -331,11 +328,11 @@ fun MediaStatsScreen(
                                 Text(
                                     stringResource(R.string.links_grouped_domain),
                                     style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.padding(vertical = 8.dp)
+                                    modifier = Modifier.padding(vertical = 8.dp),
                                 )
                                 LazyRow(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    contentPadding = PaddingValues(bottom = 16.dp)
+                                    contentPadding = PaddingValues(bottom = 16.dp),
                                 ) {
                                     items(topDomains.take(8)) { domain ->
                                         DomainChip(domain)
@@ -350,7 +347,7 @@ fun MediaStatsScreen(
                                     else -> stringResource(R.string.media_link_title)
                                 },
                                 style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(vertical = 8.dp)
+                                modifier = Modifier.padding(vertical = 8.dp),
                             )
                         }
 
@@ -358,22 +355,25 @@ fun MediaStatsScreen(
                             LinkStatCard(
                                 stat = stat,
                                 showTotal = true,
-                                onClick = if (isChatDetail || isShowingBreakdown) null else {
-                                    { viewModel.loadLinkStatsBySenderForJid(stat.jid) }
-                                },
+                                onClick =
+                                    if (isChatDetail || isShowingBreakdown) {
+                                        null
+                                    } else {
+                                        { viewModel.loadLinkStatsBySenderForJid(stat.jid) }
+                                    },
                                 onLinksClick = {
                                     viewModel.loadDomainStatsForContact(stat.jid, stat.displayName)
                                 },
                                 onMediaClick = {
                                     viewModel.loadMediaGalleryForContact(stat.jid, stat.displayName)
-                                }
+                                },
                             )
                         }
 
                         item { Spacer(Modifier.height(48.dp)) }
                     }
                 }
-        }
+            }
         } // fine Column
 
         // ── DOMAIN ANALYSIS BOTTOM SHEET ──────────────
@@ -385,23 +385,24 @@ fun MediaStatsScreen(
                 tonalElevation = 8.dp,
                 dragHandle = {
                     Box(
-                        modifier = Modifier
-                            .padding(vertical = 12.dp)
-                            .width(32.dp)
-                            .height(4.dp)
-                            .background(
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                RoundedCornerShape(2.dp)
-                            )
+                        modifier =
+                            Modifier
+                                .padding(vertical = 12.dp)
+                                .width(32.dp)
+                                .height(4.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                    RoundedCornerShape(2.dp),
+                                ),
                     )
-                }
+                },
             ) {
                 DomainBreakdownSheet(
                     contactName = contactDomainStats?.first ?: "",
                     avatarPath = contactDomainStats?.second,
                     domains = contactDomainStats?.third ?: emptyList(),
                     isLoading = isDomainLoading,
-                    progress = progressDomains
+                    progress = progressDomains,
                 )
             }
         }
@@ -415,16 +416,17 @@ fun MediaStatsScreen(
                 tonalElevation = 8.dp,
                 dragHandle = {
                     Box(
-                        modifier = Modifier
-                            .padding(vertical = 12.dp)
-                            .width(32.dp)
-                            .height(4.dp)
-                            .background(
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                RoundedCornerShape(2.dp)
-                            )
+                        modifier =
+                            Modifier
+                                .padding(vertical = 12.dp)
+                                .width(32.dp)
+                                .height(4.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                    RoundedCornerShape(2.dp),
+                                ),
                     )
-                }
+                },
             ) {
                 MediaGallerySheet(
                     contactName = mediaGalleryState!!.first,
@@ -432,31 +434,33 @@ fun MediaStatsScreen(
                     mediaFiles = mediaGalleryState!!.third,
                     isLoading = isMediaGalleryLoading,
                     progress = progressMediaGallery,
-                    isLiteMode = viewModel.isLiteMode.collectAsState().value
+                    isLiteMode = viewModel.isLiteMode.collectAsState().value,
                 )
             }
         }
-
     } // fine Box
 } // fine MediaStatsScreen
 
 @Composable
+@Suppress("FunctionName")
 private fun MediaGallerySheet(
     contactName: String,
     avatarPath: String?,
     mediaFiles: List<MediaStat>,
     isLoading: Boolean,
     progress: Int?,
-    isLiteMode: Boolean = false
+    isLiteMode: Boolean = false,
 ) {
     // In Lite mode separiamo sticker (image/webp = STK-*.webp) dal resto.
     // Il tab è visibile solo se ci sono effettivamente sticker.
-    val stickers = remember(mediaFiles, isLiteMode) {
-        if (isLiteMode) mediaFiles.filter { it.mimeType == "image/webp" } else emptyList()
-    }
-    val galleryFiles = remember(mediaFiles, isLiteMode) {
-        if (isLiteMode) mediaFiles.filter { it.mimeType != "image/webp" } else mediaFiles
-    }
+    val stickers =
+        remember(mediaFiles, isLiteMode) {
+            if (isLiteMode) mediaFiles.filter { it.mimeType == "image/webp" } else emptyList()
+        }
+    val galleryFiles =
+        remember(mediaFiles, isLiteMode) {
+            if (isLiteMode) mediaFiles.filter { it.mimeType != "image/webp" } else mediaFiles
+        }
     val showStickerTab = isLiteMode && stickers.isNotEmpty()
     // 0 = Galleria, 1 = Sticker
     var activeTab by remember(showStickerTab) { mutableIntStateOf(0) }
@@ -467,19 +471,24 @@ private fun MediaGallerySheet(
     var selectedImageForPreview by remember { mutableStateOf<MediaStat?>(null) }
     val context = LocalContext.current
 
-    val imageLoader = remember(context) {
-        ImageLoader.Builder(context)
-            .components {
-                add(VideoFrameDecoder.Factory())
-                add(com.whatstat.reborn.ui.component.RootFileFetcher.Factory())
-            }
-            .build()
-    }
+    val imageLoader =
+        remember(context) {
+            ImageLoader.Builder(context)
+                .components {
+                    add(VideoFrameDecoder.Factory())
+                    add(com.whatstat.reborn.ui.component.RootFileFetcher.Factory())
+                }
+                .build()
+        }
 
-    val sortedAll = remember(currentFiles, sortAscending) {
-        if (sortAscending) currentFiles.sortedBy { it.timestamp }
-        else currentFiles.sortedByDescending { it.timestamp }
-    }
+    val sortedAll =
+        remember(currentFiles, sortAscending) {
+            if (sortAscending) {
+                currentFiles.sortedBy { it.timestamp }
+            } else {
+                currentFiles.sortedByDescending { it.timestamp }
+            }
+        }
     val visibleItems = sortedAll.take(displayedCount)
     val hasMore = displayedCount < sortedAll.size
 
@@ -490,96 +499,115 @@ private fun MediaGallerySheet(
     val stickerCount = stickers.size
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 32.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
     ) {
 // Header con avatar e info button sulla destra
-         Row(verticalAlignment = Alignment.CenterVertically) {
-             if (avatarPath != null) {
-                 AsyncImage(
-                     model = ImageRequest.Builder(LocalContext.current)
-                         .data(java.io.File(avatarPath))
-                         .crossfade(true)
-                         .build(),
-                     contentDescription = null,
-                     modifier = Modifier
-                         .size(48.dp)
-                         .clip(CircleShape),
-                     contentScale = ContentScale.Crop
-                 )
-                 Spacer(Modifier.width(12.dp))
-             }
-             Column(modifier = Modifier.weight(1f)) {
-                 Text(
-                     stringResource(R.string.media_link_title),
-                     style = MaterialTheme.typography.labelMedium,
-                     color = MaterialTheme.colorScheme.primary
-                 )
-                 Text(
-                     contactName,
-                     style = MaterialTheme.typography.headlineSmall,
-                     color = MaterialTheme.colorScheme.onSurface
-                 )
-             }
-             var showInfoDialog by remember { mutableStateOf(false) }
-             IconButton(onClick = { showInfoDialog = true }, modifier = Modifier.size(32.dp)) {
-                 Icon(
-                     Icons.Outlined.Info,
-                     contentDescription = stringResource(R.string.info_dialog_title),
-                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                     modifier = Modifier.size(18.dp)
-                 )
-             }
-             if (showInfoDialog) {
-                 AlertDialog(
-                     onDismissRequest = { showInfoDialog = false },
-                     title = { Text(stringResource(R.string.media_info_title)) },
-                     text = {
-                         Text(stringResource(R.string.media_info_text_gallery))
-                     },
-                     confirmButton = {
-                         TextButton(onClick = { showInfoDialog = false }) {
-                             Text(stringResource(R.string.ho_capito))
-                         }
-                     },
-                     containerColor = MaterialTheme.colorScheme.surface,
-                     titleContentColor = MaterialTheme.colorScheme.onSurface,
-                     textContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                 )
-             }
-         }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (avatarPath != null) {
+                AsyncImage(
+                    model =
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(java.io.File(avatarPath))
+                            .crossfade(true)
+                            .build(),
+                    contentDescription = null,
+                    modifier =
+                        Modifier
+                            .size(48.dp)
+                            .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+                )
+                Spacer(Modifier.width(12.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.media_link_title),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    contactName,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            var showInfoDialog by remember { mutableStateOf(false) }
+            IconButton(onClick = { showInfoDialog = true }, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    Icons.Outlined.Info,
+                    contentDescription = stringResource(R.string.info_dialog_title),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            if (showInfoDialog) {
+                AlertDialog(
+                    onDismissRequest = { showInfoDialog = false },
+                    title = { Text(stringResource(R.string.media_info_title)) },
+                    text = {
+                        Text(stringResource(R.string.media_info_text_gallery))
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showInfoDialog = false }) {
+                            Text(stringResource(R.string.ho_capito))
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         Spacer(Modifier.height(16.dp))
 
         // ── Tab Galleria / Sticker (solo Lite mode quando ci sono sticker) ────
         if (showStickerTab) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
-                    .background(androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                        .background(androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                listOf(0 to "${stringResource(R.string.tab_media)} (${galleryFiles.size})", 1 to "${stringResource(R.string.tab_stickers)} ($stickerCount)").forEach { (idx, label) ->
+                listOf(
+                    0 to "${stringResource(R.string.tab_media)} (${galleryFiles.size})",
+                    1 to "${stringResource(R.string.tab_stickers)} ($stickerCount)",
+                ).forEach {
+                        (idx, label) ->
                     Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-                            .background(
-                                if (activeTab == idx) MaterialTheme.colorScheme.primary
-                                else Color.Transparent
-                            )
-                            .clickable { activeTab = idx; displayedCount = 100 }
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                                .background(
+                                    if (activeTab == idx) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        Color.Transparent
+                                    },
+                                )
+                                .clickable {
+                                    activeTab = idx
+                                    displayedCount = 100
+                                }
+                                .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             label,
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (activeTab == idx) MaterialTheme.colorScheme.onPrimary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                            color =
+                                if (activeTab == idx) {
+                                    MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         )
                     }
                 }
@@ -588,35 +616,47 @@ private fun MediaGallerySheet(
         }
 
 // Contatori e toggle ordinamento
-         Row(
-             modifier = Modifier.fillMaxWidth(),
-             horizontalArrangement = Arrangement.SpaceBetween,
-             verticalAlignment = Alignment.CenterVertically
-         ) {
-             Row(
-                 verticalAlignment = Alignment.CenterVertically,
-                 modifier = Modifier.weight(1f)
-             ) {
-                 AutoMarquee {
-                     Text(
-                         if (activeTab == 1) "$stickerCount ${stringResource(R.string.tab_stickers)}"
-                         else "${photoCount} ${stringResource(R.string.type_images)} · $videoCount ${stringResource(R.string.type_videos)}" + if (audioCount > 0) " · $audioCount ${stringResource(R.string.type_audio)}" else "",
-                         style = MaterialTheme.typography.bodyMedium,
-                         color = MaterialTheme.colorScheme.onSurfaceVariant
-                     )
-}
-              }
-              val rotation by animateFloatAsState(if (sortAscending) 180f else 0f)
-             TextButton(onClick = { sortAscending = !sortAscending }) {
-                 Icon(
-                     Icons.Outlined.SwapVert,
-                     contentDescription = stringResource(R.string.radar_parole_title),
-                     modifier = Modifier.rotate(rotation)
-                 )
-                 Spacer(Modifier.width(4.dp))
-                 Text(if (sortAscending) stringResource(R.string.sort_oldest) else stringResource(R.string.sort_newest))
-             }
-         }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f),
+            ) {
+                val mediaCountText =
+                    if (activeTab == 1) {
+                        "$stickerCount ${stringResource(R.string.tab_stickers)}"
+                    } else {
+                        val base =
+                            "$photoCount ${stringResource(R.string.type_images)} · " +
+                                "$videoCount ${stringResource(R.string.type_videos)}"
+                        if (audioCount > 0) {
+                            "$base · $audioCount ${stringResource(R.string.type_audio)}"
+                        } else {
+                            base
+                        }
+                    }
+                AutoMarquee {
+                    Text(
+                        text = mediaCountText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            val rotation by animateFloatAsState(if (sortAscending) 180f else 0f)
+            TextButton(onClick = { sortAscending = !sortAscending }) {
+                Icon(
+                    Icons.Outlined.SwapVert,
+                    contentDescription = stringResource(R.string.radar_parole_title),
+                    modifier = Modifier.rotate(rotation),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(if (sortAscending) stringResource(R.string.sort_oldest) else stringResource(R.string.sort_newest))
+            }
+        }
         Spacer(Modifier.height(12.dp))
 
         // Contenuto
@@ -626,15 +666,16 @@ private fun MediaGallerySheet(
             }
             currentFiles.isEmpty() -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         stringResource(R.string.no_stickers_found),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -644,78 +685,109 @@ private fun MediaGallerySheet(
                     columns = GridCells.Fixed(3),
                     contentPadding = PaddingValues(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(visibleItems) { media ->
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(4.dp)
+                            modifier = Modifier.padding(4.dp),
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .aspectRatio(1f)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .clickable {
-                                        if (media.mimeType.startsWith("video/") || media.mimeType.startsWith("audio/")) {
-                                            try {
-                                                val builder = android.os.StrictMode.VmPolicy.Builder()
-                                                android.os.StrictMode.setVmPolicy(builder.build())
-                                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                                                intent.setDataAndType(
-                                                    android.net.Uri.fromFile(java.io.File(media.filePath)),
-                                                    media.mimeType
-                                                )
-                                                intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                                context.startActivity(intent)
-                                            } catch (e: Exception) {
-                                                android.widget.Toast.makeText(context, context.getString(R.string.error_open_file), android.widget.Toast.LENGTH_SHORT).show()
+                                modifier =
+                                    Modifier
+                                        .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .clickable {
+                                            if (media.mimeType.startsWith("video/") || media.mimeType.startsWith("audio/")) {
+                                                try {
+                                                    val builder = android.os.StrictMode.VmPolicy.Builder()
+                                                    android.os.StrictMode.setVmPolicy(builder.build())
+                                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
+                                                    intent.setDataAndType(
+                                                        android.net.Uri.fromFile(java.io.File(media.filePath)),
+                                                        media.mimeType,
+                                                    )
+                                                    intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                    context.startActivity(intent)
+                                                } catch (e: Exception) {
+                                                    android.widget.Toast.makeText(
+                                                        context,
+                                                        context.getString(R.string.error_open_file),
+                                                        android.widget.Toast.LENGTH_SHORT,
+                                                    ).show()
+                                                }
+                                            } else {
+                                                selectedImageForPreview = media
                                             }
-                                        } else {
-                                            selectedImageForPreview = media
-                                        }
-                                    }
+                                        },
                             ) {
                                 if (media.mimeType.startsWith("audio/")) {
                                     Box(
                                         modifier = Modifier.matchParentSize(),
-                                        contentAlignment = Alignment.Center
+                                        contentAlignment = Alignment.Center,
                                     ) {
                                         Icon(
                                             Icons.Outlined.Mic,
                                             contentDescription = stringResource(R.string.type_audio),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(32.dp).align(Alignment.Center)
+                                            modifier = Modifier.size(32.dp).align(Alignment.Center),
                                         )
-                                        MediaDurationBadge(media.filePath, Modifier.align(Alignment.BottomEnd).padding(end = 4.dp, bottom = 4.dp).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.surface)
+                                        MediaDurationBadge(
+                                            media.filePath,
+                                            Modifier.align(
+                                                Alignment.BottomEnd,
+                                            ).padding(
+                                                end = 4.dp,
+                                                bottom = 4.dp,
+                                            ).background(
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                                RoundedCornerShape(4.dp),
+                                            ).padding(horizontal = 4.dp, vertical = 2.dp),
+                                            color = MaterialTheme.colorScheme.surface,
+                                        )
                                     }
                                 } else {
                                     AsyncImage(
-                                        model = ImageRequest.Builder(LocalContext.current)
-                                            .data(java.io.File(media.filePath))
-                                            .crossfade(true)
-                                            .build(),
+                                        model =
+                                            ImageRequest.Builder(LocalContext.current)
+                                                .data(java.io.File(media.filePath))
+                                                .crossfade(true)
+                                                .build(),
                                         imageLoader = imageLoader,
                                         contentDescription = null,
                                         contentScale = ContentScale.Crop,
-                                        modifier = Modifier.matchParentSize()
+                                        modifier = Modifier.matchParentSize(),
                                     )
                                     if (media.mimeType.startsWith("video/")) {
                                         Box(
-                                            modifier = Modifier
-                                                .align(Alignment.Center)
-                                                .size(40.dp)
-                                                .background(Color.Black.copy(alpha = 0.6f), CircleShape),
-                                            contentAlignment = Alignment.Center
+                                            modifier =
+                                                Modifier
+                                                    .align(Alignment.Center)
+                                                    .size(40.dp)
+                                                    .background(Color.Black.copy(alpha = 0.6f), CircleShape),
+                                            contentAlignment = Alignment.Center,
                                         ) {
                                             Icon(
                                                 Icons.Outlined.PlayArrow,
                                                 contentDescription = stringResource(R.string.type_videos),
                                                 tint = Color.White,
-                                                modifier = Modifier.size(24.dp)
+                                                modifier = Modifier.size(24.dp),
                                             )
                                         }
-                                        MediaDurationBadge(media.filePath, Modifier.align(Alignment.BottomEnd).padding(end = 4.dp, bottom = 4.dp).background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp, vertical = 2.dp), color = Color.White)
+                                        MediaDurationBadge(
+                                            media.filePath,
+                                            Modifier.align(
+                                                Alignment.BottomEnd,
+                                            ).padding(
+                                                end = 4.dp,
+                                                bottom = 4.dp,
+                                            ).background(
+                                                Color.Black.copy(alpha = 0.6f),
+                                                RoundedCornerShape(4.dp),
+                                            ).padding(horizontal = 4.dp, vertical = 2.dp),
+                                            color = Color.White,
+                                        )
                                     }
                                 }
                             }
@@ -725,7 +797,7 @@ private fun MediaGallerySheet(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
@@ -734,22 +806,27 @@ private fun MediaGallerySheet(
                         item(span = { GridItemSpan(3) }) {
                             OutlinedButton(
                                 onClick = { displayedCount += 100 },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp)
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
                             ) {
-                                Text("${stringResource(R.string.load_more)} (${sortedAll.size - displayedCount} ${stringResource(R.string.show_less)})")
+                                Text(
+                                    "${stringResource(
+                                        R.string.load_more,
+                                    )} (${sortedAll.size - displayedCount} ${stringResource(R.string.show_less)})",
+                                )
                             }
                         }
                     }
                 }
             }
         }
-        
+
         if (selectedImageForPreview != null) {
             ZoomableImageViewer(
                 filePath = selectedImageForPreview!!.filePath,
-                onDismiss = { selectedImageForPreview = null }
+                onDismiss = { selectedImageForPreview = null },
             )
         }
     }
@@ -758,46 +835,63 @@ private fun MediaGallerySheet(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun MediaDurationBadge(filePath: String, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+@Suppress("FunctionName")
+private fun MediaDurationBadge(
+    filePath: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
     var duration by remember(filePath) { mutableStateOf<String?>(null) }
     LaunchedEffect(filePath) {
-        duration = withContext(Dispatchers.IO) {
-            try {
-                val mmr = android.media.MediaMetadataRetriever()
-                mmr.setDataSource(filePath)
-                val durationMs = mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
-                mmr.release()
-                if (durationMs != null && durationMs > 0) {
-                    val sec = (durationMs / 1000) % 60
-                    val min = (durationMs / 1000) / 60
-                    String.format(Locale.getDefault(), "%d:%02d", min, sec)
-                } else null
-            } catch (e: Exception) { null }
-        }
+        duration =
+            withContext(Dispatchers.IO) {
+                try {
+                    val mmr = android.media.MediaMetadataRetriever()
+                    mmr.setDataSource(filePath)
+                    val durationMs = mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+                    mmr.release()
+                    if (durationMs != null && durationMs > 0) {
+                        val sec = (durationMs / 1000) % 60
+                        val min = (durationMs / 1000) / 60
+                        String.format(Locale.getDefault(), "%d:%02d", min, sec)
+                    } else {
+                        null
+                    }
+                } catch (e: Exception) {
+                    null
+                }
+            }
     }
-    
+
     duration?.let {
-        Text(text = it, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium), color = color, modifier = modifier)
+        Text(
+            text = it,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+            color = color,
+            modifier = modifier,
+        )
     }
 }
 
 @Composable
+@Suppress("FunctionName")
 private fun LinkStatCard(
     stat: LinkStat,
     showTotal: Boolean,
     onClick: (() -> Unit)? = null,
     onLinksClick: () -> Unit,
-    onMediaClick: (() -> Unit)? = null
+    onMediaClick: (() -> Unit)? = null,
 ) {
-    val cardColors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    )
+    val cardColors =
+        CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        )
     if (onClick != null) {
         Card(
             onClick = onClick,
             modifier = Modifier.fillMaxWidth(),
             colors = cardColors,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
         ) {
             LinkStatCardContent(stat, onLinksClick, onMediaClick)
         }
@@ -805,7 +899,7 @@ private fun LinkStatCard(
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = cardColors,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
         ) {
             LinkStatCardContent(stat, onLinksClick, onMediaClick)
         }
@@ -813,52 +907,64 @@ private fun LinkStatCard(
 }
 
 @Composable
+@Suppress("FunctionName")
 private fun LinkStatCardContent(
     stat: LinkStat,
     onLinksClick: () -> Unit,
-    onMediaClick: (() -> Unit)? = null
+    onMediaClick: (() -> Unit)? = null,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         // Avatar + nome
         Row(
             modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             if (stat.avatarPath != null) {
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(java.io.File(stat.avatarPath))
-                        .crossfade(true)
-                        .build(),
+                    model =
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(java.io.File(stat.avatarPath))
+                            .crossfade(true)
+                            .build(),
                     contentDescription = null,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
+                    modifier =
+                        Modifier
+                            .size(36.dp)
+                            .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
                 )
             } else {
                 val isStories = stat.jid == "status@broadcast"
                 Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (isStories) MaterialTheme.colorScheme.tertiaryContainer
-                            else MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isStories) {
+                                    MaterialTheme.colorScheme.tertiaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                },
+                            ),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         if (isStories) Icons.Outlined.Visibility else Icons.Outlined.Person,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
-                        tint = if (isStories) MaterialTheme.colorScheme.onTertiaryContainer
-                               else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint =
+                            if (isStories) {
+                                MaterialTheme.colorScheme.onTertiaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                     )
                 }
             }
@@ -867,111 +973,133 @@ private fun LinkStatCardContent(
             ContactNameWithPhone(
                 name = stat.displayName ?: stat.jid.substringBefore("@"),
                 jid = stat.jid,
-                nameStyle = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = if (isStories) androidx.compose.ui.text.font.FontWeight.Bold else null
-                )
+                nameStyle =
+                    MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = if (isStories) androidx.compose.ui.text.font.FontWeight.Bold else null,
+                    ),
             )
         }
         Spacer(Modifier.width(12.dp))
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .width(64.dp)
-                    .then(
-                        if (onMediaClick != null && stat.mediaCount > 0) {
-                            Modifier.clickable { onMediaClick() }
-                        } else Modifier
-                    )
-                    .background(
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(vertical = 4.dp)
+                modifier =
+                    Modifier
+                        .width(64.dp)
+                        .then(
+                            if (onMediaClick != null && stat.mediaCount > 0) {
+                                Modifier.clickable { onMediaClick() }
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .background(
+                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.05f),
+                            shape = RoundedCornerShape(8.dp),
+                        )
+                        .padding(vertical = 4.dp),
             ) {
                 Icon(
                     Icons.Outlined.PhotoLibrary,
                     contentDescription = null,
-                    tint = if (stat.mediaCount > 0) MaterialTheme.colorScheme.secondary
-                           else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    tint =
+                        if (stat.mediaCount > 0) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        },
                 )
                 Text(
                     "${stat.mediaCount}",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = if (stat.mediaCount > 0) MaterialTheme.colorScheme.secondary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    color =
+                        if (stat.mediaCount > 0) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        },
                 )
                 Text(
                     "media",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .width(64.dp)
-                    .clickable { onLinksClick() }
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(vertical = 4.dp)
+                modifier =
+                    Modifier
+                        .width(64.dp)
+                        .clickable { onLinksClick() }
+                        .background(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                            shape = RoundedCornerShape(8.dp),
+                        )
+                        .padding(vertical = 4.dp),
             ) {
                 Icon(
                     Icons.Outlined.Link,
                     contentDescription = null,
-                    tint = if (stat.totalLinks > 0) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    tint =
+                        if (stat.totalLinks > 0) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        },
                 )
                 Text(
                     "${stat.totalLinks}",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = if (stat.totalLinks > 0) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    color =
+                        if (stat.totalLinks > 0) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        },
                 )
                 Text(
                     "link",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
     }
 }
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 private fun DomainChip(stat: DomainStat) {
     Box(
-        modifier = Modifier
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                RoundedCornerShape(16.dp)
-            )
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
-                RoundedCornerShape(16.dp)
-            )
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+        modifier =
+            Modifier
+                .background(
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                    RoundedCornerShape(16.dp),
+                )
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                    RoundedCornerShape(16.dp),
+                )
+                .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 stat.domain,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.width(6.dp))
             Text(
                 "${stat.count}",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
             )
         }
     }
@@ -980,35 +1108,39 @@ private fun DomainChip(stat: DomainStat) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
+@Suppress("FunctionName")
 private fun DomainBreakdownSheet(
     contactName: String,
     domains: List<DomainStat>,
     isLoading: Boolean,
     avatarPath: String? = null,
-    progress: Int? = null
+    progress: Int? = null,
 ) {
     var expandedDomain by remember { mutableIntStateOf(-1) }
     val uriHandler = LocalUriHandler.current
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 32.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
     ) {
         // Header con avatar
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (avatarPath != null) {
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(java.io.File(avatarPath))
-                        .crossfade(true)
-                        .build(),
+                    model =
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(java.io.File(avatarPath))
+                            .crossfade(true)
+                            .build(),
                     contentDescription = null,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
+                    modifier =
+                        Modifier
+                            .size(48.dp)
+                            .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
                 )
                 Spacer(Modifier.width(12.dp))
             }
@@ -1016,12 +1148,12 @@ private fun DomainBreakdownSheet(
                 Text(
                     "Analisi Link",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
                     contactName,
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
@@ -1034,7 +1166,7 @@ private fun DomainBreakdownSheet(
                 Text(
                     "Nessuna statistica di dominio disponibile.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             else -> {
@@ -1043,62 +1175,71 @@ private fun DomainBreakdownSheet(
                     domains.take(10).forEachIndexed { index, stat ->
                         val isExpanded = expandedDomain == index
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    if (isExpanded) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                    else Color.Transparent
-                                )
-                                .animateContentSize()
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        if (isExpanded) {
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                        } else {
+                                            Color.Transparent
+                                        },
+                                    )
+                                    .animateContentSize()
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
                         ) {
                             // Riga dominio (cliccabile)
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        expandedDomain = if (isExpanded) -1 else index
-                                    }
-                                    .padding(vertical = 4.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            expandedDomain = if (isExpanded) -1 else index
+                                        }
+                                        .padding(vertical = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(1f),
                                 ) {
                                     Text(
                                         stat.domain,
                                         style = MaterialTheme.typography.titleSmall,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = MaterialTheme.colorScheme.onSurface,
                                     )
                                     if (stat.topUrls.isNotEmpty()) {
                                         Icon(
-                                            if (isExpanded) Icons.Outlined.KeyboardArrowUp
-                                            else Icons.Outlined.KeyboardArrowDown,
+                                            if (isExpanded) {
+                                                Icons.Outlined.KeyboardArrowUp
+                                            } else {
+                                                Icons.Outlined.KeyboardArrowDown
+                                            },
                                             contentDescription = null,
                                             modifier = Modifier.size(18.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                 }
                                 Text(
                                     "${stat.count}",
                                     style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.primary,
                                 )
                             }
 
                             // Barra progresso
                             LinearProgressIndicator(
-                                progress = stat.count.toFloat() / maxCount,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp),
+                                progress = { stat.count.toFloat() / maxCount },
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(8.dp),
                                 color = MaterialTheme.colorScheme.primary,
                                 trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
                             )
 
                             // Lista URL espandibile
@@ -1106,34 +1247,38 @@ private fun DomainBreakdownSheet(
                                 Spacer(Modifier.height(8.dp))
                                 val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.ITALIAN) }
                                 LazyColumn(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(max = 240.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(max = 240.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
                                     items(stat.topUrls) { urlFreq ->
                                         Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .clickable {
-                                                    try {
-                                                        uriHandler.openUri(urlFreq.url)
-                                                    } catch (_: Exception) {}
-                                                }
-                                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                            modifier =
+                                                Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clickable {
+                                                        try {
+                                                            uriHandler.openUri(urlFreq.url)
+                                                        } catch (_: Exception) {
+                                                        }
+                                                    }
+                                                    .padding(horizontal = 8.dp, vertical = 6.dp),
                                             horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
+                                            verticalAlignment = Alignment.CenterVertically,
                                         ) {
                                             Text(
                                                 urlFreq.url,
-                                                style = MaterialTheme.typography.bodySmall.copy(
-                                                    textDecoration = TextDecoration.Underline
-                                                ),
+                                                style =
+                                                    MaterialTheme.typography.bodySmall.copy(
+                                                        textDecoration = TextDecoration.Underline,
+                                                    ),
                                                 color = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.weight(1f),
                                                 maxLines = 2,
-                                                overflow = TextOverflow.Ellipsis
+                                                overflow = TextOverflow.Ellipsis,
                                             )
                                             Spacer(Modifier.width(8.dp))
                                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1141,13 +1286,13 @@ private fun DomainBreakdownSheet(
                                                 Text(
                                                     "(${urlFreq.count})",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 )
                                                 Spacer(Modifier.width(4.dp))
                                                 Text(
                                                     urlFreq.lastTimestamp?.let { dateFormatter.format(Date(it)) } ?: "",
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 )
                                             }
                                         }

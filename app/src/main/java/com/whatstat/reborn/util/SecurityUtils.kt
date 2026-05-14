@@ -6,7 +6,6 @@ import java.io.File
  * Utility per la sicurezza e la privacy dei dati.
  */
 object SecurityUtils {
-
     /**
      * Elimina un file in modo sicuro: sovrascrive con zeri prima di eliminarlo.
      * Questo impedisce il recupero dei dati da strumenti forensi.
@@ -34,7 +33,10 @@ object SecurityUtils {
     /**
      * Elimina in modo sicuro tutti i file in una directory che matchano un pattern.
      */
-    fun secureDeleteAll(directory: File, vararg names: String) {
+    fun secureDeleteAll(
+        directory: File,
+        vararg names: String,
+    ) {
         names.forEach { name ->
             secureDelete(File(directory, name))
         }

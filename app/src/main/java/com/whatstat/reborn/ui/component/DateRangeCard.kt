@@ -25,6 +25,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 @Composable
+@Suppress("FunctionName")
 fun DateRangeCard(
     modifier: Modifier = Modifier,
     label: String,
@@ -32,57 +33,60 @@ fun DateRangeCard(
     endTimestamp: Long,
     dateFormatter: SimpleDateFormat,
     icon: ImageVector,
-    isSmallText: Boolean = false
+    isSmallText: Boolean = false,
 ) {
     val startDate = if (startTimestamp > 0) dateFormatter.format(Date(startTimestamp)) else "—"
     val endDate = if (endTimestamp > 0) dateFormatter.format(Date(endTimestamp)) else "—"
 
     Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .padding(16.dp)
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(16.dp),
     ) {
         Icon(
             icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary
+            tint = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.height(10.dp))
         AutoMarquee(
             delayMillis = 2000L,
-            speedMultiplier = 25
+            speedMultiplier = 25,
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     startDate,
-                    style = if (isSmallText) {
-                        MaterialTheme.typography.titleMedium
-                    } else {
-                        MaterialTheme.typography.headlineSmall
-                    },
+                    style =
+                        if (isSmallText) {
+                            MaterialTheme.typography.titleMedium
+                        } else {
+                            MaterialTheme.typography.headlineSmall
+                        },
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1
+                    maxLines = 1,
                 )
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     endDate,
-                    style = if (isSmallText) {
-                        MaterialTheme.typography.titleMedium
-                    } else {
-                        MaterialTheme.typography.headlineSmall
-                    },
+                    style =
+                        if (isSmallText) {
+                            MaterialTheme.typography.titleMedium
+                        } else {
+                            MaterialTheme.typography.headlineSmall
+                        },
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1
+                    maxLines = 1,
                 )
             }
         }
@@ -92,7 +96,7 @@ fun DateRangeCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

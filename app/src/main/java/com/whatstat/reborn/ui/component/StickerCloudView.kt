@@ -32,11 +32,12 @@ import java.io.File
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+@Suppress("FunctionName")
 fun InteractiveStickerCloud(
     stickers: List<StickerStat>,
     modifier: Modifier = Modifier,
     onStickerClick: ((String, Int) -> Unit)? = null,
-    isLiteMode: Boolean = false
+    isLiteMode: Boolean = false,
 ) {
     if (stickers.isEmpty()) return
 
@@ -45,7 +46,7 @@ fun InteractiveStickerCloud(
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         stickers.forEach { sticker ->
             val ratio = sticker.count / maxFreq
@@ -58,61 +59,69 @@ fun InteractiveStickerCloud(
                 size = size,
                 isLiteMode = isLiteMode,
                 litePath = sticker.filePath,
-                onClick = if (onStickerClick != null) {
-                    { onStickerClick(sticker.fileName, sticker.count) }
-                } else null
+                onClick =
+                    if (onStickerClick != null) {
+                        { onStickerClick(sticker.fileName, sticker.count) }
+                    } else {
+                        null
+                    },
             )
         }
     }
 }
 
 @Composable
+@Suppress("FunctionName")
 private fun StickerCloudItem(
     fileName: String,
     count: Int,
     size: androidx.compose.ui.unit.Dp,
     onClick: (() -> Unit)?,
     isLiteMode: Boolean = false,
-    litePath: String? = null
+    litePath: String? = null,
 ) {
     val context = LocalContext.current
-    val stickerPaths = listOf(
-        "/sdcard/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Stickers",
-        "/sdcard/WhatsApp/Media/WhatsApp Stickers"
-    )
-    val stickerFile = remember(fileName, isLiteMode, litePath) {
-        if (isLiteMode && litePath != null) {
-            File(litePath)
-        } else {
-            stickerPaths.map { File(it, fileName) }.firstOrNull { it.exists() }
+    val stickerPaths =
+        listOf(
+            "/sdcard/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Stickers",
+            "/sdcard/WhatsApp/Media/WhatsApp Stickers",
+        )
+    val stickerFile =
+        remember(fileName, isLiteMode, litePath) {
+            if (isLiteMode && litePath != null) {
+                File(litePath)
+            } else {
+                stickerPaths.map { File(it, fileName) }.firstOrNull { it.exists() }
+            }
         }
-    }
 
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .size(size)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
-            contentAlignment = Alignment.Center
+            modifier =
+                Modifier
+                    .size(size)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+            contentAlignment = Alignment.Center,
         ) {
             if (stickerFile != null) {
                 AsyncImage(
-                    model = ImageRequest.Builder(context).data(stickerFile)
-                        .crossfade(true).build(),
+                    model =
+                        ImageRequest.Builder(context).data(stickerFile)
+                            .crossfade(true).build(),
                     contentDescription = fileName,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
+                    contentScale = ContentScale.Fit,
                 )
             } else {
                 Icon(
                     Icons.Outlined.PhotoLibrary,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(size * 0.5f)
+                    modifier = Modifier.size(size * 0.5f),
                 )
             }
         }
@@ -120,7 +129,7 @@ private fun StickerCloudItem(
         Text(
             "(%d)".format(count),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

@@ -2,19 +2,13 @@ package com.whatstat.reborn.di
 
 import android.content.Context
 import com.whatstat.reborn.data.cache.CacheManager
-import com.whatstat.reborn.data.crypto.Crypt14Decryptor
-import com.whatstat.reborn.data.crypto.KeyReader
 import com.whatstat.reborn.data.db.ActiveDatabaseProvider
-import com.whatstat.reborn.data.db.DatabaseProvider
 import com.whatstat.reborn.data.db.WhatsAppDatabase
 import com.whatstat.reborn.data.db.dao.ChatDao
 import com.whatstat.reborn.data.db.dao.ContactDao
 import com.whatstat.reborn.data.db.dao.MessageDao
-import com.whatstat.reborn.data.repository.AnalyticsRepository
-import com.whatstat.reborn.data.repository.WhatsAppRepository
-import com.whatstat.reborn.data.root.FileExtractor
-import com.whatstat.reborn.data.root.RootManager
 import com.whatstat.reborn.data.lite.LiteDatabase
+import com.whatstat.reborn.data.repository.AnalyticsRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,11 +19,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-
     @Provides
     @Singleton
     fun provideWhatsAppDatabase(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
     ): WhatsAppDatabase = WhatsAppDatabase(context)
 
     @Provides
@@ -37,26 +30,20 @@ object AppModule {
     fun provideActiveDatabaseProvider(
         whatsAppDatabase: WhatsAppDatabase,
         liteDatabase: LiteDatabase,
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
     ): ActiveDatabaseProvider = ActiveDatabaseProvider(whatsAppDatabase, liteDatabase, context)
 
     @Provides
     @Singleton
-    fun provideMessageDao(
-        database: ActiveDatabaseProvider
-    ): MessageDao = MessageDao(database)
+    fun provideMessageDao(database: ActiveDatabaseProvider): MessageDao = MessageDao(database)
 
     @Provides
     @Singleton
-    fun provideChatDao(
-        database: ActiveDatabaseProvider
-    ): ChatDao = ChatDao(database)
+    fun provideChatDao(database: ActiveDatabaseProvider): ChatDao = ChatDao(database)
 
     @Provides
     @Singleton
-    fun provideContactDao(
-        database: ActiveDatabaseProvider
-    ): ContactDao = ContactDao(database)
+    fun provideContactDao(database: ActiveDatabaseProvider): ContactDao = ContactDao(database)
 
     @Provides
     @Singleton
@@ -69,6 +56,17 @@ object AppModule {
         activeDatabaseProvider: ActiveDatabaseProvider,
         liteModeManager: com.whatstat.reborn.data.lite.LiteModeManager,
         filterStateHolder: com.whatstat.reborn.ui.state.FilterStateHolder,
-        @ApplicationContext context: Context
-    ): AnalyticsRepository = AnalyticsRepository(messageDao, chatDao, contactDao, cacheManager, liteDatabase, activeDatabaseProvider, liteModeManager, filterStateHolder, context)
+        @ApplicationContext context: Context,
+    ): AnalyticsRepository =
+        AnalyticsRepository(
+            messageDao,
+            chatDao,
+            contactDao,
+            cacheManager,
+            liteDatabase,
+            activeDatabaseProvider,
+            liteModeManager,
+            filterStateHolder,
+            context,
+        )
 }

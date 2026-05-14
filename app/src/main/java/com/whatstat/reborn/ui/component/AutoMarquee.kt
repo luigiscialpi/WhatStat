@@ -15,18 +15,19 @@ import kotlinx.coroutines.isActive
 /**
  * Wrapper che aggiunge lo scorrimento orizzontale automatico (Marquee) al contenuto.
  * Se il contenuto eccede lo spazio disponibile, inizierà a scorrere dopo un delay.
- * 
+ *
  * @param modifier Modifier da applicare al Box contenitore
  * @param delayMillis Ritardo prima di iniziare lo scorrimento e tra un ciclo e l'altro
  * @param speedMultiplier Moltiplicatore per la durata dell'animazione (più alto = più lento)
  * @param content Il contenuto che deve scorrere
  */
 @Composable
+@Suppress("FunctionName")
 fun AutoMarquee(
     modifier: Modifier = Modifier,
     delayMillis: Long = 1500L,
     speedMultiplier: Int = 20,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val scrollState = rememberScrollState()
 
@@ -45,10 +46,11 @@ fun AutoMarquee(
                 try {
                     scrollState.animateScrollTo(
                         scrollState.maxValue,
-                        animationSpec = tween(
-                            durationMillis = scrollState.maxValue * speedMultiplier,
-                            easing = LinearEasing
-                        )
+                        animationSpec =
+                            tween(
+                                durationMillis = scrollState.maxValue * speedMultiplier,
+                                easing = LinearEasing,
+                            ),
                     )
                     delay(delayMillis)
                     scrollState.animateScrollTo(0, animationSpec = tween(1000))
@@ -67,7 +69,7 @@ fun AutoMarquee(
     }
 
     Box(
-        modifier = modifier.horizontalScroll(scrollState)
+        modifier = modifier.horizontalScroll(scrollState),
     ) {
         content()
     }

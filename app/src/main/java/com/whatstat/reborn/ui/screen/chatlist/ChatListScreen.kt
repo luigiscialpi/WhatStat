@@ -32,10 +32,8 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,30 +51,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
-import com.whatstat.reborn.R
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.ui.graphics.vector.ImageVector
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.whatstat.reborn.R
 import com.whatstat.reborn.data.db.model.ChatListItem
 import com.whatstat.reborn.ui.component.ContactNameWithPhone
 import com.whatstat.reborn.ui.component.SimpleScreenHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("FunctionName")
 fun ChatListScreen(
     viewModel: ChatListViewModel = hiltViewModel(),
     onChatSelected: (Long) -> Unit,
     onNavigateBack: () -> Unit,
     onImportChat: () -> Unit = {},
-    onAllChatsDeleted: () -> Unit = {}
+    onAllChatsDeleted: () -> Unit = {},
 ) {
     val chats by viewModel.filteredChats.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -102,14 +98,15 @@ fun ChatListScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding(),
         ) {
             // ── Header ───────────────────────────────────────────────
             SimpleScreenHeader(
                 title = stringResource(R.string.chatlist_title),
-                onBack = null
+                onBack = null,
             )
 
             // ── Search Bar ───────────────────────────────────────────
@@ -119,27 +116,29 @@ fun ChatListScreen(
                 placeholder = {
                     Text(
                         stringResource(R.string.chatlist_search_hint),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
                 leadingIcon = {
                     Icon(
                         Icons.Outlined.Search,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
                 singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                )
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    ),
             )
 
             Spacer(Modifier.height(12.dp))
@@ -149,7 +148,7 @@ fun ChatListScreen(
                 stringResource(R.string.chatlist_count_suffix, chats.size),
                 modifier = Modifier.padding(horizontal = 20.dp),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Spacer(Modifier.height(8.dp))
@@ -160,12 +159,12 @@ fun ChatListScreen(
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
                         AnimatedVisibility(
                             visible = true,
-                            enter = fadeIn() + slideInVertically { it / 3 }
+                            enter = fadeIn() + slideInVertically { it / 3 },
                         ) {
                             ChatListItem(
                                 rank = index + 1,
@@ -178,7 +177,7 @@ fun ChatListScreen(
                                 isLiteMode = isLiteMode,
                                 onDelete = { chatToDelete = chat },
                                 onRename = { chatToRename = chat },
-                                onClick = { onChatSelected(chat.chatId) }
+                                onClick = { onChatSelected(chat.chatId) },
                             )
                         }
                     }
@@ -192,23 +191,24 @@ fun ChatListScreen(
         if (isLiteMode) {
             ExtendedFloatingActionButton(
                 onClick = { onImportChat() },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 20.dp, bottom = 24.dp),
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 20.dp, bottom = 24.dp),
                 containerColor = MaterialTheme.colorScheme.primary,
                 icon = {
                     Icon(
                         Icons.Outlined.Add,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary
+                        tint = MaterialTheme.colorScheme.onPrimary,
                     )
                 },
                 text = {
                     Text(
                         stringResource(R.string.add_zip_fab),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
-                }
+                },
             )
         }
     }
@@ -224,7 +224,7 @@ fun ChatListScreen(
                     onClick = {
                         viewModel.deleteChat(chat.chatId)
                         chatToDelete = null
-                    }
+                    },
                 ) {
                     Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
@@ -233,7 +233,7 @@ fun ChatListScreen(
                 TextButton(onClick = { chatToDelete = null }) {
                     Text(stringResource(R.string.cancel))
                 }
-            }
+            },
         )
     }
 
@@ -250,7 +250,7 @@ fun ChatListScreen(
                     singleLine = true,
                     label = { Text(stringResource(R.string.chat_name_label)) },
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             },
             confirmButton = {
@@ -259,7 +259,7 @@ fun ChatListScreen(
                         viewModel.renameChat(chat.chatId, newName)
                         chatToRename = null
                     },
-                    enabled = newName.trim().isNotBlank()
+                    enabled = newName.trim().isNotBlank(),
                 ) {
                     Text(stringResource(R.string.save))
                 }
@@ -268,12 +268,13 @@ fun ChatListScreen(
                 TextButton(onClick = { chatToRename = null }) {
                     Text(stringResource(R.string.cancel))
                 }
-            }
+            },
         )
     }
 }
 
 @Composable
+@Suppress("FunctionName")
 private fun ChatListItem(
     rank: Int,
     name: String,
@@ -285,41 +286,52 @@ private fun ChatListItem(
     isLiteMode: Boolean = false,
     onDelete: () -> Unit = {},
     onRename: () -> Unit = {},
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        shape = RoundedCornerShape(14.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+        shape = RoundedCornerShape(14.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = if (isLiteMode) 4.dp else 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = if (isLiteMode) 4.dp else 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             if (!isLiteMode) {
                 // Rank badge
                 Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (rank <= 3) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                            else MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (rank <= 3) {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                },
+                            ),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         "$rank",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = if (rank <= 3) FontWeight.Bold else FontWeight.Normal,
-                        color = if (rank <= 3) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant
+                        color =
+                            if (rank <= 3) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                     )
                 }
 
@@ -329,29 +341,32 @@ private fun ChatListItem(
             // Avatar image or icon fallback
             if (avatarPath != null) {
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(java.io.File(avatarPath))
-                        .crossfade(true)
-                        .build(),
+                    model =
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(java.io.File(avatarPath))
+                            .crossfade(true)
+                            .build(),
                     contentDescription = null,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
+                    modifier =
+                        Modifier
+                            .size(40.dp)
+                            .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
                 )
             } else {
                 Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
+                    modifier =
+                        Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         if (isGroup) Icons.Outlined.Group else Icons.Outlined.Person,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -363,9 +378,10 @@ private fun ChatListItem(
                 ContactNameWithPhone(
                     name = name,
                     jid = jid,
-                    nameStyle = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Medium
-                    )
+                    nameStyle =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                        ),
                 )
                 if (importTimestamp != null) {
                     val sdf = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
@@ -373,13 +389,13 @@ private fun ChatListItem(
                     Text(
                         text = stringResource(R.string.exported_on_prefix, dateStr),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                     )
                 }
                 Text(
                     stringResource(R.string.messages_count_suffix, messageCount),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -389,28 +405,29 @@ private fun ChatListItem(
                     Icon(
                         Icons.Outlined.Edit,
                         contentDescription = stringResource(R.string.rename_chat_title),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Outlined.Delete,
                         contentDescription = stringResource(R.string.delete_chat_title),
-                        tint = MaterialTheme.colorScheme.error
+                        tint = MaterialTheme.colorScheme.error,
                     )
                 }
             } else {
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
                 ) {
                     Text(
                         "%,d".format(messageCount),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }

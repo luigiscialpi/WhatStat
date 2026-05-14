@@ -20,7 +20,6 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class LexicalAnalysisService : Service() {
-
     @Inject
     lateinit var lexicalAnalysisManager: LexicalAnalysisManager
 
@@ -37,7 +36,11 @@ class LexicalAnalysisService : Service() {
         private const val NOTIFICATION_ID = 1003
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
         when (intent?.action) {
             ACTION_START -> {
                 startForeground(NOTIFICATION_ID, buildNotification(0, indeterminate = true))
@@ -64,22 +67,28 @@ class LexicalAnalysisService : Service() {
     }
 
     private fun observeProgress() {
-        progressJob = serviceScope.launch {
-            lexicalAnalysisManager.progress.collect { progress ->
-                if (progress < 0) return@collect
-                notificationManager.notify(NOTIFICATION_ID, buildNotification(progress, indeterminate = progress == 0))
+        progressJob =
+            serviceScope.launch {
+                lexicalAnalysisManager.progress.collect { progress ->
+                    if (progress < 0) return@collect
+                    notificationManager.notify(NOTIFICATION_ID, buildNotification(progress, indeterminate = progress == 0))
+                }
             }
-        }
     }
 
-    private fun buildNotification(progress: Int, indeterminate: Boolean): Notification {
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            },
-            PendingIntent.FLAG_IMMUTABLE
-        )
+    private fun buildNotification(
+        progress: Int,
+        indeterminate: Boolean,
+    ): Notification {
+        val pendingIntent =
+            PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                },
+                PendingIntent.FLAG_IMMUTABLE,
+            )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Analisi lessicale")
             .setContentText(if (indeterminate) "Elaborazione in corso..." else "Elaborazione in corso... ($progress%)")

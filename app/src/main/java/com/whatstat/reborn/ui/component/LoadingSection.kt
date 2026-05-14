@@ -19,31 +19,33 @@ import androidx.compose.ui.unit.dp
  * Sezione di caricamento standard con supporto per la percentuale di progresso.
  */
 @Composable
+@Suppress("FunctionName")
 fun LoadingSection(
     message: String = "Calcolo in corso…",
     progress: Int? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 24.dp),
         horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         CircularProgressIndicator(
             modifier = Modifier.size(20.dp),
             strokeWidth = 2.dp,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
         )
-        
+
         Spacer(Modifier.width(12.dp))
-        
+
         val displayText = if (progress != null) "$message $progress%" else message
         Text(
             displayText,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

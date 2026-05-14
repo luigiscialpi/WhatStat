@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
  * back nell'header con [navController.popBackStack()].
  */
 @Composable
+@Suppress("FunctionName")
 fun DoubleBackToExitHandler() {
     val context = LocalContext.current
     var lastBackPressTime by remember { mutableLongStateOf(0L) }

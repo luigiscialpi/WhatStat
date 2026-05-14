@@ -23,10 +23,11 @@ import com.whatstat.reborn.data.db.model.EmojiStat
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+@Suppress("FunctionName")
 fun InteractiveEmojiCloud(
     emojis: List<EmojiStat>,
     modifier: Modifier = Modifier,
-    onEmojiClick: ((String, Int) -> Unit)? = null
+    onEmojiClick: ((String, Int) -> Unit)? = null,
 ) {
     if (emojis.isEmpty()) return
 
@@ -38,7 +39,7 @@ fun InteractiveEmojiCloud(
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         emojis.forEachIndexed { index, emoji ->
             val ratio = emoji.count / maxFreq
@@ -47,30 +48,33 @@ fun InteractiveEmojiCloud(
             val color = listOf(primary, secondary, tertiary)[index % 3]
 
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(color.copy(alpha = alpha * 0.15f))
-                        .then(
-                            if (onEmojiClick != null) {
-                                Modifier.clickable { onEmojiClick(emoji.emoji, emoji.count) }
-                            } else Modifier
-                        )
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(color.copy(alpha = alpha * 0.15f))
+                            .then(
+                                if (onEmojiClick != null) {
+                                    Modifier.clickable { onEmojiClick(emoji.emoji, emoji.count) }
+                                } else {
+                                    Modifier
+                                },
+                            )
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
                 ) {
                     Text(
                         emoji.emoji,
                         fontSize = fontSize,
                         fontWeight = if (ratio > 0.5f) FontWeight.SemiBold else FontWeight.Normal,
-                        color = color.copy(alpha = alpha)
+                        color = color.copy(alpha = alpha),
                     )
                 }
                 Text(
                     "(%,d)".format(emoji.count),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

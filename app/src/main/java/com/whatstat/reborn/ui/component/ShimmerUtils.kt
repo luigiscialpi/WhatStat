@@ -32,16 +32,17 @@ fun rememberShimmerBrush(): Brush {
     val translateX by transition.animateFloat(
         initialValue = -600f,
         targetValue = 1200f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmer_x"
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 1200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "shimmer_x",
     )
     return Brush.linearGradient(
         colors = shimmerColors,
         start = Offset(translateX, 0f),
-        end = Offset(translateX + 600f, 0f)
+        end = Offset(translateX + 600f, 0f),
     )
 }
 
@@ -49,14 +50,16 @@ fun rememberShimmerBrush(): Brush {
  * Box rettangolare con sfondo shimmer e angoli arrotondati.
  */
 @Composable
+@Suppress("FunctionName")
 fun ShimmerBox(
     modifier: Modifier,
     brush: Brush,
-    shape: RoundedCornerShape = RoundedCornerShape(6.dp)
+    shape: RoundedCornerShape = RoundedCornerShape(6.dp),
 ) {
     Box(
-        modifier = modifier
-            .clip(shape)
-            .background(brush)
+        modifier =
+            modifier
+                .clip(shape)
+                .background(brush),
     )
 }

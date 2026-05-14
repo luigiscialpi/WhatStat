@@ -7,7 +7,6 @@ import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
 class App : Application() {
-
     override fun onCreate() {
         super.onCreate()
         DebugLogManager.init(this)
@@ -23,10 +22,10 @@ class App : Application() {
         Shell.setDefaultBuilder(
             Shell.Builder.create()
                 .setFlags(
-                    Shell.FLAG_REDIRECT_STDERR or 
-                    Shell.FLAG_MOUNT_MASTER
+                    Shell.FLAG_REDIRECT_STDERR or
+                        Shell.FLAG_MOUNT_MASTER,
                 )
-                .setTimeout(10)
+                .setTimeout(10),
         )
     }
 }
