@@ -2,7 +2,9 @@ package com.whatstat.reborn.ui.screen.chatdetail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -41,6 +44,14 @@ import androidx.compose.material.icons.outlined.TextFields
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.EmojiEmotions
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -53,6 +64,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ScrollableTabRow
@@ -60,13 +72,14 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
 import com.whatstat.reborn.R
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -76,16 +89,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -118,6 +138,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val dateFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
@@ -458,7 +486,8 @@ fun ChatDetailScreen(
                                     referenceSenders = s.senderBreakdown,
                                     totalMessages = s.totalMessages,
                                     senderColorArgbOverrides = senderColorArgbOverrides,
-                                    onLegendColorClick = { colorPickerSender = it }
+                                    onLegendColorClick = { colorPickerSender = it },
+                                    dismissSignal = chartDismissSignal
                                 )
                             } else if (isLoadingSlow) {
                                 LoadingSection(progress = progressSlow)
@@ -474,7 +503,8 @@ fun ChatDetailScreen(
                                     referenceSenders = fallbackSenders,
                                     totalMessages = s.totalMessages,
                                     senderColorArgbOverrides = senderColorArgbOverrides,
-                                    onLegendColorClick = { colorPickerSender = it }
+                                    onLegendColorClick = { colorPickerSender = it },
+                                    dismissSignal = chartDismissSignal
                                 )
                             }
                         }
@@ -564,6 +594,7 @@ fun ChatDetailScreen(
                                     totalMessages = breakdownTotal,
                                     senderColorArgbOverrides = senderColorArgbOverrides,
                                     onLegendColorClick = { colorPickerSender = it },
+                                    dismissSignal = chartDismissSignal,
                                     centerLabel = stringResource(R.string.conv_starters_center)
                                 )
                             } else if (isLoadingSlow) {
@@ -583,6 +614,7 @@ fun ChatDetailScreen(
                                     totalMessages = starterTotal,
                                     senderColorArgbOverrides = senderColorArgbOverrides,
                                     onLegendColorClick = { colorPickerSender = it },
+                                    dismissSignal = chartDismissSignal,
                                     centerLabel = stringResource(R.string.conv_starters_center)
                                 )
                             }
@@ -1133,6 +1165,7 @@ private fun MessagePieChart(
     totalMessages: Int,
     senderColorArgbOverrides: Map<String, Int>,
     onLegendColorClick: (SenderStat) -> Unit,
+    dismissSignal: Int,
     centerLabel: String = stringResource(R.string.messages_label)
 ) {
     val total = totalMessages.coerceAtLeast(1)
@@ -1140,6 +1173,41 @@ private fun MessagePieChart(
     val collapsedLegendCount = 7
     val showExpand = senders.size > collapsedLegendCount
     val colorChangeLabel = stringResource(R.string.sender_color_change_cd)
+    var selectedSliceIndex by remember { mutableIntStateOf(-1) }
+    var selectedTapOffset by remember { mutableStateOf<Offset?>(null) }
+    var bubbleSizePx by remember { mutableStateOf(IntSize.Zero) }
+    var ignoreDismissSignal by remember { mutableIntStateOf(-1) }
+    var switchSliceJob by remember { mutableStateOf<Job?>(null) }
+    val scope = rememberCoroutineScope()
+
+    val selectedSender = senders.getOrNull(selectedSliceIndex)
+    val selectedPct = selectedSender?.let { it.count.toFloat() / total * 100f } ?: 0f
+    val selectedSliceOffsets = senders.mapIndexed { index, _ ->
+        animateDpAsState(
+            targetValue = if (index == selectedSliceIndex) 6.dp else 0.dp,
+            animationSpec = spring(),
+            label = "pie_slice_offset_$index"
+        ).value
+    }
+    val density = LocalDensity.current
+    val outerRadiusPx = with(density) { 140.dp.toPx() / 2f }
+    val innerRadiusPx = with(density) { outerRadiusPx - 28.dp.toPx() }
+    val bubbleVisible = selectedSender != null && selectedTapOffset != null
+
+    LaunchedEffect(senders, totalMessages) {
+        switchSliceJob?.cancel()
+        selectedSliceIndex = -1
+        selectedTapOffset = null
+    }
+
+    LaunchedEffect(dismissSignal) {
+        if (dismissSignal == ignoreDismissSignal) {
+            ignoreDismissSignal = -1
+        } else if (selectedSliceIndex != -1) {
+            switchSliceJob?.cancel()
+            selectedSliceIndex = -1
+        }
+    }
 
     Column {
         Row(
@@ -1147,8 +1215,64 @@ private fun MessagePieChart(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // ── Donut Chart ──
-            Box(
-                modifier = Modifier.size(140.dp),
+            BoxWithConstraints(
+                modifier = Modifier
+                    .size(140.dp)
+                    .pointerInput(senders, total) {
+                        detectTapGestures { tapOffset ->
+                            ignoreDismissSignal = dismissSignal + 1
+                            val center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+                            val dx = tapOffset.x - center.x
+                            val dy = tapOffset.y - center.y
+                            val distance = hypot(dx, dy)
+
+                            if (distance < innerRadiusPx || distance > outerRadiusPx) {
+                                switchSliceJob?.cancel()
+                                selectedSliceIndex = -1
+                                return@detectTapGestures
+                            }
+
+                            var angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat() + 90f
+                            if (angle < 0f) angle += 360f
+
+                            var runningStart = 0f
+                            var tappedIndex = -1
+                            for (index in senders.indices) {
+                                val sweep = (senders[index].count.toFloat() / total) * 360f
+                                val end = runningStart + sweep
+                                if (sweep > 0f && angle >= runningStart && (angle < end || (index == senders.lastIndex && angle <= end))) {
+                                    tappedIndex = index
+                                    break
+                                }
+                                runningStart = end
+                            }
+
+                            if (tappedIndex == -1) {
+                                switchSliceJob?.cancel()
+                                selectedSliceIndex = -1
+                                return@detectTapGestures
+                            }
+
+                            if (tappedIndex == selectedSliceIndex) {
+                                switchSliceJob?.cancel()
+                                selectedSliceIndex = -1
+                            } else {
+                                val hadActiveSlice = selectedSliceIndex != -1
+                                switchSliceJob?.cancel()
+                                if (hadActiveSlice) {
+                                    selectedSliceIndex = -1
+                                    switchSliceJob = scope.launch {
+                                        delay(110)
+                                        selectedTapOffset = tapOffset
+                                        selectedSliceIndex = tappedIndex
+                                    }
+                                } else {
+                                    selectedTapOffset = tapOffset
+                                    selectedSliceIndex = tappedIndex
+                                }
+                            }
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 androidx.compose.foundation.Canvas(
@@ -1163,7 +1287,7 @@ private fun MessagePieChart(
                     val arcRect = androidx.compose.ui.geometry.Size(arcSize, arcSize)
                     var startAngle = -90f
 
-                    senders.forEach { sender ->
+                    senders.forEachIndexed { index, sender ->
                         val sweep = (sender.count.toFloat() / total) * 360f
                         val key = senderColorOverrideKey(chatId, sender.jid)
                         val sliceColor = getSenderColor(
@@ -1171,12 +1295,19 @@ private fun MessagePieChart(
                             referenceSenders,
                             senderColorArgbOverrides[key]
                         )
+                        val offsetPx = selectedSliceOffsets.getOrNull(index)?.toPx() ?: 0f
+                        val midAngle = startAngle + (sweep / 2f)
+                        val midAngleRad = Math.toRadians(midAngle.toDouble())
+                        val arcOffset = androidx.compose.ui.geometry.Offset(
+                            x = cos(midAngleRad).toFloat() * offsetPx,
+                            y = sin(midAngleRad).toFloat() * offsetPx
+                        )
                         drawArc(
                             color = sliceColor,
                             startAngle = startAngle,
                             sweepAngle = sweep,
                             useCenter = false,
-                            topLeft = topLeft,
+                            topLeft = topLeft + arcOffset,
                             size = arcRect,
                             style = androidx.compose.ui.graphics.drawscope.Stroke(
                                 width = strokeWidth,
@@ -1198,6 +1329,36 @@ private fun MessagePieChart(
                         centerLabel,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                val tap = selectedTapOffset ?: Offset.Zero
+                val chartWidthPx = with(density) { maxWidth.toPx().roundToInt() }
+                val rawBubbleX = tap.x.roundToInt() - (bubbleSizePx.width / 2)
+                val bubbleX = rawBubbleX.coerceIn(-24, chartWidthPx - bubbleSizePx.width + 24)
+                val bubbleY = tap.y.roundToInt() - bubbleSizePx.height - with(density) { 8.dp.toPx().roundToInt() }
+
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = bubbleVisible,
+                    enter = fadeIn(animationSpec = tween(120)) + scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = tween(140)
+                    ),
+                    exit = fadeOut(animationSpec = tween(90)) + scaleOut(
+                        targetScale = 0.96f,
+                        animationSpec = tween(90)
+                    ),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .offset { IntOffset(bubbleX, bubbleY) }
+                        .zIndex(2f)
+                ) {
+                    PieSliceBubble(
+                        onTap = { ignoreDismissSignal = dismissSignal + 1 },
+                        senderName = selectedSender?.displayName.orEmpty(),
+                        percentage = selectedPct,
+                        count = selectedSender?.count ?: 0,
+                        onMeasured = { bubbleSizePx = it }
                     )
                 }
             }
@@ -1268,6 +1429,70 @@ private fun MessagePieChart(
                     .padding(top = 8.dp),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
+        }
+    }
+}
+
+@Composable
+private fun PieSliceBubble(
+    onTap: () -> Unit,
+    senderName: String,
+    percentage: Float,
+    count: Int,
+    onMeasured: (IntSize) -> Unit
+) {
+    val bubbleColor = MaterialTheme.colorScheme.inverseSurface
+    val onBubbleColor = MaterialTheme.colorScheme.inverseOnSurface
+    val secondaryColor = onBubbleColor.copy(alpha = 0.7f)
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .onGloballyPositioned { onMeasured(it.size) }
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = { onTap() })
+            }
+    ) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = bubbleColor,
+            contentColor = onBubbleColor,
+            shadowElevation = 6.dp,
+            tonalElevation = 4.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = senderName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = secondaryColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "%.1f%%".format(percentage),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = onBubbleColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = stringResource(R.string.messages_count_suffix, count),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = secondaryColor
+                )
+            }
+        }
+
+        androidx.compose.foundation.Canvas(modifier = Modifier.size(width = 12.dp, height = 8.dp)) {
+            val path = Path().apply {
+                moveTo(0f, 0f)
+                lineTo(size.width, 0f)
+                lineTo(size.width / 2f, size.height)
+                close()
+            }
+            drawPath(path = path, color = bubbleColor)
         }
     }
 }
