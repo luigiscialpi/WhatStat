@@ -1,4 +1,4 @@
-# ProGuard rules for WhatStat Reborn
+# ProGuard rules for WhatStat
 
 # ── Hilt ──────────────────────────────────────────────────────────
 -keepnames @dagger.hilt.android.lifecycle.HiltViewModel class * extends androidx.lifecycle.ViewModel
@@ -15,8 +15,8 @@
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
 
 # ── Data Classes (mantenere per serializzazione) ──────────────────
--keepclassmembers class com.whatstat.reborn.domain.model.** { *; }
--keepclassmembers class com.whatstat.reborn.data.db.model.** { *; }
+-keepclassmembers class com.whatstat.domain.model.** { *; }
+-keepclassmembers class com.whatstat.data.db.model.** { *; }
 
 # ── Compose ───────────────────────────────────────────────────────
 -dontwarn androidx.compose.**

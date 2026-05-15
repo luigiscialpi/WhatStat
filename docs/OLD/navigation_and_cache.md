@@ -1,4 +1,4 @@
-# Navigazione e Cache — WhatStat Reborn
+# Navigazione e Cache — WhatStat
 
 ## 1. Struttura della Navigazione
 

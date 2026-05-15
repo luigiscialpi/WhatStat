@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">WhatStat Reborn</string>
+    <string name="app_name">WhatStat</string>
 
     <!-- Navigation & Common -->
     <string name="back_desc">Geri</string>
@@ -56,7 +56,7 @@
     <string name="click_year_prefix">Yıl %s</string>
 
     <!-- Setup Screen -->
-    <string name="setup_title">WhatStat Reborn</string>
+    <string name="setup_title">WhatStat</string>
     <string name="setup_subtitle">WhatsApp sohbetlerinizin eksiksiz analizi.\nTüm veriler cihazda kalır.</string>
     <string name="tab_lite">Lite</string>
     <string name="tab_root">Root</string>
@@ -113,7 +113,7 @@
 
     <!-- Errors (Service) -->
     <string name="error_root_not_available">Root kullanılamıyor. Magisk\'in yüklü olduğundan ve uygulamanın root izinlerine sahip olduğundan emin ol.</string>
-    <string name="error_root_not_granted">Root izinleri reddedildi. Magisk\'i aç ve WhatStat Reborn\'a izin ver.</string>
+    <string name="error_root_not_granted">Root izinleri reddedildi. Magisk\'i aç ve WhatStat\'a izin ver.</string>
     <string name="error_key_not_found">Anahtar dosyası bulunamadı. WhatsApp yüklü mü?</string>
     <string name="error_crypt14_not_found">Şifreli veritabanı bulunamadı. WhatsApp\'ta yerel yedeklemenin açık olduğundan emin ol.</string>
     <string name="error_crypt15_detected">Crypt15 (E2E) yedeklemesi tespit edildi. WhatsApp ayarlarında uçtan uca şifreli yedeklemeyi devre dışı bırak.</string>

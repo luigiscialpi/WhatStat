@@ -1,4 +1,4 @@
-# Piano di Protezione del Codice — WhatStat Reborn
+# Piano di Protezione del Codice — WhatStat
 
 > **Versione**: 1.0  
 > **Data**: 2026-05-10  
@@ -56,8 +56,8 @@ Aggiornare `app/proguard-rules.pro` con:
 -keepattributes SourceFile,LineNumberTable
 
 # Ofusca il package crypto (logica critica)
--repackageclasses 'com.whatstat.reborn.data.crypto.obf'
--flattenpackagehierarchy 'com.whatstat.reborn.data.crypto.obf'
+-repackageclasses 'com.whatstat.data.crypto.obf'
+-flattenpackagehierarchy 'com.whatstat.data.crypto.obf'
 
 # Rimuove logging in release
 -assumenosideeffects class android.util.Log {
@@ -80,8 +80,8 @@ Aggiornare `app/proguard-rules.pro` con:
 -renamesourcefileattribute "Obfuscated"
 
 # ── Mantenimento minimo necessario ─────────────────────────────
--keep class com.whatstat.reborn.App { *; }
--keep class com.whatstat.reborn.di.** { *; }
+-keep class com.whatstat.App { *; }
+-keep class com.whatstat.di.** { *; }
 -keep @dagger.hilt.android.lifecycle.HiltViewModel class * extends androidx.lifecycle.ViewModel
 
 # libsu
@@ -103,14 +103,14 @@ Aggiornare `app/proguard-rules.pro` con:
 -keepclassmembers class * {
     @androidx.room.* <methods>;
 }
--keep class com.whatstat.reborn.data.db.model.** { *; }
+-keep class com.whatstat.data.db.model.** { *; }
 
 # Hilt
--keep class com.whatstat.reborn.data.db.** { *; }
--dontwarn com.whatstat.reborn.data.db.**
+-keep class com.whatstat.data.db.** { *; }
+-dontwarn com.whatstat.data.db.**
 
 # Data Classes / Serialization
--keepclassmembers class com.whatstat.reborn.domain.model.** { *; }
+-keepclassmembers class com.whatstat.domain.model.** { *; }
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.AnnotationsKt
 

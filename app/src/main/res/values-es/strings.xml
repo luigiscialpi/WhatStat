@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">WhatStat Reborn</string>
+    <string name="app_name">WhatStat</string>
 
     <!-- Navigation & Common -->
     <string name="back_desc">Atrás</string>
@@ -56,7 +56,7 @@
     <string name="click_year_prefix">Año %s</string>
 
     <!-- Setup Screen -->
-    <string name="setup_title">WhatStat Reborn</string>
+    <string name="setup_title">WhatStat</string>
     <string name="setup_subtitle">Análisis completo de tus chats de WhatsApp.\nTodos los datos permanecen en el dispositivo.</string>
     <string name="tab_lite">Lite</string>
     <string name="tab_root">Root</string>
@@ -113,7 +113,7 @@
 
     <!-- Errors (Service) -->
     <string name="error_root_not_available">Root no disponible. Asegúrate de que Magisk esté instalado y de que la app tenga permisos root.</string>
-    <string name="error_root_not_granted">Permisos root denegados. Abre Magisk y concede permisos a WhatStat Reborn.</string>
+    <string name="error_root_not_granted">Permisos root denegados. Abre Magisk y concede permisos a WhatStat.</string>
     <string name="error_key_not_found">Archivo de clave no encontrado. ¿Está instalado WhatsApp?</string>
     <string name="error_crypt14_not_found">Base de datos cifrada no encontrada. Asegúrate de que la copia de seguridad local esté activa en WhatsApp.</string>
     <string name="error_crypt15_detected">Se detectó copia de seguridad crypt15 (E2E). Desactiva la copia de seguridad cifrada de extremo a extremo en la configuración de WhatsApp.</string>

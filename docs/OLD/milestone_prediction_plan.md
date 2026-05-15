@@ -1,6 +1,6 @@
 # Piano implementativo - Previsione Traguardi
 
-Questo documento guida l'implementazione completa della feature "Previsione Traguardi" in WhatStat Reborn.
+Questo documento guida l'implementazione completa della feature "Previsione Traguardi" in WhatStat.
 
 L'obiettivo e permettere all'app di stimare quando verra raggiunto un prossimo traguardo di messaggi, sia nella Dashboard globale sia nel Dettaglio Chat.
 
@@ -38,14 +38,14 @@ Questo e sbagliato perche il filtro temporale non deve ridefinire il traguardo t
 File rilevanti:
 
 ```text
-app/src/main/java/com/whatstat/reborn/domain/model/Stats.kt
-app/src/main/java/com/whatstat/reborn/data/repository/AnalyticsRepository.kt
-app/src/main/java/com/whatstat/reborn/data/db/dao/MessageDao.kt
-app/src/main/java/com/whatstat/reborn/data/cache/CacheManager.kt
-app/src/main/java/com/whatstat/reborn/ui/screen/dashboard/DashboardScreen.kt
-app/src/main/java/com/whatstat/reborn/ui/screen/chatdetail/ChatDetailScreen.kt
-app/src/main/java/com/whatstat/reborn/ui/screen/dashboard/DashboardViewModel.kt
-app/src/main/java/com/whatstat/reborn/ui/screen/chatdetail/ChatDetailViewModel.kt
+app/src/main/java/com/whatstat/domain/model/Stats.kt
+app/src/main/java/com/whatstat/data/repository/AnalyticsRepository.kt
+app/src/main/java/com/whatstat/data/db/dao/MessageDao.kt
+app/src/main/java/com/whatstat/data/cache/CacheManager.kt
+app/src/main/java/com/whatstat/ui/screen/dashboard/DashboardScreen.kt
+app/src/main/java/com/whatstat/ui/screen/chatdetail/ChatDetailScreen.kt
+app/src/main/java/com/whatstat/ui/screen/dashboard/DashboardViewModel.kt
+app/src/main/java/com/whatstat/ui/screen/chatdetail/ChatDetailViewModel.kt
 app/src/main/res/values/strings.xml
 app/src/main/res/values-it/strings.xml
 ```
@@ -86,7 +86,7 @@ Al termine dell'implementazione:
 Modificare:
 
 ```text
-app/src/main/java/com/whatstat/reborn/domain/model/Stats.kt
+app/src/main/java/com/whatstat/domain/model/Stats.kt
 ```
 
 ### 1.1 Aggiungere `PredictionConfidence`
@@ -180,16 +180,16 @@ Il default e importante per ridurre il numero di punti da aggiornare e per non r
 Creare un nuovo file:
 
 ```text
-app/src/main/java/com/whatstat/reborn/domain/prediction/MilestonePredictionCalculator.kt
+app/src/main/java/com/whatstat/domain/prediction/MilestonePredictionCalculator.kt
 ```
 
 Contenuto consigliato:
 
 ```kotlin
-package com.whatstat.reborn.domain.prediction
+package com.whatstat.domain.prediction
 
-import com.whatstat.reborn.domain.model.MilestonePrediction
-import com.whatstat.reborn.domain.model.PredictionConfidence
+import com.whatstat.domain.model.MilestonePrediction
+import com.whatstat.domain.model.PredictionConfidence
 import kotlin.math.ceil
 import kotlin.math.pow
 
@@ -388,7 +388,7 @@ Non bloccare la previsione per confidenza bassa: la UI puo mostrarla con testo p
 Creare:
 
 ```text
-app/src/test/java/com/whatstat/reborn/domain/prediction/MilestonePredictionCalculatorTest.kt
+app/src/test/java/com/whatstat/domain/prediction/MilestonePredictionCalculatorTest.kt
 ```
 
 Usare JUnit 4, gia presente in `app/build.gradle.kts`.
@@ -442,13 +442,13 @@ Se nel progetto la variante non e `Debug`, usare:
 Modificare:
 
 ```text
-app/src/main/java/com/whatstat/reborn/data/repository/AnalyticsRepository.kt
+app/src/main/java/com/whatstat/data/repository/AnalyticsRepository.kt
 ```
 
 Aggiungere import:
 
 ```kotlin
-import com.whatstat.reborn.domain.prediction.MilestonePredictionCalculator
+import com.whatstat.domain.prediction.MilestonePredictionCalculator
 ```
 
 ### 4.1 Helper privato per range rate
@@ -608,7 +608,7 @@ Attenzione:
 Modificare solo se necessario:
 
 ```text
-app/src/main/java/com/whatstat/reborn/data/cache/CacheManager.kt
+app/src/main/java/com/whatstat/data/cache/CacheManager.kt
 ```
 
 Scelta consigliata:
@@ -632,7 +632,7 @@ Verifica importante:
 Creare:
 
 ```text
-app/src/main/java/com/whatstat/reborn/ui/component/MilestonePredictionCard.kt
+app/src/main/java/com/whatstat/ui/component/MilestonePredictionCard.kt
 ```
 
 ### 6.1 API del composable
@@ -863,7 +863,7 @@ Non usare nomi diversi tra `values` e `values-it`.
 Modificare:
 
 ```text
-app/src/main/java/com/whatstat/reborn/ui/screen/chatdetail/ChatDetailScreen.kt
+app/src/main/java/com/whatstat/ui/screen/chatdetail/ChatDetailScreen.kt
 ```
 
 ### 8.1 Import
@@ -871,7 +871,7 @@ app/src/main/java/com/whatstat/reborn/ui/screen/chatdetail/ChatDetailScreen.kt
 Aggiungere:
 
 ```kotlin
-import com.whatstat.reborn.ui.component.MilestonePredictionCard
+import com.whatstat.ui.component.MilestonePredictionCard
 ```
 
 ### 8.2 Posizione
@@ -904,7 +904,7 @@ Controllare comunque che nessun `copy(...)` imposti accidentalmente `milestonePr
 Modificare:
 
 ```text
-app/src/main/java/com/whatstat/reborn/ui/screen/dashboard/DashboardScreen.kt
+app/src/main/java/com/whatstat/ui/screen/dashboard/DashboardScreen.kt
 ```
 
 ### 9.1 Import
@@ -912,7 +912,7 @@ app/src/main/java/com/whatstat/reborn/ui/screen/dashboard/DashboardScreen.kt
 Aggiungere:
 
 ```kotlin
-import com.whatstat.reborn.ui.component.MilestonePredictionCard
+import com.whatstat.ui.component.MilestonePredictionCard
 ```
 
 ### 9.2 Posizione (Solo Root Mode)

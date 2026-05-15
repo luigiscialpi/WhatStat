@@ -26,7 +26,7 @@ Toccando nuovamente la barra selezionata, si apre un **AlertDialog** elegante:
 ## 2. Guida Tecnica (Step-by-Step)
 
 ### FASE 1: Modifica Modelli Dati (`QueryModels.kt`)
-**Percorso:** `app/src/main/java/com/whatstat/reborn/data/db/model/QueryModels.kt`
+**Percorso:** `app/src/main/java/com/whatstat/data/db/model/QueryModels.kt`
 Aggiungere il campo per il breakdown a tutti i modelli di distribuzione (`HourlyCount`, `DayCount`, ecc.):
 ```kotlin
 val senderBreakdown: List<SenderStat> = emptyList()

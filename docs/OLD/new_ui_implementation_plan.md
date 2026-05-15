@@ -1,6 +1,6 @@
 # Piano di Refactoring UX/UI: Bottom Navigation
 
-Questo piano, aggiornato in base alle linee guida di `docs/refactor_plan_b.md` e di `docs/refactor_ui.md`, descrive l'implementazione del refactoring della navigazione e la standardizzazione della UX per WhatStat Reborn. L'obiettivo è passare da una navigazione "piatta" a una basata su un **AppScaffold** con `BottomNavigationBar` a stack indipendenti, uniformando parallelamente gli stati dell'interfaccia.
+Questo piano, aggiornato in base alle linee guida di `docs/refactor_plan_b.md` e di `docs/refactor_ui.md`, descrive l'implementazione del refactoring della navigazione e la standardizzazione della UX per WhatStat. L'obiettivo è passare da una navigazione "piatta" a una basata su un **AppScaffold** con `BottomNavigationBar` a stack indipendenti, uniformando parallelamente gli stati dell'interfaccia.
 
 ## Decisioni Architetturali
 
@@ -23,12 +23,12 @@ Le seguenti scelte sono vincolanti per l'intera implementazione e risolvono le a
 
 ### UI / Componenti di Base
 
-#### [NEW] `com/whatstat/reborn/ui/navigation/BottomNavigationBar.kt`
+#### [NEW] `com/whatstat/ui/navigation/BottomNavigationBar.kt`
 
 - Creazione della Bottom Navigation Bar con le 5 tab: Panoramica, Chat, Media, Radar, Chiamate (usando Material 3 `NavigationBar`).
 - Logica di selezione reattiva basata sulla route di `currentBackStackEntry`.
 
-#### [NEW] `com/whatstat/reborn/ui/screen/home/AppScaffold.kt`
+#### [NEW] `com/whatstat/ui/screen/home/AppScaffold.kt`
 
 - Nuovo entry point principale. `MainActivity` delega a `AppScaffold` che wrappa il `NavHost` esistente.
 - Integra lo `Scaffold` con all'interno la `BottomNavigationBar`.
@@ -46,7 +46,7 @@ Le seguenti scelte sono vincolanti per l'intera implementazione e risolvono le a
 
 ### Ristrutturazione del NavHost
 
-#### [MODIFY] `com/whatstat/reborn/ui/navigation/AppNavigation.kt`
+#### [MODIFY] `com/whatstat/ui/navigation/AppNavigation.kt`
 
 - Riorganizzazione in macro-fasi: `Setup` e `Main` (tabbed shell).
 - Definizione di grafi top-level individuali per ciascuna tab (`OverviewGraph`, `ChatsGraph` ecc.).
@@ -77,17 +77,17 @@ Le seguenti scelte sono vincolanti per l'intera implementazione e risolvono le a
 
 ### Modifiche alle Schermate
 
-#### [MODIFY] `com/whatstat/reborn/ui/screen/dashboard/DashboardScreen.kt`
+#### [MODIFY] `com/whatstat/ui/screen/dashboard/DashboardScreen.kt`
 
 - Rimuovere i 4 pulsanti in fondo ("Lista Chat", "Media & Link", "Radar Parole", "Log Chiamate") e ripulire il padding.
 
-#### [MODIFY] `com/whatstat/reborn/ui/screen/chatdetail/ChatDetailScreen.kt`
+#### [MODIFY] `com/whatstat/ui/screen/chatdetail/ChatDetailScreen.kt`
 
 - Rimuovere **solo** il pulsante "Tutte le Chat" (ultimo `ActionCard` del grid 2×2, quello con icona Group e label "Altre conversazioni") che oggi funge impropriamente da pulsante back.
 - **Mantenere** i 3 `ActionCard` rimanenti (Radar Parole, Log Chiamate, Media & Link) perché sono l'unico punto d'accesso alle schermate chat-specific con `chatId`. Riorganizzare il layout da griglia 2×2 a una riga 1×3 o a un layout più adatto a 3 elementi.
 - Il ritorno alla `ChatList` avverrà rigorosamente tramite back nativo (freccia in alto o gesture di sistema).
 
-#### [MODIFY] `com/whatstat/reborn/ui/screen/media/MediaStatsScreen.kt`
+#### [MODIFY] `com/whatstat/ui/screen/media/MediaStatsScreen.kt`
 
 - Introduzione di una UI `TabRow`/`PrimaryTabRow` superiore.
 - Verranno create due sotto-tab "Media" e "Link" separate, migliorando la chiarezza ed evitando scroll eccessivi.

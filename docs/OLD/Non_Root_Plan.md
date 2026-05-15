@@ -1,4 +1,4 @@
-# Piano Dettagliato: WhatStat Reborn per Utenti Non-Root
+# Piano Dettagliato: WhatStat per Utenti Non-Root
 
 ## Obiettivo
 
@@ -45,28 +45,28 @@ Prima della schermata di Setup attuale, introdurre una schermata di **scelta mod
 
 ```
 ┌────────────────────────────────────────┐
-│         WhatStat Reborn                │
+│               WhatStat                 │
 │    Come vuoi analizzare le chat?       │
 │                                        │
 │  ┌──────────────────────────────────┐  │
-│  │ 🔓  Accesso Root (consigliato)  │  │
-│  │  Automatico, tutte le funzioni  │  │
-│  │  ★★★★★ Completezza              │  │
+│  │ 🔓  Accesso Root (consigliato)   │  │
+│  │  Automatico, tutte le funzioni   │  │
+│  │  ★★★★★ Completezza               │  │
 │  └──────────────────────────────────┘  │
 │                                        │
 │  ┌──────────────────────────────────┐  │
-│  │ 🔑  Database da PC              │  │
-│  │  Richiede procedura dal PC      │  │
-│  │  ★★★★☆ Completezza              │  │
+│  │ 🔑  Database da PC               │  │
+│  │  Richiede procedura dal PC       │  │
+│  │  ★★★★☆ Completezza               │  │
 │  └──────────────────────────────────┘  │
 │                                        │
 │  ┌──────────────────────────────────┐  │
-│  │ 📄  Export chat WhatsApp        │  │
-│  │  Nessun requisito speciale      │  │
-│  │  ★★★☆☆ Completezza              │  │
+│  │ 📄  Export chat WhatsApp         │  │
+│  │  Nessun requisito speciale       │  │
+│  │  ★★★☆☆ Completezza               │  │
 │  └──────────────────────────────────┘  │
 │                                        │
-│       ℹ️  Confronta le opzioni        │
+│       ℹ️  Confronta le opzioni         │
 └────────────────────────────────────────┘
 ```
 

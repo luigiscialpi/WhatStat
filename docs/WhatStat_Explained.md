@@ -1,4 +1,4 @@
-# WhatStat Reborn — Documentazione funzionale
+# WhatStat — Documentazione funzionale
 
 > App Android nativa che legge, decifra e analizza il database di WhatsApp direttamente sul dispositivo, senza mai inviare dati a server esterni. Tutto avviene in locale.
 

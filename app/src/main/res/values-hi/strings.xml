@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">WhatStat Reborn</string>
+    <string name="app_name">WhatStat</string>
 
     <!-- Navigation & Common -->
     <string name="back_desc">वापस</string>
@@ -56,7 +56,7 @@
     <string name="click_year_prefix">वर्ष %s</string>
 
     <!-- Setup Screen -->
-    <string name="setup_title">WhatStat Reborn</string>
+    <string name="setup_title">WhatStat</string>
     <string name="setup_subtitle">आपकी WhatsApp चैट्स का पूर्ण विश्लेषण।\nसभी डेटा डिवाइस पर ही रहता है।</string>
     <string name="tab_lite">Lite</string>
     <string name="tab_root">Root</string>
@@ -113,7 +113,7 @@
 
     <!-- Errors (Service) -->
     <string name="error_root_not_available">Root उपलब्ध नहीं है। सुनिश्चित करें कि Magisk इंस्टॉल है और ऐप को Root अनुमतियां मिली हैं।</string>
-    <string name="error_root_not_granted">Root अनुमतियां अस्वीकृत। Magisk खोलें और WhatStat Reborn को अनुमतियां दें।</string>
+    <string name="error_root_not_granted">Root अनुमतियां अस्वीकृत। Magisk खोलें और WhatStat को अनुमतियां दें।</string>
     <string name="error_key_not_found">की फ़ाइल नहीं मिली। क्या WhatsApp इंस्टॉल है?</string>
     <string name="error_crypt14_not_found">एन्क्रिप्टेड डेटाबेस नहीं मिला। सुनिश्चित करें कि WhatsApp में लोकल बैकअप चालू है।</string>
     <string name="error_crypt15_detected">Crypt15 (E2E) बैकअप मिला। WhatsApp सेटिंग में एंड-टू-एंड एन्क्रिप्टेड बैकअप बंद करें।</string>

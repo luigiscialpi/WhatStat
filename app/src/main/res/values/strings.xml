@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">WhatStat Reborn</string>
+    <string name="app_name">WhatStat</string>
 
     <!-- Navigation & Common -->
     <string name="month_jan">Jan</string>
@@ -89,7 +89,7 @@
     <string name="click_year_prefix">Year %s</string>
 
     <!-- Setup Screen -->
-    <string name="setup_title">WhatStat Reborn</string>
+    <string name="setup_title">WhatStat</string>
     <string name="setup_subtitle">Complete analysis of your WhatsApp chats.\nAll data remains on your device.</string>
     <string name="tab_lite">Lite</string>
     <string name="tab_root">Root</string>
@@ -146,7 +146,7 @@
 
     <!-- Errors (Service) -->
     <string name="error_root_not_available">Root not available. Ensure Magisk is installed and the app has root permissions.</string>
-    <string name="error_root_not_granted">Root permissions denied. Open Magisk and grant permissions to WhatStat Reborn.</string>
+    <string name="error_root_not_granted">Root permissions denied. Open Magisk and grant permissions to WhatStat.</string>
     <string name="error_key_not_found">Key file not found. Is WhatsApp installed?</string>
     <string name="error_crypt14_not_found">Encrypted database not found. Ensure local backup is active in WhatsApp.</string>
     <string name="error_crypt15_detected">Crypt15 (E2E) backup detected. Disable end-to-end encrypted backup in WhatsApp settings.</string>

@@ -15,5 +15,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "WhatStatReborn"
+rootProject.name = "WhatStat"
 include(":app")
