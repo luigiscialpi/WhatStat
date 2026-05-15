@@ -451,15 +451,15 @@ private fun MediaGallerySheet(
     progress: Int?,
     isLiteMode: Boolean = false,
 ) {
-    // In Lite mode separiamo sticker (image/webp = STK-*.webp) dal resto.
+    // In Lite mode separiamo sticker (STK-*.webp) dal resto.
     // Il tab è visibile solo se ci sono effettivamente sticker.
     val stickers =
         remember(mediaFiles, isLiteMode) {
-            if (isLiteMode) mediaFiles.filter { it.mimeType == "image/webp" } else emptyList()
+            if (isLiteMode) mediaFiles.filter { it.isLiteSticker() } else emptyList()
         }
     val galleryFiles =
         remember(mediaFiles, isLiteMode) {
-            if (isLiteMode) mediaFiles.filter { it.mimeType != "image/webp" } else mediaFiles
+            if (isLiteMode) mediaFiles.filterNot { it.isLiteSticker() } else mediaFiles
         }
     val showStickerTab = isLiteMode && stickers.isNotEmpty()
     // 0 = Galleria, 1 = Sticker
@@ -493,7 +493,7 @@ private fun MediaGallerySheet(
     val hasMore = displayedCount < sortedAll.size
 
     // Contatori basati sui file della tab attiva
-    val photoCount = currentFiles.count { it.mimeType.startsWith("image/") && it.mimeType != "image/webp" }
+    val photoCount = currentFiles.count { it.mimeType.startsWith("image/") }
     val videoCount = currentFiles.count { it.mimeType.startsWith("video/") }
     val audioCount = currentFiles.count { it.mimeType.startsWith("audio/") }
     val stickerCount = stickers.size
@@ -830,6 +830,12 @@ private fun MediaGallerySheet(
             )
         }
     }
+}
+
+private fun MediaStat.isLiteSticker(): Boolean {
+    if (!mimeType.equals("image/webp", ignoreCase = true)) return false
+    val fileName = filePath.substringAfterLast('/')
+    return fileName.startsWith("STK-", ignoreCase = true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

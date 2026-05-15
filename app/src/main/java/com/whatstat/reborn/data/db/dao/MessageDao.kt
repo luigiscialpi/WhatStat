@@ -2842,6 +2842,11 @@ class MessageDao
             // Escludi messaggi di sistema (7)
             conditions.add("m.message_type != 7")
 
+            // In Root mode gli sticker non devono entrare nella galleria media.
+            if (!includeStickers) {
+                conditions.add("m.message_type != 20")
+            }
+
             // Condizione MIME: includi foto/video/audio, oppure sticker se richiesto
             val stickerOr = if (includeStickers) " OR m.message_type = 20" else ""
             conditions.add(
