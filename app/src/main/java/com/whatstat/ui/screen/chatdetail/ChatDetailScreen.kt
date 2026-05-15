@@ -145,10 +145,10 @@ fun ChatDetailScreen(
     chatId: Long,
     viewModel: ChatDetailViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToWordSearch: () -> Unit = {},
-    onNavigateToCalls: () -> Unit = {},
-    onNavigateToMedia: () -> Unit = {},
-    onNavigateToHistory: () -> Unit = {},
+    onNavigateToWordSearch: (Long) -> Unit = { _ -> },
+    onNavigateToCalls: (Long) -> Unit = { _ -> },
+    onNavigateToMedia: (Long) -> Unit = { _ -> },
+    onNavigateToHistory: (Long) -> Unit = { _ -> },
 ) {
     val stats by viewModel.chatStats.collectAsState()
     val headerInfo by viewModel.headerInfo.collectAsState()
@@ -197,21 +197,21 @@ fun ChatDetailScreen(
     var colorPickerSender by remember { mutableStateOf<SenderStat?>(null) }
     val senderColorArgbOverrides by viewModel.senderColorArgbOverrides.collectAsState()
 
-    Box(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent(PointerEventPass.Final)
-                            if (event.changes.any { it.changedToUp() }) {
-                                chartDismissSignal++
-                            }
-                        }
-                    }
-                },
-    ) {
+     Box(
+         modifier =
+             Modifier
+                 .fillMaxSize()
+                 .pointerInput(Unit) {
+                     awaitPointerEventScope {
+                         while (true) {
+                             val event = awaitPointerEvent(PointerEventPass.Final)
+                             if (event.changes.any { it.changedToUp() }) {
+                                 chartDismissSignal++
+                             }
+                         }
+                     }
+                 }
+     ) {
         Column(
             modifier =
                 Modifier
@@ -1024,9 +1024,27 @@ fun ChatDetailScreen(
 
                     // ── 11. Action Cards (Scorciatoie) ───────────────────────
                     item {
-                        if (!isLiteMode) {
-                            if (stats?.isGroup == true) {
-                                // Layout 2x2 per i gruppi
+                        if (stats?.isGroup == true) {
+                            if (isLiteMode) {
+                                // Lite: mostra solo Radar + Media anche nei gruppi
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = stringResource(R.string.radar_parole_title),
+                                        subtitle = stringResource(R.string.radar_parole_sub),
+                                        icon = Icons.Outlined.Search,
+                                        onClick = { onNavigateToWordSearch(chatId) },
+                                    )
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = stringResource(R.string.media_link_title),
+                                        subtitle = stringResource(R.string.media_link_sub),
+                                        icon = Icons.Outlined.Link,
+                                        onClick = { onNavigateToMedia(chatId) },
+                                    )
+                                }
+                            } else {
+                                // Root: layout 2x2 invariato
                                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                         ActionCard(
@@ -1034,14 +1052,14 @@ fun ChatDetailScreen(
                                             title = stringResource(R.string.radar_parole_title),
                                             subtitle = stringResource(R.string.radar_parole_sub),
                                             icon = Icons.Outlined.Search,
-                                            onClick = onNavigateToWordSearch,
+                                            onClick = { onNavigateToWordSearch(chatId) },
                                         )
                                         ActionCard(
                                             modifier = Modifier.weight(1f),
                                             title = stringResource(R.string.log_chiamate_title),
                                             subtitle = stringResource(R.string.log_chiamate_sub),
                                             icon = Icons.Outlined.Call,
-                                            onClick = onNavigateToCalls,
+                                            onClick = { onNavigateToCalls(chatId) },
                                         )
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1050,40 +1068,60 @@ fun ChatDetailScreen(
                                             title = stringResource(R.string.media_link_title),
                                             subtitle = stringResource(R.string.media_link_sub),
                                             icon = Icons.Outlined.Link,
-                                            onClick = onNavigateToMedia,
+                                            onClick = { onNavigateToMedia(chatId) },
                                         )
                                         ActionCard(
                                             modifier = Modifier.weight(1f),
                                             title = stringResource(R.string.group_history_title),
                                             subtitle = stringResource(R.string.group_history_sub),
                                             icon = Icons.Outlined.History,
-                                            onClick = onNavigateToHistory,
+                                            onClick = { onNavigateToHistory(chatId) },
                                         )
                                     }
                                 }
-                            } else {
-                                // Layout 1x3 per le chat singole
+                            }
+                        } else {
+                            if (isLiteMode) {
+                                // Lite: mostra solo Radar + Media per chat 1:1
                                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     ActionCard(
                                         modifier = Modifier.weight(1f),
                                         title = stringResource(R.string.radar_parole_title),
                                         subtitle = stringResource(R.string.radar_parole_sub),
                                         icon = Icons.Outlined.Search,
-                                        onClick = onNavigateToWordSearch,
-                                    )
-                                    ActionCard(
-                                        modifier = Modifier.weight(1f),
-                                        title = stringResource(R.string.log_chiamate_title),
-                                        subtitle = stringResource(R.string.log_chiamate_sub),
-                                        icon = Icons.Outlined.Call,
-                                        onClick = onNavigateToCalls,
+                                        onClick = { onNavigateToWordSearch(chatId) },
                                     )
                                     ActionCard(
                                         modifier = Modifier.weight(1f),
                                         title = stringResource(R.string.media_link_title),
                                         subtitle = stringResource(R.string.media_link_sub),
                                         icon = Icons.Outlined.Link,
-                                        onClick = onNavigateToMedia,
+                                        onClick = { onNavigateToMedia(chatId) },
+                                    )
+                                }
+                            } else {
+                                // Root: layout 1x3 invariato
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = stringResource(R.string.radar_parole_title),
+                                        subtitle = stringResource(R.string.radar_parole_sub),
+                                        icon = Icons.Outlined.Search,
+                                        onClick = { onNavigateToWordSearch(chatId) },
+                                    )
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = stringResource(R.string.log_chiamate_title),
+                                        subtitle = stringResource(R.string.log_chiamate_sub),
+                                        icon = Icons.Outlined.Call,
+                                        onClick = { onNavigateToCalls(chatId) },
+                                    )
+                                    ActionCard(
+                                        modifier = Modifier.weight(1f),
+                                        title = stringResource(R.string.media_link_title),
+                                        subtitle = stringResource(R.string.media_link_sub),
+                                        icon = Icons.Outlined.Link,
+                                        onClick = { onNavigateToMedia(chatId) },
                                     )
                                 }
                             }

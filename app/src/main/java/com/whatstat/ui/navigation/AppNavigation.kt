@@ -388,17 +388,17 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostControl
         ChatDetailScreen(
             chatId = chatId,
             onNavigateBack = { navController.popBackStack() },
-            onNavigateToWordSearch = {
-                navController.navigate(Screen.WordSearch.createRoute(chatId))
+            onNavigateToWordSearch = { targetChatId ->
+                navController.navigate(Screen.WordSearch.createRoute(targetChatId))
             },
-            onNavigateToCalls = {
-                navController.navigate(Screen.CallsStats.createRoute(chatId))
+            onNavigateToCalls = { targetChatId ->
+                navController.navigate(Screen.CallsStats.createRoute(targetChatId))
             },
-            onNavigateToMedia = {
-                navController.navigate(Screen.MediaStats.createRoute(chatId))
+            onNavigateToMedia = { targetChatId ->
+                navController.navigate(Screen.MediaStats.createRoute(targetChatId))
             },
-            onNavigateToHistory = {
-                navController.navigate(Screen.GroupHistory.createRoute(chatId))
+            onNavigateToHistory = { targetChatId ->
+                navController.navigate(Screen.GroupHistory.createRoute(targetChatId))
             },
         )
     }
