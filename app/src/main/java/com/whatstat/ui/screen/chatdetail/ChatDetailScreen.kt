@@ -36,8 +36,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.CallReceived
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Call
@@ -197,21 +197,21 @@ fun ChatDetailScreen(
     var colorPickerSender by remember { mutableStateOf<SenderStat?>(null) }
     val senderColorArgbOverrides by viewModel.senderColorArgbOverrides.collectAsState()
 
-     Box(
-         modifier =
-             Modifier
-                 .fillMaxSize()
-                 .pointerInput(Unit) {
-                     awaitPointerEventScope {
-                         while (true) {
-                             val event = awaitPointerEvent(PointerEventPass.Final)
-                             if (event.changes.any { it.changedToUp() }) {
-                                 chartDismissSignal++
-                             }
-                         }
-                     }
-                 }
-     ) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Final)
+                            if (event.changes.any { it.changedToUp() }) {
+                                chartDismissSignal++
+                            }
+                        }
+                    }
+                },
+    ) {
         Column(
             modifier =
                 Modifier

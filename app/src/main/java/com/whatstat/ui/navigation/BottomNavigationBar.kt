@@ -1,8 +1,8 @@
 package com.whatstat.ui.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Search

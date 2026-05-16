@@ -340,11 +340,134 @@ class FileExtractor
             }
 
         /**
+         * Copia il database live di WhatsApp direttamente dalla directory protetta.
+         * Evita la decifratura del crypt14 e include il WAL (messaggi recenti).
+         * Ordine di copia: WAL prima del DB principale, per coerenza transazionale.
+         * @return Result<LiveExtractedFiles> con i percorsi nella filesDir dell'app
+         */
+        suspend fun extractLiveDb(): Result<LiveExtractedFiles> =
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    // Cerca la directory databases iterando su /data/user/* (stesso pattern di findWaDbFile)
+                    val dataUser = SuFile("/data/user")
+                    var sourceDatabasesDir: SuFile? = null
+
+                    dataUser.listFiles()?.forEach { userDir ->
+                        val dbDir = SuFile(userDir, "com.whatsapp/databases")
+                        val msgstoreCandidate = SuFile(dbDir, "msgstore.db")
+                        if (msgstoreCandidate.exists() && sourceDatabasesDir == null) {
+                            sourceDatabasesDir = dbDir
+                        }
+                    }
+
+                    val dbDir =
+                        sourceDatabasesDir
+                            ?: throw IOException("Directory databases di WhatsApp non trovata.")
+
+                    // 1. Copia WAL e SHM PRIMA del file principale (ordine critico per coerenza)
+                    val walSource = SuFile(dbDir, "msgstore.db-wal")
+                    val shmSource = SuFile(dbDir, "msgstore.db-shm")
+                    val walDest = File(workDir, "msgstore.db-wal")
+                    val shmDest = File(workDir, "msgstore.db-shm")
+
+                    if (walSource.exists()) {
+                        try {
+                            copyWithSuFile(walSource.absolutePath, walDest)
+                        } catch (e: Exception) {
+                            // WAL opzionale: se manca (checkpoint recente), il DB e' gia' completo
+                            android.util.Log.w("WhatStat", "msgstore.db-wal non copiato: ${e.message}")
+                        }
+                    }
+                    if (shmSource.exists()) {
+                        try {
+                            copyWithSuFile(shmSource.absolutePath, shmDest)
+                        } catch (e: Exception) {
+                            android.util.Log.w("WhatStat", "msgstore.db-shm non copiato: ${e.message}")
+                        }
+                    }
+
+                    // 2. Copia il file principale msgstore.db
+                    val msgstoreSource = SuFile(dbDir, "msgstore.db")
+                    val msgstoreDest = File(workDir, "msgstore.db")
+                    copyWithSuFile(msgstoreSource.absolutePath, msgstoreDest)
+
+                    // 3. Copia wa.db con il relativo WAL e SHM (opzionali)
+                    val waDbSource = SuFile(dbDir, "wa.db")
+                    val waDbDest = File(workDir, WA_DB_DEST)
+                    if (waDbSource.exists()) {
+                        val waWalSource = SuFile(dbDir, "wa.db-wal")
+                        val waShmSource = SuFile(dbDir, "wa.db-shm")
+                        if (waWalSource.exists()) {
+                            try {
+                                copyWithSuFile(waWalSource.absolutePath, File(workDir, "wa.db-wal"))
+                            } catch (e: Exception) {
+                                android.util.Log.w("WhatStat", "wa.db-wal non copiato: ${e.message}")
+                            }
+                        }
+                        if (waShmSource.exists()) {
+                            try {
+                                copyWithSuFile(waShmSource.absolutePath, File(workDir, "wa.db-shm"))
+                            } catch (e: Exception) {
+                                android.util.Log.w("WhatStat", "wa.db-shm non copiato: ${e.message}")
+                            }
+                        }
+                        copyWithSuFile(waDbSource.absolutePath, waDbDest)
+                    }
+
+                    // 4. Estrai avatar (riuso del metodo esistente)
+                    extractAvatarDir()
+
+                    LiveExtractedFiles(
+                        msgstoreDb = msgstoreDest,
+                        waDbFile = waDbDest,
+                    )
+                }
+            }
+
+        /**
+         * Calcola la signature del database sorgente di WhatsApp per rilevare aggiornamenti.
+         * Include la dimensione del WAL per catturare i messaggi non ancora consolidati.
+         * Tenta prima il DB live (root), poi ricade sul crypt14 come fallback.
+         * @return stringa "size_lastmod_walsize", oppure null se nessuna sorgente e' accessibile
+         */
+        fun calculateSourceDbSignature(): String? {
+            return try {
+                val dataUser = SuFile("/data/user")
+                dataUser.listFiles()?.forEach { userDir ->
+                    val dbDir = SuFile(userDir, "com.whatsapp/databases")
+                    val msgstoreDb = SuFile(dbDir, "msgstore.db")
+                    if (msgstoreDb.exists()) {
+                        val walFile = SuFile(dbDir, "msgstore.db-wal")
+                        val walSize = if (walFile.exists()) walFile.length() else 0L
+                        return "${msgstoreDb.length()}_${msgstoreDb.lastModified()}_$walSize"
+                    }
+                }
+                // Fallback: usa la signature del crypt14 nella sdcard
+                val cryptPath = findCryptFile()
+                val f = SuFile(cryptPath)
+                "${f.length()}_${f.lastModified()}"
+            } catch (e: Exception) {
+                android.util.Log.w("WhatStat", "calculateSourceDbSignature failed: ${e.message}")
+                null
+            }
+        }
+
+        /**
          * Elimina tutti i file estratti dalla directory privata.
+         * Include WAL e SHM copiati dal flusso Live DB.
          */
         suspend fun cleanup() =
             withContext(Dispatchers.IO) {
-                listOf(KEY_DEST, CRYPT14_DEST, WA_DB_DEST, "msgstore.db").forEach { name ->
+                listOf(
+                    KEY_DEST,
+                    CRYPT14_DEST,
+                    WA_DB_DEST,
+                    "msgstore.db",
+                    "msgstore.db-wal",
+                    "msgstore.db-shm",
+                    "wa.db-wal",
+                    "wa.db-shm",
+                ).forEach { name ->
                     File(workDir, name).delete()
                 }
             }
@@ -405,6 +528,15 @@ class FileExtractor
 data class ExtractedFiles(
     val keyFile: File,
     val crypt14File: File,
+    val waDbFile: File,
+)
+
+/**
+ * File estratti tramite copia diretta del DB live (flusso Live-first).
+ * Non richiedono decifratura: sono gia' in chiaro e includono il WAL.
+ */
+data class LiveExtractedFiles(
+    val msgstoreDb: File,
     val waDbFile: File,
 )
 

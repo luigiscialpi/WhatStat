@@ -659,11 +659,11 @@ private fun rootTabContent(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Text(
-                            stringResource(R.string.new_db_available_title), 
+                            stringResource(R.string.new_db_available_title),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )

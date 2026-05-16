@@ -79,54 +79,91 @@ class WhatsAppRepository
                     }
                     _setupState.update { it.copy(rootStatus = GlobalStepStatus.SUCCESS, extractionStatus = GlobalStepStatus.LOADING) }
 
-                    // Step 2: Estrai file da WhatsApp
-                    val extractResult = fileExtractor.extractAll()
-                    val files =
-                        extractResult.getOrElse { throwable ->
-                            _setupState.update { it.copy(extractionStatus = GlobalStepStatus.ERROR) }
-                            when (throwable) {
-                                is CryptVersionException -> throw AppErrorException(AppError.Crypt15Detected)
-                                else -> throw AppErrorException(
-                                    AppError.ExtractionError(throwable.message ?: "Errore sconosciuto"),
-                                )
-                            }
-                        }
-                    _setupState.update { it.copy(extractionStatus = GlobalStepStatus.SUCCESS, decryptionStatus = GlobalStepStatus.LOADING) }
+                    // Step 2: Tentativo Live DB (copia diretta senza decifratura)
+                    val liveResult = fileExtractor.extractLiveDb()
+                    val outputDb: File
+                    val waDbFile: File
 
-                    // Step 3: Decifra il database
-                    if (isOperationCancelled()) {
-                        return@withContext Result.success(Unit)
-                    }
-                    val outputDb = File(context.filesDir, "msgstore.db")
-                    val decryptResult =
-                        decryptor.decrypt(files.crypt14File, files.keyFile, outputDb) { progress ->
-                            if (isOperationCancelled()) {
-                                throw InterruptedException("Cancelled")
-                            }
-                            _setupState.update { it.copy(decryptionProgress = progress) }
+                    if (liveResult.isSuccess) {
+                        // Flusso Live: skip decifratura, DB gia' in chiaro con WAL integrato
+                        android.util.Log.d("WhatStat", "Live DB extraction succeeded")
+                        val liveFiles = liveResult.getOrThrow()
+                        outputDb = liveFiles.msgstoreDb
+                        waDbFile = liveFiles.waDbFile
+                        _setupState.update {
+                            it.copy(
+                                extractionStatus = GlobalStepStatus.SUCCESS,
+                                // Decifratura saltata: segnala SUCCESS senza passare per LOADING
+                                decryptionStatus = GlobalStepStatus.SUCCESS,
+                                contactsStatus = GlobalStepStatus.LOADING,
+                            )
                         }
-                    decryptResult.getOrElse { throwable ->
-                        _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
-                        throw AppErrorException(
-                            AppError.DecryptionFailed(throwable.message ?: "Errore sconosciuto"),
+                    } else {
+                        // Fallback: vecchio flusso crypt14 + key + decifrazione
+                        android.util.Log.w(
+                            "WhatStat",
+                            "Live DB failed, fallback to crypt14: ${liveResult.exceptionOrNull()?.message}",
                         )
+                        val extractResult = fileExtractor.extractAll()
+                        val files =
+                            extractResult.getOrElse { throwable ->
+                                _setupState.update { it.copy(extractionStatus = GlobalStepStatus.ERROR) }
+                                when (throwable) {
+                                    is CryptVersionException ->
+                                        throw AppErrorException(AppError.Crypt15Detected)
+                                    else ->
+                                        throw AppErrorException(
+                                            AppError.ExtractionError(
+                                                throwable.message ?: "Errore sconosciuto",
+                                            ),
+                                        )
+                                }
+                            }
+                        _setupState.update {
+                            it.copy(
+                                extractionStatus = GlobalStepStatus.SUCCESS,
+                                decryptionStatus = GlobalStepStatus.LOADING,
+                            )
+                        }
+
+                        if (isOperationCancelled()) return@withContext Result.success(Unit)
+
+                        val crypt14OutputDb = File(context.filesDir, "msgstore.db")
+                        val decryptResult =
+                            decryptor.decrypt(files.crypt14File, files.keyFile, crypt14OutputDb) { progress ->
+                                if (isOperationCancelled()) throw InterruptedException("Cancelled")
+                                _setupState.update { it.copy(decryptionProgress = progress) }
+                            }
+                        decryptResult.getOrElse { throwable ->
+                            _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
+                            throw AppErrorException(
+                                AppError.DecryptionFailed(throwable.message ?: "Errore sconosciuto"),
+                            )
+                        }
+                        _setupState.update {
+                            it.copy(
+                                decryptionStatus = GlobalStepStatus.SUCCESS,
+                                contactsStatus = GlobalStepStatus.LOADING,
+                            )
+                        }
+                        outputDb = crypt14OutputDb
+                        waDbFile = files.waDbFile
                     }
-                    _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.SUCCESS, contactsStatus = GlobalStepStatus.LOADING) }
 
                     // Step 4: Apri il database per le query
                     try {
-                        database.open(outputDb, files.waDbFile)
+                        database.open(outputDb, waDbFile)
 
-                        // Verifica se il DB è cambiato → invalida la cache
-                        val dbHash =
-                            fileExtractor.calculateSourceCrypt14Hash()
-                                ?: cacheManager.calculateFileHash(files.crypt14File.absolutePath)
-                        if (dbHash != null) {
-                            if (cacheManager.isRootDbChanged(dbHash)) {
-                                android.util.Log.d("WhatStat", "DB changed, clearing cache")
+                        // Calcola signature WAL-aware per rilevare aggiornamenti futuri
+                        val dbSignature =
+                            fileExtractor.calculateSourceDbSignature()
+                                ?: cacheManager.calculateFileHash(outputDb.absolutePath)
+                        if (dbSignature != null) {
+                            if (cacheManager.isRootDbChanged(dbSignature)) {
+                                android.util.Log.d("WhatStat", "DB changed, clearing root cache")
                                 cacheManager.clearRootCache()
                             }
-                            cacheManager.saveRootDbHash(dbHash)
+                            cacheManager.saveRootDbHash(dbSignature)
                         }
                     } catch (e: Exception) {
                         _setupState.update { it.copy(contactsStatus = GlobalStepStatus.ERROR) }
@@ -134,7 +171,13 @@ class WhatsAppRepository
                             AppError.DatabaseError(e.message ?: "Impossibile aprire il database"),
                         )
                     }
-                    _setupState.update { it.copy(contactsStatus = GlobalStepStatus.SUCCESS, isLoading = false, isComplete = true) }
+                    _setupState.update {
+                        it.copy(
+                            contactsStatus = GlobalStepStatus.SUCCESS,
+                            isLoading = false,
+                            isComplete = true,
+                        )
+                    }
                 }.onFailure { throwable ->
                     val errorMessage =
                         when (throwable) {
@@ -262,13 +305,12 @@ class WhatsAppRepository
                     try {
                         database.open(outputDb, waDbFile)
                         if (database.isOpen()) {
-                            // Calcola hash del file crypt14 SORGENTE sul dispositivo (via root/SuFileInputStream)
-                            // Non la copia locale che è ferma all'ultimo setup
-                            val currentHash = fileExtractor.calculateSourceCrypt14Hash()
+                            // Calcola la signature WAL-aware del DB sorgente live
+                            val currentSignature = fileExtractor.calculateSourceDbSignature()
 
-                            android.util.Log.d("WhatStat", "tryRestoreSession: sourceHash=$currentHash")
+                            android.util.Log.d("WhatStat", "tryRestoreSession: sourceSignature=$currentSignature")
 
-                            if (currentHash != null && cacheManager.isRootDbChanged(currentHash)) {
+                            if (currentSignature != null && cacheManager.isRootDbChanged(currentSignature)) {
                                 // DB sorgente cambiato - permettiamo all'utente di scegliere
                                 android.util.Log.d("WhatStat", "DB changed, letting user decide")
 
