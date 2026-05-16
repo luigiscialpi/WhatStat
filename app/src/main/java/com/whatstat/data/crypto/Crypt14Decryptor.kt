@@ -42,6 +42,11 @@ class Crypt14Decryptor
                             KeyReader.KeyData.KeyType.CRYPT15 -> keyReader.deriveEncryptionKey(keyData.aesKey)
                         }
                     val secretKey = SecretKeySpec(aesKey, "AES")
+                    // Wipe the byte arrays from memory now that SecretKeySpec has its own copy
+                    aesKey.fill(0)
+                    if (keyData.keyType == KeyReader.KeyData.KeyType.CRYPT15) {
+                        keyData.aesKey.fill(0)
+                    }
                     onProgress(0.1f)
 
                     // 2. Leggi SOLO il file parzialmente per identificare l'header protobuf

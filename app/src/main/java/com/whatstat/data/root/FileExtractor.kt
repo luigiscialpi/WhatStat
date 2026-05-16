@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.whatstat.util.SecurityUtils
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.zip.ZipInputStream
@@ -468,7 +469,7 @@ class FileExtractor
                     "wa.db-wal",
                     "wa.db-shm",
                 ).forEach { name ->
-                    File(workDir, name).delete()
+                    SecurityUtils.secureDelete(File(workDir, name))
                 }
             }
 

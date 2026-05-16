@@ -1,9 +1,9 @@
 # Piano di Protezione del Codice — WhatStat
 
-> **Versione**: 1.0  
-> **Data**: 2026-05-10  
-> **Autore**: Luigi Scialpi 
-> **Stato**: Bozza
+> **Versione**: 2.0 (rivista: correzioni threat model, scartate difese controproducenti)  
+> **Data**: 2026-05-16  
+> **Autore**: Luigi Scialpi  
+> **Stato**: Rivisto
 
 ---
 
@@ -149,67 +149,39 @@ buildTypes {
 
 ---
 
-### Livello 2 — Ofuscamento delle Stringhe Sensibili
+### Livello 2 — Rimozione Log e Stringhe Rivelatrici
 
 **Stato attuale**: ❌ Non implementato  
-**Priorità**: Critica
+**Priorità**: Alta
 
-#### 2.2.1 Stringhe hardcoded (Secure Implementation)
+> **NOTA**: La proposta originale `SecureStringProtector` con XOR a chiave fissa
+> (`0x42`) e' stata SCARTATA. Una chiave XOR da 1 byte e' banale da reversare:
+> chiunque decompili il codice vede `0x42` e decifra tutto in 10 secondi.
+> Non aggiunge sicurezza reale, solo complessita' al codice.
+>
+> L'app non ha API key, token, o stringhe segrete da proteggere con offuscamento.
+> L'unico segreto e' la chiave AES di WhatsApp, che viene letta da file a runtime
+> e va protetta con wiping dalla memoria (vedi Livello 4).
 
-Le stringhe `String` sono immutabili e rimangono nello heap. Usare `CharArray` per permettere la cancellazione manuale immediata.
+#### 2.2.1 Rimozione di log e stringhe rivelatrici dal bytecode
 
-```kotlin
-// Util: String obfuscation con XOR + Base64 + Wipe
-object SecureStringProtector {
-    private const val XOR_KEY = 0x42.toByte()
-    
-    /**
-     * Decifra la stringa in un CharArray cancellabile.
-     * MAI convertire il risultato in String se non strettamente necessario.
-     */
-    fun decodeToChars(encoded: String): CharArray {
-        val decodedBytes = Base64.decode(encoded, Base64.NO_WRAP)
-        val result = CharArray(decodedBytes.size)
-        for (i in decodedBytes.indices) {
-            result[i] = (decodedBytes[i] xor XOR_KEY).toInt().toChar()
-        }
-        // Cancella i byte intermedi
-        decodedBytes.fill(0)
-        return result
-    }
-    
-    /**
-     * Sovrascrive il CharArray con zeri per rimuoverlo dalla memoria.
-     */
-    fun wipe(chars: CharArray) {
-        chars.fill('\u0000')
-    }
-}
-```
+L'app contiene ~200 chiamate `android.util.Log.d("WhatStat", ...)` che rivelano
+nomi di metodi, flussi interni e struttura del codice.
+Aggiungere a `proguard-rules.pro`:
 
-Utilizzo sicuro:
-```kotlin
-val apiKeyChars = SecureStringProtector.decodeToChars("BASE64_ENCODED_XOR_STRING")
-try {
-    // Usa apiKeyChars per operazioni crittografiche o network
-} finally {
-    SecureStringProtector.wipe(apiKeyChars)
-}
-```
-
-#### 2.2.2 Rimozione di stringhe dal bytecode
-
-Aggiungere a ProGuard:
 ```proguard
+# Rimuove TUTTE le chiamate a Log in release
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
-    public static *** v(...);
-    public static *** d(...);
-    public static *** i(...);
-    public static *** w(...);
-    public static *** e(...);
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+    public static int e(...);
 }
 ```
+
+Questo elimina sia le chiamate che le stringhe argomento dal bytecode finale.
 
 ---
 
@@ -317,78 +289,17 @@ key.fill(0)  // Cancella il ByteArray della chiave
 
 #### 2.4.2 Protezione contro Frida/Xposed
 
-Aggiungere rilevamento di hooking runtime:
-
-```kotlin
-object AntiHookDetector {
-    
-    fun detectFrida(): Boolean {
-        val suspiciousLibraries = listOf(
-            "frida", "substrate", "xposed", "edxp",
-            "de.robv.android.xposed", "io.objects.frida"
-        )
-        
-        // 1. Controlla processi in esecuzione
-        try {
-            Runtime.getRuntime().exec("ps").inputStream.bufferedReader()
-                .readLines()
-                .forEach { line ->
-                    suspiciousLibraries.forEach { lib ->
-                        if (line.contains(lib)) return true
-                    }
-                }
-        } catch (_: Exception) {}
-        
-        // 2. Controlla porte di default di Frida
-        try {
-            val ports = listOf(27042, 27043, 27044, 27045, 27046)
-            for (port in ports) {
-                try {
-                    java.net.Socket("127.0.0.1", port).close()
-                    return true
-                } catch (_: Exception) {}
-            }
-        } catch (_: Exception) {}
-        
-        return false
-    }
-    
-    fun detectXposed(): Boolean {
-        try {
-            // Verifica la firma dell'APK (tamper detection)
-            val sig = getPackageManager()
-                .getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-                .signatures[0]
-            val currentHash = MessageDigest.getInstance("SHA-256")
-                .digest(sig.toByteArray())
-                .joinToString("") { "%02x".format(it) }
-            // Confronta con hash noto (salvato in resources cifrate)
-            val expectedHash = getExpectedSignatureHash()
-            return currentHash != expectedHash
-        } catch (_: Exception) {}
-        return false
-    }
-    
-    fun detectDebugger(): Boolean {
-        return Debug.isDebuggerConnected() || Debug.waitingForDebugger()
-    }
-}
-```
-
-Integrare nel flusso di decryption:
-
-// In Crypt14Decryptor.decrypt()
-companion object {
-    init {
-        // Check anti-hooking all'avvio del decryptor
-        if (AntiHookDetector.detectFrida() || AntiHookDetector.detectDebugger()) {
-            // Opzione A: Bloccare l'operazione con messaggio generico
-            // Opzione B: Restituire errore finto
-            throw SecurityException("Ambiente non sicuro rilevato")
-        }
-    }
-}
-```
+> **STATO: SCARTATO** — WhatStat richiede root (Magisk) per funzionare.
+> Gli utenti rootati usano legittimamente Xposed/LSPosed/Frida.
+> Bloccare questi strumenti significherebbe bloccare il target primario dell'app.
+>
+> Inoltre:
+> - `ps` non funziona su Android 10+ per processi di altre app (Scoped Process)
+> - Le porte di Frida sono personalizzabili (il check sulle porte 27042-27046 e' inefficace)
+> - Lucky Patcher NON usa Frida: modifica l'APK offline, non fa hooking runtime
+>
+> La difesa contro il tampering va fatta tramite **signature check** (Livello 6),
+> non tramite rilevamento di tool che gli utenti legittimi installano.
 
 
 ---
@@ -396,48 +307,26 @@ companion object {
 ### Livello 5 — Ofuscamento del DEX e Native Code
 
 **Stato attuale**: ❌ Non implementato  
-**Priorità**: Media-Alta
+**Priorità**: Bassa (rivalutata)
 
 #### 2.5.1 MultiDEX con Split
 
-Suddividere il codice critico in DEX secondari caricati dinamicamente:
-
-```kotlin
-// Caricamento dinamico di un DEX critico
-fun loadSecureDex(context: Context) {
-    val dexFile = File(context.filesDir, "core_utils.dex")
-    val classLoader = DexClassLoader(
-        dexFile.absolutePath,
-        context.codeCacheDir.absolutePath,
-        null,
-        context.classLoader
-    )
-    
-    val cryptoClass = classLoader.loadClass("com.obf.crypto.CoreDecryptor")
-    val method = cryptoClass.getMethod("decrypt", File::class.java, File::class.java)
-    method.invoke(null, cryptFile, outputFile)
-}
-```
-
-> **Nota**: La distribuzione del `.dex` deve avvenire tramite download crittografato o embedding nel resources. Questo approccio complica l'analisi ma richiede attenzione alla sicurezza del download.
+> **STATO: SCARTATO** — Caricare DEX cifrati a runtime e' complesso, fragile su
+> device diversi, e non protegge contro un attaccante che semplicemente dumpa
+> la memoria. Il rapporto costo/beneficio e' pessimo.
+> Inoltre, con il flusso Live DB, la decifratura crypt14 e' solo un fallback
+> raramente usato: non vale la pena complicare il codice per proteggerla.
 
 #### 2.5.2 Codice Nativo (C/C++ con JNI)
 
-Spostare la logica crittografica in libreria nativa:
-
-```
-app/src/main/cpp/
-├── native-lib.cpp       # Wrapper JNI
-├── crypto_engine.c       # Logica AES/GCM implementata in C
-├── gf_multiply.c         # Galois Field multiplication
-└── CMakeLists.txt
-```
-
-Vantaggi:
-- Il codice nativo `.so` è molto più difficile da decompilare rispetto a DEX/bytecode
-- Le stringhe sensibili possono essere costruite a runtime nei registri CPU
-
-**Implementazione consigliata per**: `Crypt14Decryptor` e `KeyReader`
+> **STATO: POSTICIPATO A TEMPO INDETERMINATO** — Spostare la logica crypto in C/C++
+> complicherebbe enormemente la manutenzione per un beneficio marginale.
+> Con il flusso Live DB (copia diretta senza decifratura), la logica di
+> decifratura non e' piu' il percorso principale. Proteggere un fallback
+> con JNI non giustifica il costo di sviluppo e debug.
+>
+> Se in futuro l'app dovesse gestire informazioni premium lato client
+> (es. feature gating), rivalutare questa opzione.
 
 ---
 
@@ -497,27 +386,21 @@ fun isSignedWithDebugKey(context: Context): Boolean {
 
 ### Livello 7 — Protezione del Database Locale
 
-**Stato attuale**: ❌ Database Room non cifrato  
-**Priorità**: Alta
+**Stato attuale**: N/A  
+**Priorità**: Bassa (rivalutata)
 
-#### 2.7.1 Cifratura del database Room
-
-Implementare cifratura SQLCipher per il database Room:
-
-```kotlin
-// build.gradle.kts
-// implementation("net.zetetic:android-database-sqlcipher:4.5.4")
-
-@Provides
-@Singleton
-fun provideDatabase(@ApplicationContext ctx: Context, keyReader: KeyReader): MyDatabase {
-    val passphrase = SQLiteDatabase.getBytes(keyReader.getDbEncryptionKey())
-    val factory = SupportFactory(passphrase)
-    return Room.databaseBuilder(ctx, MyDatabase::class.java, "whatstat.db")
-        .openHelperFactory(factory)
-        .build()
-}
-```
+> **NOTA**: La proposta originale di cifrare "il database Room con SQLCipher"
+> e' stata CORRETTA. WhatStat **non usa Room** per i propri dati.
+> Il database `msgstore.db` e' una copia del DB di WhatsApp, aperto direttamente
+> con `SQLiteDatabase.openDatabase()`. La cache usa DataStore Preferences, non SQLite.
+>
+> Cifrare `msgstore.db` con SQLCipher sarebbe possibile in teoria, ma:
+> - Richiederebbe decifrare e ri-cifrare il DB ad ogni setup (overhead significativo)
+> - Il DB e' gia' in `filesDir` (inaccessibile senza root)
+> - L'utente ha gia' root, quindi puo' accedere a `filesDir` comunque
+>
+> Il file e' gia' protetto a sufficienza da `allowBackup=false` e dalla directory
+> privata. `secureDelete()` va usata in `cleanup()` per cancellazione sicura.
 
 ---
 
@@ -544,69 +427,153 @@ Opzione B: Keystore in ambiente di build isolato
 └── Non committare mai il .jks
 ```
 
-#### 2.8.2 Vulnerabilità attuale da correggere IMMEDIATAMENTE
+#### 2.8.2 Vulnerabilita' attuale da correggere IMMEDIATAMENTE
 
-⚠️ **Il file `local.properties` contiene le password del keystore in chiaro:**
-```
-STORE_PASSWORD=Zibbibbu@990
-KEY_PASSWORD=Zibbibbu@990
-```
+> **ATTENZIONE**: Il file `local.properties` contiene le password del keystore in chiaro.
+> `local.properties` e' in `.gitignore` e non viene committato, ma le credenziali
+> NON devono MAI apparire in documenti di testo come questo piano.
 
 **Azione**: Spostare questi valori in variabili d'ambiente del sistema (`~/.gradle/gradle.properties` con permessi `chmod 600`) o in un gestore di segreti.
 
 ---
 
-## 3. Riepilogo delle Azioni Prioritarie
+## 3. Protocollo di Implementazione
 
-### Fase 1 — Critica (Implementazione Immediata)
+> **REGOLA**: L'utente lavora SOLO in release build. Non esiste build debug come safety net.
+> Ogni modifica va testata sul device reale in release prima di passare alla successiva.
+>
+> **DebugLogManager**: L'app ha un sistema di log su file (`whatstat_debug_logs.txt`) indipendente
+> da `android.util.Log`. Rimuovere `android.util.Log.*` via ProGuard NON impatta la diagnostica.
 
-| # | Azione | File | Difficoltà |
-|---|--------|------|-----------|
-| 1.1 | Potenziamento ProGuard/R8 | `app/proguard-rules.pro` | 🟢 Bassa |
-| 1.2 | Rimozione logging in produzione | `app/proguard-rules.pro` | 🟢 Bassa |
-| 1.3 | Spostare password keystore in env vars | `~/.gradle/gradle.properties` | 🟢 Bassa |
-| 1.4 | Cancellazione `ByteArray` chiavi dopo uso | `KeyReader.kt`, `Crypt14Decryptor.kt` | 🟡 Media |
-| 1.5 | Verifica firma APK a runtime | Nuovo: `IntegrityChecker.kt` | 🟡 Media |
-| 1.6 | Protezione Overlay (`FLAG_SECURE`) | `BaseActivity.kt` | 🔴 SKIPPED |
+### Ordine di implementazione (dal meno rischioso al piu' rischioso)
 
-### Fase 2 — Alta Priorità (Entro 2 settimane)
+Ogni step e' atomico: implementa, `assembleRelease`, installa, testa, conferma.
+Se uno step causa regressioni, si reverta e si investiga.
 
-| # | Azione | File | Difficoltà |
-|---|--------|------|-----------|
-| 2.1 | Anti-tamper / anti-debug runtime | Nuovo: `AntiHookDetector.kt` | 🟡 Media |
-| 2.2 | Offuscamento stringhe (`SecureStringProtector`) | Nuovo: `SecureStringProtector.kt` | 🟡 Media |
-| 2.3 | Cifratura database Room con SQLCipher | Modifica: `DatabaseModule.kt` | 🟠 Alta |
-| 2.4 | Ripulire i log di debug dal codebase | Tutti i file | 🟢 Bassa |
+#### Step 1: Spostare password keystore in env vars
+**Rischio**: ZERO (solo build config)
 
-### Fase 3 — Media Priorità (Entro 1 mese)
+Cosa fare:
+1. Creare `~/.gradle/gradle.properties` con `chmod 600`
+2. Spostare `STORE_PASSWORD` e `KEY_PASSWORD` da `local.properties`
+3. Aggiornare `build.gradle.kts` per leggere da `gradle.properties`
 
-| # | Azione | File | Difficoltà |
-|---|--------|------|-----------|
-| 3.1 | Configurazione CI/CD con GitHub Actions | Nuovo: `.github/workflows/` | 🟡 Media |
-| 3.2 | Keystore gestito in CI (no locale) | Modifica: `build.gradle.kts` | 🟡 Media |
-| 3.3 | Spostare logica crypto in codice nativo (JNI) | Nuovo: `cpp/crypto_engine.c` | 🔴 Alta |
-| 3.4 | MultiDEX con modulo crittografico separato | Nuovo: `core-module.aar` | 🟠 Alta |
+Test: `./gradlew assembleRelease` compila con successo.
 
-### Fase 4 — Long Term (Entro 3 mesi)
+#### Step 2: Usare `secureDelete()` in `cleanup()`
+**Rischio**: ZERO (identico a `File.delete()`, solo piu' lento)
 
-| # | Azione | Descrizione | Difficoltà |
-|---|--------|-------------|-----------|
-| 4.1 | SafetyNet / Play Integrity API | Rilevare APK modificati e dispositivi rootati | 🟡 Media |
-| 4.2 | Emulator Detection | Bloccare esecuzione su emulatori | 🟢 Bassa |
-| 4.3 | Certificate Pinning | Per eventuali connessioni future | 🟡 Media |
-| 4.4 | Obfuscation con libreria commerciale | (es. DexGuard, Armer) per protezione avanzata | 🟡 Media |
+Cosa fare: In `FileExtractor.cleanup()`, usare `SecurityUtils.secureDelete()` al posto di `File.delete()`.
+
+Test: Cancella sessione Root, rientra, avvia nuovo setup. Funziona normalmente.
+
+#### Step 3: Rimozione log via ProGuard
+**Rischio**: BASSO
+
+Aggiungere a `proguard-rules.pro`:
+```proguard
+-assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+    public static int e(...);
+}
+```
+
+Perche' sicuro: `DebugLogManager.log()` scrive su file. La `android.util.Log.d` alla riga 56
+di `DebugLogManager.kt` e' solo un echo ridondante che verrebbe rimosso. Zero impatto.
+
+Prima di applicare, verificare che nessun argomento Log abbia side-effect:
+```bash
+grep -rn "Log\.\(d\|w\|e\|i\|v\)(" app/src/ | grep -i "also\|apply\|let\|run"
+```
+
+Test: Avvia app, Dashboard, apri chat, filtri, torna indietro. Tutto normale.
+DebugLogManager continua a mostrare entry nella schermata log interna.
+
+#### Step 4: Potenziamento R8 (UNA regola alla volta)
+**Rischio**: ALTO
+
+Procedere con sotto-step. Ogni sotto-step: build release, installa, testa 5 minuti.
+
+**4a**: Aggiungere SOLO `-repackageclasses ''`
+**4b**: Aggiungere `-allowaccessmodification`
+**4c**: Aggiungere `-overloadaggressively` (la piu' rischiosa — puo' rompere reflection)
+**4d**: Aggiungere `-renamesourcefileattribute "SourceFile"` (cosmetico, basso rischio)
+
+Test per ogni sotto-step:
+1. `assembleRelease` compila?
+2. L'app si apre senza crash?
+3. Setup Root: avvia analisi (o riprendi sessione) — funziona?
+4. Dashboard: le statistiche si caricano?
+5. Chat detail: apri una chat — dati corretti?
+6. Filtri temporali: cambia filtro — nessun crash?
+7. Torna alla setup, riprendi sessione — funziona?
+8. Se presente: prova anche la modalita' Lite
+
+#### Step 5: Key wiping in KeyReader/Crypt14Decryptor
+**Rischio**: MEDIO (solo flusso fallback crypt14, non Live DB)
+
+`SecretKeySpec(key, "AES")` su Android fa copia difensiva del ByteArray.
+Wipare l'originale DOPO aver creato il SecretKeySpec e' sicuro:
+```
+1. keyBytes = readKey()
+2. secretKey = SecretKeySpec(keyBytes, "AES")  // copia interna
+3. keyBytes.fill(0)                            // wipe originale (sicuro)
+4. cipher.init(DECRYPT_MODE, secretKey)
+5. cipher.doFinal(...)
+```
+
+Test: Cancella sessione Root, riesegui setup completo. Verifica che la decifratura
+funzioni (nel caso il flusso Live DB non sia disponibile).
+
+Nota: Con il flusso Live DB, questo codice viene eseguito raramente (solo fallback).
+
+#### Step 6: Verifica firma APK (anti-Lucky Patcher)
+**Rischio**: MEDIO-ALTO
+
+Cosa fare:
+1. Calcolare hash SHA-256 del certificato release:
+   `keytool -list -v -keystore whatstat-keystore.jks | grep SHA256`
+2. Creare `IntegrityChecker.kt`
+3. In `App.onCreate()`, chiamare il check
+
+**CRITICO: NON bloccare l'app se la firma non corrisponde.**
+Loggare via `DebugLogManager` e impostare un flag consultabile dalle feature premium.
+Se l'hash e' sbagliato per errore nostro, l'app resterebbe utilizzabile.
+
+Attenzione Play App Signing: Google ri-firma l'APK. Opzioni:
+- Accettare entrambi gli hash (locale + Play)
+- Saltare il check se l'installer e' `com.android.vending`
+
+Test: Installa release firmata. L'app parte normalmente. Se possibile, ri-firma
+un APK con chiave diversa (apktool) e verifica che il flag tampering si attivi.
+
+### Azioni SCARTATE (con motivazione)
+
+| Azione proposta | Motivo dello scarto |
+|----------------|--------------------
+| AntiHookDetector (Frida/Xposed) | L'app richiede root; bloccare tool root = bloccare i propri utenti |
+| SecureStringProtector (XOR 0x42) | Chiave XOR 1 byte: sicurezza illusoria, complessita' reale |
+| SQLCipher su Room | L'app non usa Room; il DB e' gia' in filesDir protetto |
+| MultiDEX dinamico | Overkill, fragile, aggirabile con memory dump |
+| Codice nativo JNI | Costo altissimo per proteggere un fallback (crypt14) raramente usato |
+| SafetyNet / Play Integrity | L'app e' 100% offline, non puo' chiamare server Google |
+| Emulator Detection | Utenti legittimi usano emulatori rootati per test |
 
 ---
 
 ## 4. Metriche di Successo
 
-| Metrica | Baseline (attuale) | Target Fase 1 | Target Fase 3 |
+| Metrica | Baseline (attuale) | Target Fase 1 | Target Fase 2 |
 |---------|-------------------|----------------|----------------|
-| Tempo decompilazione completa | ~15 min (jadx) | ~45 min (R8 aggressivo) | >2 ore (+ nativo) |
-| Stringhe sensibili leggibili | ✅ Sì | ❌ No (XOR + Base64) | ❌ No (nativo + runtime) |
-| Chiavi in chiaro nel bytecode | ✅ Sì | ❌ No (wiped) | ❌ No (nativo) |
-| Tamper detection | ❌ No | ✅ Sì (firma APK) | ✅ Sì (+ runtime) |
-| Debug detect | ❌ No | ✅ Sì basico | ✅ Sì avanzato |
+| Tempo decompilazione completa | ~15 min (jadx) | ~45 min (R8 aggressivo) | ~1 ora (+ dispersione logica) |
+| Log rivelatrici nel bytecode | ~200 chiamate | 0 (assumenosideeffects) | 0 |
+| Chiavi in chiaro in memoria | Si' (mai cancellate) | No (wiped dopo uso) | No |
+| Tamper detection (Lucky Patcher) | No | Si' (firma APK) | Si' (+ dispersione) |
+| Debug certificate detection | No | Si' (basico) | Si' |
 
 ---
 
@@ -637,12 +604,14 @@ adb logcat | grep -i "WhatStat"
 
 ## 6. Considerazioni Finali
 
-1. **Nessuna protezione è assoluta**: l'obfuscation può essere sconfitto da un analista esperto con tempo sufficiente. L'obiettivo è rendere l'analisi costosa e dispendiosa.
+1. **Nessuna protezione e' assoluta**: l'obfuscation puo' essere sconfitto da un analista esperto con tempo sufficiente. L'obiettivo e' rendere l'analisi costosa e dispendiosa.
 
-2. **L'app è 100% offline**: questo è già un vantaggio enorme per la sicurezza. Non ci sono API che possono essere intercettate o endpoint che possono essere attaccati.
+2. **L'app e' 100% offline**: questo e' gia' un vantaggio enorme per la sicurezza. Non ci sono API che possono essere intercettate o endpoint che possono essere attaccati.
 
-3. **Il vero rischio è la distribuzione**: se l'APK viene distribuito al di fuori del Play Store senza App Signing by Play Store, un attaccante potrebbe iniettare codice malevolo. Considerare sempre la pubblicazione tramite canale ufficiale.
+3. **L'app gira su device rootati per design**: questo vincola le difese disponibili. Non possiamo bloccare Frida, Xposed, o rilevare root — i nostri utenti li hanno per definizione. La difesa deve concentrarsi sul **tampering dell'APK** (Lucky Patcher), non sull'ambiente di esecuzione.
 
-4. **Performance trade-off**: tecniche come la cifratura SQLCipher e il codice nativo JNI possono introdurre overhead. Eseguire benchmark prima e dopo ogni modifica.
+4. **Lucky Patcher opera offline**: modifica il DEX dell'APK cercando pattern noti (`isPremium()`, `isLicensed()`, `verifyPurchase()`). Le difese efficaci sono: (a) signature check per rilevare APK ripacchettizzati, (b) offuscamento R8 per rendere i pattern irriconoscibili, (c) dispersione della logica premium in piu' punti con nomi offuscati.
 
-5. **Manutenibilità**: l'ofuscamento aggressivo può complicare il debugging di crash in produzione. Implementare un sistema di crash reporting che funzioni anche con codice ofuscato (ProGuard mapping upload).
+5. **Il flusso Live DB ha cambiato il threat model**: con la copia diretta del database live, la decifratura crypt14 e' solo un fallback. Proteggere la logica di decifratura con codice nativo o MultiDEX ha un rapporto costo/beneficio non giustificabile.
+
+6. **Manutenibilita'**: l'offuscamento aggressivo puo' complicare il debugging di crash in produzione. Conservare sempre il mapping file di ProGuard per ogni release.

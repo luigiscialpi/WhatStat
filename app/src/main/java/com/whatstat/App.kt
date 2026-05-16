@@ -3,6 +3,7 @@ package com.whatstat
 import android.app.Application
 import com.topjohnwu.superuser.Shell
 import com.whatstat.util.DebugLogManager
+import com.whatstat.util.IntegrityChecker
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
@@ -10,6 +11,7 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         DebugLogManager.init(this)
+        IntegrityChecker.verifySignature(this)
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             DebugLogManager.log("Uncaught exception | thread=${thread.name}", throwable)
