@@ -112,6 +112,7 @@ class SetupViewModel
                             decryptionStatus = mapGlobalStatus(repoState.decryptionStatus),
                             contactsStatus = mapGlobalStatus(repoState.contactsStatus),
                             decryptionProgress = repoState.decryptionProgress,
+                            hasNewDbAvailable = repoState.hasNewDbAvailable,
                         )
                     }
                 }
@@ -231,6 +232,7 @@ data class SetupState(
     val hasManualCrypt14: Boolean = false,
     val hasManualWaDb: Boolean = false,
     val hasManualDbDecrypted: Boolean = false,
+    val hasNewDbAvailable: Boolean = false,
 )
 
 enum class StepStatus { IDLE, LOADING, SUCCESS, ERROR }

@@ -296,4 +296,9 @@
     <string name="time_range_year">Yıl</string>
     <string name="time_range_custom">Özel</string>
     <string name="time_range_custom_button">Özelleştir</string>
+
+    <!-- New DB Update -->
+    <string name="new_db_available_title">Yeni yedekleme mevcut</string>
+    <string name="new_db_available_desc">Yeni bir WhatsApp yedeği mevcut. WhatStat verilerini güncellemek ister misiniz?</string>
+    <string name="new_db_update_button">Şimdi güncelle</string>
 </resources>

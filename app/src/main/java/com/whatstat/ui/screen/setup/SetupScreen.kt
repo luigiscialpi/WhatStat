@@ -125,13 +125,13 @@ fun setupScreen(
     }
 
     // Navigazione automatica verso Main:
-    LaunchedEffect(state.isComplete, liteState.isLoading, liteState.showSenderSelection, awaitLiteImport) {
+    LaunchedEffect(state.isComplete, liteState.isLoading, liteState.showSenderSelection, awaitLiteImport, state.hasNewDbAvailable) {
         if (hasNavigated) return@LaunchedEffect
         if (awaitLiteImport) return@LaunchedEffect
         if (!shouldAutoNavigate) {
             return@LaunchedEffect
         }
-        if (state.isComplete && !liteState.isLoading && !liteState.showSenderSelection) {
+        if (state.isComplete && !liteState.isLoading && !liteState.showSenderSelection && !state.hasNewDbAvailable) {
             hasNavigated = true
             onSetupComplete()
         }
@@ -655,16 +655,46 @@ private fun rootTabContent(
         // ── Dashboard & Clear Session ──────────────────────────
         // Hint contestuale per Root (simile a Lite)
         if (!state.isLoading) {
-            Text(
-                text =
-                    if (state.isRootReady) {
-                        stringResource(R.string.root_hint_session_found)
-                    } else {
-                        stringResource(R.string.root_hint_no_session)
-                    },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (state.hasNewDbAvailable) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            stringResource(R.string.new_db_available_title), 
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            stringResource(R.string.new_db_available_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = onCheckAndStart,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(R.string.new_db_update_button))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+            } else {
+                Text(
+                    text =
+                        if (state.isRootReady) {
+                            stringResource(R.string.root_hint_session_found)
+                        } else {
+                            stringResource(R.string.root_hint_no_session)
+                        },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
             Spacer(Modifier.height(4.dp))
 

@@ -296,4 +296,9 @@
     <string name="time_range_year">Année</string>
     <string name="time_range_custom">Personnalisé</string>
     <string name="time_range_custom_button">Personnalisé</string>
+
+    <!-- New DB Update -->
+    <string name="new_db_available_title">Nouveau backup disponible</string>
+    <string name="new_db_available_desc">Un nouveau backup WhatsApp est disponible. Voulez-vous mettre à jour les données de WhatStat?</string>
+    <string name="new_db_update_button">Mettre à jour maintenant</string>
 </resources>

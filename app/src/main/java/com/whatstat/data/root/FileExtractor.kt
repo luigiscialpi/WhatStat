@@ -285,50 +285,41 @@ class FileExtractor
                     "/sdcard/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14",
                     "/storage/emulated/0/WhatsApp/Databases/msgstore.db.crypt14",
                 )
+            var mostRecentPath: String? = null
+            var maxLastModified = -1L
+
             for (path in paths) {
                 val f = SuFile(path)
                 if (f.exists()) {
-                    if (path.endsWith(".crypt15")) {
-                        throw CryptVersionException("Rilevato backup crypt15 (E2E).")
+                    val lastMod = f.lastModified()
+                    if (lastMod > maxLastModified) {
+                        maxLastModified = lastMod
+                        mostRecentPath = path
                     }
-                    return path
                 }
             }
+
+            if (mostRecentPath != null) {
+                return mostRecentPath
+            }
+
             throw IOException("Database cifrato non trovato.")
         }
 
         /**
-         * Calcola l'hash SHA-256 del file crypt14 sorgente sul dispositivo.
-         * Usa SuFileInputStream per accedere ai percorsi che richiedono root.
-         * @return hash hex string, oppure null se il file non è trovato/leggibile
+         * Calcola la signature (lunghezza + timestamp) del file crypt14 sorgente sul dispositivo.
+         * Usa SuFile per accedere ai percorsi che richiedono root.
+         * @return signature hex string, oppure null se il file non è trovato/leggibile
          */
         fun calculateSourceCrypt14Hash(): String? {
-            val paths =
-                listOf(
-                    "/sdcard/WhatsApp/Databases/msgstore.db.crypt14",
-                    "/sdcard/Android/media/com.whatsapp/WhatsApp/Databases/msgstore.db.crypt14",
-                    "/storage/emulated/0/WhatsApp/Databases/msgstore.db.crypt14",
-                )
-            for (path in paths) {
+            return try {
+                val path = findCryptFile()
                 val f = SuFile(path)
-                if (f.exists()) {
-                    return try {
-                        val digest = java.security.MessageDigest.getInstance("SHA-256")
-                        SuFileInputStream.open(f).use { fis ->
-                            val buffer = ByteArray(8192)
-                            var read: Int
-                            while (fis.read(buffer).also { read = it } != -1) {
-                                digest.update(buffer, 0, read)
-                            }
-                        }
-                        digest.digest().joinToString("") { "%02x".format(it) }
-                    } catch (e: Exception) {
-                        android.util.Log.w("WhatStat", "Failed to hash source crypt14 at $path: ${e.message}")
-                        null
-                    }
-                }
+                "${f.length()}_${f.lastModified()}"
+            } catch (e: Exception) {
+                android.util.Log.w("WhatStat", "Failed to hash source crypt14: ${e.message}")
+                null
             }
-            return null
         }
 
         /**

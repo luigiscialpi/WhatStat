@@ -118,11 +118,13 @@ class WhatsAppRepository
                         database.open(outputDb, files.waDbFile)
 
                         // Verifica se il DB è cambiato → invalida la cache
-                        val dbHash = cacheManager.calculateFileHash(files.crypt14File.absolutePath)
+                        val dbHash =
+                            fileExtractor.calculateSourceCrypt14Hash()
+                                ?: cacheManager.calculateFileHash(files.crypt14File.absolutePath)
                         if (dbHash != null) {
                             if (cacheManager.isRootDbChanged(dbHash)) {
                                 android.util.Log.d("WhatStat", "DB changed, clearing cache")
-                                cacheManager.clearCache()
+                                cacheManager.clearRootCache()
                             }
                             cacheManager.saveRootDbHash(dbHash)
                         }
@@ -223,7 +225,7 @@ class WhatsAppRepository
                         if (dbHash != null) {
                             if (cacheManager.isRootDbChanged(dbHash)) {
                                 android.util.Log.d("WhatStat", "DB changed (manual), clearing cache")
-                                cacheManager.clearCache()
+                                cacheManager.clearRootCache()
                             }
                             cacheManager.saveRootDbHash(dbHash)
                         }
@@ -267,20 +269,20 @@ class WhatsAppRepository
                             android.util.Log.d("WhatStat", "tryRestoreSession: sourceHash=$currentHash")
 
                             if (currentHash != null && cacheManager.isRootDbChanged(currentHash)) {
-                                // DB sorgente cambiato - invalida cache e rigetta la sessione
-                                android.util.Log.d("WhatStat", "DB changed, invalidating session")
-                                cacheManager.clearCache()
-                                database.close()
-                                outputDb.delete()
+                                // DB sorgente cambiato - permettiamo all'utente di scegliere
+                                android.util.Log.d("WhatStat", "DB changed, letting user decide")
 
                                 _setupState.update {
                                     it.copy(
-                                        isLoading = false,
-                                        isComplete = false,
-                                        error = "Nuovo backup di WhatsApp rilevato rispetto a quello attuale. Esegui nuovamente il setup.",
+                                        isComplete = true,
+                                        rootStatus = GlobalStepStatus.SUCCESS,
+                                        extractionStatus = GlobalStepStatus.SUCCESS,
+                                        decryptionStatus = GlobalStepStatus.SUCCESS,
+                                        contactsStatus = GlobalStepStatus.SUCCESS,
+                                        hasNewDbAvailable = true,
                                     )
                                 }
-                                return@withContext false
+                                return@withContext true
                             }
 
                             _setupState.update {
@@ -308,7 +310,7 @@ class WhatsAppRepository
             withContext(Dispatchers.IO) {
                 database.close()
                 fileExtractor.cleanup()
-                cacheManager.clearCache(resetWordIndexes = true)
+                cacheManager.clearRootCache(resetWordIndexes = true)
             }
 
         /** Proxy per copiare file da Uri senza esporre FileExtractor al ViewModel */
@@ -338,6 +340,7 @@ data class RepositorySetupState(
     val decryptionStatus: GlobalStepStatus = GlobalStepStatus.IDLE,
     val contactsStatus: GlobalStepStatus = GlobalStepStatus.IDLE,
     val decryptionProgress: Float = 0f,
+    val hasNewDbAvailable: Boolean = false,
 )
 
 enum class GlobalStepStatus { IDLE, LOADING, SUCCESS, ERROR }

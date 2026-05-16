@@ -296,4 +296,9 @@
     <string name="time_range_year">साल</string>
     <string name="time_range_custom">कस्टम</string>
     <string name="time_range_custom_button">कस्टम</string>
+
+    <!-- New DB Update -->
+    <string name="new_db_available_title">नया बैकअप उपलब्ध</string>
+    <string name="new_db_available_desc">एक नया व्हाट्सएप बैकअप उपलब्ध है। क्या आप WhatStat डेटा अपडेट करना चाहेंगे?</string>
+    <string name="new_db_update_button">अभी अपडेट करें</string>
 </resources>
