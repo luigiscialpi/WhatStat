@@ -1,0 +1,62 @@
+name: Build & Release WhatStat
+
+# Si attiva quando crei un nuovo tag (es. v1.0.0)
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build Signed APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+
+      # Rende lo script Gradle eseguibile
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Decodifica il keystore dal Secret Base64 e lo salva temporaneamente
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > app/whatstat-release.jks
+
+      # Compila l'APK in modalita' release passando le variabili d'ambiente
+      # Il nostro build.gradle.kts gia' preleva queste variabili da project.findProperty()
+      - name: Build Release APK
+        env:
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: >
+          ./gradlew assembleRelease 
+          -PSTORE_PASSWORD="$STORE_PASSWORD" 
+          -PKEY_PASSWORD="$KEY_PASSWORD" 
+          -PKEY_ALIAS="$KEY_ALIAS"
+          -PSTORE_FILE="whatstat-release.jks"
+
+      # Pulisce il file keystore al termine della build
+      - name: Clean up Keystore
+        if: always()
+        run: rm -f app/whatstat-release.jks
+
+      # Pubblica la release su GitHub aggiungendo l'APK generato
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/app-release.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
