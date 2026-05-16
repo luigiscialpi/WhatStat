@@ -32,9 +32,7 @@ Il funzionamento dell'app richiede:
 
 - Dispositivo Android rootato, tipicamente con Magisk. I test su emulatore con root sono sconsigliati per dati reali.
 - Android 8.0 (API 26) o superiore. La versione target è Android 14 (API 34).
-- WhatsApp installato con backup end-to-end **disattivato**. Il formato supportato è `crypt14`. Il formato `crypt15` (backup E2E attivo) non è ancora supportato, ma è in roadmap con inserimento manuale della chiave a 64 caratteri esadecimali.
-
-Il formato del backup si riconosce dall'estensione del file: `msgstore.db.crypt14` indica il formato supportato. Se il file è `msgstore.db.crypt15`, il backup E2E è attivo e l'app non può procedere.
+- WhatsApp installato. Il flusso primario (Live DB) legge direttamente il database da `/data/user/*/com.whatsapp/databases/` e non dipende dal formato di backup. Il flusso fallback richiede che il backup locale sia attivo e in formato `crypt14` (backup E2E disattivato). Il formato `crypt15` (backup E2E attivo) non è ancora supportato nel fallback, ma è in roadmap con inserimento manuale della chiave a 64 caratteri esadecimali.
 
 ---
 
@@ -46,29 +44,32 @@ Al primo avvio l'app esegue in sequenza quattro operazioni, ognuna con un propri
 
 **1. Verifica accesso root** — L'app controlla che la shell root sia disponibile e accessibile tramite Magisk. Se il root non è disponibile o i permessi sono stati negati, il processo si interrompe con un messaggio esplicativo.
 
-**2. Estrazione file protetti** — Con i permessi root, l'app copia tre file dalla posizione di WhatsApp nella directory privata dell'app (inaccessibile ad altre applicazioni):
-- La chiave di cifratura: `/data/data/com.whatsapp/files/key`
-- Il database cifrato: `/sdcard/WhatsApp/Databases/msgstore.db.crypt14`
-- Il database contatti: `/data/data/com.whatsapp/databases/wa.db`
+**2. Estrazione file (Live-first)** — Con i permessi root, l'app tenta di copiare il database live direttamente dalla directory protetta di WhatsApp. L'ordine di copia è preciso per garantire coerenza transazionale:
+- `msgstore.db-wal` (Write-Ahead Log, messaggi recenti)
+- `msgstore.db-shm` (Shared Memory Map, indice del WAL)
+- `msgstore.db` (database principale)
+- `wa.db-wal`, `wa.db-shm`, `wa.db` (contatti, opzionali)
 
-L'estrazione degli avatar avviene separatamente: l'app itera su tutti i profili in `/data/user/` per supportare configurazioni con profili multipli (es. XSpace), copia i file `.j` dalla directory `Avatars/` di WhatsApp e li rinomina in `.jpg`.
+Tutti i file sono copiati da `/data/user/*/com.whatsapp/databases/` — percorso che l'app individua iterando tra i profili utente (`/data/user/*`) per supportare configurazioni con profili multipli (es. XSpace). Gli avatar vengono estratti separatamente da `/data/user/*/com.whatsapp/files/Avatars/`.
 
-**3. Decifratura database** — Il file crypt14 viene decifrato in locale. Il processo legge la chiave AES-256 dal file `key` (deserializzazione Java Object, byte 99–131), estrae l'IV dall'header protobuf del file cifrato, decifra con AES-GCM e decomprime con zlib. Il risultato è un file SQLite valido (`msgstore.db`). L'operazione fallisce se la chiave non corrisponde al database (errore GCM authentication tag).
+**Fallback crypt14** — Se la copia live fallisce (es. policy SELinux restrittiva), l'app ricade automaticamente sul vecchio flusso: copia di `key` + `msgstore.db.crypt14` dalla sdcard, seguito dalla fase di decifratura.
+
+**3. Decifratura database (solo fallback)** — Eseguita solo se il flusso Live non è disponibile. Il file crypt14 viene decifrato in locale: lettura chiave AES-256 dal file `key` (byte 99–131), estrazione IV dall'header protobuf, decifratura AES-GCM, decompressione zlib. Il risultato è un file SQLite valido (`msgstore.db`). L'operazione fallisce se la chiave non corrisponde al database (errore GCM authentication tag). Nel flusso Live questo step viene saltato e marcato SUCCESS direttamente.
 
 **4. Apertura database contatti** — Il file `wa.db` viene aperto in sola lettura per la risoluzione dei nomi dei contatti. I nomi sono ricavati dalla tabella `wa_contacts` del file `wa.db`, non da `jid.cached_name` in `msgstore.db` (spesso vuoto nelle versioni moderne di WhatsApp).
 
 ### Gestione sessione Root
 
-Il database decifrato (`msgstore.db`) viene preservato tra le sessioni in `filesDir`. Al successivo avvio, se il file è già presente, il `SetupViewModel` rileva che la sessione Root è ancora valida (`isRootReady = true`) e mostra due opzioni nella schermata di setup:
+Il database (`msgstore.db`) viene preservato tra le sessioni in `filesDir`. Al successivo avvio, se il file è già presente, il `SetupViewModel` rileva che la sessione Root è ancora valida (`isRootReady = true`) e mostra due opzioni nella schermata di setup:
 
-- **Riprendi sessione** — naviga direttamente alla Dashboard senza rieseguire estrazione e decifratura, garantendo avvio immediato.
-- **Cancella sessione** — elimina `msgstore.db` e tutti i file derivati, riportando l'app allo stato iniziale e richiedendo un nuovo ciclo completo di setup.
+- **Riprendi sessione** — naviga direttamente alla Dashboard senza rieseguire estrazione, garantendo avvio immediato.
+- **Cancella sessione** — elimina `msgstore.db` e tutti i file derivati (inclusi WAL, SHM, avatars), riportando l'app allo stato iniziale e richiedendo un nuovo ciclo completo di setup.
 
 Il pulsante "Avvia analisi" diventa "Analizza di nuovo" in caso di sessione già pronta, per distinguere visivamente i due casi. Implementato in `SetupViewModel.resumeRootSession()` e `clearRootSession()`.
 
 ### Avvii successivi e rilevamento aggiornamenti
 
-Ad ogni avvio l'app calcola l'hash SHA-256 del file `msgstore.db.crypt14` e lo confronta con quello dell'ultima sessione. Se l'hash non è cambiato, i dati vengono caricati dalla cache in modo istantaneo. Se l'hash è cambiato (WhatsApp ha aggiunto messaggi), la cache viene invalidata completamente e il processo di estrazione/decifratura riparte da capo.
+Ad ogni avvio l'app calcola una **signature WAL-aware** del database sorgente di WhatsApp e la confronta con quella dell'ultima sessione. La signature è composta da `"dimensione_lastModified_walSize"` calcolata sul file `msgstore.db` live (percorso root). L'inclusione della dimensione del WAL permette di rilevare nuovi messaggi anche quando WhatsApp non ha ancora eseguito un checkpoint (i.e. il file principale non è cambiato ma il WAL è cresciuto). Se la signature non è cambiata, i dati vengono caricati dalla cache in modo istantaneo. Se è cambiata, viene mostrata la card "Nuovo backup rilevato" che lascia all'utente la scelta se aggiornare o continuare con i dati esistenti.
 
 ### Flusso di navigazione al primo avvio
 
@@ -196,7 +197,7 @@ La cache viene invalidata esplicitamente in quattro occasioni:
 
 3. **Eliminazione sessione Root** (`WhatsAppRepository.cleanup()`): cancella la cache Root quando l'utente preme l'icona del cestino nella tab Root.
 
-4. **DB Root modificato** (hash SHA-256 diverso): `CacheManager` confronta l'hash del `msgstore.db` corrente con quello salvato e invalida automaticamente se diverso.
+4. **DB Root modificato** (signature WAL-aware diversa): `FileExtractor.calculateSourceDbSignature()` calcola la firma `"size_lastmod_walSize"` del database live (`/data/user/*/com.whatsapp/databases/msgstore.db`). La dimensione del WAL è inclusa per rilevare i messaggi non ancora consolidati nel file principale. Se la firma è cambiata, `CacheManager.isRootDbChanged()` segnala il cambio. L'app mostra la card "Nuovo backup rilevato" e lascia all'utente la scelta. Se l'utente aggiorna, viene chiamato `clearRootCache()` (non `clearCache()`, per proteggere la cache Lite).
 
 5. **Rename chat Lite** (AnalyticsRepository.notifyLiteRenameChat()): La cache slow stats della chat (chat_slow_{id}) viene invalidata completamente. Non viene tentato alcun aggiornamento parziale (patch) del senderBreakdown, perché in Lite Mode i JID del mittente e della chat divergono nelle chat 1-1, rendendo il match inaffidabile. Al successivo accesso, getSlowChatStats ricalcola da zero leggendo wa_contacts aggiornata.
 
@@ -507,9 +508,9 @@ Gli errori sono modellati con la sealed class `AppError` in `domain/model/AppErr
 
 - **`RootNotAvailable`** — Root non presente o permessi negati. L'app mostra istruzioni per verificare Magisk.
 - **`KeyFileNotFound`** — Il file `/data/data/com.whatsapp/files/key` non esiste. Può accadere se il percorso è cambiato con un aggiornamento di WhatsApp.
-- **`Crypt14NotFound`** — Il file `msgstore.db.crypt14` non è presente. Può indicare che il backup locale è disabilitato.
+- **`Crypt14NotFound`** — Il file `msgstore.db.crypt14` non è presente. Emesso solo se anche il flusso Live DB ha fallito. Può indicare che il backup locale è disabilitato.
 - **`Crypt15Detected`** — Rilevato un file `msgstore.db.crypt15` (backup E2E attivo). L'app mostra un messaggio che spiega come disattivare il backup E2E in WhatsApp.
-- **`DecryptionFailed(reason)`** — La decifratura AES-GCM è fallita. Causa più comune: la chiave non corrisponde al database (es. WhatsApp reinstallata). Soluzione suggerita: forzare un nuovo backup da WhatsApp.
+- **`DecryptionFailed(reason)`** — La decifratura AES-GCM è fallita (solo flusso fallback crypt14). Causa più comune: la chiave non corrisponde al database (es. WhatsApp reinstallata). Nel flusso Live questo errore non si verifica.
 - **`DatabaseError(message)`** — Il file SQLite è corrotto o ha uno schema non riconosciuto. Può accadere con versioni molto recenti di WhatsApp che modificano lo schema del database.
 - **`UnknownError(throwable)`** — Errore imprevisto, con stacktrace.
 
