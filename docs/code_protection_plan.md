@@ -437,6 +437,19 @@ Opzione B: Keystore in ambiente di build isolato
 
 ---
 
+### Livello 9 — Dispersione Logica Premium (Impalcatura Fase 2)
+
+**Stato attuale**: ✅ Scaffolding Implementato  
+**Priorità**: Alta (Preparatoria per futuri IAP)
+
+Quando l'app implementera' funzionalita' a pagamento, i modder (tramite Lucky Patcher) cercheranno un metodo centralizzato da forzare (es. `isPremium(): Boolean -> return true`). Per prevenire questo, abbiamo creato l'impalcatura `FeatureGate.kt`:
+
+1. **Abolizione Booleani**: L'accesso alle feature è gestito da costanti intere arbitrarie (`STATE_UNLOCKED = 0x1A2B3C`) offuscate da R8.
+2. **Inline Enforcement**: L'uso di `inline fun requireFeature(...)` forza il compilatore a copiare l'intera logica di verifica all'interno di *ogni singolo chiamante*. Un modder non potra' patchare un singolo punto, ma dovra' trovare e manipolare ogni singola invocazione sparsa nel bytecode.
+3. **Corruzione Silenziosa (Poisoning)**: `FeatureGate` interroga `IntegrityChecker.isTampered`. Se rileva manomissione all'APK, imposta internamente `STATE_LOCKED`. Invece di far crashare l'app, le feature premium smetteranno semplicemente di funzionare, disorientando il modder.
+
+---
+
 ## 3. Protocollo di Implementazione
 
 > **REGOLA**: L'utente lavora SOLO in release build. Non esiste build debug come safety net.
