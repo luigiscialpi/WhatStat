@@ -15,7 +15,7 @@
  7. [Dettaglio chat](#7-dettaglio-chat)
  8. [Media Gallery](#8-media-gallery)
  9. [Radar Parole](#9-radar-parole)
-10. [Privacy e sicurezza](#10-privacy-e-sicurezza)
+10. [Privacy, Sicurezza e Build Automation](#10-privacy-sicurezza-e-build-automation)
 11. [Gestione degli errori](#11-gestione-degli-errori)
 12. [Struttura dei dati sorgente](#12-struttura-dei-dati-sorgente)
 13. [Comportamenti noti e quirk del database](#13-comportamenti-noti-e-quirk-del-database)

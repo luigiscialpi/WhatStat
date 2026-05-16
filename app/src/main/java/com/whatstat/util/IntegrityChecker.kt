@@ -34,23 +34,25 @@ object IntegrityChecker {
         }
 
         try {
-            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                context.packageManager.getPackageInfo(
-                    context.packageName,
-                    PackageManager.GET_SIGNING_CERTIFICATES
-                )
-            } else {
-                context.packageManager.getPackageInfo(
-                    context.packageName,
-                    PackageManager.GET_SIGNATURES
-                )
-            }
+            val packageInfo =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    context.packageManager.getPackageInfo(
+                        context.packageName,
+                        PackageManager.GET_SIGNING_CERTIFICATES,
+                    )
+                } else {
+                    context.packageManager.getPackageInfo(
+                        context.packageName,
+                        PackageManager.GET_SIGNATURES,
+                    )
+                }
 
-            val signingInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfo.signingInfo?.apkContentsSigners
-            } else {
-                packageInfo.signatures
-            }
+            val signingInfo =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageInfo.signingInfo?.apkContentsSigners
+                } else {
+                    packageInfo.signatures
+                }
 
             if (signingInfo.isNullOrEmpty()) {
                 _isTampered = true
@@ -67,7 +69,6 @@ object IntegrityChecker {
             } else {
                 _isTampered = false
             }
-
         } catch (e: Exception) {
             DebugLogManager.log("Integrity check error", e)
             // In caso di errore nel controllo, per prudenza non blocchiamo ma non fidiamoci al 100%
@@ -79,12 +80,13 @@ object IntegrityChecker {
      * Verifica l'installatore dell'app.
      */
     fun isFromGooglePlay(context: Context): Boolean {
-        val installer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            context.packageManager.getInstallSourceInfo(context.packageName).installingPackageName
-        } else {
-            @Suppress("DEPRECATION")
-            context.packageManager.getInstallerPackageName(context.packageName)
-        }
+        val installer =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                context.packageManager.getInstallSourceInfo(context.packageName).installingPackageName
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getInstallerPackageName(context.packageName)
+            }
         return installer == "com.android.vending"
     }
 }

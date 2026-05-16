@@ -5,12 +5,12 @@ import android.net.Uri
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.io.SuFile
 import com.topjohnwu.superuser.io.SuFileInputStream
+import com.whatstat.util.DebugLogManager
+import com.whatstat.util.SecurityUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import com.whatstat.util.DebugLogManager
-import com.whatstat.util.SecurityUtils
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.zip.ZipInputStream

@@ -6,11 +6,11 @@ package com.whatstat.util
  * rendendo inefficace la modifica di un singolo punto da parte di tool come Lucky Patcher.
  */
 object FeatureGate {
-
     // Utilizziamo costanti arbitrarie invece di Boolean (true/false) per
     // nascondere lo stato ai classici search pattern dei patcher.
     @PublishedApi
     internal const val STATE_UNLOCKED = 0x1A2B3C
+
     @PublishedApi
     internal const val STATE_LOCKED = 0x3C2B1A
 
@@ -26,7 +26,7 @@ object FeatureGate {
         if (IntegrityChecker.isTampered) {
             return STATE_LOCKED
         }
-        
+
         // TODO: In futuro, inserire qui il check IAP (es. billingManager.isPurchased(featureId))
         return STATE_UNLOCKED
     }
@@ -36,7 +36,11 @@ object FeatureGate {
      * L'inline forza il compilatore a copiare l'intera logica ovunque venga chiamata,
      * costringendo l'attaccante a patchare n posizioni distinte.
      */
-    inline fun <T> requireFeature(featureId: String, fallback: () -> T, block: () -> T): T {
+    inline fun <T> requireFeature(
+        featureId: String,
+        fallback: () -> T,
+        block: () -> T,
+    ): T {
         val state = getInternalFeatureState(featureId)
         return if (state == STATE_UNLOCKED) {
             block()
@@ -48,7 +52,10 @@ object FeatureGate {
     /**
      * Versione semplificata per azioni UI (es. click bottoni) che non fanno nulla se la feature e' bloccata.
      */
-    inline fun withFeature(featureId: String, block: () -> Unit) {
+    inline fun withFeature(
+        featureId: String,
+        block: () -> Unit,
+    ) {
         if (getInternalFeatureState(featureId) == STATE_UNLOCKED) {
             block()
         } else {
