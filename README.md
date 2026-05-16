@@ -492,13 +492,16 @@ Funzione di ricerca che conta le occorrenze di una parola o frase in una chat sp
 
 ---
 
-## 10. Privacy e sicurezza
+## 10. Privacy, Sicurezza e Build Automation
 
 - Nessuna connessione di rete. Il traffico è bloccato a livello di configurazione Android (`network_security_config.xml` con `cleartextTrafficPermitted="false"` e nessuna trust anchor).
 - Tutti i file estratti (chiave, database cifrato, database decifrato, avatar) sono salvati in `context.filesDir`, la directory privata dell'app non accessibile ad altre app senza root.
-- La chiave di cifratura AES-256 non viene mai inclusa nei log di sistema.
-- I contenuti dei messaggi, i nomi e i numeri di telefono non vengono loggati in produzione.
+- La chiave di cifratura AES-256 non viene mai inclusa nei log di sistema e viene sottoposta a "wiping" (azzeramento in memoria) post-utilizzo.
+- I contenuti dei messaggi, i nomi e i numeri di telefono non vengono loggati in produzione. Tutti i log standard (`Log.d`) vengono estirpati dal bytecode in fase di release tramite ProGuard/R8.
 - I file temporanei vengono eliminati con sovrascrittura a zero prima della cancellazione (`secureDelete`), per evitare recupero da storage.
+- **Anti-Tampering (`IntegrityChecker`)**: L'app controlla silenziosamente l'hash della propria firma in runtime. Se rileva una manomissione (es. APK ri-firmato da Lucky Patcher), non crasha ma imposta un flag interno di manomissione.
+- **Feature Gating Distribuito (`FeatureGate`)**: La logica per lo sblocco di eventuali future funzioni premium è basata su costanti binarie oscurate e l'uso di funzioni Kotlin `inline`. Questo disperde il bytecode di validazione ovunque venga invocato, rendendo inefficace il patching centralizzato. Se l'`IntegrityChecker` segnala una manomissione, il sistema chiude silenziosamente gli accessi fingendo uno stato non-premium ("poisoning").
+- **CI/CD e Signing**: Il file `.jks` contenente la chiave per firmare l'APK ufficiale non risiede più nel codice sorgente né nella macchina di sviluppo in chiaro, ma viene iniettato dinamicamente tramite GitHub Secrets all'interno del workflow `.github/workflows/release.yml`, garantendo build pulite e verificabili.
 
 ---
 
