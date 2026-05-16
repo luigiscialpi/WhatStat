@@ -69,7 +69,7 @@ Il pulsante "Avvia analisi" diventa "Analizza di nuovo" in caso di sessione già
 
 ### Avvii successivi e rilevamento aggiornamenti
 
-Ad ogni avvio l'app calcola una **signature WAL-aware** del database sorgente di WhatsApp e la confronta con quella dell'ultima sessione. La signature è composta da `"dimensione_lastModified_walSize"` calcolata sul file `msgstore.db` live (percorso root). L'inclusione della dimensione del WAL permette di rilevare nuovi messaggi anche quando WhatsApp non ha ancora eseguito un checkpoint (i.e. il file principale non è cambiato ma il WAL è cresciuto). Se la signature non è cambiata, i dati vengono caricati dalla cache in modo istantaneo. Se è cambiata, viene mostrata la card "Nuovo backup rilevato" che lascia all'utente la scelta se aggiornare o continuare con i dati esistenti.
+Ad ogni avvio l'app calcola una **signature** del database sorgente di WhatsApp e la confronta con quella dell'ultima sessione. La signature è composta unicamente dalla **dimensione** del file `msgstore.db` live (percorso root). Ignorare volutamente la dimensione del file WAL e il `lastModified` evita la comparsa di notifiche continue ad ogni singolo messaggio ricevuto. La dimensione del DB principale, infatti, cambia solo quando WhatsApp esegue un checkpoint (tipicamente durante il backup notturno), allineando così le notifiche di "Nuovo backup rilevato" ai veri cicli di salvataggio dell'app. Tuttavia, in fase di estrazione, l'app continua a copiare sia il DB che il WAL per garantire sempre l'accesso ai dati più recenti. Se la signature è cambiata, viene mostrata la card che lascia all'utente la scelta se aggiornare o continuare con i dati esistenti.
 
 ### Flusso di navigazione al primo avvio
 
@@ -197,7 +197,7 @@ La cache viene invalidata esplicitamente in quattro occasioni:
 
 3. **Eliminazione sessione Root** (`WhatsAppRepository.cleanup()`): cancella la cache Root quando l'utente preme l'icona del cestino nella tab Root.
 
-4. **DB Root modificato** (signature WAL-aware diversa): `FileExtractor.calculateSourceDbSignature()` calcola la firma `"size_lastmod_walSize"` del database live (`/data/user/*/com.whatsapp/databases/msgstore.db`). La dimensione del WAL è inclusa per rilevare i messaggi non ancora consolidati nel file principale. Se la firma è cambiata, `CacheManager.isRootDbChanged()` segnala il cambio. L'app mostra la card "Nuovo backup rilevato" e lascia all'utente la scelta. Se l'utente aggiorna, viene chiamato `clearRootCache()` (non `clearCache()`, per proteggere la cache Lite).
+4. **DB Root modificato** (signature diversa): `FileExtractor.calculateSourceDbSignature()` calcola la firma del database live (`/data/user/*/com.whatsapp/databases/msgstore.db`) usando esclusivamente la dimensione del file (`length`). Questo evita continui falsi positivi ("nuovo DB disponibile") dovuti alla normale attività del file WAL. Se la firma è cambiata, `CacheManager.isRootDbChanged()` segnala il cambio. L'app mostra la card "Nuovo backup rilevato" e lascia all'utente la scelta. Se l'utente aggiorna, viene chiamato `clearRootCache()` (non `clearCache()`, per proteggere la cache Lite).
 
 5. **Rename chat Lite** (AnalyticsRepository.notifyLiteRenameChat()): La cache slow stats della chat (chat_slow_{id}) viene invalidata completamente. Non viene tentato alcun aggiornamento parziale (patch) del senderBreakdown, perché in Lite Mode i JID del mittente e della chat divergono nelle chat 1-1, rendendo il match inaffidabile. Al successivo accesso, getSlowChatStats ricalcola da zero leggendo wa_contacts aggiornata.
 

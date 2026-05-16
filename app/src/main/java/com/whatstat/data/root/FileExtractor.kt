@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.whatstat.util.DebugLogManager
 import com.whatstat.util.SecurityUtils
 import java.io.FileOutputStream
 import java.io.IOException
@@ -427,9 +428,18 @@ class FileExtractor
 
         /**
          * Calcola la signature del database sorgente di WhatsApp per rilevare aggiornamenti.
-         * Include la dimensione del WAL per catturare i messaggi non ancora consolidati.
+         * Usa SOLO size + lastModified del file principale msgstore.db, ignorando il WAL.
+         *
+         * Razionale: il WAL cresce ad ogni singolo messaggio in arrivo, il che causerebbe
+         * notifiche di "nuovo DB disponibile" continue. Il file principale msgstore.db
+         * cambia solo quando WhatsApp esegue un checkpoint (tipicamente durante il
+         * backup giornaliero automatico). Questo allinea la notifica ai "veri" backup.
+         *
+         * Nota: l'estrazione (extractLiveDb) copia comunque il WAL per avere dati completi.
+         * La separazione e' intenzionale: "quando segnalare" vs "cosa estrarre".
+         *
          * Tenta prima il DB live (root), poi ricade sul crypt14 come fallback.
-         * @return stringa "size_lastmod_walsize", oppure null se nessuna sorgente e' accessibile
+         * @return stringa con la dimensione del DB, oppure null se nessuna sorgente e' accessibile
          */
         fun calculateSourceDbSignature(): String? {
             return try {
@@ -438,9 +448,7 @@ class FileExtractor
                     val dbDir = SuFile(userDir, "com.whatsapp/databases")
                     val msgstoreDb = SuFile(dbDir, "msgstore.db")
                     if (msgstoreDb.exists()) {
-                        val walFile = SuFile(dbDir, "msgstore.db-wal")
-                        val walSize = if (walFile.exists()) walFile.length() else 0L
-                        return "${msgstoreDb.length()}_${msgstoreDb.lastModified()}_$walSize"
+                        return "${msgstoreDb.length()}"
                     }
                 }
                 // Fallback: usa la signature del crypt14 nella sdcard
@@ -448,7 +456,7 @@ class FileExtractor
                 val f = SuFile(cryptPath)
                 "${f.length()}_${f.lastModified()}"
             } catch (e: Exception) {
-                android.util.Log.w("WhatStat", "calculateSourceDbSignature failed: ${e.message}")
+                DebugLogManager.log("calculateSourceDbSignature failed: ${e.message}")
                 null
             }
         }
