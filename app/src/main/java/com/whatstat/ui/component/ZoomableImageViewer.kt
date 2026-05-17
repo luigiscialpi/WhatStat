@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.delay
@@ -50,6 +51,16 @@ fun ZoomableImageViewer(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+
+    val imageLoader =
+        remember(context) {
+            ImageLoader.Builder(context)
+                .components {
+                    add(com.whatstat.ui.component.RootFileFetcher.Factory())
+                    add(com.whatstat.ui.component.ZipFileFetcher.Factory())
+                }
+                .build()
+        }
 
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
@@ -159,12 +170,14 @@ fun ZoomableImageViewer(
                     },
             contentAlignment = Alignment.Center,
         ) {
+            val imgData = if (filePath.startsWith("zip://")) filePath else File(filePath)
             AsyncImage(
                 model =
                     ImageRequest.Builder(context)
-                        .data(File(filePath))
+                        .data(imgData)
                         .crossfade(true)
                         .build(),
+                imageLoader = imageLoader,
                 contentDescription = "Immagine",
                 modifier =
                     Modifier

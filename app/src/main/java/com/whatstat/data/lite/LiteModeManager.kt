@@ -1,11 +1,16 @@
 package com.whatstat.data.lite
 
+import android.content.Context
 import android.net.Uri
+import com.whatstat.R
 import com.whatstat.data.root.FileExtractor
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.security.MessageDigest
 import java.text.Normalizer
@@ -29,6 +34,7 @@ data class LiteImportProgress(
 class LiteModeManager
     @Inject
     constructor(
+        @ApplicationContext private val context: Context,
         private val fileExtractor: FileExtractor,
         private val parser: TextChatParser,
         private val mediaManager: LiteMediaManager,
@@ -70,19 +76,19 @@ class LiteModeManager
             withContext(Dispatchers.IO) {
                 runCatching {
                     // 1. Estrazione ZIP
-                    _importProgress.value = LiteImportProgress(0.05f, "Estrazione ZIP...")
+                    _importProgress.value = LiteImportProgress(0.05f, context.getString(R.string.lite_import_extract_zip))
                     val folder = fileExtractor.extractFullChatFolder(zipUri).getOrThrow()
                     val txtFile =
                         folder.listFiles()?.firstOrNull { it.extension == "txt" }
-                            ?: throw Exception("Nessun file .txt trovato nello ZIP")
+                            ?: throw Exception(context.getString(R.string.lite_import_error_no_txt))
 
                     // 2. Parsing Testo
-                    _importProgress.value = LiteImportProgress(0.20f, "Lettura messaggi...")
+                    _importProgress.value = LiteImportProgress(0.20f, context.getString(R.string.lite_import_read_messages))
                     val parseResult = parser.parse(txtFile, ownerName)
                     val identifiedSenders = parseResult.messages.map { it.senderName }.distinct()
 
                     // 3. Analisi Media
-                    _importProgress.value = LiteImportProgress(0.40f, "Analisi media...")
+                    _importProgress.value = LiteImportProgress(0.40f, context.getString(R.string.lite_import_analyze_media))
                     val mediaStats = mediaManager.extractMediaFromFolder(folder, parseResult.messages)
 
                     val zipDisplayName = getFileName(zipUri)
@@ -100,7 +106,7 @@ class LiteModeManager
                         )
 
                     // 4. Scrittura su SQLite
-                    _importProgress.value = LiteImportProgress(0.60f, "Salvataggio database...")
+                    _importProgress.value = LiteImportProgress(0.60f, context.getString(R.string.lite_import_save_db))
                     val importTimestamp = getFileTimestamp(zipUri)
                     val chatId =
                         liteDbWriter.writeChat(
@@ -115,12 +121,19 @@ class LiteModeManager
                             _importProgress.value =
                                 LiteImportProgress(
                                     0.60f + (progress * 0.30f),
-                                    "Scrittura DB: ${(progress * 100).toInt()}%",
+                                    context.getString(R.string.lite_import_write_db_progress, (progress * 100).toInt()),
                                 )
                         }
 
                     lastImportedChatId = chatId
-                    _importProgress.value = LiteImportProgress(0.92f, "Seleziona il tuo nome...")
+
+                    // 5. Slim in background: rimuove video/audio dal source.zip (già estratti su disco).
+                    //    Fire-and-forget: il dato è già nel DB, l'utente può procedere subito.
+                    CoroutineScope(Dispatchers.IO).launch {
+                        fileExtractor.slimSourceZip(folder)
+                    }
+
+                    _importProgress.value = LiteImportProgress(0.92f, context.getString(R.string.lite_import_select_owner))
                     ImportResult(identifiedSenders)
                 }
             }
@@ -133,8 +146,8 @@ class LiteModeManager
                 runCatching {
                     val chatId =
                         lastImportedChatId.takeIf { it > 0L }
-                            ?: throw Exception("Nessuna chat importata da finalizzare")
-                    _importProgress.value = LiteImportProgress(0.96f, "Finalizzazione mittente...")
+                            ?: throw Exception(context.getString(R.string.lite_import_error_no_chat_to_finalize))
+                    _importProgress.value = LiteImportProgress(0.96f, context.getString(R.string.lite_import_finalize_owner))
 
                     val db = liteDatabase.getOrCreate()
                     val jidRowId =
@@ -172,7 +185,7 @@ class LiteModeManager
                         db.endTransaction()
                     }
 
-                    _importProgress.value = LiteImportProgress(1f, "Completato")
+                    _importProgress.value = LiteImportProgress(1f, context.getString(R.string.lite_import_completed))
                 }
             }
 

@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.ZoneId
+import java.util.zip.ZipFile
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,17 +30,6 @@ class LiteMediaManager
             messages: List<ParsedMessage> = emptyList(),
         ): LiteMediaStats =
             withContext(Dispatchers.IO) {
-                val allFiles = mutableListOf<File>()
-
-                fun walk(file: File) {
-                    if (file.isDirectory) {
-                        file.listFiles()?.forEach { walk(it) }
-                    } else if (!file.name.endsWith(".txt") && !file.name.startsWith(".")) {
-                        allFiles.add(file)
-                    }
-                }
-                walk(folder)
-
                 // Crea una mappa fileName → (senderName, epochMilli)
                 // partendo dai messaggi che contengono un allegato.
                 val fileNameToMsgInfo = mutableMapOf<String, Pair<String?, Long>>()
@@ -60,35 +50,57 @@ class LiteMediaManager
                     }
                 }
 
-                val mediaItems =
-                    allFiles.mapNotNull { file ->
-                        val type =
-                            when (file.extension.lowercase()) {
-                                // I file STK-*.webp sono sticker, gli altri .webp sono immagini normali
-                                "webp" -> if (file.name.startsWith("STK-", ignoreCase = true)) "STICKER" else "IMAGE"
-                                "jpg", "jpeg", "png", "gif" -> "IMAGE"
-                                "mp4", "3gp", "mov", "m4v" -> "VIDEO"
-                                "opus", "aac", "mp3", "m4a", "wav" -> "AUDIO"
-                                "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip" -> "DOCUMENT"
-                                else -> null
-                            }
+                val sourceZip = File(folder, "source.zip")
+                if (!sourceZip.exists()) {
+                    return@withContext LiteMediaStats(0, 0, 0, 0, 0, emptyList())
+                }
 
-                        if (type != null) {
-                            // Cerca prima col nome completo, poi senza estensione
-                            val msgInfo =
-                                fileNameToMsgInfo[file.name]
-                                    ?: fileNameToMsgInfo[file.nameWithoutExtension]
-                            LiteMediaItem(
-                                fileName = file.name,
-                                relativePath = file.toRelativeString(folder.parentFile!!),
-                                type = type,
-                                timestamp = if (msgInfo != null && msgInfo.second > 0L) msgInfo.second else file.lastModified(),
-                                senderName = msgInfo?.first,
-                                fileSize = file.length(),
-                            )
-                        } else {
-                            null
-                        }
+                val mediaItems =
+                    ZipFile(sourceZip).use { zip ->
+                        zip.entries().asSequence()
+                            .filter { !it.isDirectory && !it.name.endsWith(".txt") && !it.name.startsWith(".") }
+                            .mapNotNull { entry ->
+                                val entryName = entry.name.substringAfterLast("/")
+                                val extension = entryName.substringAfterLast(".", "").lowercase()
+                                if (entryName == "source.zip") return@mapNotNull null
+
+                                val type =
+                                    when (extension) {
+                                        // I file STK-*.webp sono sticker, gli altri .webp sono immagini normali
+                                        "webp" -> if (entryName.startsWith("STK-", ignoreCase = true)) "STICKER" else "IMAGE"
+                                        "jpg", "jpeg", "png", "gif" -> "IMAGE"
+                                        "mp4", "3gp", "mov", "m4v" -> "VIDEO"
+                                        "opus", "aac", "mp3", "m4a", "wav" -> "AUDIO"
+                                        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip" -> "DOCUMENT"
+                                        else -> null
+                                    }
+
+                                if (type != null) {
+                                    // Cerca prima col nome completo, poi senza estensione
+                                    val msgInfo =
+                                        fileNameToMsgInfo[entryName]
+                                            ?: fileNameToMsgInfo[entryName.substringBeforeLast(".")]
+
+                                    val isVideoOrAudio = type in setOf("VIDEO", "AUDIO")
+                                    val relativePath =
+                                        if (isVideoOrAudio) {
+                                            "${folder.name}/${entry.name}"
+                                        } else {
+                                            "zip://${folder.name}/source.zip|${entry.name}"
+                                        }
+
+                                    LiteMediaItem(
+                                        fileName = entryName,
+                                        relativePath = relativePath,
+                                        type = type,
+                                        timestamp = if (msgInfo != null && msgInfo.second > 0L) msgInfo.second else entry.time,
+                                        senderName = msgInfo?.first,
+                                        fileSize = entry.size,
+                                    )
+                                } else {
+                                    null
+                                }
+                            }.toList()
                     }
 
                 LiteMediaStats(

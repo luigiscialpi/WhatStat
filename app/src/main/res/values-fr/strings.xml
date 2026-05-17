@@ -65,6 +65,16 @@
     <string name="checking_data_overlay">Vérification des données en cours…</string>
     <string name="who_are_you_title">Qui êtes-vous ?</string>
     <string name="who_are_you_desc">Sélectionnez votre nom dans la liste pour distinguer les messages envoyés des messages reçus.</string>
+    <string name="lite_import_extract_zip">Extraction du ZIP…</string>
+    <string name="lite_import_error_no_txt">Aucun fichier .txt trouvé dans le ZIP</string>
+    <string name="lite_import_read_messages">Lecture des messages…</string>
+    <string name="lite_import_analyze_media">Analyse des médias…</string>
+    <string name="lite_import_save_db">Sauvegarde de la base de données…</string>
+    <string name="lite_import_write_db_progress">Écriture BDD : %d%%</string>
+    <string name="lite_import_select_owner">Sélectionnez votre nom…</string>
+    <string name="lite_import_error_no_chat_to_finalize">Aucun chat importé à finaliser</string>
+    <string name="lite_import_finalize_owner">Finalisation de l\'expéditeur…</string>
+    <string name="lite_import_completed">Terminé</string>
     <string name="lite_hint_import_found">Des données précédemment importées ont été trouvées. Vous pouvez accéder au tableau de bord ou importer une autre discussion ZIP.</string>
     <string name="lite_hint_no_import">Aucune donnée importée. Chargez une discussion WhatsApp exportée en fichier ZIP.</string>
     <string name="go_to_dashboard">Aller au tableau de bord</string>

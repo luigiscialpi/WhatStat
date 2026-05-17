@@ -65,6 +65,16 @@
     <string name="checking_data_overlay">Verificando dados…</string>
     <string name="who_are_you_title">Quem é você?</string>
     <string name="who_are_you_desc">Selecione seu nome na lista para distinguir as mensagens enviadas das recebidas.</string>
+    <string name="lite_import_extract_zip">Extraindo ZIP…</string>
+    <string name="lite_import_error_no_txt">Nenhum arquivo .txt encontrado no ZIP</string>
+    <string name="lite_import_read_messages">Lendo mensagens…</string>
+    <string name="lite_import_analyze_media">Analisando arquivos de mídia…</string>
+    <string name="lite_import_save_db">Salvando banco de dados…</string>
+    <string name="lite_import_write_db_progress">Gravando BD: %d%%</string>
+    <string name="lite_import_select_owner">Selecione seu nome…</string>
+    <string name="lite_import_error_no_chat_to_finalize">Nenhuma conversa importada para finalizar</string>
+    <string name="lite_import_finalize_owner">Finalizando remetente…</string>
+    <string name="lite_import_completed">Concluído</string>
     <string name="lite_hint_import_found">Dados importados anteriormente encontrados. Você pode acessar o painel ou importar outra conversa ZIP.</string>
     <string name="lite_hint_no_import">Nenhum dado importado. Carregue uma conversa do WhatsApp exportada como arquivo ZIP.</string>
     <string name="go_to_dashboard">Ir para o painel</string>

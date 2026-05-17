@@ -1534,10 +1534,20 @@ class AnalyticsRepository
                 val result = mutableListOf<com.whatstat.data.db.model.MediaStat>()
                 for (stat in rawList) {
                     if (isLite) {
-                        // Supporta sia path relativi (nuovo import) che assoluti (vecchio import)
-                        val file = if (stat.filePath.startsWith("/")) File(stat.filePath) else File(base, stat.filePath)
-                        if (file.exists()) {
-                            result.add(stat.copy(filePath = file.absolutePath))
+                        if (stat.filePath.startsWith("zip://")) {
+                            val parts = stat.filePath.removePrefix("zip://").split("|")
+                            if (parts.size >= 2) {
+                                val zipMaster = File(base, parts[0])
+                                if (zipMaster.exists()) {
+                                    result.add(stat) // Mantiene il path virtuale zip:// per il Coil Fetcher
+                                }
+                            }
+                        } else {
+                            // Supporta sia path relativi (nuovo import) che assoluti (vecchio import)
+                            val file = if (stat.filePath.startsWith("/")) File(stat.filePath) else File(base, stat.filePath)
+                            if (file.exists()) {
+                                result.add(stat.copy(filePath = file.absolutePath))
+                            }
                         }
                     } else {
                         val direct = "$base/${stat.filePath}"

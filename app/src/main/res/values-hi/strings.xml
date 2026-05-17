@@ -65,6 +65,16 @@
     <string name="checking_data_overlay">डेटा जाँचा जा रहा है…</string>
     <string name="who_are_you_title">आप कौन हैं?</string>
     <string name="who_are_you_desc">भेजे और प्राप्त संदेशों में अंतर करने के लिए सूची से अपना नाम चुनें।</string>
+    <string name="lite_import_extract_zip">ZIP निकाला जा रहा है…</string>
+    <string name="lite_import_error_no_txt">ZIP के अंदर कोई .txt फ़ाइल नहीं मिली</string>
+    <string name="lite_import_read_messages">संदेश पढ़े जा रहे हैं…</string>
+    <string name="lite_import_analyze_media">मीडिया का विश्लेषण किया जा रहा है…</string>
+    <string name="lite_import_save_db">डेटाबेस सहेजा जा रहा है…</string>
+    <string name="lite_import_write_db_progress">डेटाबेस लिखा जा रहा है: %d%%</string>
+    <string name="lite_import_select_owner">अपना नाम चुनें…</string>
+    <string name="lite_import_error_no_chat_to_finalize">अंतिम रूप देने के लिए कोई आयातित चैट नहीं है</string>
+    <string name="lite_import_finalize_owner">प्रेषक को अंतिम रूप दिया जा रहा है…</string>
+    <string name="lite_import_completed">पूरा हुआ</string>
     <string name="lite_hint_import_found">पहले से आयातित डेटा मिला। आप डैशबोर्ड पर जा सकते हैं या कोई अन्य ZIP चैट आयात कर सकते हैं।</string>
     <string name="lite_hint_no_import">कोई डेटा आयात नहीं हुआ। ZIP फ़ाइल के रूप में निर्यात की गई WhatsApp चैट अपलोड करें।</string>
     <string name="go_to_dashboard">डैशबोर्ड पर जाएं</string>

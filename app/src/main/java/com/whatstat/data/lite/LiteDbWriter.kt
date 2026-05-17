@@ -50,34 +50,65 @@ class LiteDbWriter
                     upsertChatMetadata(db, chatId, importTimestamp)
                 }
 
-                // 3. Inserisci messaggi in batch (transaction)
+                // 3. Inserisci messaggi in batch (transaction) con Prepared Statement
                 var lastMessageId = 0L
                 var lastMessageTimestamp = 0L
                 db.beginTransaction()
                 try {
                     val total = messages.size
+                    val stmt =
+                        db.compileStatement(
+                            """INSERT INTO message (chat_row_id, from_me, sender_jid_row_id, timestamp, message_type, text_data, key_id)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                        )
                     messages.forEachIndexed { i, msg ->
                         val senderJidId = senderJidMap[msg.senderName] ?: 0L
                         val messageType = if (msg.hasMedia) guessMediaType(msg.content) else 0
                         val textData = if (msg.hasMedia) null else msg.content
-
-                        val messageId = insertMessage(db, chatId, msg, senderJidId, messageType, textData)
-                        lastMessageId = messageId
-                        lastMessageTimestamp =
+                        val epochMillis =
                             msg.timestamp
                                 .atZone(ZoneId.systemDefault())
                                 .toInstant()
                                 .toEpochMilli()
 
+                        stmt.clearBindings()
+                        stmt.bindLong(1, chatId)
+                        stmt.bindLong(2, if (msg.isCurrentUser) 1L else 0L)
+                        stmt.bindLong(3, senderJidId)
+                        stmt.bindLong(4, epochMillis)
+                        stmt.bindLong(5, messageType.toLong())
+                        if (textData != null) stmt.bindString(6, textData) else stmt.bindNull(6)
+                        stmt.bindString(7, msg.senderName)
+
+                        val messageId = stmt.executeInsert()
+                        lastMessageId = messageId
+                        lastMessageTimestamp = epochMillis
+
                         if (i % 500 == 0) progressCallback(i.toFloat() / total * 0.9f)
                     }
+                    stmt.close()
                     db.setTransactionSuccessful()
                 } finally {
                     db.endTransaction()
                 }
 
+                // Costruisci mappa timestamp→messageId per matching media O(log n)
+                val messageTimestampMap = java.util.TreeMap<Long, Long>() // timestamp → _id
+                db.rawQuery(
+                    "SELECT _id, timestamp FROM message WHERE chat_row_id = ? AND message_type != 0",
+                    arrayOf(chatId.toString()),
+                ).use { cursor ->
+                    while (cursor.moveToNext()) {
+                        messageTimestampMap[cursor.getLong(1)] = cursor.getLong(0)
+                    }
+                }
+
                 // 4. Inserisci media
-                insertMediaItems(db, chatId, mediaItems)
+                insertMediaItems(db, chatId, mediaItems, messageTimestampMap)
+
+                // 4c. Crea indici posticipati (se non presenti)
+                liteDatabase.ensureIndexes()
+
                 updateChatSummary(db, chatId, chatName, chatImportKey, isGroup, lastMessageId, lastMessageTimestamp)
                 cleanupMediaFolders(upsertResult.obsoleteMediaFolders)
 
@@ -254,33 +285,6 @@ class LiteDbWriter
             db.insertWithOnConflict("lite_chat_metadata", null, values, SQLiteDatabase.CONFLICT_REPLACE)
         }
 
-        private fun insertMessage(
-            db: SQLiteDatabase,
-            chatId: Long,
-            msg: ParsedMessage,
-            senderJidId: Long,
-            messageType: Int,
-            textData: String?,
-        ): Long {
-            val epochMillis =
-                msg.timestamp
-                    .atZone(ZoneId.systemDefault())
-                    .toInstant()
-                    .toEpochMilli()
-
-            val values =
-                ContentValues().apply {
-                    put("chat_row_id", chatId)
-                    put("from_me", if (msg.isCurrentUser) 1 else 0)
-                    put("sender_jid_row_id", senderJidId)
-                    put("timestamp", epochMillis)
-                    put("message_type", messageType)
-                    put("text_data", textData)
-                    put("key_id", msg.senderName)
-                }
-            return db.insert("message", null, values)
-        }
-
         private fun guessMediaType(content: String): Int {
             return when {
                 content.contains("IMG-") -> 1
@@ -296,43 +300,48 @@ class LiteDbWriter
             db: SQLiteDatabase,
             chatId: Long,
             items: List<LiteMediaItem>,
+            messageTimestampMap: java.util.TreeMap<Long, Long>,
         ) {
+            if (items.isEmpty()) return
+
+            val stmt =
+                db.compileStatement(
+                    """
+                    INSERT OR REPLACE INTO message_media (message_row_id, file_path, mime_type, file_size, file_hash)
+                    VALUES (?, ?, ?, ?, ?)
+                    """.trimIndent(),
+                )
+
             db.beginTransaction()
             try {
                 for (item in items) {
-                    // Tenta di trovare il messaggio corrispondente per timestamp approssimativo (stesso secondo)
-                    val cursor =
-                        db.query(
-                            "message",
-                            arrayOf("_id"),
-                            "chat_row_id = ? AND timestamp >= ? AND timestamp <= ? AND message_type != 0",
-                            arrayOf(chatId.toString(), (item.timestamp - 1000).toString(), (item.timestamp + 1000).toString()),
-                            null,
-                            null,
-                            "timestamp ASC",
-                            "1",
-                        )
-
-                    val messageId = cursor.use { if (it.moveToFirst()) it.getLong(0) else null }
+                    // Cerca il messaggio più vicino entro ±1 secondo (O(log n) con TreeMap)
+                    val floorEntry = messageTimestampMap.floorEntry(item.timestamp + 1000)
+                    val messageId =
+                        if (floorEntry != null && floorEntry.key >= item.timestamp - 1000) {
+                            floorEntry.value
+                        } else {
+                            null
+                        }
 
                     if (messageId != null) {
-                        val values =
-                            ContentValues().apply {
-                                put("message_row_id", messageId)
-                                put("file_path", item.relativePath)
-                                put("mime_type", getMimeType(item.type))
-                                put("file_size", item.fileSize)
-                                // Per gli sticker usiamo il nome file come pseudo-hash:
-                                // consente a getTopStickers (GROUP BY file_hash) di raggruppare
-                                // correttamente anche in Lite mode dove non abbiamo hash reali.
-                                if (item.type == "STICKER") put("file_hash", item.fileName)
-                            }
-                        db.insertWithOnConflict("message_media", null, values, SQLiteDatabase.CONFLICT_REPLACE)
+                        stmt.clearBindings()
+                        stmt.bindLong(1, messageId)
+                        stmt.bindString(2, item.relativePath)
+                        stmt.bindString(3, getMimeType(item.type))
+                        stmt.bindLong(4, item.fileSize)
+                        if (item.type == "STICKER") {
+                            stmt.bindString(5, item.fileName)
+                        } else {
+                            stmt.bindNull(5)
+                        }
+                        stmt.executeInsert()
                     }
                 }
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()
+                stmt.close()
             }
         }
 

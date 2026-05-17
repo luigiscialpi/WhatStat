@@ -477,6 +477,7 @@ private fun MediaGallerySheet(
                 .components {
                     add(VideoFrameDecoder.Factory())
                     add(com.whatstat.ui.component.RootFileFetcher.Factory())
+                    add(com.whatstat.ui.component.ZipFileFetcher.Factory())
                 }
                 .build()
         }
@@ -701,14 +702,18 @@ private fun MediaGallerySheet(
                                         .clickable {
                                             if (media.mimeType.startsWith("video/") || media.mimeType.startsWith("audio/")) {
                                                 try {
-                                                    val builder = android.os.StrictMode.VmPolicy.Builder()
-                                                    android.os.StrictMode.setVmPolicy(builder.build())
-                                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                                                    intent.setDataAndType(
-                                                        android.net.Uri.fromFile(java.io.File(media.filePath)),
-                                                        media.mimeType,
-                                                    )
-                                                    intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                    val file = java.io.File(media.filePath)
+                                                    val contentUri =
+                                                        androidx.core.content.FileProvider.getUriForFile(
+                                                            context,
+                                                            "${context.packageName}.fileprovider",
+                                                            file,
+                                                        )
+                                                    val intent =
+                                                        android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                                            setDataAndType(contentUri, media.mimeType)
+                                                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                        }
                                                     context.startActivity(intent)
                                                 } catch (e: Exception) {
                                                     android.widget.Toast.makeText(
@@ -748,10 +753,11 @@ private fun MediaGallerySheet(
                                         )
                                     }
                                 } else {
+                                    val imgData = if (media.filePath.startsWith("zip://")) media.filePath else java.io.File(media.filePath)
                                     AsyncImage(
                                         model =
                                             ImageRequest.Builder(LocalContext.current)
-                                                .data(java.io.File(media.filePath))
+                                                .data(imgData)
                                                 .crossfade(true)
                                                 .build(),
                                         imageLoader = imageLoader,
@@ -834,7 +840,12 @@ private fun MediaGallerySheet(
 
 private fun MediaStat.isLiteSticker(): Boolean {
     if (!mimeType.equals("image/webp", ignoreCase = true)) return false
-    val fileName = filePath.substringAfterLast('/')
+    val fileName =
+        if (filePath.contains("|")) {
+            filePath.substringAfterLast('|').substringAfterLast('/')
+        } else {
+            filePath.substringAfterLast('/')
+        }
     return fileName.startsWith("STK-", ignoreCase = true)
 }
 

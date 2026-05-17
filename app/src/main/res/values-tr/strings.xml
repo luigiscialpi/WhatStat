@@ -65,6 +65,16 @@
     <string name="checking_data_overlay">Veriler kontrol ediliyor…</string>
     <string name="who_are_you_title">Sen kimsin?</string>
     <string name="who_are_you_desc">Gönderilen ve alınan mesajları ayırt etmek için listeden adını seç.</string>
+    <string name="lite_import_extract_zip">ZIP dosyası açılıyor…</string>
+    <string name="lite_import_error_no_txt">ZIP içinde .txt dosyası bulunamadı</string>
+    <string name="lite_import_read_messages">Mesajlar okunuyor…</string>
+    <string name="lite_import_analyze_media">Medya analiz ediliyor…</string>
+    <string name="lite_import_save_db">Veritabanı kaydediliyor…</string>
+    <string name="lite_import_write_db_progress">Veritabanı yazılıyor: %d%%</string>
+    <string name="lite_import_select_owner">Adınızı seçin…</string>
+    <string name="lite_import_error_no_chat_to_finalize">Sonlandırılacak içe aktarılmış sohbet yok</string>
+    <string name="lite_import_finalize_owner">Gönderici sonlandırılıyor…</string>
+    <string name="lite_import_completed">Tamamlandı</string>
     <string name="lite_hint_import_found">Daha önce içe aktarılmış veriler bulundu. Panele gidebilir veya başka bir ZIP sohbeti içe aktarabilirsin.</string>
     <string name="lite_hint_no_import">İçe aktarılan veri yok. ZIP dosyası olarak dışa aktarılmış bir WhatsApp sohbeti yükle.</string>
     <string name="go_to_dashboard">Panele git</string>

@@ -462,6 +462,8 @@ Le statistiche media hanno cache dedicata con chiavi `media_global_v3` e `media_
 
 **Nota sticker in Lite Mode** — nella `MediaStatsScreen`, il conteggio dei media in Lite Mode include anche i messaggi sticker (`message_type = 20`), sommati ai media normali. Questo comportamento è controllato dal parametro `includeStickers` nel DAO, che viene abilitato automaticamente dal repository quando `isLiteMode = true`. In Root Mode il parametro è `false` e gli sticker restano esclusi dal conteggio media.
 
+**Caricamento immagini in Lite Mode** — in Lite Mode le immagini non vengono estratte su disco: Coil usa `ZipFileFetcher` (file `ui/component/ZipFileFetcher.kt`) per decodificarle direttamente dall'archivio `source.zip` in RAM. I path nel DB hanno forma `zip://lite_chat_xxx/source.zip|IMG-2024.jpg`. I video/audio usano invece URI `content://` tramite `FileProvider` (authority `${applicationId}.fileprovider`), poiché i player esterni richiedono seek su file reali e non possono accedere a `filesDir` direttamente.
+
 ---
 
 ## 9. Radar Parole
@@ -854,10 +856,22 @@ LiteSetupViewModel.onZipSelected(uri)
         ↓  (LiteImportService: foreground service con overlay di progresso in UI)
 LiteModeManager.importAndProcess(uri, "Guest")  ← run 1: parsing preliminare
         ↓
-FileExtractor.extractFullChatFolder(zipUri)  →  cacheDir/lite_chat_extracted/
+FileExtractor.extractFullChatFolder(zipUri)
+        →  filesDir/lite_media/lite_chat_{ts}/
+              ├── source.zip          ← ZIP integrale (immagini/sticker/docs letti on-the-fly)
+              ├── *.txt               ← file testo estratto per il parser
+              └── VID-*.mp4, AUD-*.opus, ...  ← video/audio estratti per seeking player
         ↓
 TextChatParser.parse(txtFile, "Guest")  →  ParseResult(messages, groupEvents)
         ↓  (risposta: identifiedSenders → UI mostra il picker "Chi sei tu?")
+LiteMediaManager.extractMediaFromFolder(folder, messages)
+        →  itera entry di source.zip; path virtuali zip:// per immagini, path fisici per video/audio
+        ↓
+LiteDbWriter.writeChat(...)  →  inserisce messaggi e media nel DB Lite
+        ↓
+[background] FileExtractor.slimSourceZip(folder)
+        →  riscrive source.zip rimuovendo le entry video/audio già estratte su disco
+        ↓
 Utente sceglie il proprio nome dal picker
         ↓
 LiteModeManager.finalizeOwnerSelection(ownerName)  ← run 2: aggiorna from_me nel DB
@@ -899,7 +913,11 @@ o, per messaggi con media:
 28/07/24, 16:35 - Mario Rossi: ‎<Media omesso>
 ```
 
-Lo ZIP viene estratto da `FileExtractor.extractFullChatFolder()` in `cacheDir/lite_chat_extracted/` (cartella svuotata e ricreata a ogni importazione).
+Lo ZIP viene elaborato da `FileExtractor.extractFullChatFolder()` in modo **ibrido**:
+- L'archivio intero viene copiato in `filesDir/lite_media/lite_chat_{ts}/source.zip`.
+- Solo il file `.txt`, i video (`.mp4`, `.3gp`, `.mov`, `.m4v`) e gli audio (`.opus`, `.aac`, `.mp3`, `.m4a`, `.wav`) vengono estratti fisicamente su disco — i player nativi Android richiedono seek su file reali.
+- Tutto il resto (immagini `.jpg`/`.webp`, documenti `.pdf`, ecc.) resta nello ZIP e viene letto on-the-fly da `ZipFileFetcher`.
+- In background, `slimSourceZip()` riscrive lo ZIP rimuovendo le entry video/audio duplicate.
 
 ---
 
@@ -946,7 +964,7 @@ Il `senderName` viene ripulito dal carattere Unicode LTR Mark (`\u200E`) che Wha
 
 **File**: `data/lite/LiteMediaManager.kt`
 
-Questo componente scansiona tutti i file nella cartella estratta dallo ZIP e, per ciascuno, cerca il messaggio corrispondente nell'elenco dei messaggi parsati.
+Questo componente itera sulle **entry di `source.zip`** (tramite `ZipFile`, non sul filesystem) e, per ciascuna, cerca il messaggio corrispondente nell’elenco dei messaggi parsati.
 
 **Algoritmo di associazione**:
 1. Per ogni `ParsedMessage`, `MEDIA_FILENAME_REGEX` viene applicata al campo `content` per trovare il nome del file media menzionato.
@@ -960,16 +978,20 @@ Questo componente scansiona tutti i file nella cartella estratta dallo ZIP e, pe
 Regex("(?:IMG|VID|AUD|PTT|DOC)-\\d{8}-WA\\d{4,}(?:\\.[a-z0-9]+)?", RegexOption.IGNORE_CASE)
 ```
 
-**Classificazione tipo media**:
+**Classificazione tipo media e path salvato nel DB**:
 
-| Estensione file | Tipo |
-|-----------------|------|
-| `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` | `IMAGE` |
-| `.mp4`, `.3gp`, `.mkv`, `.avi`, `.mov` | `VIDEO` |
-| `.opus`, `.mp3`, `.aac`, `.m4a`, `.ogg` | `AUDIO` |
-| altro | `DOCUMENT` |
+| Estensione file | Tipo | Path in `message_media.file_path` |
+|-----------------|------|-----------------------------------|
+| `.jpg`, `.jpeg`, `.png`, `.gif` | `IMAGE` | `zip://lite_chat_xxx/source.zip\|IMG-2024.jpg` |
+| `.webp` (non STK-) | `IMAGE` | `zip://lite_chat_xxx/source.zip\|foto.webp` |
+| `.webp` (STK-) | `STICKER` | `zip://lite_chat_xxx/source.zip\|STK-2024.webp` |
+| `.mp4`, `.3gp`, `.mkv`, `.avi`, `.mov` | `VIDEO` | path assoluto su disco |
+| `.opus`, `.mp3`, `.aac`, `.m4a`, `.ogg` | `AUDIO` | path assoluto su disco |
+| altro | `DOCUMENT` | `zip://lite_chat_xxx/source.zip\|doc.pdf` |
 
-**Nota sticker**: gli sticker esportati hanno estensione `.webp` e vengono classificati come `IMAGE`. A differenza del Root Mode (dove gli sticker sono separati), in Lite Mode i `.webp` vengono inclusi nella media gallery con `mime_type='image/webp'`. Il conteggio delle ripetizioni non è supportato (ogni sticker appare una volta per file fisico).
+I path `zip://` sono URI virtuali interpretati da `ZipFileFetcher` (Coil). I path assoluti su disco vengono esposti tramite `FileProvider` per i player esterni.
+
+**Nota sticker**: in Lite Mode i file `.webp` con prefisso `STK-` vengono classificati come `STICKER` e mostrati nel tab dedicato della `MediaStatsScreen`. La funzione `isLiteSticker()` estrae il nome file dopo il separatore `|` per gestire correttamente i path `zip://`.
 
 ---
 
@@ -988,6 +1010,7 @@ Singleton Hilt che orchestra l'intero flusso di importazione. Metodi principali:
 | `clearCache()` | Cancella `lite_msgstore.db` e `lite_wa.db` |
 | `upsertChat` | Scrive la chat nel DB. Per le chat 1-1, popola anche `wa_contacts` con la mappatura sender→chatName per permettere a `resolveContactName` di restituire il nome corretto. |
 | `renameChat` | Aggiorna il nome della chat. Per le chat 1-1, aggiorna anche `wa_contacts` e `jid.raw_string` per tutti i mittenti della chat, in modo che le slow stats ricalcolate riflettano il nuovo nome. |
+| `slimSourceZip(folder)` | **[background]** Riscrive `source.zip` senza le entry video/audio già estratte. Chiamato in fire-and-forget dopo `writeChat`. |
 
 #### Estrazione nome chat (`normalizeExportName`)
 
@@ -1075,7 +1098,8 @@ La Lite Mode ha un proprio grafo di navigazione `NavGraphRoute.Lite`, con la ste
 | `data/lite/LiteDbWriter.kt` | Scrittura chat/messaggi/media su SQLite, rename chat, disambiguazione nomi |
 | `data/lite/LiteModeManager.kt` | Coordinatore: parsing, fingerprint, normalizzazione nomi, scrittura DB, progress |
 | `data/db/ActiveDatabaseProvider.kt` | Routing trasparente Root vs Lite per tutti i DAO |
-| `data/root/FileExtractor.kt` | Estrazione ZIP (condiviso con Root) |
+| `data/root/FileExtractor.kt` | Estrazione ZIP ibrida: copia `source.zip` + estrae txt/video/audio su disco. `slimSourceZip()` rimuove i duplicati in background. |
+| `ui/component/ZipFileFetcher.kt` | Coil `Fetcher` custom: decodifica immagini/sticker direttamente da `source.zip` in RAM tramite path virtuali `zip://`. |
 | `data/repository/AnalyticsRepository.kt` | Espone `isLiteMode`, `liteCacheVersion`, `notifyLiteImportDone()`. Garantisce che `isLiteMode` sia attivo prima di qualsiasi operazione di cache; al rename in Lite Mode invalida `chat_slow_{id}` invece di tentare una patch del `senderBreakdown`. |
 | `data/store/SenderColorOverrideStore.kt` | Persistenza DataStore dei colori personalizzati per mittente. Chiave: `chatId|jid`, valore: ARGB. |
 | `service/LiteImportService.kt` | Foreground service per progress overlay durante l'import |

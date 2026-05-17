@@ -25,6 +25,9 @@ class LiteDatabase
             val file = File(context.filesDir, "lite_msgstore.db")
             db = SQLiteDatabase.openOrCreateDatabase(file, null)
             db!!.enableWriteAheadLogging()
+            db!!.execSQL("PRAGMA synchronous = NORMAL")
+            db!!.execSQL("PRAGMA cache_size = -64000") // 64 MB di cache
+            db!!.execSQL("PRAGMA temp_store = MEMORY")
             createSchema(db!!)
             return db!!
         }
@@ -149,11 +152,13 @@ class LiteDatabase
                 """.trimIndent(),
             )
 
-            // Indici per performance e compatibilità query root
-            db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_chat_type_ts ON message (chat_row_id, message_type, timestamp)")
-            db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_chat_type_from ON message (chat_row_id, message_type, from_me)")
-            db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_sender_jid ON message (sender_jid_row_id)")
-            db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_media_row ON message_media (message_row_id)")
+            // Indici per performance e compatibilità query root (creati subito solo se database ha già dati)
+            if (hasChatRows(db)) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_chat_type_ts ON message (chat_row_id, message_type, timestamp)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_chat_type_from ON message (chat_row_id, message_type, from_me)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_sender_jid ON message (sender_jid_row_id)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_media_row ON message_media (message_row_id)")
+            }
 
             // Stub tables per evitare crash DAO root
             db.execSQL(
@@ -292,5 +297,13 @@ class LiteDatabase
             return cursor.use {
                 if (it.moveToFirst() && !it.isNull(0)) it.getLong(0) else null
             }
+        }
+
+        fun ensureIndexes() {
+            val database = getOrCreate()
+            database.execSQL("CREATE INDEX IF NOT EXISTS idx_message_chat_type_ts ON message (chat_row_id, message_type, timestamp)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS idx_message_chat_type_from ON message (chat_row_id, message_type, from_me)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS idx_message_sender_jid ON message (sender_jid_row_id)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS idx_message_media_row ON message_media (message_row_id)")
         }
     }

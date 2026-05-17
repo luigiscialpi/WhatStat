@@ -13,7 +13,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.util.zip.ZipInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -494,42 +493,110 @@ class FileExtractor
         }
 
         /**
-         * Estrae l'intero contenuto dello ZIP esportato da WhatsApp in una sottocartella della cache.
-         * Mantiene la struttura dei file per permettere l'analisi dei media.
+         * Estrae selettivamente il contenuto dello ZIP esportato (solo testo, video e audio)
+         * e copia l'intero ZIP sorgente per la lettura on-the-fly delle immagini.
          */
         suspend fun extractFullChatFolder(zipUri: Uri): Result<File> =
             withContext(Dispatchers.IO) {
                 runCatching {
-                    val inputStream =
-                        context.contentResolver.openInputStream(zipUri)
-                            ?: throw IOException("Impossibile aprire lo stream URI: $zipUri")
-
-                    // Crea una cartella unica nei file interni (non cache) per persistenza multi-chat
                     val mediaRoot = File(context.filesDir, "lite_media")
                     if (!mediaRoot.exists()) mediaRoot.mkdirs()
 
                     val destFolder = File(mediaRoot, "lite_chat_${System.currentTimeMillis()}")
                     destFolder.mkdirs()
 
-                    ZipInputStream(inputStream).use { zis ->
-                        var entry = zis.nextEntry
-                        while (entry != null) {
-                            if (!entry.isDirectory) {
-                                val outFile = File(destFolder, entry.name)
-                                // Crea eventuali sottocartelle se presenti nello zip
-                                outFile.parentFile?.mkdirs()
+                    // 1. Copia lo ZIP intero come sorgente per immagini/docs
+                    val sourceZip = File(destFolder, "source.zip")
+                    context.contentResolver.openInputStream(zipUri)?.use { input ->
+                        FileOutputStream(sourceZip).use { output ->
+                            input.copyTo(output)
+                        }
+                    } ?: throw IOException("Impossibile aprire l'URI: $zipUri")
 
-                                FileOutputStream(outFile).use { fos ->
-                                    zis.copyTo(fos)
+                    // 2. Estrazione selettiva (solo video, audio, txt)
+                    val mediaExtensions =
+                        setOf(
+                            "mp4",
+                            "3gp",
+                            "mov",
+                            "m4v",
+                            "opus",
+                            "aac",
+                            "mp3",
+                            "m4a",
+                            "wav",
+                        )
+
+                    // 2. Estrazione selettiva con ZipFile (random access: salta entry non richieste)
+                    java.util.zip.ZipFile(sourceZip).use { zip ->
+                        for (entry in zip.entries()) {
+                            if (entry.isDirectory) continue
+                            val ext = entry.name.substringAfterLast(".", "").lowercase()
+                            val isTxt = ext == "txt"
+                            val isMediaToExtract = ext in mediaExtensions
+
+                            if (isTxt || isMediaToExtract) {
+                                val outFile = File(destFolder, entry.name)
+                                outFile.parentFile?.mkdirs()
+                                zip.getInputStream(entry).use { entryStream ->
+                                    FileOutputStream(outFile).use { fos ->
+                                        entryStream.copyTo(fos)
+                                    }
                                 }
                             }
-                            zis.closeEntry()
-                            entry = zis.nextEntry
                         }
                     }
 
-                    android.util.Log.d("WhatStat", "ZIP estratto con successo in: ${destFolder.absolutePath}")
+                    android.util.Log.d("WhatStat", "ZIP copiato ed estratto in: ${destFolder.absolutePath}")
                     destFolder
+                }
+            }
+
+        /**
+         * Rimuove le entry video/audio già estratte su disco da source.zip,
+         * eliminando la duplicazione. Va chiamato DOPO la scansione media
+         * (che legge le entry dallo ZIP per costruire la lista media items).
+         */
+        suspend fun slimSourceZip(folder: File) =
+            withContext(Dispatchers.IO) {
+                val sourceZip = File(folder, "source.zip")
+                if (!sourceZip.exists()) return@withContext
+
+                val mediaExtensions =
+                    setOf("mp4", "3gp", "mov", "m4v", "opus", "aac", "mp3", "m4a", "wav")
+
+                // Raccogli i nomi delle entry video/audio presenti nello ZIP
+                val entriesToRemove = mutableSetOf<String>()
+                java.util.zip.ZipFile(sourceZip).use { zip ->
+                    for (entry in zip.entries()) {
+                        if (entry.isDirectory) continue
+                        val ext = entry.name.substringAfterLast(".", "").lowercase()
+                        if (ext in mediaExtensions) {
+                            entriesToRemove.add(entry.name)
+                        }
+                    }
+                }
+
+                if (entriesToRemove.isEmpty()) return@withContext
+
+                val tempZip = File(folder, "source_slim.zip")
+                try {
+                    java.util.zip.ZipFile(sourceZip).use { zipIn ->
+                        java.util.zip.ZipOutputStream(FileOutputStream(tempZip)).use { zipOut ->
+                            for (entry in zipIn.entries()) {
+                                if (entry.name in entriesToRemove) continue
+                                zipOut.putNextEntry(java.util.zip.ZipEntry(entry.name))
+                                zipIn.getInputStream(entry).use { it.copyTo(zipOut) }
+                                zipOut.closeEntry()
+                            }
+                        }
+                    }
+                    sourceZip.delete()
+                    tempZip.renameTo(sourceZip)
+                    android.util.Log.d("WhatStat", "source.zip snellito: rimosse ${entriesToRemove.size} entry video/audio")
+                } catch (e: Exception) {
+                    tempZip.delete()
+                    android.util.Log.e("WhatStat", "Slim ZIP fallito, mantenuto originale: ${e.message}", e)
                 }
             }
     }
