@@ -194,7 +194,7 @@ if (!shouldAutoNavigate) return@LaunchedEffect
 ```
 
 In questo modo l'utente vede la schermata Setup con tutti i dati già caricati, può scegliere se:
-- Premere "Vai alla dashboard" (navigazione diretta, senza auto-nav)
+- Premere "Vai alla Panoramica" (navigazione diretta, senza auto-nav)
 - Importare una nuova chat ZIP
 - Avviare una nuova analisi Root (che riabilita `shouldAutoNavigate = true`)
 
@@ -364,7 +364,7 @@ DashboardScreen.onNavigateBack()
     → SetupScreen (autoNavigate=false)
     → shouldAutoNavigate = false → NAV-CHECK bloccato
     → l'utente vede Setup con hasLiteDb=true
-    → può premere "Vai alla dashboard" o condividere un nuovo ZIP
+    → può premere "Vai alla Panoramica" o condividere un nuovo ZIP
 ```
 
 ### Nuovo share su Setup con autoNavigate=false

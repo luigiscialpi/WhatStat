@@ -330,6 +330,14 @@ class CacheManager
             // v3: bump per rigenerare la cache con pool da 50 words/emoji
             private val KEY_GLOBAL_SLOW = stringPreferencesKey("global_slow_v4")
             private val KEY_CHAT_LIST = stringPreferencesKey("chat_list_v1")
+
+            /**
+             * Soglia minima di variazione (in byte) della dimensione del DB live
+             * per considerare il database realmente cambiato. Filtra i falsi positivi
+             * causati da auto-checkpoint SQLite (es. WhatsApp in background).
+             * 128 KB ≈ centinaia di messaggi dopo checkpoint, allineato ai backup notturni.
+             */
+            private const val SIGNATURE_CHANGE_THRESHOLD = 131_072L
         }
 
         // ── Hash DB ──────────────────────────────────────────────────
@@ -369,9 +377,20 @@ class CacheManager
             return stored != newHash
         }
 
-        /** Confronta l'hash sempre contro il DataStore Root, indipendentemente dal modo corrente. */
+        /** Confronta l'hash sempre contro il DataStore Root, indipendentemente dal modo corrente.
+         *  Per le signature basate su dimensione file (live DB), usa una soglia di 128 KB
+         *  per evitare falsi positivi da auto-checkpoint SQLite. */
         suspend fun isRootDbChanged(newHash: String): Boolean {
             val stored = context.rootCacheDataStore.data.first()[KEY_DB_HASH]
+                ?: return true // primo avvio, nessun hash salvato
+            // Se entrambi sono numerici puri (signature = dimensione file live DB),
+            // confronta con soglia per ignorare piccoli checkpoint
+            val newSize = newHash.toLongOrNull()
+            val storedSize = stored.toLongOrNull()
+            if (newSize != null && storedSize != null) {
+                return kotlin.math.abs(newSize - storedSize) >= SIGNATURE_CHANGE_THRESHOLD
+            }
+            // Fallback: confronto esatto per signature crypt14 (size_lastModified)
             return stored != newHash
         }
 

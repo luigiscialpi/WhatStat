@@ -70,7 +70,11 @@ Il pulsante "Avvia analisi" diventa "Analizza di nuovo" in caso di sessione già
 
 ### Avvii successivi e rilevamento aggiornamenti
 
-Ad ogni avvio l'app calcola una **signature** del database sorgente di WhatsApp e la confronta con quella dell'ultima sessione. La signature è composta unicamente dalla **dimensione** del file `msgstore.db` live (percorso root). Ignorare volutamente la dimensione del file WAL e il `lastModified` evita la comparsa di notifiche continue ad ogni singolo messaggio ricevuto. La dimensione del DB principale, infatti, cambia solo quando WhatsApp esegue un checkpoint (tipicamente durante il backup notturno), allineando così le notifiche di "Nuovo backup rilevato" ai veri cicli di salvataggio dell'app. Tuttavia, in fase di estrazione, l'app continua a copiare sia il DB che il WAL per garantire sempre l'accesso ai dati più recenti. Se la signature è cambiata, viene mostrata la card che lascia all'utente la scelta se aggiornare o continuare con i dati esistenti.
+Ad ogni avvio l'app calcola una **signature** del database sorgente di WhatsApp e la confronta con quella dell'ultima sessione. La signature è composta unicamente dalla **dimensione** del file `msgstore.db` live (percorso root). Ignorare volutamente la dimensione del file WAL e il `lastModified` evita la comparsa di notifiche continue ad ogni singolo messaggio ricevuto.
+
+Il confronto avviene con una **soglia minima di 128 KB** (`SIGNATURE_CHANGE_THRESHOLD` in `CacheManager`): la notifica "Nuovo backup rilevato" appare solo se la dimensione del DB è variata di almeno 128 KB rispetto all'ultima estrazione. Questo filtra i falsi positivi causati dagli auto-checkpoint frequenti di SQLite (es. WhatsApp che va in background dopo pochi messaggi), che tipicamente producono crescite di pochi KB. I veri cicli di backup (notturni o dopo uso intenso) producono variazioni ben superiori alla soglia.
+
+Tuttavia, in fase di estrazione, l'app continua a copiare sia il DB che il WAL per garantire sempre l'accesso ai dati più recenti. Se la signature supera la soglia, viene mostrata la card che lascia all'utente la scelta se aggiornare o continuare con i dati esistenti.
 
 ### Flusso di navigazione al primo avvio
 
@@ -198,7 +202,7 @@ La cache viene invalidata esplicitamente in quattro occasioni:
 
 3. **Eliminazione sessione Root** (`WhatsAppRepository.cleanup()`): cancella la cache Root quando l'utente preme l'icona del cestino nella tab Root.
 
-4. **DB Root modificato** (signature diversa): `FileExtractor.calculateSourceDbSignature()` calcola la firma del database live (`/data/user/*/com.whatsapp/databases/msgstore.db`) usando esclusivamente la dimensione del file (`length`). Questo evita continui falsi positivi ("nuovo DB disponibile") dovuti alla normale attività del file WAL. Se la firma è cambiata, `CacheManager.isRootDbChanged()` segnala il cambio. L'app mostra la card "Nuovo backup rilevato" e lascia all'utente la scelta. Se l'utente aggiorna, viene chiamato `clearRootCache()` (non `clearCache()`, per proteggere la cache Lite).
+4. **DB Root modificato** (signature oltre soglia): `FileExtractor.calculateSourceDbSignature()` calcola la firma del database live (`/data/user/*/com.whatsapp/databases/msgstore.db`) usando esclusivamente la dimensione del file (`length`). `CacheManager.isRootDbChanged()` confronta la dimensione attuale con quella salvata applicando una **soglia di 128 KB** (`SIGNATURE_CHANGE_THRESHOLD`): variazioni inferiori vengono ignorate per filtrare gli auto-checkpoint frequenti di SQLite. Se la differenza supera la soglia, l'app mostra la card "Nuovo backup rilevato" e lascia all'utente la scelta. Se l'utente aggiorna, viene chiamato `clearRootCache()` (non `clearCache()`, per proteggere la cache Lite). Per le signature non numeriche (fallback crypt14, formato `size_lastModified`), il confronto resta esatto.
 
 5. **Rename chat Lite** (AnalyticsRepository.notifyLiteRenameChat()): La cache slow stats della chat (chat_slow_{id}) viene invalidata completamente. Non viene tentato alcun aggiornamento parziale (patch) del senderBreakdown, perché in Lite Mode i JID del mittente e della chat divergono nelle chat 1-1, rendendo il match inaffidabile. Al successivo accesso, getSlowChatStats ricalcola da zero leggendo wa_contacts aggiornata.
 
