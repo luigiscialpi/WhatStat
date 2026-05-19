@@ -95,6 +95,7 @@
     <string name="decrypt_db_button">Decifra Database</string>
     <string name="button_replace">Sostituisci</string>
     <string name="button_select">Seleziona</string>
+    <string name="setup_cancelled">Operazione annullata</string>
 
     <!-- Dashboard -->
     <string name="dashboard_title">Panoramica</string>

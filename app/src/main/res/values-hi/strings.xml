@@ -95,6 +95,7 @@
     <string name="decrypt_db_button">डेटाबेस डिक्रिप्ट करें</string>
     <string name="button_replace">बदलें</string>
     <string name="button_select">चुनें</string>
+    <string name="setup_cancelled">ऑपरेशन रद्द</string>
 
     <!-- Dashboard -->
     <string name="dashboard_title">सारांश</string>

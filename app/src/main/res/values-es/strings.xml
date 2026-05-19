@@ -95,6 +95,7 @@
     <string name="decrypt_db_button">Descifrar base de datos</string>
     <string name="button_replace">Reemplazar</string>
     <string name="button_select">Seleccionar</string>
+    <string name="setup_cancelled">Operación cancelada</string>
 
     <!-- Dashboard -->
     <string name="dashboard_title">Resumen</string>

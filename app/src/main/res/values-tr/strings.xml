@@ -95,6 +95,7 @@
     <string name="decrypt_db_button">Veritabanı şifresini çöz</string>
     <string name="button_replace">Değiştir</string>
     <string name="button_select">Seç</string>
+    <string name="setup_cancelled">İşlem iptal edildi</string>
 
     <!-- Dashboard -->
     <string name="dashboard_title">Genel bakış</string>

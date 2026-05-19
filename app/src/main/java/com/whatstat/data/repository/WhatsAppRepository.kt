@@ -10,6 +10,7 @@ import com.whatstat.data.root.FileExtractor
 import com.whatstat.data.root.RootManager
 import com.whatstat.data.root.RootStatus
 import com.whatstat.domain.model.AppError
+import com.whatstat.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,7 +52,16 @@ class WhatsAppRepository
 
         fun cancelOperation() {
             isCancelled = true
-            _setupState.update { it.copy(isLoading = false, error = "Operazione annullata") }
+            _setupState.update {
+                it.copy(
+                    isLoading = false,
+                    error = context.getString(R.string.setup_cancelled),
+                    rootStatus = if (it.rootStatus == GlobalStepStatus.LOADING) GlobalStepStatus.IDLE else it.rootStatus,
+                    extractionStatus = if (it.extractionStatus == GlobalStepStatus.LOADING) GlobalStepStatus.IDLE else it.extractionStatus,
+                    decryptionStatus = if (it.decryptionStatus == GlobalStepStatus.LOADING) GlobalStepStatus.IDLE else it.decryptionStatus,
+                    contactsStatus = if (it.contactsStatus == GlobalStepStatus.LOADING) GlobalStepStatus.IDLE else it.contactsStatus,
+                )
+            }
         }
 
         fun isOperationCancelled(): Boolean = isCancelled
@@ -151,6 +161,8 @@ class WhatsAppRepository
                     }
 
                     // Step 4: Apri il database per le query
+                    if (isOperationCancelled()) throw kotlinx.coroutines.CancellationException()
+                    
                     try {
                         database.open(outputDb, waDbFile)
 
@@ -179,6 +191,12 @@ class WhatsAppRepository
                         )
                     }
                 }.onFailure { throwable ->
+                    if (throwable is kotlinx.coroutines.CancellationException) {
+                        throw throwable
+                    }
+                    if (isOperationCancelled()) {
+                        return@onFailure
+                    }
                     val errorMessage =
                         when (throwable) {
                             is AppErrorException -> throwable.appError.userMessage
@@ -247,6 +265,7 @@ class WhatsAppRepository
                         outputDb = File(context.filesDir, "msgstore.db")
                         val decryptResult =
                             decryptor.decrypt(crypt14File, keyFile, outputDb) { progress ->
+                                if (isOperationCancelled()) throw InterruptedException("Cancelled")
                                 _setupState.update { it.copy(decryptionProgress = progress) }
                             }
                         decryptResult.getOrElse { throwable ->
@@ -259,6 +278,7 @@ class WhatsAppRepository
                     _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.SUCCESS, contactsStatus = GlobalStepStatus.LOADING) }
 
                     // Step 4: Apri il database per le query (waDbFile opzionale)
+                    if (isOperationCancelled()) throw kotlinx.coroutines.CancellationException()
                     try {
                         database.open(outputDb, waDbFile)
 
@@ -280,6 +300,12 @@ class WhatsAppRepository
                     }
                     _setupState.update { it.copy(contactsStatus = GlobalStepStatus.SUCCESS, isLoading = false, isComplete = true) }
                 }.onFailure { throwable ->
+                    if (throwable is kotlinx.coroutines.CancellationException) {
+                        throw throwable
+                    }
+                    if (isOperationCancelled()) {
+                        return@onFailure
+                    }
                     val errorMessage =
                         when (throwable) {
                             is AppErrorException -> throwable.appError.userMessage
