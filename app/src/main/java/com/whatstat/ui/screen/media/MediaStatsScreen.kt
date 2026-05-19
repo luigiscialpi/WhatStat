@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,8 +29,10 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Info
@@ -127,8 +130,8 @@ fun mediaStatsScreen(
     val chatContextName by viewModel.chatContextName.collectAsState()
     val chatContextAvatarPath by viewModel.chatContextAvatarPath.collectAsState()
 
-    val domainSheetState = rememberModalBottomSheetState()
-    val mediaSheetState = rememberModalBottomSheetState()
+    val domainSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val mediaSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(chatId) {
         viewModel.initialize(chatId)
@@ -397,13 +400,15 @@ fun mediaStatsScreen(
                     )
                 },
             ) {
-                DomainBreakdownSheet(
-                    contactName = contactDomainStats?.first ?: "",
-                    avatarPath = contactDomainStats?.second,
-                    domains = contactDomainStats?.third ?: emptyList(),
-                    isLoading = isDomainLoading,
-                    progress = progressDomains,
-                )
+                Box(modifier = Modifier.fillMaxHeight(0.80f)) {
+                    DomainBreakdownSheet(
+                        contactName = contactDomainStats?.first ?: "",
+                        avatarPath = contactDomainStats?.second,
+                        domains = contactDomainStats?.third ?: emptyList(),
+                        isLoading = isDomainLoading,
+                        progress = progressDomains,
+                    )
+                }
             }
         }
 
@@ -428,14 +433,16 @@ fun mediaStatsScreen(
                     )
                 },
             ) {
-                MediaGallerySheet(
-                    contactName = mediaGalleryState!!.first,
-                    avatarPath = mediaGalleryState!!.second,
-                    mediaFiles = mediaGalleryState!!.third,
-                    isLoading = isMediaGalleryLoading,
-                    progress = progressMediaGallery,
-                    isLiteMode = viewModel.isLiteMode.collectAsState().value,
-                )
+                Box(modifier = Modifier.fillMaxHeight(0.85f)) {
+                    MediaGallerySheet(
+                        contactName = mediaGalleryState!!.first,
+                        avatarPath = mediaGalleryState!!.second,
+                        mediaFiles = mediaGalleryState!!.third,
+                        isLoading = isMediaGalleryLoading,
+                        progress = progressMediaGallery,
+                        isLiteMode = viewModel.isLiteMode.collectAsState().value,
+                    )
+                }
             }
         }
     } // fine Box
@@ -1141,7 +1148,8 @@ private fun DomainBreakdownSheet(
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp),
+                .padding(bottom = 32.dp)
+                .verticalScroll(rememberScrollState()),
     ) {
         // Header con avatar
         Row(verticalAlignment = Alignment.CenterVertically) {
