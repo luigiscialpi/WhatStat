@@ -48,12 +48,12 @@ class SetupViewModel
             }
 
             viewModelScope.launch {
-                // Tenta di ripristinare la sessione root salvata SOLO se autoNavigate=true
-                // (avvio normale). Quando l'utente torna indietro (autoNavigate=false),
-                // non serve ripristinare: mostriamo Setup e basta.
-                if (autoNavigate) {
-                    repository.tryRestoreSession()
-                }
+                // Tenta sempre di ripristinare la sessione root: sia all'avvio normale
+                // (autoNavigate=true) sia al ritorno da Dashboard (autoNavigate=false).
+                // La card "Nuovo backup rilevato" deve restare visibile finché la
+                // condizione è vera. L'auto-navigazione è bloccata separatamente
+                // da shouldAutoNavigate nella LaunchedEffect di SetupScreen.
+                repository.tryRestoreSession()
 
                 // Osserva lo stato di LiteMode e RootDatabase
                 analyticsRepository.isLiteMode.collectLatest { isLite ->
