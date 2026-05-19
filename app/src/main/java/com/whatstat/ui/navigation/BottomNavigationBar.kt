@@ -13,7 +13,12 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
@@ -67,7 +72,26 @@ fun BottomNavigationBar(
             ),
         )
 
-    NavigationBar {
+    NavigationBar(
+        modifier =
+            Modifier.drawBehind {
+                val shadowHeight = 8.dp.toPx()
+                drawRect(
+                    brush =
+                        Brush.verticalGradient(
+                            colors =
+                                listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.08f),
+                                ),
+                            startY = -shadowHeight,
+                            endY = 0f,
+                        ),
+                    topLeft = androidx.compose.ui.geometry.Offset(0f, -shadowHeight),
+                    size = androidx.compose.ui.geometry.Size(size.width, shadowHeight),
+                )
+            },
+    ) {
         val filteredItems = if (isLiteMode) items.filter { it.graphRoute != NavGraphRoute.CALLS } else items
 
         filteredItems.forEach { item ->

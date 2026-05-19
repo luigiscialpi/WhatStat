@@ -36,12 +36,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.whatstat.R
@@ -141,7 +144,25 @@ fun TimelineLegendBar() {
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(44.dp),
+                .height(44.dp)
+                .zIndex(1f)
+                .drawBehind {
+                    val shadowHeight = 8.dp.toPx()
+                    drawRect(
+                        brush =
+                            Brush.verticalGradient(
+                                colors =
+                                    listOf(
+                                        Color.Black.copy(alpha = 0.08f),
+                                        Color.Transparent,
+                                    ),
+                                startY = size.height,
+                                endY = size.height + shadowHeight,
+                            ),
+                        topLeft = androidx.compose.ui.geometry.Offset(0f, size.height),
+                        size = androidx.compose.ui.geometry.Size(size.width, shadowHeight),
+                    )
+                },
     ) {
         Row(
             modifier =
