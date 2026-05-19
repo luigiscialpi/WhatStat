@@ -193,6 +193,7 @@
     <string name="sort_oldest">सबसे पुराने</string>
     <string name="load_more">और लोड करें</string>
     <string name="word_search_hint_min">खोजने के लिए कम से कम 2 अक्षर डालें</string>
+    <string name="word_search_invite">आवर्धक लेंस (सर्च बटन) दबाकर खोज शुरू करें</string>
     <string name="filter_multi">मल्टी</string>
     <string name="and_label">और</string>
     <string name="or_label">या</string>

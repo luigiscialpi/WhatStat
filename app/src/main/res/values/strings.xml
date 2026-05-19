@@ -226,6 +226,7 @@
     <string name="sort_oldest">Oldest</string>
     <string name="load_more">Load more</string>
     <string name="word_search_hint_min">Enter at least 2 characters to search</string>
+    <string name="word_search_invite">Search by pressing the magnifying glass</string>
     <string name="filter_multi">Multi</string>
     <string name="and_label">AND</string>
     <string name="or_label">OR</string>

@@ -20,6 +20,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -61,11 +63,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -96,6 +100,7 @@ fun WordSearchScreen(
     val results by viewModel.results.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isSearching by viewModel.isSearching.collectAsState()
+    val hasSearched by viewModel.hasSearched.collectAsState()
     val selectedRange by viewModel.selectedTimeRange.collectAsState()
     val customDateRange by viewModel.customDateRange.collectAsState()
     val firstMessageTimestamp by viewModel.firstMessageTimestamp.collectAsState()
@@ -110,6 +115,7 @@ fun WordSearchScreen(
     val isMultiWord by viewModel.isMultiWord.collectAsState()
     val multiWordMode by viewModel.multiWordMode.collectAsState()
     var showInfoDialog by remember { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(chatId) {
         viewModel.initialize(chatId)
@@ -181,6 +187,14 @@ fun WordSearchScreen(
                         }
                     }
                 },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions =
+                    KeyboardActions(
+                        onSearch = {
+                            keyboardController?.hide()
+                            viewModel.startSearch()
+                        },
+                    ),
             )
             if (searchQuery.isNotEmpty()) {
                 FilledTonalButton(
@@ -417,13 +431,20 @@ fun WordSearchScreen(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(200.dp),
+                        .height(200.dp)
+                        .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    stringResource(R.string.no_results_word),
+                    text =
+                        if (hasSearched) {
+                            stringResource(R.string.no_results_word)
+                        } else {
+                            stringResource(R.string.word_search_invite)
+                        },
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
             }
         } else {

@@ -15,7 +15,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,6 +48,9 @@ class WordSearchViewModel
 
         private val _isSearching = MutableStateFlow(false)
         val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+
+        private val _hasSearched = MutableStateFlow(false)
+        val hasSearched: StateFlow<Boolean> = _hasSearched.asStateFlow()
 
         private val _suggestions = MutableStateFlow<List<String>>(emptyList())
         val suggestions: StateFlow<List<String>> = _suggestions.asStateFlow()
@@ -183,6 +185,7 @@ class WordSearchViewModel
         ) {
             if (!initialized || force) {
                 initialized = true
+                _hasSearched.value = false
                 chatIdFlow.value = chatId
                 if (chatId != null) {
                     _selectedTimeRange.value = filterState.chatTimeRange
@@ -206,6 +209,10 @@ class WordSearchViewModel
 
         fun onSearchQueryChange(query: String) {
             _searchQuery.value = query
+            _hasSearched.value = false
+            if (query.isEmpty()) {
+                _results.value = emptyList()
+            }
             if (query.length >= 3) {
                 viewModelScope.launch {
                     _suggestions.value = analyticsRepository.getWordSuggestions(query, chatIdFlow.value)
@@ -220,13 +227,18 @@ class WordSearchViewModel
             _suggestions.value = emptyList()
             if (query.length >= 2) {
                 _isSearching.value = true
-                searchDebounced(query)
+                searchJob?.cancel()
+                searchJob =
+                    viewModelScope.launch {
+                        search(query)
+                    }
             }
         }
 
         fun cancelSearch() {
             searchJob?.cancel()
             _isSearching.value = false
+            _isLoading.value = false
         }
 
         fun toggleCaseSensitive() {
@@ -251,15 +263,6 @@ class WordSearchViewModel
                     MultiWordMode.NONE -> MultiWordMode.AND
                     MultiWordMode.AND -> MultiWordMode.OR
                     MultiWordMode.OR -> MultiWordMode.NONE
-                }
-        }
-
-        private fun searchDebounced(query: String) {
-            searchJob?.cancel()
-            searchJob =
-                viewModelScope.launch {
-                    delay(DEBOUNCE_MS)
-                    search(query)
                 }
         }
 
@@ -300,41 +303,21 @@ class WordSearchViewModel
             }
         }
 
-        private fun search(query: String) {
-            viewModelScope.launch {
-                _isLoading.value = true
-                try {
-                    val (startTime, endTime) =
-                        if (_selectedTimeRange.value == TimeRange.CUSTOM) {
-                            _customDateRange.value?.let {
-                                analyticsRepository.getDateRangeBounds(it)
-                            } ?: (null to null)
-                        } else {
-                            analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
-                        }
-                    // Try direct query first
-                    try {
-                        val directResults =
-                            analyticsRepository.searchWordDirect(
-                                query,
-                                chatIdFlow.value,
-                                startTime,
-                                endTime,
-                                _isCaseSensitive.value,
-                                _isExactMatch.value,
-                                _onlyQuestions.value,
-                                _multiWordMode.value.ordinal,
-                            )
-                        if (directResults.isNotEmpty()) {
-                            _results.value = directResults.map { it.copy(avatarPath = getAvatarPath(it.jid)) }
-                        }
-                    } catch (e2: Exception) {
-                        // Ignored
+        private suspend fun search(query: String) {
+            _isLoading.value = true
+            try {
+                val (startTime, endTime) =
+                    if (_selectedTimeRange.value == TimeRange.CUSTOM) {
+                        _customDateRange.value?.let {
+                            analyticsRepository.getDateRangeBounds(it)
+                        } ?: (null to null)
+                    } else {
+                        analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
                     }
-
-                    // Then try via repository
-                    val searchResults =
-                        analyticsRepository.searchWord(
+                // Try direct query first
+                try {
+                    val directResults =
+                        analyticsRepository.searchWordDirect(
                             query,
                             chatIdFlow.value,
                             startTime,
@@ -344,13 +327,32 @@ class WordSearchViewModel
                             _onlyQuestions.value,
                             _multiWordMode.value.ordinal,
                         )
-                    _results.value = searchResults.map { it.copy(avatarPath = getAvatarPath(it.jid)) }
-                } catch (e: Exception) {
-                    _results.value = emptyList()
-                } finally {
-                    _isLoading.value = false
-                    _isSearching.value = false
+                    if (directResults.isNotEmpty()) {
+                        _results.value = directResults.map { it.copy(avatarPath = getAvatarPath(it.jid)) }
+                    }
+                } catch (e2: Exception) {
+                    // Ignored
                 }
+
+                // Then try via repository
+                val searchResults =
+                    analyticsRepository.searchWord(
+                        query,
+                        chatIdFlow.value,
+                        startTime,
+                        endTime,
+                        _isCaseSensitive.value,
+                        _isExactMatch.value,
+                        _onlyQuestions.value,
+                        _multiWordMode.value.ordinal,
+                    )
+                _results.value = searchResults.map { it.copy(avatarPath = getAvatarPath(it.jid)) }
+                _hasSearched.value = true
+            } catch (e: Exception) {
+                _results.value = emptyList()
+            } finally {
+                _isLoading.value = false
+                _isSearching.value = false
             }
         }
 

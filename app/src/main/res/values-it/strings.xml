@@ -193,6 +193,7 @@
     <string name="sort_oldest">Meno recenti</string>
     <string name="load_more">Carica altri</string>
     <string name="word_search_hint_min">Inserisci almeno 2 caratteri per cercare</string>
+    <string name="word_search_invite">Avvia la ricerca premendo sulla lente d\'ingrandimento</string>
     <string name="filter_multi">Multi</string>
     <string name="and_label">E</string>
     <string name="or_label">O</string>

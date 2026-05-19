@@ -193,6 +193,7 @@
     <string name="sort_oldest">En eski</string>
     <string name="load_more">Daha fazla yükle</string>
     <string name="word_search_hint_min">Aramak için en az 2 karakter gir</string>
+    <string name="word_search_invite">Büyütece basarak aramayı başlatın</string>
     <string name="filter_multi">Çoklu</string>
     <string name="and_label">VE</string>
     <string name="or_label">VEYA</string>
