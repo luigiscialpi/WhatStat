@@ -11,13 +11,17 @@ import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -49,6 +53,7 @@ fun ZoomableImageGallery(
     filePaths: List<String>,
     initialIndex: Int,
     onDismiss: () -> Unit,
+    onShare: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -64,7 +69,7 @@ fun ZoomableImageGallery(
         }
 
     val pagerState =
-        androidx.compose.foundation.pager.rememberPagerState(
+        rememberPagerState(
             initialPage = initialIndex,
             pageCount = { filePaths.size },
         )
@@ -107,7 +112,7 @@ fun ZoomableImageGallery(
                     },
             contentAlignment = Alignment.Center,
         ) {
-            androidx.compose.foundation.pager.HorizontalPager(
+            HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
             ) { page ->
@@ -132,14 +137,25 @@ fun ZoomableImageGallery(
                     .padding(16.dp),
             contentAlignment = Alignment.TopEnd,
         ) {
-            IconButton(
-                onClick = onDismiss,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Close,
-                    contentDescription = "Chiudi",
-                    tint = Color.White,
-                )
+            Row {
+                if (onShare != null) {
+                    IconButton(onClick = { onShare(filePaths[pagerState.currentPage]) }) {
+                        Icon(
+                            imageVector = Icons.Outlined.Share,
+                            contentDescription = "Condividi",
+                            tint = Color.White,
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = onDismiss,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = "Chiudi",
+                        tint = Color.White,
+                    )
+                }
             }
         }
     }

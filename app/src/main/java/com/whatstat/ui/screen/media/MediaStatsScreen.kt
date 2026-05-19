@@ -1,10 +1,15 @@
 package com.whatstat.ui.screen.media
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,7 +39,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
@@ -44,6 +51,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AlertDialog
@@ -66,6 +74,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -74,6 +83,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -82,6 +92,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import coil.ImageLoader
@@ -99,11 +110,14 @@ import com.whatstat.ui.component.SimpleScreenHeader
 import com.whatstat.ui.component.TimeRangeFilterRow
 import com.whatstat.ui.component.ZoomableImageGallery
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.zip.ZipFile
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -458,6 +472,8 @@ private fun MediaGallerySheet(
     progress: Int?,
     isLiteMode: Boolean = false,
 ) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+
     // In Lite mode separiamo sticker (STK-*.webp) dal resto.
     // Il tab è visibile solo se ci sono effettivamente sticker.
     val stickers =
@@ -476,6 +492,7 @@ private fun MediaGallerySheet(
     var displayedCount by remember(activeTab) { mutableIntStateOf(100) }
     var sortAscending by remember { mutableStateOf(false) }
     var selectedImageForPreview by remember { mutableStateOf<MediaStat?>(null) }
+    val selectedMedia = remember { mutableStateListOf<MediaStat>() }
     val context = LocalContext.current
 
     val imageLoader =
@@ -514,60 +531,110 @@ private fun MediaGallerySheet(
                 .padding(bottom = 32.dp),
     ) {
 // Header con avatar e info button sulla destra
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (avatarPath != null) {
-                AsyncImage(
-                    model =
-                        ImageRequest.Builder(LocalContext.current)
-                            .data(java.io.File(avatarPath))
-                            .crossfade(true)
-                            .build(),
-                    contentDescription = null,
-                    modifier =
-                        Modifier
-                            .size(48.dp)
-                            .clip(CircleShape),
-                    contentScale = ContentScale.Crop,
-                )
+        if (selectedMedia.isNotEmpty()) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .background(MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(12.dp))
+                        .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = { selectedMedia.clear() }) {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = "Annulla",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
                 Spacer(Modifier.width(12.dp))
-            }
-            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    stringResource(R.string.media_link_title),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    text = "${selectedMedia.size} selezionati",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.weight(1f),
                 )
-                Text(
-                    contactName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            var showInfoDialog by remember { mutableStateOf(false) }
-            IconButton(onClick = { showInfoDialog = true }, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    Icons.Outlined.Info,
-                    contentDescription = stringResource(R.string.info_dialog_title),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-            if (showInfoDialog) {
-                AlertDialog(
-                    onDismissRequest = { showInfoDialog = false },
-                    title = { Text(stringResource(R.string.media_info_title)) },
-                    text = {
-                        Text(stringResource(R.string.media_info_text_gallery))
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { showInfoDialog = false }) {
-                            Text(stringResource(R.string.ho_capito))
+                IconButton(
+                    onClick = {
+                        scope.launch {
+                            val uris = selectedMedia.mapNotNull { getShareableUri(context, it.filePath) }
+                            if (uris.isNotEmpty()) {
+                                val shareIntent =
+                                    Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                                        type = "*/*"
+                                        putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                context.startActivity(Intent.createChooser(shareIntent, "Condividi media"))
+                                selectedMedia.clear()
+                            }
                         }
                     },
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Share,
+                        contentDescription = "Condividi",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (avatarPath != null) {
+                    AsyncImage(
+                        model =
+                            ImageRequest.Builder(LocalContext.current)
+                                .data(java.io.File(avatarPath))
+                                .crossfade(true)
+                                .build(),
+                        contentDescription = null,
+                        modifier =
+                            Modifier
+                                .size(48.dp)
+                                .clip(CircleShape),
+                        contentScale = ContentScale.Crop,
+                    )
+                    Spacer(Modifier.width(12.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.media_link_title),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        contactName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                var showInfoDialog by remember { mutableStateOf(false) }
+                IconButton(onClick = { showInfoDialog = true }, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Outlined.Info,
+                        contentDescription = stringResource(R.string.info_dialog_title),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                if (showInfoDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showInfoDialog = false },
+                        title = { Text(stringResource(R.string.media_info_title)) },
+                        text = {
+                            Text(stringResource(R.string.media_info_text_gallery))
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showInfoDialog = false }) {
+                                Text(stringResource(R.string.ho_capito))
+                            }
+                        },
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         Spacer(Modifier.height(16.dp))
@@ -706,32 +773,53 @@ private fun MediaGallerySheet(
                                         .aspectRatio(1f)
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                                        .clickable {
-                                            if (media.mimeType.startsWith("video/") || media.mimeType.startsWith("audio/")) {
-                                                try {
-                                                    val file = java.io.File(media.filePath)
-                                                    val contentUri =
-                                                        androidx.core.content.FileProvider.getUriForFile(
-                                                            context,
-                                                            "${context.packageName}.fileprovider",
-                                                            file,
-                                                        )
-                                                    val intent =
-                                                        android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                                                            setDataAndType(contentUri, media.mimeType)
-                                                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        .pointerInput(media) {
+                                            detectTapGestures(
+                                                onLongPress = {
+                                                    if (selectedMedia.isEmpty()) {
+                                                        selectedMedia.add(media)
+                                                    }
+                                                },
+                                                onTap = {
+                                                    if (selectedMedia.isNotEmpty()) {
+                                                        if (selectedMedia.contains(media)) {
+                                                            selectedMedia.remove(media)
+                                                        } else {
+                                                            selectedMedia.add(media)
                                                         }
-                                                    context.startActivity(intent)
-                                                } catch (e: Exception) {
-                                                    android.widget.Toast.makeText(
-                                                        context,
-                                                        context.getString(R.string.error_open_file),
-                                                        android.widget.Toast.LENGTH_SHORT,
-                                                    ).show()
-                                                }
-                                            } else {
-                                                selectedImageForPreview = media
-                                            }
+                                                    } else {
+                                                        if (media.mimeType.startsWith("video/") || media.mimeType.startsWith("audio/")) {
+                                                            scope.launch {
+                                                                try {
+                                                                    val contentUri = getShareableUri(context, media.filePath)
+                                                                    if (contentUri != null) {
+                                                                        val intent =
+                                                                            Intent(Intent.ACTION_VIEW).apply {
+                                                                                setDataAndType(contentUri, media.mimeType)
+                                                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                                            }
+                                                                        context.startActivity(intent)
+                                                                    } else {
+                                                                        Toast.makeText(
+                                                                            context,
+                                                                            context.getString(R.string.error_open_file),
+                                                                            Toast.LENGTH_SHORT,
+                                                                        ).show()
+                                                                    }
+                                                                } catch (e: Exception) {
+                                                                    Toast.makeText(
+                                                                        context,
+                                                                        context.getString(R.string.error_open_file),
+                                                                        Toast.LENGTH_SHORT,
+                                                                    ).show()
+                                                                }
+                                                            }
+                                                        } else {
+                                                            selectedImageForPreview = media
+                                                        }
+                                                    }
+                                                },
+                                            )
                                         },
                             ) {
                                 if (media.mimeType.startsWith("audio/")) {
@@ -760,7 +848,7 @@ private fun MediaGallerySheet(
                                         )
                                     }
                                 } else {
-                                    val imgData = if (media.filePath.startsWith("zip://")) media.filePath else java.io.File(media.filePath)
+                                    val imgData = if (media.filePath.startsWith("zip://")) media.filePath else File(media.filePath)
                                     AsyncImage(
                                         model =
                                             ImageRequest.Builder(LocalContext.current)
@@ -802,6 +890,28 @@ private fun MediaGallerySheet(
                                             color = Color.White,
                                         )
                                     }
+                                }
+
+                                val isSelected = selectedMedia.contains(media)
+                                if (isSelected) {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .matchParentSize()
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Outlined.Check,
+                                        contentDescription = "Selezionato",
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier =
+                                            Modifier
+                                                .align(Alignment.TopEnd)
+                                                .padding(4.dp)
+                                                .size(24.dp)
+                                                .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                                .padding(4.dp),
+                                    )
                                 }
                             }
                             Spacer(Modifier.height(4.dp))
@@ -847,6 +957,21 @@ private fun MediaGallerySheet(
                 filePaths = imageList,
                 initialIndex = if (index >= 0) index else 0,
                 onDismiss = { selectedImageForPreview = null },
+                onShare = { pathToShare ->
+                    scope.launch {
+                        val uri = getShareableUri(context, pathToShare)
+                        if (uri != null) {
+                            val mimeType = currentFiles.find { it.filePath == pathToShare }?.mimeType ?: "image/*"
+                            val shareIntent =
+                                Intent(Intent.ACTION_SEND).apply {
+                                    type = mimeType
+                                    putExtra(Intent.EXTRA_STREAM, uri)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                            context.startActivity(Intent.createChooser(shareIntent, null))
+                        }
+                    }
+                },
             )
         }
     }
@@ -1335,6 +1460,59 @@ private fun DomainBreakdownSheet(
                     }
                 }
             }
+        }
+    }
+}
+
+private suspend fun getShareableUri(
+    context: Context,
+    filePath: String,
+): Uri? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val fileToShare =
+                if (filePath.startsWith("zip://")) {
+                    val decodedUri = URLDecoder.decode(filePath, "UTF-8")
+                    val parts = decodedUri.removePrefix("zip://").split("|")
+                    if (parts.size < 2) return@withContext null
+                    val baseFolder = File(context.filesDir, "lite_media")
+                    val zipFileObj = File(baseFolder, parts[0])
+                    if (!zipFileObj.exists()) return@withContext null
+                    val zipFile = ZipFile(zipFileObj)
+                    val entry =
+                        zipFile.getEntry(parts[1]) ?: run {
+                            zipFile.close()
+                            return@withContext null
+                        }
+
+                    val tempFile = File(context.cacheDir, File(parts[1]).name)
+                    zipFile.getInputStream(entry).use { input ->
+                        tempFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    zipFile.close()
+                    tempFile
+                } else {
+                    val srcFile = File(filePath)
+                    if (!srcFile.exists()) return@withContext null
+                    val tempFile = File(context.cacheDir, srcFile.name)
+                    srcFile.inputStream().use { input ->
+                        tempFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    tempFile
+                }
+
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                fileToShare,
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 }
