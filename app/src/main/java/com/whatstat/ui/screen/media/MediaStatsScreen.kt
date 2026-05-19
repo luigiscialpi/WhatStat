@@ -97,7 +97,7 @@ import com.whatstat.ui.component.ContactNameWithPhone
 import com.whatstat.ui.component.LoadingSection
 import com.whatstat.ui.component.SimpleScreenHeader
 import com.whatstat.ui.component.TimeRangeFilterRow
-import com.whatstat.ui.component.ZoomableImageViewer
+import com.whatstat.ui.component.ZoomableImageGallery
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -837,8 +837,15 @@ private fun MediaGallerySheet(
         }
 
         if (selectedImageForPreview != null) {
-            ZoomableImageViewer(
-                filePath = selectedImageForPreview!!.filePath,
+            val imageList =
+                currentFiles.filter {
+                    !it.mimeType.startsWith("video/") && !it.mimeType.startsWith("audio/")
+                }.map { it.filePath }
+            val index = imageList.indexOf(selectedImageForPreview!!.filePath)
+
+            com.whatstat.ui.component.ZoomableImageGallery(
+                filePaths = imageList,
+                initialIndex = if (index >= 0) index else 0,
                 onDismiss = { selectedImageForPreview = null },
             )
         }

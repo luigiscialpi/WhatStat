@@ -381,8 +381,9 @@ class CacheManager
          *  Per le signature basate su dimensione file (live DB), usa una soglia di 128 KB
          *  per evitare falsi positivi da auto-checkpoint SQLite. */
         suspend fun isRootDbChanged(newHash: String): Boolean {
-            val stored = context.rootCacheDataStore.data.first()[KEY_DB_HASH]
-                ?: return true // primo avvio, nessun hash salvato
+            val stored =
+                context.rootCacheDataStore.data.first()[KEY_DB_HASH]
+                    ?: return true // primo avvio, nessun hash salvato
             // Se entrambi sono numerici puri (signature = dimensione file live DB),
             // confronta con soglia per ignorare piccoli checkpoint
             val newSize = newHash.toLongOrNull()

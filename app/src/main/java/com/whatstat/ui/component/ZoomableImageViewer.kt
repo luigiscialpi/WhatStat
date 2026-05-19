@@ -45,8 +45,9 @@ import java.io.File
 
 @Composable
 @Suppress("FunctionName")
-fun ZoomableImageViewer(
-    filePath: String,
+fun ZoomableImageGallery(
+    filePaths: List<String>,
+    initialIndex: Int,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -62,31 +63,14 @@ fun ZoomableImageViewer(
                 .build()
         }
 
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    var offsetY by remember { mutableFloatStateOf(0f) }
-    var rotation by remember { mutableFloatStateOf(0f) }
+    val pagerState =
+        androidx.compose.foundation.pager.rememberPagerState(
+            initialPage = initialIndex,
+            pageCount = { filePaths.size },
+        )
+
     var dragY by remember { mutableFloatStateOf(0f) }
     var backgroundAlpha by remember { mutableFloatStateOf(0.95f) }
-
-    val animatedScale by animateFloatAsState(targetValue = scale, label = "scale")
-    val animatedOffsetX by animateFloatAsState(targetValue = offsetX, label = "offsetX")
-    val animatedOffsetY by animateFloatAsState(targetValue = offsetY, label = "offsetY")
-    val animatedRotation by animateFloatAsState(
-        targetValue = rotation,
-        animationSpec = tween(durationMillis = 250),
-        label = "rotation",
-    )
-
-    LaunchedEffect(rotation) {
-        val normalizedRotation = ((rotation % 360f) + 360f) % 360f
-        if (normalizedRotation != 0f && normalizedRotation != 90f && normalizedRotation != 180f && normalizedRotation != 270f) {
-            delay(150)
-            val snapAngle = ((normalizedRotation + 45f) / 90f).toInt() * 90f
-            val finalSnap = if (snapAngle >= 360f) 0f else snapAngle
-            rotation = finalSnap
-        }
-    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -105,7 +89,7 @@ fun ZoomableImageViewer(
                     .pointerInput(Unit) {
                         detectVerticalDragGestures(
                             onDragEnd = {
-                                if (dragY > 300f) {
+                                if (dragY > 300f || dragY < -300f) {
                                     onDismiss()
                                 } else {
                                     dragY = 0f
@@ -113,84 +97,31 @@ fun ZoomableImageViewer(
                                 }
                             },
                             onVerticalDrag = { change, dragAmount ->
-                                if (scale <= 1f) {
-                                    dragY += dragAmount
-                                    if (dragY > 0) {
-                                        backgroundAlpha = (0.95f - (dragY / 600f)).coerceIn(0.5f, 0.95f)
-                                    }
+                                dragY += dragAmount
+                                if (Math.abs(dragY) > 0) {
+                                    backgroundAlpha = (0.95f - (Math.abs(dragY) / 600f)).coerceIn(0.5f, 0.95f)
                                 }
                                 change.consume()
                             },
                         )
-                    }
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onDoubleTap = {
-                                if (scale > 1.5f) {
-                                    scale = 1f
-                                    offsetX = 0f
-                                    offsetY = 0f
-                                    rotation = 0f
-                                } else {
-                                    scale = 2.5f
-                                    offsetX = 0f
-                                    offsetY = 0f
-                                }
-                            },
-                        )
-                    }
-                    .pointerInput(Unit) {
-                        awaitEachGesture {
-                            val first = awaitFirstDown(pass = PointerEventPass.Initial)
-                            val rotationAtStart = rotation
-                            var totalRotation = 0f
-
-                            do {
-                                val event = awaitPointerEvent()
-                                val zoomChange = event.calculateZoom()
-                                val rotationChange = event.calculateRotation()
-                                val panChange = event.calculatePan()
-
-                                if (zoomChange != 1f) {
-                                    val newScale = (scale * zoomChange).coerceIn(1f, 5f)
-                                    scale = newScale
-                                }
-
-                                if (rotationChange != 0f) {
-                                    totalRotation += rotationChange
-                                    rotation = rotationAtStart + totalRotation
-                                }
-
-                                if (scale > 1f) {
-                                    offsetX += panChange.x
-                                    offsetY += panChange.y
-                                }
-                            } while (event.changes.any { it.pressed })
-                        }
                     },
             contentAlignment = Alignment.Center,
         ) {
-            val imgData = if (filePath.startsWith("zip://")) filePath else File(filePath)
-            AsyncImage(
-                model =
-                    ImageRequest.Builder(context)
-                        .data(imgData)
-                        .crossfade(true)
-                        .build(),
-                imageLoader = imageLoader,
-                contentDescription = "Immagine",
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            scaleX = animatedScale
-                            scaleY = animatedScale
-                            translationX = animatedOffsetX
-                            translationY = animatedOffsetY
-                            rotationZ = animatedRotation
-                        },
-                contentScale = ContentScale.Fit,
-            )
+            androidx.compose.foundation.pager.HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                val filePath = filePaths[page]
+                ZoomableImageItem(
+                    filePath = filePath,
+                    imageLoader = imageLoader,
+                    onZoomLevelChanged = { isZoomed ->
+                        // Pager panning is handled automatically,
+                        // but if we want to disable pager when zoomed, it requires complex pointer input handling.
+                        // For a simple caveman approach, just let the pager swipe unless fully zoomed.
+                    },
+                )
+            }
         }
 
         Box(
@@ -211,5 +142,116 @@ fun ZoomableImageViewer(
                 )
             }
         }
+    }
+}
+
+@Composable
+@Suppress("FunctionName")
+private fun ZoomableImageItem(
+    filePath: String,
+    imageLoader: ImageLoader,
+    onZoomLevelChanged: (Boolean) -> Unit,
+) {
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+    var rotation by remember { mutableFloatStateOf(0f) }
+
+    val animatedScale by animateFloatAsState(targetValue = scale, label = "scale")
+    val animatedOffsetX by animateFloatAsState(targetValue = offsetX, label = "offsetX")
+    val animatedOffsetY by animateFloatAsState(targetValue = offsetY, label = "offsetY")
+    val animatedRotation by animateFloatAsState(
+        targetValue = rotation,
+        animationSpec = tween(durationMillis = 250),
+        label = "rotation",
+    )
+
+    LaunchedEffect(rotation) {
+        val normalizedRotation = ((rotation % 360f) + 360f) % 360f
+        if (normalizedRotation != 0f && normalizedRotation != 90f && normalizedRotation != 180f && normalizedRotation != 270f) {
+            delay(150)
+            val snapAngle = ((normalizedRotation + 45f) / 90f).toInt() * 90f
+            val finalSnap = if (snapAngle >= 360f) 0f else snapAngle
+            rotation = finalSnap
+        }
+    }
+
+    LaunchedEffect(scale) {
+        onZoomLevelChanged(scale > 1f)
+    }
+
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onDoubleTap = {
+                            if (scale > 1.5f) {
+                                scale = 1f
+                                offsetX = 0f
+                                offsetY = 0f
+                                rotation = 0f
+                            } else {
+                                scale = 2.5f
+                                offsetX = 0f
+                                offsetY = 0f
+                            }
+                        },
+                    )
+                }
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val first = awaitFirstDown(pass = PointerEventPass.Initial)
+                        val rotationAtStart = rotation
+                        var totalRotation = 0f
+
+                        do {
+                            val event = awaitPointerEvent()
+                            val zoomChange = event.calculateZoom()
+                            val rotationChange = event.calculateRotation()
+                            val panChange = event.calculatePan()
+
+                            if (zoomChange != 1f) {
+                                val newScale = (scale * zoomChange).coerceIn(1f, 5f)
+                                scale = newScale
+                            }
+
+                            if (rotationChange != 0f) {
+                                totalRotation += rotationChange
+                                rotation = rotationAtStart + totalRotation
+                            }
+
+                            if (scale > 1f) {
+                                offsetX += panChange.x
+                                offsetY += panChange.y
+                            }
+                        } while (event.changes.any { it.pressed })
+                    }
+                },
+        contentAlignment = Alignment.Center,
+    ) {
+        val context = LocalContext.current
+        val imgData = if (filePath.startsWith("zip://")) filePath else File(filePath)
+        AsyncImage(
+            model =
+                ImageRequest.Builder(context)
+                    .data(imgData)
+                    .crossfade(true)
+                    .build(),
+            imageLoader = imageLoader,
+            contentDescription = "Immagine",
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = animatedScale
+                        scaleY = animatedScale
+                        translationX = animatedOffsetX
+                        translationY = animatedOffsetY
+                        rotationZ = animatedRotation
+                    },
+            contentScale = ContentScale.Fit,
+        )
     }
 }

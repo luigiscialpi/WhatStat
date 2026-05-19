@@ -2,6 +2,7 @@ package com.whatstat.data.repository
 
 import android.content.Context
 import android.net.Uri
+import com.whatstat.R
 import com.whatstat.data.cache.CacheManager
 import com.whatstat.data.crypto.Crypt14Decryptor
 import com.whatstat.data.db.WhatsAppDatabase
@@ -10,7 +11,6 @@ import com.whatstat.data.root.FileExtractor
 import com.whatstat.data.root.RootManager
 import com.whatstat.data.root.RootStatus
 import com.whatstat.domain.model.AppError
-import com.whatstat.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -162,7 +162,7 @@ class WhatsAppRepository
 
                     // Step 4: Apri il database per le query
                     if (isOperationCancelled()) throw kotlinx.coroutines.CancellationException()
-                    
+
                     try {
                         database.open(outputDb, waDbFile)
 

@@ -120,7 +120,7 @@ import com.whatstat.ui.component.ShimmerBox
 import com.whatstat.ui.component.StatCard
 import com.whatstat.ui.component.StickerPreviewModal
 import com.whatstat.ui.component.TimeRangeFilterRow
-import com.whatstat.ui.component.ZoomableImageViewer
+import com.whatstat.ui.component.ZoomableImageGallery
 import com.whatstat.ui.component.rememberShimmerBrush
 import com.whatstat.ui.theme.getSenderColor
 import com.whatstat.ui.theme.senderColorOverrideKey
@@ -1183,8 +1183,9 @@ fun ChatDetailScreen(
 
         // ── Avatar zoom overlay ────────────────────────────────
         if (showAvatarZoom && zoomAvatarPath != null) {
-            ZoomableImageViewer(
-                filePath = zoomAvatarPath!!,
+            com.whatstat.ui.component.ZoomableImageGallery(
+                filePaths = listOf(zoomAvatarPath!!),
+                initialIndex = 0,
                 onDismiss = { showAvatarZoom = false },
             )
         }
