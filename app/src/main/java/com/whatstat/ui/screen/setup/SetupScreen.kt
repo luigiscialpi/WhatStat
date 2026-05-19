@@ -628,27 +628,30 @@ private fun rootTabContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // ── Step indicators ──────────────────────────────────────
-        SetupStep(
-            label = stringResource(R.string.root_step_access),
-            status = state.rootStatus,
-            icon = Icons.Outlined.AdminPanelSettings,
-        )
-        SetupStep(
-            label = stringResource(R.string.root_step_extraction),
-            status = state.extractionStatus,
-            icon = Icons.Outlined.FolderOpen,
-        )
-        SetupStep(
-            label = stringResource(R.string.root_step_decryption),
-            status = state.decryptionStatus,
-            icon = Icons.Outlined.Key,
-            progress = if (state.decryptionStatus == StepStatus.LOADING) state.decryptionProgress else null,
-        )
-        SetupStep(
-            label = stringResource(R.string.root_step_contacts),
-            status = state.contactsStatus,
-            icon = Icons.Outlined.Contacts,
-        )
+        // Show steps only when database is not ready or setup is active
+        if (!state.isRootReady || state.isLoading) {
+            SetupStep(
+                label = stringResource(R.string.root_step_access),
+                status = state.rootStatus,
+                icon = Icons.Outlined.AdminPanelSettings,
+            )
+            SetupStep(
+                label = stringResource(R.string.root_step_extraction),
+                status = state.extractionStatus,
+                icon = Icons.Outlined.FolderOpen,
+            )
+            SetupStep(
+                label = stringResource(R.string.root_step_decryption),
+                status = state.decryptionStatus,
+                icon = Icons.Outlined.Key,
+                progress = if (state.decryptionStatus == StepStatus.LOADING) state.decryptionProgress else null,
+            )
+            SetupStep(
+                label = stringResource(R.string.root_step_contacts),
+                status = state.contactsStatus,
+                icon = Icons.Outlined.Contacts,
+            )
+        }
 
         Spacer(Modifier.height(8.dp))
 
