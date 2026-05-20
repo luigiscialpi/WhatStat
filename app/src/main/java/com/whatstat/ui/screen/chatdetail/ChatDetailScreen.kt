@@ -107,6 +107,7 @@ import com.whatstat.R
 import com.whatstat.data.db.model.SenderStat
 import com.whatstat.data.db.model.TimeRange
 import com.whatstat.ui.component.ActivityRecapCard
+import com.whatstat.ui.component.AnimatedInfoButton
 import com.whatstat.ui.component.ContactNameWithPhone
 import com.whatstat.ui.component.DateRangeCard
 import com.whatstat.ui.component.EmojiPreviewModal
@@ -1245,13 +1246,12 @@ private fun SectionCard(
                     ) {
                         trailingContent?.invoke()
                         if (onInfoClick != null) {
-                            IconButton(onClick = onInfoClick) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Info,
-                                    contentDescription = stringResource(R.string.info_dialog_title),
-                                    tint = MaterialTheme.colorScheme.primary,
-                                )
-                            }
+                            AnimatedInfoButton(
+                                onClick = onInfoClick,
+                                contentDescription = stringResource(R.string.info_dialog_title),
+                                tint = MaterialTheme.colorScheme.primary,
+                                glowColor = MaterialTheme.colorScheme.primary,
+                            )
                         }
                     }
                 }

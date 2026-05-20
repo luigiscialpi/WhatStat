@@ -747,6 +747,23 @@ Per migliorare l'esperienza utente (UX) nelle liste molto lunghe, è stato intro
   - `CallsStatsScreen` e `WordSearchScreen`: Integrato nelle liste principali e nei bottom sheet di dettaglio per navigare agevolmente tra i log delle chiamate e i messaggi cercati.
   - `GroupHistoryScreen`: Configurato con `reverseScroll = true` per facilitare lo scorrimento verso i messaggi recenti nella timeline.
 
+### Pulsante Informativo Animato Premium: AnimatedInfoButton
+
+**File**: `ui/component/AnimatedInfoButton.kt`
+
+Per catturare l'attenzione dell'utente ed incentivarne l'interazione con gli elementi informativi che spiegano definizioni e metriche, è stata implementata la componente interattiva premium `AnimatedInfoButton` che sostituisce i vecchi pulsanti statici.
+
+- **Design e Animazioni**:
+  - **Heartbeat scale**: l'icona respira delicatamente oscillando in modo continuo tra una scala di `0.95x` e `1.05x` con un'easing morbido (`FastOutSlowInEasing`) ogni 1000ms.
+  - **Sonar ripple (echo wave)**: sul fondo dell'icona viene disegnato un anello circolare sfumato (`glowColor`) che si espande concentricamente (da `1.0x` a `1.8x`) svanendo da un'opacità di `0.4f` a `0.0f` ogni 2000ms con accelerazione `EaseOutQuad`.
+- **Prestazioni**: Il rendering dell'echo wave avviene in modo ultra-performante direttamente sul canvas tramite `drawBehind` su area riservata `iconSize * 2`, prevenendo ricomposizioni non necessarie.
+- **Integrazione Oculata**: L'animazione è applicata esclusivamente a pulsanti effettivamente interattivi (che aprono modali e dialog) per evitare di confondere l'utente, lasciando invece statici i Bullet Point puramente decorativi.
+- **Schermate Integrate**:
+  - `WordSearchScreen` (riga 305): spiega la logica di ricerca delle parole e dei suggerimenti.
+  - `ChatDetailScreen` (riga 1248): integrato nella `SectionCard` per arricchire istantaneamente tutte le schede metriche (es. Conversation Starters, risposta media).
+  - `MilestonePredictionCard` (riga 132): invita a scoprire i criteri della previsione traguardi.
+  - `MediaStatsScreen` (righe 196 e 667): attivo sia nell'header che nella galleria media per informare sulle statistiche dei file e domini.
+
 ### Flussi principali di navigazione
 
 **Avvio normale (app chiusa, nessun share)**

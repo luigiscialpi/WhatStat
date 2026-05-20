@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Clear
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Search
@@ -81,6 +80,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstat.R
 import com.whatstat.data.db.model.WordMessageResult
+import com.whatstat.ui.component.AnimatedInfoButton
 import com.whatstat.ui.component.ContactNameWithPhone
 import com.whatstat.ui.component.DynamicLoadingPill
 import com.whatstat.ui.component.LoadingSection
@@ -302,13 +302,11 @@ fun WordSearchScreen(
                 )
                 Spacer(Modifier.weight(1f))
                 // Icona informativa spostata qui
-                IconButton(onClick = { showInfoDialog = true }) {
-                    Icon(
-                        Icons.Outlined.Info,
-                        contentDescription = stringResource(R.string.info_dialog_title),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                AnimatedInfoButton(
+                    onClick = { showInfoDialog = true },
+                    contentDescription = stringResource(R.string.info_dialog_title),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             if (suggestions.isNotEmpty()) {

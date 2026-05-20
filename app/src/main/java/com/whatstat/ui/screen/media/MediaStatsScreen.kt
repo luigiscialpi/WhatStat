@@ -44,7 +44,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Link
@@ -105,6 +104,7 @@ import com.whatstat.R
 import com.whatstat.data.db.model.DomainStat
 import com.whatstat.data.db.model.LinkStat
 import com.whatstat.data.db.model.MediaStat
+import com.whatstat.ui.component.AnimatedInfoButton
 import com.whatstat.ui.component.AutoMarquee
 import com.whatstat.ui.component.ContactNameWithPhone
 import com.whatstat.ui.component.DynamicLoadingPill
@@ -193,13 +193,12 @@ fun mediaStatsScreen(
                 subtitle = chatContextName,
                 avatarPath = chatContextAvatarPath,
             ) {
-                IconButton(onClick = { showInfoDialog = true }) {
-                    Icon(
-                        Icons.Outlined.Info,
-                        contentDescription = stringResource(R.string.info_dialog_title),
-                        tint = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
+                AnimatedInfoButton(
+                    onClick = { showInfoDialog = true },
+                    contentDescription = stringResource(R.string.info_dialog_title),
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    glowColor = MaterialTheme.colorScheme.primary,
+                )
                 if (showInfoDialog) {
                     AlertDialog(
                         onDismissRequest = { showInfoDialog = false },
@@ -403,7 +402,6 @@ fun mediaStatsScreen(
                 onDismissRequest = { viewModel.dismissContactDomains() },
                 sheetState = domainSheetState,
                 containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp,
                 dragHandle = {
                     Box(
                         modifier =
@@ -436,7 +434,6 @@ fun mediaStatsScreen(
                 onDismissRequest = { viewModel.dismissMediaGallery() },
                 sheetState = mediaSheetState,
                 containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp,
                 dragHandle = {
                     Box(
                         modifier =
@@ -664,14 +661,14 @@ private fun MediaGallerySheet(
                     )
                 }
                 var showInfoDialog by remember { mutableStateOf(false) }
-                IconButton(onClick = { showInfoDialog = true }, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        Icons.Outlined.Info,
-                        contentDescription = stringResource(R.string.info_dialog_title),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
+                AnimatedInfoButton(
+                    onClick = { showInfoDialog = true },
+                    modifier = Modifier.size(32.dp),
+                    contentDescription = stringResource(R.string.info_dialog_title),
+                    iconSize = 18.dp,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    glowColor = MaterialTheme.colorScheme.primary,
+                )
                 if (showInfoDialog) {
                     AlertDialog(
                         onDismissRequest = { showInfoDialog = false },
