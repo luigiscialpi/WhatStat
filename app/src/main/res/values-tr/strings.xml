@@ -249,8 +249,8 @@
     <string name="last_link_prefix">Son bağlantı: %s</string>
     <string name="sent_by_prefix">Gönderen: %s</string>
     <string name="media_info_title">Medya bilgisi</string>
-    <string name="media_info_text_global">Bu sayaçlar yalnızca tarihsel olarak paylaşılan fotoğraf ve videoları içerir.\n\nNot: dıştaki düğmeler tüm zamanların mutlak toplamını gösterir. Ancak galeriye girildiğinde sayılar neredeyse her zaman daha düşük olacaktır, çünkü yalnızca hâlâ telefonda fiziksel olarak bulunan ve zamanla silinmemiş medya dosyaları yüklenir.</string>
-    <string name="media_info_text_gallery">Bu sayaçlar yalnızca mevcut dosyaları ifade eder.\n\nNot: önceki ekrandaki düğmeler ve ayrıntılar, hiç paylaşılmış tüm dosyaların mutlak toplamını gösterir. Ancak galeri, şu anda telefonda fiziksel olarak bulunanları hesaplar ve gösterir; zamanla silinen dosyaları (sizin tarafınızdan veya otomatik temizleyiciler tarafından) hariç tutar.</string>
+    <string name="media_info_text_global">Sayaçlar zaman içinde paylaşılan Fotoğraf ve Videoları içerir.\n\nDüğmeler mutlak tarihi toplamı gösterir, galeri ise yalnızca telefonda hâlâ bulunan dosyaları yükler (silinen dosyalar gösterilemez).</string>
+    <string name="media_info_text_gallery">Galeri yalnızca telefonda mevcut dosyaları gösterir. Sayaçlar ve dökümler daha yüksek olabilir çünkü zamanla silinmiş medyayı da içerirler.\n\n💡 İpucu: seçmek ve paylaşmak için medyaya uzun basın.</string>
     <string name="error_open_file">Dosya açılamadı</string>
     <string name="back_to_all_links">← Tüm bağlantılar</string>
     <string name="avatar_desc">Avatar</string>

@@ -249,8 +249,8 @@
     <string name="last_link_prefix">Último link: %s</string>
     <string name="sent_by_prefix">Enviado por: %s</string>
     <string name="media_info_title">Informações sobre mídia</string>
-    <string name="media_info_text_global">Esses contadores incluem apenas fotos e vídeos trocados historicamente.\n\nObservação: os botões externos mostram o total absoluto de todos os tempos. Porém, ao entrar na galeria, os números quase sempre serão menores, pois serão carregados e exibidos apenas os arquivos de mídia ainda fisicamente presentes no celular e não excluídos ao longo do tempo.</string>
-    <string name="media_info_text_gallery">Esses contadores se referem apenas aos arquivos atuais.\n\nObservação: os botões na tela anterior e nos detalhes mostram o total absoluto de arquivos trocados. Porém, a galeria calcula e exibe apenas os que estão fisicamente presentes agora no celular, excluindo arquivos deletados ao longo do tempo (por você ou por limpadores automáticos).</string>
+    <string name="media_info_text_global">Os contadores incluem Fotos e Vídeos trocados ao longo do tempo.\n\nOs botões mostram o total histórico absoluto, enquanto na galeria são carregados apenas os arquivos ainda presentes no celular (os excluídos não podem ser exibidos).</string>
+    <string name="media_info_text_gallery">A galeria mostra apenas os arquivos atualmente presentes no celular. Os contadores e detalhamentos podem ser maiores porque incluem mídias excluídas ao longo do tempo.\n\n💡 Dica: pressione longamente as mídias para selecioná-las e compartilhá-las.</string>
     <string name="error_open_file">Não foi possível abrir o arquivo</string>
     <string name="back_to_all_links">← Todos os links</string>
     <string name="avatar_desc">Avatar</string>

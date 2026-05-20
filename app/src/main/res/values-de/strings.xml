@@ -248,9 +248,9 @@
     <string name="links_grouped_domain">Geteilte Links nach Domain gruppiert</string>
     <string name="last_link_prefix">Letzter Link: %s</string>
     <string name="sent_by_prefix">Gesendet von: %s</string>
-    <string name="media_info_title">Medieninformationen</string>
-    <string name="media_info_text_global">Diese Zähler umfassen nur historisch ausgetauschte Fotos und Videos.\n\nHinweis: Die externen Schaltflächen zeigen die absolute Gesamtzahl aller Zeiten. In der Galerie werden die Zahlen jedoch fast immer niedriger sein, da nur Mediendateien geladen und angezeigt werden, die noch physisch auf dem Telefon vorhanden und nicht im Laufe der Zeit gelöscht wurden.</string>
-    <string name="media_info_text_gallery">Diese Zähler beziehen sich nur auf aktuelle Dateien.\n\nHinweis: Die Schaltflächen auf dem vorherigen Bildschirm und in den Details zeigen die absolute Gesamtzahl aller jemals ausgetauschten Dateien. Die Galerie berechnet und zeigt jedoch nur diejenigen, die jetzt physisch auf dem Telefon vorhanden sind, und schließt im Laufe der Zeit gelöschte Dateien aus (von dir oder automatischen Bereinigungsprogrammen).</string>
+<string name="media_info_title">Medieninformationen</string>
+    <string name="media_info_text_global">Die Zähler umfassen Fotos und Videos, die im Laufe der Zeit ausgetauscht wurden.\n\nDie Schaltflächen zeigen die absolute historische Gesamtzahl, während in der Galerie nur Dateien geladen werden, die noch auf dem Gerät vorhanden sind (gelöschte Dateien können nicht angezeigt werden).</string>
+    <string name="media_info_text_gallery">Die Galerie zeigt nur Dateien an, die aktuell auf dem Gerät vorhanden sind. Zähler und Aufschlüsselungen können höher sein, da sie auch im Laufe der Zeit gelöschte Medien enthalten.\n\n💡 Tipp: Drücke lange auf Medien, um sie auszuwählen und zu teilen.</string>
     <string name="error_open_file">Datei konnte nicht geöffnet werden</string>
     <string name="back_to_all_links">← Alle Links</string>
     <string name="avatar_desc">Avatar</string>

@@ -249,8 +249,8 @@
     <string name="last_link_prefix">Dernier lien : %s</string>
     <string name="sent_by_prefix">Envoyé par : %s</string>
     <string name="media_info_title">Informations sur les médias</string>
-    <string name="media_info_text_global">Ces compteurs incluent uniquement les photos et vidéos échangées historiquement.\n\nRemarque : les boutons externes affichent le total absolu de tous les temps. Cependant, en entrant dans la galerie, les chiffres seront presque toujours inférieurs, car seuls les fichiers médias encore physiquement présents sur le téléphone et non supprimés au fil du temps seront chargés et affichés.</string>
-    <string name="media_info_text_gallery">Ces compteurs se réfèrent uniquement aux fichiers actuels.\n\nRemarque : les boutons de l\'écran précédent et dans les détails affichent le total absolu des fichiers échangés. Cependant, la galerie calcule et permet de voir uniquement ceux qui sont physiquement présents sur le téléphone, en excluant les fichiers supprimés au fil du temps (par vous ou par des nettoyeurs automatiques).</string>
+    <string name="media_info_text_global">Les compteurs incluent les Photos et Vidéos échangées dans le temps.\n\nLes boutons affichent le total historique absolu, tandis que dans la galerie seuls les fichiers encore présents sur le téléphone sont chargés (les fichiers supprimés ne peuvent pas être affichés).</string>
+    <string name="media_info_text_gallery">La galerie affiche uniquement les fichiers actuellement présents sur le téléphone. Les compteurs et les détails peuvent être plus élevés car ils incluent également les médias supprimés avec le temps.\n\n💡 Astuce : appuyez longuement sur un média pour le sélectionner et le partager.</string>
     <string name="error_open_file">Impossible d\'ouvrir le fichier</string>
     <string name="back_to_all_links">← Tous les liens</string>
     <string name="avatar_desc">Avatar</string>

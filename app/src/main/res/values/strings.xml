@@ -249,8 +249,8 @@
     <string name="last_link_prefix">Last link: %s</string>
     <string name="sent_by_prefix">Sent by: %s</string>
     <string name="media_info_title">Media Information</string>
-    <string name="media_info_text_global">These counters only include Photos and Videos exchanged historically.\n\nPlease note: the external buttons show the absolute total ever. However, when entering the gallery, numbers will almost always be lower as only media still physically present on the phone and not deleted over time will be loaded and displayed.</string>
-    <string name="media_info_text_gallery">These counters refer only to current files.\n\nPlease note: the buttons on the previous screen and in the breakdowns show the absolute total of files exchanged ever. However, the gallery calculates and allows you to see only numbers physically present now on the phone, excluding files deleted over time (by you or by automatic cleaners).</string>
+    <string name="media_info_text_global">Counters include Photos and Videos exchanged over time.\n\nButtons show the absolute historical total, while the gallery only loads files still present on the device (deleted files cannot be displayed).</string>
+    <string name="media_info_text_gallery">The gallery only shows files currently on the device. Counters and breakdowns may be higher because they also include media deleted over time.\n\n💡 Tip: long-press on media to select and share them.</string>
     <string name="error_open_file">Could not open file</string>
     <string name="back_to_all_links">← All links</string>
     <string name="avatar_desc">Avatar</string>

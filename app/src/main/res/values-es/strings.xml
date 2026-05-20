@@ -249,8 +249,8 @@
     <string name="last_link_prefix">Último enlace: %s</string>
     <string name="sent_by_prefix">Enviado por: %s</string>
     <string name="media_info_title">Información sobre multimedia</string>
-    <string name="media_info_text_global">Estos contadores incluyen solo las fotos y vídeos intercambiados históricamente.\n\nNota: los botones externos muestran el total absoluto de siempre. Sin embargo, al entrar en la galería los números serán casi siempre inferiores, ya que se cargarán y mostrarán solo los archivos multimedia que aún estén físicamente presentes en el teléfono y no hayan sido eliminados con el tiempo.</string>
-    <string name="media_info_text_gallery">Estos contadores se refieren solo a los archivos actuales.\n\nNota: los botones en la pantalla anterior y en los detalles muestran el total absoluto de archivos intercambiados. Sin embargo, la galería calcula y permite ver solo los que están físicamente presentes ahora en el teléfono, excluyendo los archivos borrados con el tiempo (por ti o por limpiadores automáticos).</string>
+    <string name="media_info_text_global">Los contadores incluyen Fotos y Videos intercambiados en el tiempo.\n\nLos botones muestran el total histórico absoluto, mientras que en la galería solo se cargan los archivos aún presentes en el teléfono (los eliminados no se pueden mostrar).</string>
+    <string name="media_info_text_gallery">La galería muestra solo los archivos actualmente presentes en el teléfono. Los contadores y desgloses pueden ser más altos porque incluyen medios eliminados en el tiempo.\n\n💡 Consejo: mantén presionado sobre los medios para seleccionarlos y compartirlos.</string>
     <string name="error_open_file">No se puede abrir el archivo</string>
     <string name="back_to_all_links">← Todos los enlaces</string>
     <string name="avatar_desc">Avatar</string>
