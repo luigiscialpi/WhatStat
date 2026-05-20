@@ -174,7 +174,7 @@ Le chiavi di cache disponibili:
 
 | Chiave | Contenuto |
 |--------|-----------|
-| `global_stats_v3` | `GlobalStats` (quick stats: conteggi, distribuzioni orarie/settimanali/mensili) |
+| `global_stats_v4` | `GlobalStats` (quick stats: conteggi, distribuzioni orarie/settimanali/mensili) |
 | `global_slow_v4` | Slow stats (top parole, emoji, sticker) |
 | `chat_quick_{id}` | Stats rapide per singola chat |
 | `chat_slow_{id}` | Stats lente per singola chat |

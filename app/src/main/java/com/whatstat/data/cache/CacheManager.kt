@@ -105,17 +105,71 @@ private data class CachedQuickChatStats(
     val monthlyTrend: List<CachedMonthlyCount> = emptyList(),
 )
 
-@Serializable private data class CachedHourlyCount(val hour: Int, val count: Int)
+/**
+ * Modello serializzabile per la cache di HourlyCount.
+ * Mantiene il breakdown dei mittenti per non perdere il dettaglio utenti nelle nuvolette dell'Activity Card.
+ */
+@Serializable
+private data class CachedHourlyCount(
+    val hour: Int,
+    val count: Int,
+    val senderBreakdown: List<CachedSenderStat> = emptyList(),
+)
 
-@Serializable private data class CachedDayCount(val dayOfWeek: Int, val count: Int)
+/**
+ * Modello serializzabile per la cache di DayCount.
+ * Mantiene il breakdown dei mittenti per non perdere il dettaglio utenti nelle nuvolette dell'Activity Card.
+ */
+@Serializable
+private data class CachedDayCount(
+    val dayOfWeek: Int,
+    val count: Int,
+    val senderBreakdown: List<CachedSenderStat> = emptyList(),
+)
 
-@Serializable private data class CachedDayOfMonthCount(val day: Int, val count: Int)
+/**
+ * Modello serializzabile per la cache di DayOfMonthCount.
+ * Mantiene il breakdown dei mittenti per non perdere il dettaglio utenti nelle nuvolette dell'Activity Card.
+ */
+@Serializable
+private data class CachedDayOfMonthCount(
+    val day: Int,
+    val count: Int,
+    val senderBreakdown: List<CachedSenderStat> = emptyList(),
+)
 
-@Serializable private data class CachedMonthOfYearCount(val month: Int, val count: Int)
+/**
+ * Modello serializzabile per la cache di MonthOfYearCount.
+ * Mantiene il breakdown dei mittenti per non perdere il dettaglio utenti nelle nuvolette dell'Activity Card.
+ */
+@Serializable
+private data class CachedMonthOfYearCount(
+    val month: Int,
+    val count: Int,
+    val senderBreakdown: List<CachedSenderStat> = emptyList(),
+)
 
-@Serializable private data class CachedYearTrendCount(val year: Int, val count: Int)
+/**
+ * Modello serializzabile per la cache di YearTrendCount.
+ * Mantiene il breakdown dei mittenti per non perdere il dettaglio utenti nelle nuvolette dell'Activity Card.
+ */
+@Serializable
+private data class CachedYearTrendCount(
+    val year: Int,
+    val count: Int,
+    val senderBreakdown: List<CachedSenderStat> = emptyList(),
+)
 
-@Serializable private data class CachedMonthlyCount(val month: String, val count: Int)
+/**
+ * Modello serializzabile per la cache di MonthlyCount.
+ * Mantiene il breakdown dei mittenti per non perdere il dettaglio utenti nelle nuvolette dell'Activity Card.
+ */
+@Serializable
+private data class CachedMonthlyCount(
+    val month: String,
+    val count: Int,
+    val senderBreakdown: List<CachedSenderStat> = emptyList(),
+)
 
 @Serializable private data class CachedWordFrequency(val word: String, val frequency: Int)
 
@@ -177,6 +231,11 @@ data class MonthlyWordIndexData(
 
 // ── Conversioni domain ↔ cache ───────────────────────────────────
 
+/**
+ * Converte GlobalStats nel rispettivo modello serializzabile per la cache.
+ * Include il mapping dei breakdown per mittente in tutte le distribuzioni orarie, settimanali,
+ * giornaliere, mensili e annuali per prevenire perdita dei dettagli utente.
+ */
 private fun GlobalStats.toCached() =
     CachedGlobalStats(
         totalMessages = totalMessages,
@@ -189,15 +248,54 @@ private fun GlobalStats.toCached() =
         mostActiveDayOfWeek = mostActiveDayOfWeek,
         averageMessagesPerDay = averageMessagesPerDay,
         longestStreak = longestStreak,
-        hourlyDistribution = hourlyDistribution.map { CachedHourlyCount(it.hour, it.count) },
-        weeklyDistribution = weeklyDistribution.map { CachedDayCount(it.dayOfWeek, it.count) },
-        dayOfMonthDistribution = dayOfMonthDistribution.map { CachedDayOfMonthCount(it.day, it.count) },
-        monthOfYearDistribution = monthOfYearDistribution.map { CachedMonthOfYearCount(it.month, it.count) },
-        yearTrendDistribution = yearTrendDistribution.map { CachedYearTrendCount(it.year, it.count) },
+        hourlyDistribution =
+            hourlyDistribution.map { it ->
+                CachedHourlyCount(
+                    hour = it.hour,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> CachedSenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        weeklyDistribution =
+            weeklyDistribution.map { it ->
+                CachedDayCount(
+                    dayOfWeek = it.dayOfWeek,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> CachedSenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        dayOfMonthDistribution =
+            dayOfMonthDistribution.map { it ->
+                CachedDayOfMonthCount(
+                    day = it.day,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> CachedSenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        monthOfYearDistribution =
+            monthOfYearDistribution.map { it ->
+                CachedMonthOfYearCount(
+                    month = it.month,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> CachedSenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        yearTrendDistribution =
+            yearTrendDistribution.map { it ->
+                CachedYearTrendCount(
+                    year = it.year,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> CachedSenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
         topWords = topWords.map { CachedWordFrequency(it.word, it.frequency) },
         topEmojis = topEmojis.map { CachedEmojiStat(it.emoji, it.count) },
     )
 
+/**
+ * Converte il modello CachedGlobalStats nel rispettivo domain model GlobalStats.
+ * Mappa all'indietro tutti i breakdown per mittente salvati per l'uso immediato nell'interfaccia.
+ */
 private fun CachedGlobalStats.toDomain() =
     GlobalStats(
         totalMessages = totalMessages,
@@ -210,11 +308,46 @@ private fun CachedGlobalStats.toDomain() =
         mostActiveDayOfWeek = mostActiveDayOfWeek,
         averageMessagesPerDay = averageMessagesPerDay,
         longestStreak = longestStreak,
-        hourlyDistribution = hourlyDistribution.map { HourlyCount(it.hour, it.count) },
-        weeklyDistribution = weeklyDistribution.map { DayCount(it.dayOfWeek, it.count) },
-        dayOfMonthDistribution = dayOfMonthDistribution.map { DayOfMonthCount(it.day, it.count) },
-        monthOfYearDistribution = monthOfYearDistribution.map { MonthOfYearCount(it.month, it.count) },
-        yearTrendDistribution = yearTrendDistribution.map { YearTrendCount(it.year, it.count) },
+        hourlyDistribution =
+            hourlyDistribution.map { it ->
+                HourlyCount(
+                    hour = it.hour,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> SenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        weeklyDistribution =
+            weeklyDistribution.map { it ->
+                DayCount(
+                    dayOfWeek = it.dayOfWeek,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> SenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        dayOfMonthDistribution =
+            dayOfMonthDistribution.map { it ->
+                DayOfMonthCount(
+                    day = it.day,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> SenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        monthOfYearDistribution =
+            monthOfYearDistribution.map { it ->
+                MonthOfYearCount(
+                    month = it.month,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> SenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        yearTrendDistribution =
+            yearTrendDistribution.map { it ->
+                YearTrendCount(
+                    year = it.year,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> SenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
         topWords = topWords.map { WordFrequency(it.word, it.frequency) },
         topEmojis = topEmojis.map { EmojiStat(it.emoji, it.count) },
     )
@@ -249,6 +382,10 @@ private fun CachedSlowChatStats.toDomain() =
         receivedEmojis = receivedEmojis,
     )
 
+/**
+ * Converte ChatStats nel modello serializzabile rapido CachedQuickChatStats per la cache.
+ * Include il mapping dei breakdown dei mittenti in tutte le distribuzioni temporali.
+ */
 private fun ChatStats.toQuickCached() =
     CachedQuickChatStats(
         contactName = contactName,
@@ -266,14 +403,60 @@ private fun ChatStats.toQuickCached() =
         mediaCount = mediaCount,
         audioCount = audioCount,
         videoCount = videoCount,
-        hourlyDistribution = hourlyDistribution.map { CachedHourlyCount(it.hour, it.count) },
-        weeklyDistribution = weeklyDistribution.map { CachedDayCount(it.dayOfWeek, it.count) },
-        dayOfMonthDistribution = dayOfMonthDistribution.map { CachedDayOfMonthCount(it.day, it.count) },
-        monthOfYearDistribution = monthOfYearDistribution.map { CachedMonthOfYearCount(it.month, it.count) },
-        yearTrendDistribution = yearTrendDistribution.map { CachedYearTrendCount(it.year, it.count) },
-        monthlyTrend = monthlyTrend.map { CachedMonthlyCount(it.month, it.count) },
+        hourlyDistribution =
+            hourlyDistribution.map { it ->
+                CachedHourlyCount(
+                    hour = it.hour,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> CachedSenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        weeklyDistribution =
+            weeklyDistribution.map { it ->
+                CachedDayCount(
+                    dayOfWeek = it.dayOfWeek,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> CachedSenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        dayOfMonthDistribution =
+            dayOfMonthDistribution.map { it ->
+                CachedDayOfMonthCount(
+                    day = it.day,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> CachedSenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        monthOfYearDistribution =
+            monthOfYearDistribution.map { it ->
+                CachedMonthOfYearCount(
+                    month = it.month,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> CachedSenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        yearTrendDistribution =
+            yearTrendDistribution.map { it ->
+                CachedYearTrendCount(
+                    year = it.year,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> CachedSenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        monthlyTrend =
+            monthlyTrend.map { it ->
+                CachedMonthlyCount(
+                    month = it.month,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> CachedSenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
     )
 
+/**
+ * Converte il modello rapido CachedQuickChatStats nel rispettivo domain model ChatStats.
+ * Ripristina i breakdown dei mittenti per ripopolare correttamente le nuvolette dei grafici.
+ */
 private fun CachedQuickChatStats.toDomain(chatId: Long) =
     ChatStats(
         chatId = chatId,
@@ -296,12 +479,54 @@ private fun CachedQuickChatStats.toDomain(chatId: Long) =
         mediaCount = mediaCount,
         audioCount = audioCount,
         videoCount = videoCount,
-        hourlyDistribution = hourlyDistribution.map { HourlyCount(it.hour, it.count) },
-        weeklyDistribution = weeklyDistribution.map { DayCount(it.dayOfWeek, it.count) },
-        dayOfMonthDistribution = dayOfMonthDistribution.map { DayOfMonthCount(it.day, it.count) },
-        monthOfYearDistribution = monthOfYearDistribution.map { MonthOfYearCount(it.month, it.count) },
-        yearTrendDistribution = yearTrendDistribution.map { YearTrendCount(it.year, it.count) },
-        monthlyTrend = monthlyTrend.map { MonthlyCount(it.month, it.count) },
+        hourlyDistribution =
+            hourlyDistribution.map { it ->
+                HourlyCount(
+                    hour = it.hour,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> SenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        weeklyDistribution =
+            weeklyDistribution.map { it ->
+                DayCount(
+                    dayOfWeek = it.dayOfWeek,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> SenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        dayOfMonthDistribution =
+            dayOfMonthDistribution.map { it ->
+                DayOfMonthCount(
+                    day = it.day,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> SenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        monthOfYearDistribution =
+            monthOfYearDistribution.map { it ->
+                MonthOfYearCount(
+                    month = it.month,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> SenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        yearTrendDistribution =
+            yearTrendDistribution.map { it ->
+                YearTrendCount(
+                    year = it.year,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> SenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
+        monthlyTrend =
+            monthlyTrend.map { it ->
+                MonthlyCount(
+                    month = it.month,
+                    count = it.count,
+                    senderBreakdown = it.senderBreakdown.map { s -> SenderStat(s.jid, s.displayName, s.count) },
+                )
+            },
         topWords = emptyList(),
         senderBreakdown = emptyList(),
         conversationStarterBreakdown = emptyList(),
@@ -325,7 +550,9 @@ class CacheManager
         companion object {
             private val KEY_DB_HASH = stringPreferencesKey("db_file_hash")
             private val KEY_LAST_UPDATE = longPreferencesKey("last_cache_update")
-            private val KEY_GLOBAL_STATS = stringPreferencesKey("global_stats_v3")
+
+            // v4: bump per includere il senderBreakdown nelle distribuzioni temporali
+            private val KEY_GLOBAL_STATS = stringPreferencesKey("global_stats_v4")
 
             // v3: bump per rigenerare la cache con pool da 50 words/emoji
             private val KEY_GLOBAL_SLOW = stringPreferencesKey("global_slow_v4")
@@ -479,8 +706,12 @@ class CacheManager
 
         // ── Chat Quick Stats (per chat) ──────────────────────────────
 
+        /**
+         * Recupera le statistiche veloci cached per una singola chat.
+         * Aggiornato a v4 per supportare il breakdown mittenti nelle distribuzioni.
+         */
         suspend fun getChatQuickStats(chatId: Long): ChatStats? {
-            val key = stringPreferencesKey("chat_quick_${chatId}_v3")
+            val key = stringPreferencesKey("chat_quick_${chatId}_v4")
             val json = dataStore.data.first()[key] ?: return null
             return try {
                 cacheJson.decodeFromString<CachedQuickChatStats>(json).toDomain(chatId)
@@ -489,11 +720,15 @@ class CacheManager
             }
         }
 
+        /**
+         * Salva le statistiche veloci per una singola chat nella cache persistente.
+         * Aggiornato a v4 per supportare il breakdown mittenti nelle distribuzioni.
+         */
         suspend fun saveChatQuickStats(
             chatId: Long,
             stats: ChatStats,
         ) {
-            val key = stringPreferencesKey("chat_quick_${chatId}_v3")
+            val key = stringPreferencesKey("chat_quick_${chatId}_v4")
             dataStore.edit { prefs ->
                 prefs[key] = cacheJson.encodeToString(stats.toQuickCached())
             }
@@ -875,8 +1110,8 @@ class CacheManager
             newName: String,
         ) {
             dataStore.edit { prefs ->
-                // 1. Patch Quick Chat Stats
-                val chatKey = stringPreferencesKey("chat_quick_${chatId}_v3")
+                // 1. Patch Quick Chat Stats (v4)
+                val chatKey = stringPreferencesKey("chat_quick_${chatId}_v4")
                 prefs[chatKey]?.let { json ->
                     try {
                         val cached = cacheJson.decodeFromString<CachedQuickChatStats>(json)
@@ -886,8 +1121,8 @@ class CacheManager
                     }
                 }
 
-                // 2. Patch Global Stats (se la chat rinominata e' la piu' attiva)
-                val globalKey = stringPreferencesKey("global_stats_v3")
+                // 2. Patch Global Stats (v4, se la chat rinominata e' la piu' attiva)
+                val globalKey = stringPreferencesKey("global_stats_v4")
                 prefs[globalKey]?.let { json ->
                     try {
                         val cached = cacheJson.decodeFromString<CachedGlobalStats>(json)
