@@ -1,38 +1,37 @@
-<!-- code-review-graph MCP tools -->
-## MCP Tools: code-review-graph
+# Agent Rules — WhatStat
 
-**IMPORTANT: This project has a knowledge graph. ALWAYS use the
-code-review-graph MCP tools BEFORE using Grep/Glob/Read to explore
-the codebase.** The graph is faster, cheaper (fewer tokens), and gives
-you structural context (callers, dependents, test coverage) that file
-scanning cannot.
+## Stack
+Android nativo, Kotlin, Jetpack Compose, SQLite (Room + query raw), Hilt, DataStore, Coroutines/Flow, Coil, kotlinx.serialization, Jetpack Navigation Compose.
 
-### When to use graph tools FIRST
+## Architettura
+- Pattern MVVM: Screen → ViewModel → Repository → DAO
+- Routing Root vs Lite trasparente via `ActiveDatabaseProvider` — niente `if (isLite)` nei DAO
+- Cache: `CacheManager` con DataStore Preferences, namespace separati `stats_cache_root` / `stats_cache_lite`
+- Navigazione: 3 livelli di grafi annidati in `AppNavigation.kt`
 
-- **Exploring code**: `semantic_search_nodes` or `query_graph` instead of Grep
-- **Understanding impact**: `get_impact_radius` instead of manually tracing imports
-- **Code review**: `detect_changes` + `get_review_context` instead of reading entire files
-- **Finding relationships**: `query_graph` with callers_of/callees_of/imports_of/tests_for
-- **Architecture questions**: `get_architecture_overview` + `list_communities`
+## Regole Inderogabili
+- Leggi `README.md` (indice) prima di qualsiasi task. Approfondisci solo le sezioni necessarie.
+- Applica Divide et Impera. Mai blocchi monolitici.
+- Mai auto-committare senza permesso esplicito. Commit in inglese.
+- No emoji. ASCII only.
+- Niente query pesanti sul main thread. Usa `StateFlow` e `CacheManager`.
+- Rispetta sempre `ktlint` (`./gradlew ktlintCheck`).
 
-Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
+## Quirk Critici del DB
+- `sender_jid_row_id = 0` nelle chat 1-a-1. Niente JOIN dirette. Usa `from_me` + JOIN su `chat` → `jid`.
+- L'utente corrente è `me@s.whatsapp.net`, mappato a "Tu" in `AnalyticsRepository`.
+- Tutti i timestamp sono UTC. Conversione locale con `datetime(..., 'localtime')` in SQLite.
+- Chat 1-a-1 vs gruppo: `jid.contains("@g.us")`.
 
-### Key Tools
+## Stile Comunicazione
+1. Caveman compression: elimina articoli, congiunzioni, avverbi inutili
+2. Max 2-5 parole per frase. Un concetto per frase.
+3. Forma attiva. "calcola valore" non "il valore viene calcolato"
+4. Verbi d'azione: fai, crea, correggi, controlla, esegui, aggiungi
+5. In dubbio: mantieni più informazioni anziché meno
 
-| Tool | Use when |
-|------|----------|
-| `detect_changes` | Reviewing code changes — gives risk-scored analysis |
-| `get_review_context` | Need source snippets for review — token-efficient |
-| `get_impact_radius` | Understanding blast radius of a change |
-| `get_affected_flows` | Finding which execution paths are impacted |
-| `query_graph` | Tracing callers, callees, imports, tests, dependencies |
-| `semantic_search_nodes` | Finding functions/classes by name or keyword |
-| `get_architecture_overview` | Understanding high-level codebase structure |
-| `refactor_tool` | Planning renames, finding dead code |
-
-### Workflow
-
-1. The graph auto-updates on file changes (via hooks).
-2. Use `detect_changes` for code review.
-3. Use `get_affected_flows` to understand impact.
-4. Use `query_graph` pattern="tests_for" to check coverage.
+## Non Comprimere Mai
+- Blocchi di codice (sintassi e nomi variabili intatti)
+- Messaggi di errore (verbatim)
+- Percorsi file e URL (verbatim)
+- Valori tecnici: nomi DAO, chiavi DataStore, route di navigazione, soglie numeriche

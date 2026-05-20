@@ -1118,10 +1118,5 @@ La Lite Mode ha un proprio grafo di navigazione `NavGraphRoute.Lite`, con la ste
 
 ## 18. Linee Guida per Assistenti AI
 
-Queste regole sono vincolanti per qualsiasi AI che operi sul progetto:
-
-1. **Esplorazione**: Leggi sempre l'indice di questo `README.md` per primo. Usalo come mappa. Approfondisci solo le sezioni necessarie al task.
-2. **Interazione**: Applica "Divide et Impera". Vieta blocchi monolitici. **MAI** auto-committare senza permesso esplicito. Quando autorizzato, usa messaggi di commit in **Inglese**. Usa solo ASCII, niente emoji. Risposte concise e dirette.
-3. **Root vs Lite**: Niente `if (isLite)` nei DAO. Routing trasparente via `ActiveDatabaseProvider`.
-4. **Chat 1-a-1**: In WhatsApp, `sender_jid_row_id` è `0` nelle chat dirette. Niente `JOIN` dirette. Usa `from_me` e fai JOIN su `chat` e `jid` per trovare l'interlocutore. Tu sei `me@s.whatsapp.net`.
-5. **Prestazioni e UI**: Usa UDF in Jetpack Compose. Niente query pesanti nel main thread. Usa `CacheManager` (DataStore) e `StateFlow`. Rispetta sempre `ktlint` (`./gradlew ktlintCheck`).
+Le regole operative per gli assistenti AI sono definite in `AGENTS.md` nella root del progetto.
+Quel file è la fonte di verità — questa sezione è deprecata.
