@@ -153,7 +153,7 @@
     <string name="chatdetail_received">प्राप्त</string>
     <string name="chatdetail_top_sender_title">सबसे अधिक कौन लिखता है</string>
     <string name="top_senders_info_title">इस चार्ट के बारे में</string>
-    <string name="top_senders_info_desc">यह पाई चार्ट दिखाता है कि इस चैट के प्रतिभागियों के बीच संदेश कैसे वितरित हैं।\n\nसुझाव: किसी नाम के पास रंगीन चौकोर पर टैप करके उस प्रतिभागी के लिए कस्टम रंग चुनें।</string>
+    <string name="top_senders_info_desc">यह पाई चार्ट दिखाता है कि इस चैट के प्रतिभागियों के बीच संदेश कैसे वितरित हैं।\n\n💡 सुझाव: किसी नाम के पास रंगीन चौकोर पर टैप करके उस प्रतिभागी के लिए कस्टम रंग चुनें।</string>
     <string name="fallback_them">वे</string>
     <string name="fallback_me">आप</string>
     <string name="activity_period_label">गतिविधि अवधि</string>
@@ -167,7 +167,7 @@
     <string name="conv_starters_center">बातचीत</string>
     <string name="view_mode_all">सभी</string>
     <string name="view_mode_person">व्यक्ति के अनुसार</string>
-    <string name="conv_starters_info">एक नई बातचीत तब गिनी जाती है जब पिछले संदेश के बाद कम से कम 3 घंटे की चुप्पी के बाद कोई संदेश भेजा जाता है।\n\nसुझाव: किसी नाम के पास रंगीन चौकोर पर टैप करके उस प्रतिभागी का रंग बदलें।</string>
+    <string name="conv_starters_info">एक नई बातचीत तब गिनी जाती है जब पिछले संदेश के बाद कम से कम 3 घंटे की चुप्पी के बाद कोई संदेश भेजा जाता है।\n\n💡 सुझाव: किसी नाम के पास रंगीन चौकोर पर टैप करके उस प्रतिभागी का रंग बदलें।</string>
 
     <!-- Action Cards -->
     <string name="radar_parole_title">शब्द रडार</string>

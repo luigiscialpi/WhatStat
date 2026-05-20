@@ -153,7 +153,7 @@
     <string name="chatdetail_received">Alınan</string>
     <string name="chatdetail_top_sender_title">En çok kim yazıyor</string>
     <string name="top_senders_info_title">Bu grafik hakkında</string>
-    <string name="top_senders_info_desc">Bu pasta grafik, mesajların bu sohbetteki katılımcılar arasında nasıl dağıldığını gösterir.\n\nİpucu: Bir katılımcı için özel bir renk seçmek üzere adın yanındaki renkli kareye dokunun.</string>
+    <string name="top_senders_info_desc">Bu pasta grafik, mesajların bu sohbetteki katılımcılar arasında nasıl dağıldığını gösterir.\n\n💡 İpucu: Bir katılımcı için özel bir renk seçmek üzere adın yanındaki renkli kareye dokunun.</string>
     <string name="fallback_them">Onlar</string>
     <string name="fallback_me">Sen</string>
     <string name="activity_period_label">Aktivite dönemi</string>
@@ -167,7 +167,7 @@
     <string name="conv_starters_center">konuşma</string>
     <string name="view_mode_all">Tümü</string>
     <string name="view_mode_person">Kişiye göre</string>
-    <string name="conv_starters_info">Bir önceki mesajdan sonra en az 3 saat sessizliğin ardından mesaj gönderildiğinde yeni bir konuşma sayılır.\n\nİpucu: O katılımcının rengini özelleştirmek için adın yanındaki renkli kareye dokunun.</string>
+    <string name="conv_starters_info">Bir önceki mesajdan sonra en az 3 saat sessizliğin ardından mesaj gönderildiğinde yeni bir konuşma sayılır.\n\n💡 İpucu: O katılımcının rengini özelleştirmek için adın yanındaki renkli kareye dokunun.</string>
 
     <!-- Action Cards -->
     <string name="radar_parole_title">Kelime Radarı</string>

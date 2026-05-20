@@ -153,7 +153,7 @@
     <string name="chatdetail_received">Recebidas</string>
     <string name="chatdetail_top_sender_title">Quem escreve mais</string>
     <string name="top_senders_info_title">Sobre este gráfico</string>
-    <string name="top_senders_info_desc">Este gráfico de pizza mostra como as mensagens estão distribuídas entre os participantes desta conversa.\n\nDica: toque no quadrado colorido ao lado de um nome para escolher uma cor personalizada para esse participante.</string>
+    <string name="top_senders_info_desc">Este gráfico de pizza mostra como as mensagens estão distribuídas entre os participantes desta conversa.\n\n💡 Dica: toque no quadrado colorido ao lado de um nome para escolher uma cor personalizada para esse participante.</string>
     <string name="fallback_them">Eles</string>
     <string name="fallback_me">Você</string>
     <string name="activity_period_label">Período de atividade</string>
@@ -167,7 +167,7 @@
     <string name="conv_starters_center">conversas</string>
     <string name="view_mode_all">Todos</string>
     <string name="view_mode_person">Por pessoa</string>
-    <string name="conv_starters_info">Uma nova conversa é contada quando uma mensagem é enviada após pelo menos 3 horas de silêncio desde a última mensagem anterior.\n\nDica: toque no quadrado colorido ao lado de um nome para personalizar a cor desse participante.</string>
+    <string name="conv_starters_info">Uma nova conversa é contada quando uma mensagem é enviada após pelo menos 3 horas de silêncio desde a última mensagem anterior.\n\n💡 Dica: toque no quadrado colorido ao lado de um nome para personalizar a cor desse participante.</string>ng>
 
     <!-- Action Cards -->
     <string name="radar_parole_title">Radar de palavras</string>

@@ -186,7 +186,7 @@
     <string name="chatdetail_received">Received</string>
     <string name="chatdetail_top_sender_title">Who writes most</string>
     <string name="top_senders_info_title">About this chart</string>
-    <string name="top_senders_info_desc">This pie chart shows how messages are distributed among participants in this chat.\n\nTip: tap the colored square next to a name to choose a custom color for that participant.</string>
+    <string name="top_senders_info_desc">This pie chart shows how messages are distributed among participants in this chat.\n\n💡 Tip: tap the colored square next to a name to choose a custom color for that participant.</string>
     <string name="fallback_them">Them</string>
     <string name="fallback_me">You</string>
     <string name="activity_period_label">Activity period</string>
@@ -200,7 +200,7 @@
     <string name="conv_starters_center">conversations</string>
     <string name="view_mode_all">All</string>
     <string name="view_mode_person">Per Person</string>
-    <string name="conv_starters_info">A new conversation is counted when a message is sent after at least 3 hours of silence from the previous message.\n\nTip: tap the colored square next to a name to customize that participant color.</string>
+    <string name="conv_starters_info">A new conversation is counted when a message is sent after at least 3 hours of silence from the previous message.\n\n💡 Tip: tap the colored square next to a name to customize that participant color.</string>
     
     <!-- Action Cards -->
     <string name="radar_parole_title">Word Radar</string>

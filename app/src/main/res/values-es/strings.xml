@@ -153,7 +153,7 @@
     <string name="chatdetail_received">Recibidos</string>
     <string name="chatdetail_top_sender_title">Quién escribe más</string>
     <string name="top_senders_info_title">Acerca de este gráfico</string>
-    <string name="top_senders_info_desc">Este gráfico circular muestra cómo se distribuyen los mensajes entre los participantes de este chat.\n\nConsejo: toca el cuadrado de color junto a un nombre para elegir un color personalizado para ese participante.</string>
+    <string name="top_senders_info_desc">Este gráfico circular muestra cómo se distribuyen los mensajes entre los participantes de este chat.\n\n💡 Consejo: toca el cuadrado de color junto a un nombre para elegir un color personalizado para ese participante.</string>
     <string name="fallback_them">Ellos</string>
     <string name="fallback_me">Tú</string>
     <string name="activity_period_label">Período de actividad</string>
@@ -167,7 +167,7 @@
     <string name="conv_starters_center">conversaciones</string>
     <string name="view_mode_all">Todos</string>
     <string name="view_mode_person">Por persona</string>
-    <string name="conv_starters_info">Se cuenta una nueva conversación cuando se envía un mensaje tras al menos 3 horas de silencio respecto al último mensaje anterior.\n\nConsejo: toca el cuadrado de color junto a un nombre para personalizar el color de ese participante.</string>
+    <string name="conv_starters_info">Se cuenta una nueva conversación cuando se envía un mensaje tras al menos 3 horas de silencio respecto al último mensaje anterior.\n\n💡 Consejo: toca el cuadrado de color junto a un nombre para personalizar el color de ese participante.</string>
 
     <!-- Action Cards -->
     <string name="radar_parole_title">Radar de palabras</string>

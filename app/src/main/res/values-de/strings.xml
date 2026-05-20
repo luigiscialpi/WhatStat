@@ -153,7 +153,7 @@
     <string name="chatdetail_received">Empfangen</string>
     <string name="chatdetail_top_sender_title">Wer schreibt am meisten</string>
     <string name="top_senders_info_title">Informationen zu diesem Diagramm</string>
-    <string name="top_senders_info_desc">Dieses Kreisdiagramm zeigt, wie die Nachrichten unter den Teilnehmenden dieses Chats verteilt sind.\n\nTipp: Tippe auf das farbige Quadrat neben einem Namen, um für diese Person eine benutzerdefinierte Farbe zu wählen.</string>
+    <string name="top_senders_info_desc">Dieses Kreisdiagramm zeigt, wie die Nachrichten unter den Teilnehmenden dieses Chats verteilt sind.\n\n💡 Tipp: Tippe auf das farbige Quadrat neben einem Namen, um für diese Person eine benutzerdefinierte Farbe zu wählen.</string>
     <string name="fallback_them">Sie</string>
     <string name="fallback_me">Du</string>
     <string name="activity_period_label">Aktivitätszeitraum</string>
@@ -167,7 +167,7 @@
     <string name="conv_starters_center">Gespräche</string>
     <string name="view_mode_all">Alle</string>
     <string name="view_mode_person">Pro Person</string>
-    <string name="conv_starters_info">Ein neues Gespräch wird gezählt, wenn eine Nachricht nach mindestens 3 Stunden Stille seit der letzten Nachricht gesendet wird.\n\nTipp: Tippe auf das farbige Quadrat neben einem Namen, um die Farbe dieser Person anzupassen.</string>
+    <string name="conv_starters_info">Ein neues Gespräch wird gezählt, wenn eine Nachricht nach mindestens 3 Stunden Stille seit der letzten Nachricht gesendet wird.\n\n💡 Tipp: Tippe auf das farbige Quadrat neben einem Namen, um die Farbe dieser Person anzupassen.</string>
 
     <!-- Action Cards -->
     <string name="radar_parole_title">Wort-Radar</string>
