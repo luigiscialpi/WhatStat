@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Search
@@ -47,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +79,7 @@ import com.whatstat.ui.component.MilestonePredictionCard
 import com.whatstat.ui.component.StatCard
 import com.whatstat.ui.component.StickerPreviewModal
 import com.whatstat.ui.component.TimeRangeFilterRow
+import kotlinx.coroutines.launch
 import java.io.File
 
 @Composable
@@ -155,11 +158,20 @@ fun DashboardScreen(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column {
+                val drawerState = com.whatstat.ui.component.LocalDrawerState.current
+                val scope = rememberCoroutineScope()
+                IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                    Icon(
+                        Icons.Default.Menu,
+                        contentDescription = "Menu",
+                        tint = MaterialTheme.colorScheme.onBackground,
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         stringResource(R.string.dashboard_title),
                         style = MaterialTheme.typography.titleLarge,
@@ -181,11 +193,13 @@ fun DashboardScreen(
                         }
                     }
                 }
+
                 // Back button: torna a SetupScreen in entrambi i modi
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.back_button_desc),
+                        tint = MaterialTheme.colorScheme.onBackground,
                     )
                 }
             }

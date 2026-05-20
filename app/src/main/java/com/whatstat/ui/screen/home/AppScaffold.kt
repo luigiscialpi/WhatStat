@@ -2,11 +2,17 @@ package com.whatstat.ui.screen.home
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
+import com.whatstat.ui.component.AppDrawerContent
+import com.whatstat.ui.component.LocalDrawerState
 import com.whatstat.ui.navigation.BottomNavigationBar
 import com.whatstat.ui.navigation.NavGraphRoute
 
@@ -27,18 +33,27 @@ fun AppScaffold(
                 destination.route == NavGraphRoute.ROOT || destination.route == NavGraphRoute.LITE
             } == true && !isLiteImportRoute
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0),
-        bottomBar = {
-            if (showBottomBar) {
-                BottomNavigationBar(
-                    navController = navController,
-                    currentDestination = currentDestination,
-                    isLiteMode = isLiteMode,
-                )
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
+    CompositionLocalProvider(LocalDrawerState provides drawerState) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = { AppDrawerContent() },
+        ) {
+            Scaffold(
+                contentWindowInsets = WindowInsets(0),
+                bottomBar = {
+                    if (showBottomBar) {
+                        BottomNavigationBar(
+                            navController = navController,
+                            currentDestination = currentDestination,
+                            isLiteMode = isLiteMode,
+                        )
+                    }
+                },
+            ) { innerPadding ->
+                content(innerPadding)
             }
-        },
-    ) { innerPadding ->
-        content(innerPadding)
+        }
     }
 }

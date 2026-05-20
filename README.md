@@ -687,6 +687,25 @@ Il `NavHost` è strutturato con grafi annidati: un grafo Setup e un grafo Main c
 
 Il `ChatDetailScreen` espone 3 card azione (Radar, Chiamate, Media) disposte in una riga orizzontale 1x3.
 
+### Hamburger menu e navigation drawer
+
+Tutte le schermate di primo livello espongono l'icona hamburger (`Icons.Default.Menu`) in alto a sinistra per aprire il `ModalNavigationDrawer` (componente `AppDrawer.kt`). Il `DrawerState` è iniettato nel composition tree da `AppScaffold` tramite `CompositionLocalProvider(LocalDrawerState provides drawerState)`.
+
+Le schermate di dettaglio (back stack secondario) mostrano invece il pulsante freccia indietro (`ArrowBack`).
+
+**Implementazione per schermata**:
+
+| Schermata | Meccanismo hamburger |
+|-----------|---------------------|
+| `SetupScreen` | `IconButton` con `LocalDrawerState.current` + `zIndex(1f)` per stare sopra al `Column` centrale |
+| `DashboardScreen` | `IconButton` inline nell'header personalizzato |
+| `ChatListScreen` | `SimpleScreenHeader(onBack = null)` — mostra hamburger quando `onBack` è null |
+| `MediaStatsScreen` (tab globale) | `SimpleScreenHeader(onBack = null)` |
+| `CallsStatsScreen` (tab globale) | `SimpleScreenHeader(onBack = null)` |
+| `WordSearchScreen` (tab globale) | `SimpleScreenHeader(onBack = null)` |
+
+`SimpleScreenHeader` gestisce automaticamente il toggle hamburger/back: se `onBack != null` mostra la freccia, altrimenti l'hamburger che apre il drawer via `LocalDrawerState`.
+
 ### Protezione back button: DoubleBackToExitHandler
 
 **File**: `ui/component/DoubleBackToExitHandler.kt`

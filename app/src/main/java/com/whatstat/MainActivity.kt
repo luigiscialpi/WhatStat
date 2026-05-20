@@ -3,6 +3,7 @@ package com.whatstat
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -10,18 +11,26 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.rememberNavController
 import com.whatstat.data.repository.WhatsAppRepository
+import com.whatstat.data.store.ThemeMode
 import com.whatstat.ui.MainViewModel
 import com.whatstat.ui.navigation.appNavigation
 import com.whatstat.ui.theme.WhatStatTheme
 import com.whatstat.util.DebugLogManager
 import dagger.hilt.android.AndroidEntryPoint
+import java.util.Locale
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -47,14 +56,49 @@ class MainActivity : ComponentActivity() {
         intent?.let { handleIncomingIntent(it) }
 
         setContent {
-            WhatStatTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    val navController = rememberNavController()
-                    appNavigation(
-                        navController = navController,
-                        repository = repository,
-                        mainViewModel = mainViewModel,
-                    )
+            val themeMode by mainViewModel.themeMode.collectAsState()
+            val darkTheme =
+                when (themeMode) {
+                    ThemeMode.DARK -> true
+                    ThemeMode.LIGHT -> false
+                    ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                }
+
+            val appLanguage by mainViewModel.appLanguage.collectAsState()
+            val context = LocalContext.current
+            val currentLocale =
+                if (appLanguage == "system") {
+                    Locale.getDefault()
+                } else {
+                    Locale(appLanguage)
+                }
+
+            val configuration = Configuration(context.resources.configuration)
+            configuration.setLocale(currentLocale)
+            val localizedContext = context.createConfigurationContext(configuration)
+
+            // Usa un ContextWrapper per mantenere il riferimento all'Activity per Hilt,
+            // altrimenti hiltViewModel() crasha trovando un ContextImpl.
+            val activityContextWrapper =
+                object : android.content.ContextWrapper(context) {
+                    override fun getResources(): android.content.res.Resources {
+                        return localizedContext.resources
+                    }
+                }
+
+            CompositionLocalProvider(
+                LocalContext provides activityContextWrapper,
+                LocalConfiguration provides configuration,
+            ) {
+                WhatStatTheme(darkTheme = darkTheme) {
+                    Surface(modifier = Modifier.fillMaxSize()) {
+                        val navController = rememberNavController()
+                        appNavigation(
+                            navController = navController,
+                            repository = repository,
+                            mainViewModel = mainViewModel,
+                        )
+                    }
                 }
             }
         }

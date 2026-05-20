@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstat.R
+import kotlinx.coroutines.launch
 
 @Composable
 @Suppress("FunctionName")
@@ -56,8 +58,15 @@ fun SimpleScreenHeader(
                 )
             }
         } else {
-            // Keep the same leading slot size as IconButton to preserve vertical rhythm.
-            Spacer(modifier = Modifier.size(48.dp))
+            val drawerState = com.whatstat.ui.component.LocalDrawerState.current
+            val scope = androidx.compose.runtime.rememberCoroutineScope()
+            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                Icon(
+                    androidx.compose.material.icons.Icons.Default.Menu,
+                    contentDescription = "Menu",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                )
+            }
         }
 
         if (subtitle != null) {
