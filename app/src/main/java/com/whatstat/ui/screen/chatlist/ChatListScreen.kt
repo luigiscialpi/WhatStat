@@ -20,10 +20,12 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Group
@@ -96,6 +98,13 @@ fun ChatListScreen(
     // Stato dialogo rinomina
     var chatToRename by remember { mutableStateOf<ChatListItem?>(null) }
 
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(searchQuery) {
+        // Riporta lo scroll all'inizio quando la ricerca cambia o viene azzerata
+        listState.scrollToItem(0)
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier =
@@ -125,6 +134,17 @@ fun ChatListScreen(
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                            Icon(
+                                Icons.Outlined.Clear,
+                                contentDescription = stringResource(R.string.cancel),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 },
                 singleLine = true,
                 modifier =
@@ -158,6 +178,7 @@ fun ChatListScreen(
                 ChatListSkeletonContent(modifier = Modifier.fillMaxSize())
             } else {
                 LazyColumn(
+                    state = listState,
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
