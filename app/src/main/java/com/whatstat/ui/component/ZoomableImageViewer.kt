@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,6 +58,9 @@ fun ZoomableImageGallery(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+
+    // Debounce per evitare multipli click rapidi sul tasto share (previene menu di condivisione duplicati)
+    var lastShareClickTime by remember { mutableStateOf(0L) }
 
     val imageLoader =
         remember(context) {
@@ -139,7 +143,16 @@ fun ZoomableImageGallery(
         ) {
             Row {
                 if (onShare != null) {
-                    IconButton(onClick = { onShare(filePaths[pagerState.currentPage]) }) {
+                    IconButton(
+                        onClick = {
+                            val currentTime = System.currentTimeMillis()
+                            // Soglia di 1.5 secondi per evitare l'apertura di molteplici dialog di condivisione
+                            if (currentTime - lastShareClickTime > 1500L) {
+                                lastShareClickTime = currentTime
+                                onShare(filePaths[pagerState.currentPage])
+                            }
+                        },
+                    ) {
                         Icon(
                             imageVector = Icons.Outlined.Share,
                             contentDescription = "Condividi",

@@ -1,5 +1,6 @@
 package com.whatstat.ui.screen.media
 
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -495,6 +496,9 @@ private fun MediaGallerySheet(
     val selectedMedia = remember { mutableStateListOf<MediaStat>() }
     val context = LocalContext.current
 
+    // Debounce per evitare multipli click rapidi sul tasto share (previene menu di condivisione duplicati)
+    var lastShareClickTime by remember { mutableStateOf(0L) }
+
     val imageLoader =
         remember(context) {
             ImageLoader.Builder(context)
@@ -557,17 +561,28 @@ private fun MediaGallerySheet(
                 )
                 IconButton(
                     onClick = {
-                        scope.launch {
-                            val uris = selectedMedia.mapNotNull { getShareableUri(context, it.filePath) }
-                            if (uris.isNotEmpty()) {
-                                val shareIntent =
-                                    Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-                                        type = "*/*"
-                                        putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                context.startActivity(Intent.createChooser(shareIntent, "Condividi media"))
-                                selectedMedia.clear()
+                        val currentTime = System.currentTimeMillis()
+                        // Soglia di 1.5 secondi per evitare l'apertura di molteplici dialog di condivisione
+                        if (currentTime - lastShareClickTime > 1500L) {
+                            lastShareClickTime = currentTime
+                            scope.launch {
+                                val uris = selectedMedia.mapNotNull { getShareableUri(context, it.filePath) }
+                                if (uris.isNotEmpty()) {
+                                    val shareIntent =
+                                        Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                                            type = "*/*"
+                                            putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+                                            // Aggiunta ClipData per concedere permessi lettura per l'anteprima di sistema
+                                            val clip = ClipData.newRawUri("", uris.first())
+                                            for (i in 1 until uris.size) {
+                                                clip.addItem(ClipData.Item(uris[i]))
+                                            }
+                                            clipData = clip
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Condividi media"))
+                                    selectedMedia.clear()
+                                }
                             }
                         }
                     },
@@ -958,17 +973,24 @@ private fun MediaGallerySheet(
                 initialIndex = if (index >= 0) index else 0,
                 onDismiss = { selectedImageForPreview = null },
                 onShare = { pathToShare ->
-                    scope.launch {
-                        val uri = getShareableUri(context, pathToShare)
-                        if (uri != null) {
-                            val mimeType = currentFiles.find { it.filePath == pathToShare }?.mimeType ?: "image/*"
-                            val shareIntent =
-                                Intent(Intent.ACTION_SEND).apply {
-                                    type = mimeType
-                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                            context.startActivity(Intent.createChooser(shareIntent, null))
+                    val currentTime = System.currentTimeMillis()
+                    // Soglia di 1.5 secondi per evitare l'apertura di molteplici dialog di condivisione
+                    if (currentTime - lastShareClickTime > 1500L) {
+                        lastShareClickTime = currentTime
+                        scope.launch {
+                            val uri = getShareableUri(context, pathToShare)
+                            if (uri != null) {
+                                val mimeType = currentFiles.find { it.filePath == pathToShare }?.mimeType ?: "image/*"
+                                val shareIntent =
+                                    Intent(Intent.ACTION_SEND).apply {
+                                        type = mimeType
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        // Aggiunta ClipData per concedere permessi lettura per l'anteprima di sistema
+                                        clipData = ClipData.newRawUri("", uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                context.startActivity(Intent.createChooser(shareIntent, null))
+                            }
                         }
                     }
                 },
