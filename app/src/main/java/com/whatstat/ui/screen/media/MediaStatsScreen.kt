@@ -107,6 +107,7 @@ import com.whatstat.data.db.model.LinkStat
 import com.whatstat.data.db.model.MediaStat
 import com.whatstat.ui.component.AutoMarquee
 import com.whatstat.ui.component.ContactNameWithPhone
+import com.whatstat.ui.component.DynamicLoadingPill
 import com.whatstat.ui.component.LoadingSection
 import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
@@ -470,6 +471,28 @@ fun mediaStatsScreen(
                 Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 20.dp, bottom = 24.dp),
+        )
+        // ── LOADER PILLS ─────────────────────────
+        DynamicLoadingPill(
+            isVisible = isDomainLoading,
+            message = stringResource(R.string.loading_domains),
+            progress = progressDomains,
+            onCancel = { viewModel.cancelDomainStatsLoad() },
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp),
+        )
+
+        DynamicLoadingPill(
+            isVisible = isMediaGalleryLoading,
+            message = stringResource(R.string.loading_media_gallery),
+            progress = progressMediaGallery,
+            onCancel = { viewModel.cancelMediaGalleryLoad() },
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp),
         )
     } // fine Box
 } // fine MediaStatsScreen
@@ -1515,6 +1538,8 @@ private fun DomainBreakdownSheet(
         }
     }
 }
+
+// ── END OF FILE ─────────────────────────
 
 private suspend fun getShareableUri(
     context: Context,

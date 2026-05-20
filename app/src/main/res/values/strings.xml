@@ -46,6 +46,9 @@
     <string name="exit_toast">Press again to exit</string>
     <string name="processing">Processing…</string>
     <string name="loading">Loading…</string>
+    <string name="loading_domains">Calculating domains…</string>
+    <string name="loading_media_gallery">Loading gallery…</string>
+    <string name="loading_messages_preview">Loading preview…</string>
     <string name="show_more">Show all</string>
     <string name="show_more_with_count">Show all (%d)</string>
     <string name="show_less">Show less</string>

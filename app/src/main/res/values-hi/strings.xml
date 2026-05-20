@@ -13,6 +13,9 @@
     <string name="exit_toast">बाहर निकलने के लिए फिर से दबाएं</string>
     <string name="processing">प्रोसेसिंग हो रही है…</string>
     <string name="loading">लोड हो रहा है…</string>
+    <string name="loading_domains">डोमेन की गणना की जा रही है…</string>
+    <string name="loading_media_gallery">गैलरी लोड हो रही है…</string>
+    <string name="loading_messages_preview">पूर्वावलोकन लोड हो रहा है…</string>
     <string name="show_more">सभी दिखाएं</string>
     <string name="show_more_with_count">सभी दिखाएं (%d)</string>
     <string name="show_less">कम दिखाएं</string>

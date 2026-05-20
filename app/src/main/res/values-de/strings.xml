@@ -13,6 +13,9 @@
     <string name="exit_toast">Erneut drücken zum Beenden</string>
     <string name="processing">Verarbeitung läuft…</string>
     <string name="loading">Laden…</string>
+    <string name="loading_domains">Berechne Domains…</string>
+    <string name="loading_media_gallery">Lade Galerie…</string>
+    <string name="loading_messages_preview">Lade Vorschau…</string>
     <string name="show_more">Alle anzeigen</string>
     <string name="show_more_with_count">Alle anzeigen (%d)</string>
     <string name="show_less">Weniger anzeigen</string>

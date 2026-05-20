@@ -1368,6 +1368,8 @@ class AnalyticsRepository
                     }
                 }
 
+                onProgress(100)
+
                 domainCounts.map { (domain, count) ->
                     val topUrls =
                         domainUrls[domain]

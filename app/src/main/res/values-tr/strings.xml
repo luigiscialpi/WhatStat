@@ -13,6 +13,9 @@
     <string name="exit_toast">Çıkmak için tekrar basın</string>
     <string name="processing">İşleniyor…</string>
     <string name="loading">Yükleniyor…</string>
+    <string name="loading_domains">Alan adları hesaplanıyor…</string>
+    <string name="loading_media_gallery">Galeri yükleniyor…</string>
+    <string name="loading_messages_preview">Önizleme yükleniyor…</string>
     <string name="show_more">Tümünü göster</string>
     <string name="show_more_with_count">Tümünü göster (%d)</string>
     <string name="show_less">Daha az göster</string>

@@ -82,6 +82,7 @@ import coil.request.ImageRequest
 import com.whatstat.R
 import com.whatstat.data.db.model.WordMessageResult
 import com.whatstat.ui.component.ContactNameWithPhone
+import com.whatstat.ui.component.DynamicLoadingPill
 import com.whatstat.ui.component.LoadingSection
 import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
@@ -136,353 +137,373 @@ fun WordSearchScreen(
 
     val isChatSpecific = chatId != null
 
-    Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .statusBarsPadding(),
-    ) {
-        SimpleScreenHeader(
-            title = stringResource(R.string.radar_parole_title),
-            onBack = if (isChatSpecific) onNavigateBack else null,
-            subtitle = chatContextName,
-            avatarPath = chatContextAvatarPath,
-        )
-
-        Box(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
             modifier =
                 Modifier
-                    .fillMaxWidth()
-                    .height(4.dp),
+                    .fillMaxSize()
+                    .statusBarsPadding(),
         ) {
-            if (isLoading || isSearching) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-        }
+            SimpleScreenHeader(
+                title = stringResource(R.string.radar_parole_title),
+                onBack = if (isChatSpecific) onNavigateBack else null,
+                subtitle = chatContextName,
+                avatarPath = chatContextAvatarPath,
+            )
 
-        TimeRangeFilterRow(
-            selectedRange = selectedRange,
-            onRangeSelected = { viewModel.setTimeRange(it) },
-            customDateRange = customDateRange,
-            onDateRangeChanged = { viewModel.setCustomDateRange(it) },
-            minDate = firstMessageTimestamp,
-        )
-
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { viewModel.onSearchQueryChange(it) },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text(stringResource(R.string.word_search_placeholder)) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.Search,
-                        contentDescription = null,
-                    )
-                },
-                shape = RoundedCornerShape(16.dp),
-                singleLine = true,
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                            Icon(Icons.Outlined.Clear, contentDescription = stringResource(R.string.cancel))
-                        }
-                    }
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions =
-                    KeyboardActions(
-                        onSearch = {
-                            keyboardController?.hide()
-                            viewModel.startSearch()
-                        },
-                    ),
-            )
-            if (searchQuery.isNotEmpty()) {
-                FilledTonalButton(
-                    onClick = {
-                        if (isSearching) {
-                            viewModel.cancelSearch()
-                        } else {
-                            viewModel.startSearch()
-                        }
-                    },
-                    modifier = Modifier.padding(start = 8.dp),
-                    colors =
-                        androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-                            containerColor =
-                                if (isSearching) {
-                                    MaterialTheme.colorScheme.errorContainer
-                                } else {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                },
-                            contentColor =
-                                if (isSearching) {
-                                    MaterialTheme.colorScheme.onErrorContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                },
-                        ),
-                ) {
-                    Icon(
-                        if (isSearching) Icons.Filled.Close else Icons.Filled.Search,
-                        contentDescription = if (isSearching) stringResource(R.string.cancel) else stringResource(R.string.search_button),
-                    )
-                }
-            }
-        }
-
-        // Riga opzioni di ricerca avanzata
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Chip Case Sensitive
-            FilterChip(
-                selected = isCaseSensitive,
-                onClick = { viewModel.toggleCaseSensitive() },
-                label = { Text("Aa") },
-                leadingIcon = null,
-            )
-            // Chip Parola Esatta
-            FilterChip(
-                selected = isExactMatch,
-                onClick = { viewModel.toggleExactMatch() },
-                label = {
-                    Text(
-                        "ab",
-                        style =
-                            MaterialTheme.typography.labelLarge.copy(
-                                textDecoration = TextDecoration.Underline,
-                            ),
-                    )
-                },
-                leadingIcon = null,
-            )
-            // Chip Solo Domande
-            FilterChip(
-                selected = onlyQuestions,
-                onClick = { viewModel.toggleOnlyQuestions() },
-                label = { Text("?") },
-                leadingIcon = null,
-            )
-            // Chip Multi-parola (Toggle a 3 stati)
-            FilterChip(
-                selected = multiWordMode != MultiWordMode.NONE,
-                onClick = { viewModel.cycleMultiWordMode() },
-                label = {
-                    val label =
-                        when (multiWordMode) {
-                            MultiWordMode.NONE -> stringResource(R.string.filter_multi)
-                            MultiWordMode.AND -> "${stringResource(R.string.filter_multi)}: ${stringResource(R.string.and_label)}"
-                            MultiWordMode.OR -> "${stringResource(R.string.filter_multi)}: ${stringResource(R.string.or_label)}"
-                        }
-                    Text(label)
-                },
-                leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null, modifier = Modifier.size(18.dp)) },
-            )
-            Spacer(Modifier.weight(1f))
-            // Icona informativa spostata qui
-            IconButton(onClick = { showInfoDialog = true }) {
-                Icon(
-                    Icons.Outlined.Info,
-                    contentDescription = stringResource(R.string.info_dialog_title),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
-        if (suggestions.isNotEmpty()) {
-            LazyRow(
+            Box(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        .height(4.dp),
             ) {
-                items(suggestions) { suggestion ->
-                    SuggestionChip(
+                if (isLoading || isSearching) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+            }
+
+            TimeRangeFilterRow(
+                selectedRange = selectedRange,
+                onRangeSelected = { viewModel.setTimeRange(it) },
+                customDateRange = customDateRange,
+                onDateRangeChanged = { viewModel.setCustomDateRange(it) },
+                minDate = firstMessageTimestamp,
+            )
+
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.onSearchQueryChange(it) },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text(stringResource(R.string.word_search_placeholder)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.Search,
+                            contentDescription = null,
+                        )
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    singleLine = true,
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                                Icon(Icons.Outlined.Clear, contentDescription = stringResource(R.string.cancel))
+                            }
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions =
+                        KeyboardActions(
+                            onSearch = {
+                                keyboardController?.hide()
+                                viewModel.startSearch()
+                            },
+                        ),
+                )
+                if (searchQuery.isNotEmpty()) {
+                    FilledTonalButton(
                         onClick = {
-                            viewModel.onSearchQueryChange(suggestion)
-                            viewModel.startSearch()
+                            if (isSearching) {
+                                viewModel.cancelSearch()
+                            } else {
+                                viewModel.startSearch()
+                            }
                         },
-                        label = {
-                            Text(
-                                suggestion,
-                                style = MaterialTheme.typography.labelMedium,
-                            )
-                        },
-                        border = null,
+                        modifier = Modifier.padding(start = 8.dp),
                         colors =
-                            SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+                                containerColor =
+                                    if (isSearching) {
+                                        MaterialTheme.colorScheme.errorContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    },
+                                contentColor =
+                                    if (isSearching) {
+                                        MaterialTheme.colorScheme.onErrorContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    },
                             ),
+                    ) {
+                        Icon(
+                            if (isSearching) Icons.Filled.Close else Icons.Filled.Search,
+                            contentDescription =
+                                if (isSearching) {
+                                    stringResource(
+                                        R.string.cancel,
+                                    )
+                                } else {
+                                    stringResource(R.string.search_button)
+                                },
+                        )
+                    }
+                }
+            }
+
+            // Riga opzioni di ricerca avanzata
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Chip Case Sensitive
+                FilterChip(
+                    selected = isCaseSensitive,
+                    onClick = { viewModel.toggleCaseSensitive() },
+                    label = { Text("Aa") },
+                    leadingIcon = null,
+                )
+                // Chip Parola Esatta
+                FilterChip(
+                    selected = isExactMatch,
+                    onClick = { viewModel.toggleExactMatch() },
+                    label = {
+                        Text(
+                            "ab",
+                            style =
+                                MaterialTheme.typography.labelLarge.copy(
+                                    textDecoration = TextDecoration.Underline,
+                                ),
+                        )
+                    },
+                    leadingIcon = null,
+                )
+                // Chip Solo Domande
+                FilterChip(
+                    selected = onlyQuestions,
+                    onClick = { viewModel.toggleOnlyQuestions() },
+                    label = { Text("?") },
+                    leadingIcon = null,
+                )
+                // Chip Multi-parola (Toggle a 3 stati)
+                FilterChip(
+                    selected = multiWordMode != MultiWordMode.NONE,
+                    onClick = { viewModel.cycleMultiWordMode() },
+                    label = {
+                        val label =
+                            when (multiWordMode) {
+                                MultiWordMode.NONE -> stringResource(R.string.filter_multi)
+                                MultiWordMode.AND -> "${stringResource(R.string.filter_multi)}: ${stringResource(R.string.and_label)}"
+                                MultiWordMode.OR -> "${stringResource(R.string.filter_multi)}: ${stringResource(R.string.or_label)}"
+                            }
+                        Text(label)
+                    },
+                    leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                )
+                Spacer(Modifier.weight(1f))
+                // Icona informativa spostata qui
+                IconButton(onClick = { showInfoDialog = true }) {
+                    Icon(
+                        Icons.Outlined.Info,
+                        contentDescription = stringResource(R.string.info_dialog_title),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-        }
 
-        Spacer(Modifier.height(16.dp))
-
-        if (isLoading) {
-            LoadingSection()
-        } else if (results.isNotEmpty()) {
-            Text(
-                stringResource(R.string.occurrences_by_sender),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-
-            Box(modifier = Modifier.weight(1f)) {
-                LazyColumn(
-                    state = listState,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+            if (suggestions.isNotEmpty()) {
+                LazyRow(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(results) { result ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
+                    items(suggestions) { suggestion ->
+                        SuggestionChip(
+                            onClick = {
+                                viewModel.onSearchQueryChange(suggestion)
+                                viewModel.startSearch()
+                            },
+                            label = {
+                                Text(
+                                    suggestion,
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            },
+                            border = null,
                             colors =
-                                CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                SuggestionChipDefaults.suggestionChipColors(
+                                    containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 ),
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                horizontalArrangement = Arrangement.Start,
-                                verticalAlignment = Alignment.CenterVertically,
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            if (isLoading) {
+                LoadingSection()
+            } else if (results.isNotEmpty()) {
+                Text(
+                    stringResource(R.string.occurrences_by_sender),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+
+                Box(modifier = Modifier.weight(1f)) {
+                    LazyColumn(
+                        state = listState,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(results) { result ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors =
+                                    CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    ),
+                                shape = RoundedCornerShape(12.dp),
                             ) {
-                                // Immagine Profilo
-                                Box(
+                                Row(
                                     modifier =
                                         Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primaryContainer),
-                                    contentAlignment = Alignment.Center,
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                    horizontalArrangement = Arrangement.Start,
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    if (result.avatarPath != null) {
-                                        AsyncImage(
-                                            model =
-                                                ImageRequest.Builder(LocalContext.current)
-                                                    .data(result.avatarPath)
-                                                    .crossfade(true)
-                                                    .build(),
-                                            contentDescription = null,
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentScale = ContentScale.Crop,
+                                    // Immagine Profilo
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primaryContainer),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        if (result.avatarPath != null) {
+                                            AsyncImage(
+                                                model =
+                                                    ImageRequest.Builder(LocalContext.current)
+                                                        .data(result.avatarPath)
+                                                        .crossfade(true)
+                                                        .build(),
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop,
+                                            )
+                                        } else {
+                                            Icon(
+                                                Icons.Outlined.People,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                modifier = Modifier.size(24.dp),
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(Modifier.width(12.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        ContactNameWithPhone(
+                                            name = result.displayName ?: result.jid.substringBefore("@"),
+                                            jid = result.jid,
+                                            nameStyle = MaterialTheme.typography.titleMedium,
                                         )
-                                    } else {
-                                        Icon(
-                                            Icons.Outlined.People,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            modifier = Modifier.size(24.dp),
+                                    }
+
+                                    Spacer(Modifier.width(8.dp))
+
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
+                                                .clickable {
+                                                    viewModel.loadMessagesForSender(
+                                                        senderJid = result.jid,
+                                                        senderName =
+                                                            result.displayName
+                                                                ?: result.jid.substringBefore("@"),
+                                                    )
+                                                }
+                                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    ) {
+                                        Text(
+                                            "${result.count}",
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            color = MaterialTheme.colorScheme.primary,
                                         )
                                     }
                                 }
-
-                                Spacer(Modifier.width(12.dp))
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    ContactNameWithPhone(
-                                        name = result.displayName ?: result.jid.substringBefore("@"),
-                                        jid = result.jid,
-                                        nameStyle = MaterialTheme.typography.titleMedium,
-                                    )
-                                }
-
-                                Spacer(Modifier.width(8.dp))
-
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
-                                            .clickable {
-                                                viewModel.loadMessagesForSender(
-                                                    senderJid = result.jid,
-                                                    senderName =
-                                                        result.displayName
-                                                            ?: result.jid.substringBefore("@"),
-                                                )
-                                            }
-                                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                                ) {
-                                    Text(
-                                        "${result.count}",
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
                             }
                         }
+                        // Bottom spacer
+                        item { Spacer(Modifier.height(48.dp)) }
                     }
-                    // Bottom spacer
-                    item { Spacer(Modifier.height(48.dp)) }
-                }
 
-                // ── Scroll to Top FAB ──────────────────
-                ScrollToEdgeFab(
-                    listState = listState,
+                    // ── Scroll to Top FAB ──────────────────
+                    ScrollToEdgeFab(
+                        listState = listState,
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 16.dp, bottom = 16.dp),
+                    )
+                }
+            } else if (searchQuery.length >= 2) {
+                Box(
                     modifier =
                         Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = 16.dp, bottom = 16.dp),
-                )
-            }
-        } else if (searchQuery.length >= 2) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text =
-                        if (hasSearched) {
-                            stringResource(R.string.no_results_word)
-                        } else {
-                            stringResource(R.string.word_search_invite)
-                        },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
-            }
-        } else {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    stringResource(R.string.word_search_hint_min),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text =
+                            if (hasSearched) {
+                                stringResource(R.string.no_results_word)
+                            } else {
+                                stringResource(R.string.word_search_invite)
+                            },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                }
+            } else {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        stringResource(R.string.word_search_hint_min),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
-    }
+
+        DynamicLoadingPill(
+            isVisible = isLoadingMessages,
+            message = stringResource(R.string.loading_messages_preview),
+            progress = null,
+            onCancel = { viewModel.cancelMessagesLoad() },
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp),
+        )
+    } // fine Box
 
     if (messagePreview != null) {
         ModalBottomSheet(

@@ -111,6 +111,9 @@ class MediaStatsViewModel
         private val _loadingProgressMediaGallery = MutableStateFlow<Int?>(null)
         val loadingProgressMediaGallery: StateFlow<Int?> = _loadingProgressMediaGallery.asStateFlow()
 
+        private var domainJob: kotlinx.coroutines.Job? = null
+        private var mediaJob: kotlinx.coroutines.Job? = null
+
         fun setChatId(id: Long) {
             _chatId.value = id
             loadStats()
@@ -415,51 +418,58 @@ class MediaStatsViewModel
             jid: String,
             displayName: String?,
         ) {
-            viewModelScope.launch {
-                _isDomainLoading.value = true
-                val name = displayName ?: jid.substringBefore("@")
-                val avatarPath = getAvatarPath(jid)
-                _contactDomainStats.value = Triple(name, avatarPath, emptyList())
-                try {
-                    val (startTime, endTime) =
-                        if (_selectedTimeRange.value == TimeRange.CUSTOM) {
-                            _customDateRange.value?.let {
-                                analyticsRepository.getDateRangeBounds(it)
-                            } ?: (null to null)
-                        } else {
-                            analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
-                        }
-                    _loadingProgressDomains.value = 0
-                    val currentChatContext = _chatId.value ?: breakdownChatIdFlow.value
-                    val isGlobalList = currentChatContext == null
+            domainJob?.cancel()
+            domainJob =
+                viewModelScope.launch {
+                    _isDomainLoading.value = true
+                    val name = displayName ?: jid.substringBefore("@")
+                    val avatarPath = getAvatarPath(jid)
+                    try {
+                        val (startTime, endTime) =
+                            if (_selectedTimeRange.value == TimeRange.CUSTOM) {
+                                _customDateRange.value?.let {
+                                    analyticsRepository.getDateRangeBounds(it)
+                                } ?: (null to null)
+                            } else {
+                                analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
+                            }
+                        _loadingProgressDomains.value = 0
+                        val currentChatContext = _chatId.value ?: breakdownChatIdFlow.value
+                        val isGlobalList = currentChatContext == null
 
-                    // In Lite Mode, ActiveDatabaseProvider instrada la query al DB Lite.
-                    // Il chatId e' risolto direttamente: null se lista globale, altrimenti il contesto corrente.
-                    val targetChatId =
-                        if (isGlobalList) {
-                            analyticsRepository.getChatIdByJid(jid)
-                        } else {
-                            currentChatContext
-                        }
-                    val targetJid = if (isGlobalList) null else jid
+                        val targetChatId =
+                            if (isGlobalList) {
+                                analyticsRepository.getChatIdByJid(jid)
+                            } else {
+                                currentChatContext
+                            }
+                        val targetJid = if (isGlobalList) null else jid
 
-                    val domains =
-                        targetChatId?.let { cid ->
-                            analyticsRepository.getTopDomains(
-                                chatId = cid,
-                                jid = targetJid,
-                                startTime = startTime,
-                                endTime = endTime,
-                                onProgress = { progress -> _loadingProgressDomains.value = progress },
-                            )
-                        } ?: emptyList()
-                    _contactDomainStats.value = Triple(name, avatarPath, domains)
-                } catch (e: Exception) {
-                } finally {
-                    _isDomainLoading.value = false
-                    _loadingProgressDomains.value = null
+                        val domains =
+                            targetChatId?.let { cid ->
+                                analyticsRepository.getTopDomains(
+                                    chatId = cid,
+                                    jid = targetJid,
+                                    startTime = startTime,
+                                    endTime = endTime,
+                                    onProgress = { progress -> _loadingProgressDomains.value = progress },
+                                )
+                            } ?: emptyList()
+
+                        _contactDomainStats.value = Triple(name, avatarPath, domains)
+                    } catch (e: Exception) {
+                        // Canceled or failed
+                    } finally {
+                        _isDomainLoading.value = false
+                        _loadingProgressDomains.value = null
+                    }
                 }
-            }
+        }
+
+        fun cancelDomainStatsLoad() {
+            domainJob?.cancel()
+            _isDomainLoading.value = false
+            _loadingProgressDomains.value = null
         }
 
         fun dismissContactDomains() {
@@ -470,56 +480,59 @@ class MediaStatsViewModel
             jid: String,
             displayName: String?,
         ) {
-            viewModelScope.launch {
-                _isMediaGalleryLoading.value = true
-                val avatarPath = getAvatarPath(jid)
-                val name = displayName ?: jid.substringBefore("@")
-                // Imposta subito stato vuoto per mostrare la sheet immediatamente
-                _mediaGalleryState.value = Triple(name, avatarPath, emptyList())
-                try {
-                    _loadingProgressMediaGallery.value = 0
-                    val (startTime, endTime) =
-                        if (_selectedTimeRange.value == TimeRange.CUSTOM) {
-                            _customDateRange.value?.let {
-                                analyticsRepository.getDateRangeBounds(it)
-                            } ?: (null to null)
-                        } else {
-                            analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
-                        }
+            mediaJob?.cancel()
+            mediaJob =
+                viewModelScope.launch {
+                    _isMediaGalleryLoading.value = true
+                    val avatarPath = getAvatarPath(jid)
+                    val name = displayName ?: jid.substringBefore("@")
+                    try {
+                        _loadingProgressMediaGallery.value = 0
+                        val (startTime, endTime) =
+                            if (_selectedTimeRange.value == TimeRange.CUSTOM) {
+                                _customDateRange.value?.let {
+                                    analyticsRepository.getDateRangeBounds(it)
+                                } ?: (null to null)
+                            } else {
+                                analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
+                            }
 
-                    val currentChatContext = _chatId.value ?: breakdownChatIdFlow.value
-                    val isGlobalList = currentChatContext == null
+                        val currentChatContext = _chatId.value ?: breakdownChatIdFlow.value
+                        val isGlobalList = currentChatContext == null
 
-                    // In Lite Mode, ActiveDatabaseProvider instrada la query al DB Lite.
-                    // Il chatId e' risolto direttamente: null se lista globale, altrimenti il contesto corrente.
-                    val targetChatId =
-                        if (isGlobalList) {
-                            analyticsRepository.getChatIdByJid(jid)
-                        } else {
-                            currentChatContext
-                        }
-                    val targetJid = if (isGlobalList) null else jid
+                        val targetChatId =
+                            if (isGlobalList) {
+                                analyticsRepository.getChatIdByJid(jid)
+                            } else {
+                                currentChatContext
+                            }
+                        val targetJid = if (isGlobalList) null else jid
 
-                    val mediaFiles =
-                        targetChatId?.let { cid ->
-                            analyticsRepository.getMediaFiles(
-                                chatId = cid,
-                                jid = targetJid,
-                                startTime = startTime,
-                                endTime = endTime,
-                                onProgress = { progress -> _loadingProgressMediaGallery.value = progress },
-                            )
-                        } ?: emptyList()
+                        val mediaFiles =
+                            targetChatId?.let { cid ->
+                                analyticsRepository.getMediaFiles(
+                                    chatId = cid,
+                                    jid = targetJid,
+                                    startTime = startTime,
+                                    endTime = endTime,
+                                    onProgress = { progress -> _loadingProgressMediaGallery.value = progress },
+                                )
+                            } ?: emptyList()
 
-                    // AnalyticsRepository.getMediaFiles ha già filtrato i file esistenti
-                    _mediaGalleryState.value = Triple(name, avatarPath, mediaFiles)
-                } catch (e: Exception) {
-                    _mediaGalleryState.value = null
-                } finally {
-                    _isMediaGalleryLoading.value = false
-                    _loadingProgressMediaGallery.value = null
+                        _mediaGalleryState.value = Triple(name, avatarPath, mediaFiles)
+                    } catch (e: Exception) {
+                        // Canceled or failed
+                    } finally {
+                        _isMediaGalleryLoading.value = false
+                        _loadingProgressMediaGallery.value = null
+                    }
                 }
-            }
+        }
+
+        fun cancelMediaGalleryLoad() {
+            mediaJob?.cancel()
+            _isMediaGalleryLoading.value = false
+            _loadingProgressMediaGallery.value = null
         }
 
         fun dismissMediaGallery() {

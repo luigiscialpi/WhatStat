@@ -79,6 +79,8 @@ class WordSearchViewModel
         private val _isLoadingMessages = MutableStateFlow(false)
         val isLoadingMessages: StateFlow<Boolean> = _isLoadingMessages.asStateFlow()
 
+        private var messagesJob: kotlinx.coroutines.Job? = null
+
         private val _isCaseSensitive = MutableStateFlow(false)
         val isCaseSensitive: StateFlow<Boolean> = _isCaseSensitive.asStateFlow()
 
@@ -364,41 +366,48 @@ class WordSearchViewModel
             senderJid: String,
             senderName: String,
         ) {
-            viewModelScope.launch {
-                _isLoadingMessages.value = true
-                try {
-                    val (startTime, endTime) =
-                        if (_selectedTimeRange.value == TimeRange.CUSTOM) {
-                            _customDateRange.value?.let {
-                                analyticsRepository.getDateRangeBounds(it)
-                            } ?: (null to null)
-                        } else {
-                            analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
-                        }
-                    val messages =
-                        analyticsRepository.getWordMessages(
-                            word = _searchQuery.value,
-                            senderJid = senderJid,
-                            chatId = chatIdFlow.value,
-                            startTime = startTime,
-                            endTime = endTime,
-                            isCaseSensitive = _isCaseSensitive.value,
-                            isExactMatch = _isExactMatch.value,
-                            onlyQuestions = _onlyQuestions.value,
-                            multiWordMode = _multiWordMode.value.ordinal,
-                        )
-                    _messagePreview.value =
-                        Triple(
-                            senderName,
-                            getAvatarPath(senderJid),
-                            messages,
-                        )
-                } catch (e: Exception) {
-                    _messagePreview.value = null
-                } finally {
-                    _isLoadingMessages.value = false
+            messagesJob?.cancel()
+            messagesJob =
+                viewModelScope.launch {
+                    _isLoadingMessages.value = true
+                    try {
+                        val (startTime, endTime) =
+                            if (_selectedTimeRange.value == TimeRange.CUSTOM) {
+                                _customDateRange.value?.let {
+                                    analyticsRepository.getDateRangeBounds(it)
+                                } ?: (null to null)
+                            } else {
+                                analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
+                            }
+                        val messages =
+                            analyticsRepository.getWordMessages(
+                                word = _searchQuery.value,
+                                senderJid = senderJid,
+                                chatId = chatIdFlow.value,
+                                startTime = startTime,
+                                endTime = endTime,
+                                isCaseSensitive = _isCaseSensitive.value,
+                                isExactMatch = _isExactMatch.value,
+                                onlyQuestions = _onlyQuestions.value,
+                                multiWordMode = _multiWordMode.value.ordinal,
+                            )
+                        _messagePreview.value =
+                            Triple(
+                                senderName,
+                                getAvatarPath(senderJid),
+                                messages,
+                            )
+                    } catch (e: Exception) {
+                        // Canceled or failed
+                    } finally {
+                        _isLoadingMessages.value = false
+                    }
                 }
-            }
+        }
+
+        fun cancelMessagesLoad() {
+            messagesJob?.cancel()
+            _isLoadingMessages.value = false
         }
 
         /**

@@ -227,6 +227,16 @@ if (isLite) {
 
 Poiché `notifyLiteImportDone()` chiama già `clearCache()`, il primo `loadStats(forceRefresh = false)` non troverà cache e ricalcolerà comunque. Alle riaperture successive (senza nuovi import), la cache è presente e viene usata.
 
+### Visualizzazione dei caricamenti asincroni (`DynamicLoadingPill`)
+
+Per le operazioni asincrone a lungo termine (ad esempio la scansione dei file multimediali nella galleria o il caricamento delle anteprime dei messaggi nel radar), l'applicazione utilizza un componente overlay premium denominato `DynamicLoadingPill`.
+
+Questo componente fornisce:
+- **Design a pillola fluttuante**: un indicatore non bloccante posizionato nella parte inferiore dello schermo che evita di oscurare l'intera UI con loader bloccanti invasivi.
+- **Percentuale in tempo reale**: mostra l'avanzamento esatto del caricamento (da 0% a 100%) in base alla progressione asincrona delle query o dell'elaborazione file.
+- **Meccanismo anti-glitch**: mantiene in cache l'ultima percentuale valida non nulla anche quando il ViewModel azzera lo stato, garantendo un'animazione di sparizione fluida (300ms) senza improvvisi ridimensionamenti grafici del testo.
+- **Annullamento asincrono**: un pulsante di cancellazione integrato che interrompe immediatamente l'esecuzione delle coroutine in background tramite cancellazione cooperativa del `Job`.
+
 ---
 
 ## 4. Filtri temporali

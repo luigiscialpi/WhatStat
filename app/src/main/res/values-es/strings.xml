@@ -13,6 +13,9 @@
     <string name="exit_toast">Pulsa de nuevo para salir</string>
     <string name="processing">Procesando…</string>
     <string name="loading">Cargando…</string>
+    <string name="loading_domains">Calculando dominios…</string>
+    <string name="loading_media_gallery">Cargando galería…</string>
+    <string name="loading_messages_preview">Cargando vista previa…</string>
     <string name="show_more">Mostrar todos</string>
     <string name="show_more_with_count">Mostrar todos (%d)</string>
     <string name="show_less">Mostrar menos</string>
