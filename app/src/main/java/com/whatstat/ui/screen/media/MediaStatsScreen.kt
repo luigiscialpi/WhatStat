@@ -33,6 +33,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -107,6 +108,7 @@ import com.whatstat.data.db.model.MediaStat
 import com.whatstat.ui.component.AutoMarquee
 import com.whatstat.ui.component.ContactNameWithPhone
 import com.whatstat.ui.component.LoadingSection
+import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
 import com.whatstat.ui.component.TimeRangeFilterRow
 import com.whatstat.ui.component.ZoomableImageGallery
@@ -460,6 +462,15 @@ fun mediaStatsScreen(
                 }
             }
         }
+
+        // ── Scroll to Top FAB ──────────────────
+        ScrollToEdgeFab(
+            listState = currentListState,
+            modifier =
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 20.dp, bottom = 24.dp),
+        )
     } // fine Box
 } // fine MediaStatsScreen
 
@@ -474,6 +485,7 @@ private fun MediaGallerySheet(
     isLiteMode: Boolean = false,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val gridState = rememberLazyGridState()
 
     // In Lite mode separiamo sticker (STK-*.webp) dal resto.
     // Il tab è visibile solo se ci sono effettivamente sticker.
@@ -489,6 +501,10 @@ private fun MediaGallerySheet(
     // 0 = Galleria, 1 = Sticker
     var activeTab by remember(showStickerTab) { mutableIntStateOf(0) }
     val currentFiles = if (activeTab == 1) stickers else galleryFiles
+
+    LaunchedEffect(activeTab) {
+        gridState.scrollToItem(0)
+    }
 
     var displayedCount by remember(activeTab) { mutableIntStateOf(100) }
     var sortAscending by remember { mutableStateOf(false) }
@@ -771,192 +787,206 @@ private fun MediaGallerySheet(
             }
             else -> {
                 val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.ITALIAN) }
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    contentPadding = PaddingValues(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    items(visibleItems) { media ->
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(4.dp),
-                        ) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .aspectRatio(1f)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                                        .pointerInput(media) {
-                                            detectTapGestures(
-                                                onLongPress = {
-                                                    if (selectedMedia.isEmpty()) {
-                                                        selectedMedia.add(media)
-                                                    }
-                                                },
-                                                onTap = {
-                                                    if (selectedMedia.isNotEmpty()) {
-                                                        if (selectedMedia.contains(media)) {
-                                                            selectedMedia.remove(media)
-                                                        } else {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    LazyVerticalGrid(
+                        state = gridState,
+                        columns = GridCells.Fixed(3),
+                        contentPadding = PaddingValues(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        items(visibleItems) { media ->
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(4.dp),
+                            ) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .aspectRatio(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .pointerInput(media) {
+                                                detectTapGestures(
+                                                    onLongPress = {
+                                                        if (selectedMedia.isEmpty()) {
                                                             selectedMedia.add(media)
                                                         }
-                                                    } else {
-                                                        if (media.mimeType.startsWith("video/") || media.mimeType.startsWith("audio/")) {
-                                                            scope.launch {
-                                                                try {
-                                                                    val contentUri = getShareableUri(context, media.filePath)
-                                                                    if (contentUri != null) {
-                                                                        val intent =
-                                                                            Intent(Intent.ACTION_VIEW).apply {
-                                                                                setDataAndType(contentUri, media.mimeType)
-                                                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                                                            }
-                                                                        context.startActivity(intent)
-                                                                    } else {
+                                                    },
+                                                    onTap = {
+                                                        if (selectedMedia.isNotEmpty()) {
+                                                            if (selectedMedia.contains(media)) {
+                                                                selectedMedia.remove(media)
+                                                            } else {
+                                                                selectedMedia.add(media)
+                                                            }
+                                                        } else {
+                                                            val isPlayable =
+                                                                media.mimeType.startsWith("video/") ||
+                                                                    media.mimeType.startsWith("audio/")
+                                                            if (isPlayable) {
+                                                                scope.launch {
+                                                                    try {
+                                                                        val contentUri = getShareableUri(context, media.filePath)
+                                                                        if (contentUri != null) {
+                                                                            val intent =
+                                                                                Intent(Intent.ACTION_VIEW).apply {
+                                                                                    setDataAndType(contentUri, media.mimeType)
+                                                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                                                }
+                                                                            context.startActivity(intent)
+                                                                        } else {
+                                                                            Toast.makeText(
+                                                                                context,
+                                                                                context.getString(R.string.error_open_file),
+                                                                                Toast.LENGTH_SHORT,
+                                                                            ).show()
+                                                                        }
+                                                                    } catch (e: Exception) {
                                                                         Toast.makeText(
                                                                             context,
                                                                             context.getString(R.string.error_open_file),
                                                                             Toast.LENGTH_SHORT,
                                                                         ).show()
                                                                     }
-                                                                } catch (e: Exception) {
-                                                                    Toast.makeText(
-                                                                        context,
-                                                                        context.getString(R.string.error_open_file),
-                                                                        Toast.LENGTH_SHORT,
-                                                                    ).show()
                                                                 }
+                                                            } else {
+                                                                selectedImageForPreview = media
                                                             }
-                                                        } else {
-                                                            selectedImageForPreview = media
                                                         }
-                                                    }
-                                                },
-                                            )
-                                        },
-                            ) {
-                                if (media.mimeType.startsWith("audio/")) {
-                                    Box(
-                                        modifier = Modifier.matchParentSize(),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Icon(
-                                            Icons.Outlined.Mic,
-                                            contentDescription = stringResource(R.string.type_audio),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(32.dp).align(Alignment.Center),
-                                        )
-                                        MediaDurationBadge(
-                                            media.filePath,
-                                            Modifier.align(
-                                                Alignment.BottomEnd,
-                                            ).padding(
-                                                end = 4.dp,
-                                                bottom = 4.dp,
-                                            ).background(
-                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                                RoundedCornerShape(4.dp),
-                                            ).padding(horizontal = 4.dp, vertical = 2.dp),
-                                            color = MaterialTheme.colorScheme.surface,
-                                        )
-                                    }
-                                } else {
-                                    val imgData = if (media.filePath.startsWith("zip://")) media.filePath else File(media.filePath)
-                                    AsyncImage(
-                                        model =
-                                            ImageRequest.Builder(LocalContext.current)
-                                                .data(imgData)
-                                                .crossfade(true)
-                                                .build(),
-                                        imageLoader = imageLoader,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.matchParentSize(),
-                                    )
-                                    if (media.mimeType.startsWith("video/")) {
+                                                    },
+                                                )
+                                            },
+                                ) {
+                                    if (media.mimeType.startsWith("audio/")) {
                                         Box(
-                                            modifier =
-                                                Modifier
-                                                    .align(Alignment.Center)
-                                                    .size(40.dp)
-                                                    .background(Color.Black.copy(alpha = 0.6f), CircleShape),
+                                            modifier = Modifier.matchParentSize(),
                                             contentAlignment = Alignment.Center,
                                         ) {
                                             Icon(
-                                                Icons.Outlined.PlayArrow,
-                                                contentDescription = stringResource(R.string.type_videos),
-                                                tint = Color.White,
-                                                modifier = Modifier.size(24.dp),
+                                                Icons.Outlined.Mic,
+                                                contentDescription = stringResource(R.string.type_audio),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(32.dp).align(Alignment.Center),
+                                            )
+                                            MediaDurationBadge(
+                                                media.filePath,
+                                                Modifier.align(
+                                                    Alignment.BottomEnd,
+                                                ).padding(
+                                                    end = 4.dp,
+                                                    bottom = 4.dp,
+                                                ).background(
+                                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                                    RoundedCornerShape(4.dp),
+                                                ).padding(horizontal = 4.dp, vertical = 2.dp),
+                                                color = MaterialTheme.colorScheme.surface,
                                             )
                                         }
-                                        MediaDurationBadge(
-                                            media.filePath,
-                                            Modifier.align(
-                                                Alignment.BottomEnd,
-                                            ).padding(
-                                                end = 4.dp,
-                                                bottom = 4.dp,
-                                            ).background(
-                                                Color.Black.copy(alpha = 0.6f),
-                                                RoundedCornerShape(4.dp),
-                                            ).padding(horizontal = 4.dp, vertical = 2.dp),
-                                            color = Color.White,
+                                    } else {
+                                        val imgData = if (media.filePath.startsWith("zip://")) media.filePath else File(media.filePath)
+                                        AsyncImage(
+                                            model =
+                                                ImageRequest.Builder(LocalContext.current)
+                                                    .data(imgData)
+                                                    .crossfade(true)
+                                                    .build(),
+                                            imageLoader = imageLoader,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.matchParentSize(),
+                                        )
+                                        if (media.mimeType.startsWith("video/")) {
+                                            Box(
+                                                modifier =
+                                                    Modifier
+                                                        .align(Alignment.Center)
+                                                        .size(40.dp)
+                                                        .background(Color.Black.copy(alpha = 0.6f), CircleShape),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Icon(
+                                                    Icons.Outlined.PlayArrow,
+                                                    contentDescription = stringResource(R.string.type_videos),
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(24.dp),
+                                                )
+                                            }
+                                            MediaDurationBadge(
+                                                media.filePath,
+                                                Modifier.align(
+                                                    Alignment.BottomEnd,
+                                                ).padding(
+                                                    end = 4.dp,
+                                                    bottom = 4.dp,
+                                                ).background(
+                                                    Color.Black.copy(alpha = 0.6f),
+                                                    RoundedCornerShape(4.dp),
+                                                ).padding(horizontal = 4.dp, vertical = 2.dp),
+                                                color = Color.White,
+                                            )
+                                        }
+                                    }
+
+                                    val isSelected = selectedMedia.contains(media)
+                                    if (isSelected) {
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .matchParentSize()
+                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Outlined.Check,
+                                            contentDescription = "Selezionato",
+                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                            modifier =
+                                                Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .padding(4.dp)
+                                                    .size(24.dp)
+                                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                                    .padding(4.dp),
                                         )
                                     }
                                 }
-
-                                val isSelected = selectedMedia.contains(media)
-                                if (isSelected) {
-                                    Box(
-                                        modifier =
-                                            Modifier
-                                                .matchParentSize()
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
-                                    )
-                                    Icon(
-                                        imageVector = Icons.Outlined.Check,
-                                        contentDescription = "Selezionato",
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier =
-                                            Modifier
-                                                .align(Alignment.TopEnd)
-                                                .padding(4.dp)
-                                                .size(24.dp)
-                                                .background(MaterialTheme.colorScheme.primary, CircleShape)
-                                                .padding(4.dp),
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = dateFormatter.format(Date(media.timestamp)),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-
-                    if (hasMore) {
-                        item(span = { GridItemSpan(3) }) {
-                            OutlinedButton(
-                                onClick = { displayedCount += 100 },
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                            ) {
+                                Spacer(Modifier.height(4.dp))
                                 Text(
-                                    "${stringResource(
-                                        R.string.load_more,
-                                    )} (${sortedAll.size - displayedCount} ${stringResource(R.string.show_less)})",
+                                    text = dateFormatter.format(Date(media.timestamp)),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }
+
+                        if (hasMore) {
+                            item(span = { GridItemSpan(3) }) {
+                                OutlinedButton(
+                                    onClick = { displayedCount += 100 },
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                ) {
+                                    Text(
+                                        "${stringResource(
+                                            R.string.load_more,
+                                        )} (${sortedAll.size - displayedCount} ${stringResource(R.string.show_less)})",
+                                    )
+                                }
+                            }
+                        }
                     }
+                    // ── Scroll to Top FAB nella galleria ──────────────────
+                    ScrollToEdgeFab(
+                        gridState = gridState,
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 16.dp, bottom = 16.dp),
+                    )
                 }
             }
         }

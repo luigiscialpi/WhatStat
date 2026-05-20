@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -82,6 +83,7 @@ import com.whatstat.R
 import com.whatstat.data.db.model.WordMessageResult
 import com.whatstat.ui.component.ContactNameWithPhone
 import com.whatstat.ui.component.LoadingSection
+import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
 import com.whatstat.ui.component.TimeRangeFilterRow
 import java.text.SimpleDateFormat
@@ -119,6 +121,12 @@ fun WordSearchScreen(
 
     LaunchedEffect(chatId) {
         viewModel.initialize(chatId)
+    }
+
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(searchQuery) {
+        listState.scrollToItem(0)
     }
 
     LifecycleResumeEffect(Unit) {
@@ -336,95 +344,107 @@ fun WordSearchScreen(
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
 
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(results) { result ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors =
-                            CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            ),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                            horizontalArrangement = Arrangement.Start,
-                            verticalAlignment = Alignment.CenterVertically,
+            Box(modifier = Modifier.weight(1f)) {
+                LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(results) { result ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                ),
+                            shape = RoundedCornerShape(12.dp),
                         ) {
-                            // Immagine Profilo
-                            Box(
+                            Row(
                                 modifier =
                                     Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primaryContainer),
-                                contentAlignment = Alignment.Center,
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                horizontalArrangement = Arrangement.Start,
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                if (result.avatarPath != null) {
-                                    AsyncImage(
-                                        model =
-                                            ImageRequest.Builder(LocalContext.current)
-                                                .data(result.avatarPath)
-                                                .crossfade(true)
-                                                .build(),
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop,
+                                // Immagine Profilo
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primaryContainer),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    if (result.avatarPath != null) {
+                                        AsyncImage(
+                                            model =
+                                                ImageRequest.Builder(LocalContext.current)
+                                                    .data(result.avatarPath)
+                                                    .crossfade(true)
+                                                    .build(),
+                                            contentDescription = null,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop,
+                                        )
+                                    } else {
+                                        Icon(
+                                            Icons.Outlined.People,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.size(24.dp),
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    ContactNameWithPhone(
+                                        name = result.displayName ?: result.jid.substringBefore("@"),
+                                        jid = result.jid,
+                                        nameStyle = MaterialTheme.typography.titleMedium,
                                     )
-                                } else {
-                                    Icon(
-                                        Icons.Outlined.People,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.size(24.dp),
+                                }
+
+                                Spacer(Modifier.width(8.dp))
+
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
+                                            .clickable {
+                                                viewModel.loadMessagesForSender(
+                                                    senderJid = result.jid,
+                                                    senderName =
+                                                        result.displayName
+                                                            ?: result.jid.substringBefore("@"),
+                                                )
+                                            }
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                ) {
+                                    Text(
+                                        "${result.count}",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        color = MaterialTheme.colorScheme.primary,
                                     )
                                 }
                             }
-
-                            Spacer(Modifier.width(12.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                ContactNameWithPhone(
-                                    name = result.displayName ?: result.jid.substringBefore("@"),
-                                    jid = result.jid,
-                                    nameStyle = MaterialTheme.typography.titleMedium,
-                                )
-                            }
-
-                            Spacer(Modifier.width(8.dp))
-
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
-                                        .clickable {
-                                            viewModel.loadMessagesForSender(
-                                                senderJid = result.jid,
-                                                senderName =
-                                                    result.displayName
-                                                        ?: result.jid.substringBefore("@"),
-                                            )
-                                        }
-                                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                            ) {
-                                Text(
-                                    "${result.count}",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                            }
                         }
                     }
+                    // Bottom spacer
+                    item { Spacer(Modifier.height(48.dp)) }
                 }
-                // Bottom spacer
-                item { Spacer(Modifier.height(48.dp)) }
+
+                // ── Scroll to Top FAB ──────────────────
+                ScrollToEdgeFab(
+                    listState = listState,
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = 16.dp),
+                )
             }
         } else if (searchQuery.length >= 2) {
             Box(
@@ -529,6 +549,11 @@ private fun WordMessageSheet(
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.ITALIAN) }
     var sortAscending by remember { mutableStateOf(false) }
     var displayedCount by remember { mutableIntStateOf(50) }
+    val sheetListState = rememberLazyListState()
+
+    LaunchedEffect(messages) {
+        sheetListState.scrollToItem(0)
+    }
 
     val sortedAll =
         remember(messages, sortAscending) {
@@ -619,34 +644,48 @@ private fun WordMessageSheet(
                 }
             }
             else -> {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(visibleItems) { msg ->
-                        MessagePreviewCard(
-                            message = msg,
-                            searchWord = searchWord,
-                            dateFormatter = dateFormatter,
-                            showChatName = !isChatSpecific,
-                            caseSensitive = caseSensitive,
-                        )
-                    }
-                    // Pulsante "Carica altri" (paginazione client-side)
-                    if (hasMore) {
-                        item {
-                            OutlinedButton(
-                                onClick = { displayedCount += 50 },
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
-                            ) {
-                                Text(
-                                    "${stringResource(
-                                        R.string.load_more,
-                                    )} (${sortedAll.size - displayedCount} ${stringResource(R.string.show_less)})",
-                                )
+                Box(modifier = Modifier.weight(1f, fill = false)) {
+                    LazyColumn(
+                        state = sheetListState,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(visibleItems) { msg ->
+                            MessagePreviewCard(
+                                message = msg,
+                                searchWord = searchWord,
+                                dateFormatter = dateFormatter,
+                                showChatName = !isChatSpecific,
+                                caseSensitive = caseSensitive,
+                            )
+                        }
+                        // Pulsante "Carica altri" (paginazione client-side)
+                        if (hasMore) {
+                            item {
+                                OutlinedButton(
+                                    onClick = { displayedCount += 50 },
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp),
+                                ) {
+                                    Text(
+                                        "${stringResource(
+                                            R.string.load_more,
+                                        )} (${sortedAll.size - displayedCount} ${stringResource(R.string.show_less)})",
+                                    )
+                                }
                             }
                         }
                     }
+
+                    // ── Scroll to Top FAB nella bottomsheet ──────────────────
+                    ScrollToEdgeFab(
+                        listState = sheetListState,
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 8.dp, bottom = 8.dp),
+                    )
                 }
             }
         }

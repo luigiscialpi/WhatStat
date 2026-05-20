@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -50,6 +51,7 @@ import coil.compose.AsyncImage
 import com.whatstat.R
 import com.whatstat.domain.model.GroupEventUiModel
 import com.whatstat.ui.component.LoadingSection
+import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
 import java.io.File
 
@@ -105,30 +107,46 @@ fun GroupHistoryScreen(
                         )
                     }
                 } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-                        reverseLayout = true,
-                    ) {
-                        itemsIndexed(state.events) { index, uiModel ->
-                            val isLeftAligned = uiModel.isLeftAligned
+                    // Stato della lista per tracciare lo scorrimento e consentire il riposizionamento rapido
+                    val listState = rememberLazyListState()
 
-                            // L'evento precedente cronologicamente (più vecchio) è all'indice index + 1
-                            // Poiché usiamo reverseLayout=true, l'indice index+1 è quello che sta SOPRA visivamente
-                            val olderIndex = index + 1
-                            val olderUiModel = state.events.getOrNull(olderIndex)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                            reverseLayout = true,
+                        ) {
+                            itemsIndexed(state.events) { index, uiModel ->
+                                val isLeftAligned = uiModel.isLeftAligned
 
-                            val showHeader =
-                                olderUiModel == null ||
-                                    olderUiModel.userJid != uiModel.userJid ||
-                                    olderUiModel.isLeftAligned != uiModel.isLeftAligned
+                                // L'evento precedente cronologicamente (più vecchio) è all'indice index + 1
+                                // Poiché usiamo reverseLayout=true, l'indice index+1 è quello che sta SOPRA visivamente
+                                val olderIndex = index + 1
+                                val olderUiModel = state.events.getOrNull(olderIndex)
 
-                            ChatBubbleItem(
-                                uiModel = uiModel,
-                                isLeftAligned = isLeftAligned,
-                                showHeader = showHeader,
-                            )
+                                val showHeader =
+                                    olderUiModel == null ||
+                                        olderUiModel.userJid != uiModel.userJid ||
+                                        olderUiModel.isLeftAligned != uiModel.isLeftAligned
+
+                                ChatBubbleItem(
+                                    uiModel = uiModel,
+                                    isLeftAligned = isLeftAligned,
+                                    showHeader = showHeader,
+                                )
+                            }
                         }
+
+                        // Pulsante flottante per tornare in fondo (eventi più recenti) in presenza di liste lunghe
+                        ScrollToEdgeFab(
+                            listState = listState,
+                            reverseScroll = true,
+                            modifier =
+                                Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(end = 20.dp, bottom = 24.dp),
+                        )
                     }
                 }
             }

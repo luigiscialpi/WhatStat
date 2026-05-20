@@ -64,6 +64,7 @@ import coil.request.ImageRequest
 import com.whatstat.R
 import com.whatstat.data.db.model.ChatListItem
 import com.whatstat.ui.component.ContactNameWithPhone
+import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -232,6 +233,15 @@ fun ChatListScreen(
                 },
             )
         }
+
+        // ── Scroll to Top FAB ──────────────────
+        ScrollToEdgeFab(
+            listState = listState,
+            modifier =
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 20.dp, bottom = if (isLiteMode) 88.dp else 24.dp),
+        )
     }
 
     // ── Dialogo conferma eliminazione ────────────────────────────

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -59,6 +60,7 @@ import coil.request.ImageRequest
 import com.whatstat.R
 import com.whatstat.data.db.model.CallStat
 import com.whatstat.ui.component.ContactNameWithPhone
+import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
 import com.whatstat.ui.component.TimeRangeFilterRow
 
@@ -210,31 +212,44 @@ fun CallsStatsScreen(
                     }
                 }
 
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                // ── Riepilogo totale ──────────────────────────
-                item {
-                    CallSummaryCard(totals)
+            val listState = rememberLazyListState()
+            Box(modifier = Modifier.weight(1f)) {
+                LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // ── Riepilogo totale ──────────────────────────
+                    item {
+                        CallSummaryCard(totals)
+                    }
+
+                    item {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            stringResource(R.string.calls_grouped_person),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+
+                    // ── Dettaglio per persona ─────────────────────
+                    items(filteredStats) { stat ->
+                        CallDetailCard(stat)
+                    }
+
+                    // Bottom spacer
+                    item { Spacer(Modifier.height(48.dp)) }
                 }
 
-                item {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        stringResource(R.string.calls_grouped_person),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-
-                // ── Dettaglio per persona ─────────────────────
-                items(filteredStats) { stat ->
-                    CallDetailCard(stat)
-                }
-
-                // Bottom spacer
-                item { Spacer(Modifier.height(48.dp)) }
+                // ── Scroll to Top FAB ──────────────────
+                ScrollToEdgeFab(
+                    listState = listState,
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 16.dp, bottom = 16.dp),
+                )
             }
         }
     }

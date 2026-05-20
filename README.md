@@ -721,6 +721,22 @@ Il back da queste schermate usa sempre `navController.popBackStack()`.
 
 Disponibile solo in Lite Mode dalla ChatList. Naviga a `Screen.LiteSetupAdd` (route `lite_setup_add?zipUri={zipUri}`), che apre `AddChatZipScreen` e lancia automaticamente il file picker (`OpenDocument`). Al completamento dell'import, `navController.popBackStack()` torna alla ChatList. Il completamento è notificato da `LiteSetupViewModel.state.isComplete`.
 
+### Componente di Scorrimento Rapido: ScrollToEdgeFab
+
+**File**: `ui/component/ScrollToEdgeFab.kt`
+
+Per migliorare l'esperienza utente (UX) nelle liste molto lunghe, è stato introdotto il componente riusabile `ScrollToEdgeFab`. Si tratta di un pulsante flottante compatto che consente di tornare rapidamente all'inizio (o alla fine, in caso di layout invertito) della lista o griglia con un singolo tocco.
+
+- **Design e Animazioni**: Il pulsante è un `SmallFloatingActionButton` (Material 3) che utilizza i colori del tema (`primaryContainer` e `onPrimaryContainer`). L'apparizione e la scomparsa sono animate in modo fluido tramite una combinazione di dissolvenza e ridimensionamento (`fadeIn() + scaleIn()` / `fadeOut() + scaleOut()`).
+- **Logica di Visibilità**: Per ottimizzare le prestazioni, la visibilità del pulsante è calcolata tramite `derivedStateOf` e appare solo quando l'utente supera una determinata soglia di scorrimento (default: 3 elementi).
+- **Supporto Griglie e Liste**: Dispone di overload sia per `LazyListState` (liste) sia per `LazyGridState` (griglie).
+- **Scorrimento Invertito (`reverseScroll`)**: Supporta liste con layout invertito (`reverseLayout = true` come nella Timeline dei gruppi). Se abilitato, l'icona si trasforma in una freccia verso il basso (`KeyboardArrowDown`) e il tocco esegue lo scorrimento rapido verso la fine visiva della lista (indice 0), ovvero verso i messaggi più recenti.
+- **Schermate Integrate**:
+  - `ChatListScreen`: Integrato con un offset verticale personalizzato in Lite Mode per evitare la sovrapposizione con il pulsante "Aggiungi ZIP".
+  - `MediaStatsScreen`: Attivo sia sulla griglia della Media Gallery globale, sia nel Bottom Sheet della galleria per chat (con riposizionamento automatico all'indice 0 al cambio di tab Galleria/Sticker).
+  - `CallsStatsScreen` e `WordSearchScreen`: Integrato nelle liste principali e nei bottom sheet di dettaglio per navigare agevolmente tra i log delle chiamate e i messaggi cercati.
+  - `GroupHistoryScreen`: Configurato con `reverseScroll = true` per facilitare lo scorrimento verso i messaggi recenti nella timeline.
+
 ### Flussi principali di navigazione
 
 **Avvio normale (app chiusa, nessun share)**
