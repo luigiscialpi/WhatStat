@@ -3,6 +3,8 @@ package com.whatstat.ui.component
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -160,8 +162,10 @@ fun AppDrawerContent(
                     .putString(MainActivity.LANGUAGE_PREFS_KEY, lang)
                     .commit()
                 mainViewModel.setAppLanguage(lang)
-                context.findActivity()?.recreate()
                 showLanguageDialog = false
+                Handler(Looper.getMainLooper()).post {
+                    context.findActivity()?.recreate()
+                }
             },
             onDismiss = { showLanguageDialog = false },
         )

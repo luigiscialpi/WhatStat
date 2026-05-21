@@ -313,7 +313,7 @@
     <string name="time_range_custom_button">Personnalisé</string>
 
     <string name="drawer_app_name">WhatStat</string>
-    <string name="whatstat_drawer_theme">Thème</string>
+    <string name="whatstat_drawer_theme">Choisir un thème</string>
     <string name="whatstat_drawer_language">Changer la langue</string>
     <string name="whatstat_drawer_cache">Supprimer les données</string>
     <string name="whatstat_drawer_about">Informations</string>
