@@ -16,6 +16,8 @@ Android nativo, Kotlin, Jetpack Compose, SQLite (Room + query raw), Hilt, DataSt
 - No emoji. ASCII only.
 - Niente query pesanti sul main thread. Usa `StateFlow` e `CacheManager`.
 - Rispetta sempre `ktlint` (`./gradlew ktlintCheck`).
+- Import in ordine lessicografico. Niente import wildcard.
+- Niente riferimenti fully-qualified inline nel codice (es. `androidx.compose.ui.platform.LocalConfiguration.current`). Fai sempre l'import esplicito in cima al file.
 
 ## Quirk Critici del DB
 - `sender_jid_row_id = 0` nelle chat 1-a-1. Niente JOIN dirette. Usa `from_me` + JOIN su `chat` → `jid`.

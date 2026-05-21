@@ -74,6 +74,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -104,6 +105,7 @@ import com.whatstat.R
 import com.whatstat.data.db.model.DomainStat
 import com.whatstat.data.db.model.LinkStat
 import com.whatstat.data.db.model.MediaStat
+import com.whatstat.ui.MainViewModel
 import com.whatstat.ui.component.AnimatedInfoButton
 import com.whatstat.ui.component.AutoMarquee
 import com.whatstat.ui.component.ContactNameWithPhone
@@ -147,6 +149,9 @@ fun mediaStatsScreen(
     val isMediaGalleryLoading by viewModel.isMediaGalleryLoading.collectAsState()
     val chatContextName by viewModel.chatContextName.collectAsState()
     val chatContextAvatarPath by viewModel.chatContextAvatarPath.collectAsState()
+
+    val mainVm: MainViewModel = hiltViewModel()
+    val appLang by mainVm.appLanguage.collectAsState()
 
     val domainSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val mediaSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -200,21 +205,23 @@ fun mediaStatsScreen(
                     glowColor = MaterialTheme.colorScheme.primary,
                 )
                 if (showInfoDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showInfoDialog = false },
-                        title = { Text(stringResource(R.string.media_info_title)) },
-                        text = {
-                            Text(stringResource(R.string.media_info_text_global))
-                        },
-                        confirmButton = {
-                            TextButton(onClick = { showInfoDialog = false }) {
-                                Text(stringResource(R.string.ho_capito))
-                            }
-                        },
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    key(appLang) {
+                        AlertDialog(
+                            onDismissRequest = { showInfoDialog = false },
+                            title = { Text(stringResource(R.string.media_info_title)) },
+                            text = {
+                                Text(stringResource(R.string.media_info_text_global))
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { showInfoDialog = false }) {
+                                    Text(stringResource(R.string.ho_capito))
+                                }
+                            },
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
 
@@ -398,65 +405,69 @@ fun mediaStatsScreen(
 
         // ── DOMAIN ANALYSIS BOTTOM SHEET ──────────────
         if (contactDomainStats != null) {
-            ModalBottomSheet(
-                onDismissRequest = { viewModel.dismissContactDomains() },
-                sheetState = domainSheetState,
-                containerColor = MaterialTheme.colorScheme.surface,
-                dragHandle = {
-                    Box(
-                        modifier =
-                            Modifier
-                                .padding(vertical = 12.dp)
-                                .width(32.dp)
-                                .height(4.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                    RoundedCornerShape(2.dp),
-                                ),
-                    )
-                },
-            ) {
-                Box(modifier = Modifier.fillMaxHeight(0.80f)) {
-                    DomainBreakdownSheet(
-                        contactName = contactDomainStats?.first ?: "",
-                        avatarPath = contactDomainStats?.second,
-                        domains = contactDomainStats?.third ?: emptyList(),
-                        isLoading = isDomainLoading,
-                        progress = progressDomains,
-                    )
+            key(appLang) {
+                ModalBottomSheet(
+                    onDismissRequest = { viewModel.dismissContactDomains() },
+                    sheetState = domainSheetState,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    dragHandle = {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .padding(vertical = 12.dp)
+                                    .width(32.dp)
+                                    .height(4.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                        RoundedCornerShape(2.dp),
+                                    ),
+                        )
+                    },
+                ) {
+                    Box(modifier = Modifier.fillMaxHeight(0.80f)) {
+                        DomainBreakdownSheet(
+                            contactName = contactDomainStats?.first ?: "",
+                            avatarPath = contactDomainStats?.second,
+                            domains = contactDomainStats?.third ?: emptyList(),
+                            isLoading = isDomainLoading,
+                            progress = progressDomains,
+                        )
+                    }
                 }
             }
         }
 
         // ── MEDIA GALLERY BOTTOM SHEET ──────────────
         if (mediaGalleryState != null) {
-            ModalBottomSheet(
-                onDismissRequest = { viewModel.dismissMediaGallery() },
-                sheetState = mediaSheetState,
-                containerColor = MaterialTheme.colorScheme.surface,
-                dragHandle = {
-                    Box(
-                        modifier =
-                            Modifier
-                                .padding(vertical = 12.dp)
-                                .width(32.dp)
-                                .height(4.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                    RoundedCornerShape(2.dp),
-                                ),
-                    )
-                },
-            ) {
-                Box(modifier = Modifier.fillMaxHeight(0.85f)) {
-                    MediaGallerySheet(
-                        contactName = mediaGalleryState!!.first,
-                        avatarPath = mediaGalleryState!!.second,
-                        mediaFiles = mediaGalleryState!!.third,
-                        isLoading = isMediaGalleryLoading,
-                        progress = progressMediaGallery,
-                        isLiteMode = viewModel.isLiteMode.collectAsState().value,
-                    )
+            key(appLang) {
+                ModalBottomSheet(
+                    onDismissRequest = { viewModel.dismissMediaGallery() },
+                    sheetState = mediaSheetState,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    dragHandle = {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .padding(vertical = 12.dp)
+                                    .width(32.dp)
+                                    .height(4.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                        RoundedCornerShape(2.dp),
+                                    ),
+                        )
+                    },
+                ) {
+                    Box(modifier = Modifier.fillMaxHeight(0.85f)) {
+                        MediaGallerySheet(
+                            contactName = mediaGalleryState!!.first,
+                            avatarPath = mediaGalleryState!!.second,
+                            mediaFiles = mediaGalleryState!!.third,
+                            isLoading = isMediaGalleryLoading,
+                            progress = progressMediaGallery,
+                            isLiteMode = viewModel.isLiteMode.collectAsState().value,
+                        )
+                    }
                 }
             }
         }
@@ -504,6 +515,8 @@ private fun MediaGallerySheet(
     progress: Int?,
     isLiteMode: Boolean = false,
 ) {
+    val mainVm: MainViewModel = hiltViewModel()
+    val appLang by mainVm.appLanguage.collectAsState()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val gridState = rememberLazyGridState()
 
@@ -670,21 +683,23 @@ private fun MediaGallerySheet(
                     glowColor = MaterialTheme.colorScheme.primary,
                 )
                 if (showInfoDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showInfoDialog = false },
-                        title = { Text(stringResource(R.string.media_info_title)) },
-                        text = {
-                            Text(stringResource(R.string.media_info_text_gallery))
-                        },
-                        confirmButton = {
-                            TextButton(onClick = { showInfoDialog = false }) {
-                                Text(stringResource(R.string.ho_capito))
-                            }
-                        },
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    key(appLang) {
+                        AlertDialog(
+                            onDismissRequest = { showInfoDialog = false },
+                            title = { Text(stringResource(R.string.media_info_title)) },
+                            text = {
+                                Text(stringResource(R.string.media_info_text_gallery))
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { showInfoDialog = false }) {
+                                    Text(stringResource(R.string.ho_capito))
+                                }
+                            },
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }

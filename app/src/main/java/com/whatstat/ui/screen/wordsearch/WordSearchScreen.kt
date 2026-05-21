@@ -54,6 +54,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,6 +81,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstat.R
 import com.whatstat.data.db.model.WordMessageResult
+import com.whatstat.ui.MainViewModel
 import com.whatstat.ui.component.AnimatedInfoButton
 import com.whatstat.ui.component.ContactNameWithPhone
 import com.whatstat.ui.component.DynamicLoadingPill
@@ -99,6 +101,8 @@ fun WordSearchScreen(
     viewModel: WordSearchViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
 ) {
+    val mainVm: MainViewModel = hiltViewModel()
+    val appLang by mainVm.appLanguage.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val results by viewModel.results.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -504,53 +508,57 @@ fun WordSearchScreen(
     } // fine Box
 
     if (messagePreview != null) {
-        ModalBottomSheet(
-            onDismissRequest = { viewModel.dismissMessagePreview() },
-            sheetState = rememberModalBottomSheetState(),
-            containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
-            dragHandle = {
-                Box(
-                    modifier =
-                        Modifier
-                            .padding(vertical = 12.dp)
-                            .width(32.dp)
-                            .height(4.dp)
-                            .background(
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                RoundedCornerShape(2.dp),
-                            ),
+        key(appLang) {
+            ModalBottomSheet(
+                onDismissRequest = { viewModel.dismissMessagePreview() },
+                sheetState = rememberModalBottomSheetState(),
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp,
+                dragHandle = {
+                    Box(
+                        modifier =
+                            Modifier
+                                .padding(vertical = 12.dp)
+                                .width(32.dp)
+                                .height(4.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                    RoundedCornerShape(2.dp),
+                                ),
+                    )
+                },
+            ) {
+                WordMessageSheet(
+                    senderName = messagePreview!!.first,
+                    senderAvatarPath = messagePreview!!.second,
+                    messages = messagePreview!!.third,
+                    searchWord = searchQuery,
+                    isLoading = isLoadingMessages,
+                    isChatSpecific = isChatSpecific,
+                    caseSensitive = isCaseSensitive,
                 )
-            },
-        ) {
-            WordMessageSheet(
-                senderName = messagePreview!!.first,
-                senderAvatarPath = messagePreview!!.second,
-                messages = messagePreview!!.third,
-                searchWord = searchQuery,
-                isLoading = isLoadingMessages,
-                isChatSpecific = isChatSpecific,
-                caseSensitive = isCaseSensitive,
-            )
+            }
         }
     }
 
     if (showInfoDialog) {
-        AlertDialog(
-            onDismissRequest = { showInfoDialog = false },
-            title = { Text(stringResource(R.string.info_dialog_title)) },
-            text = {
-                Text(stringResource(R.string.radar_info_text))
-            },
-            confirmButton = {
-                TextButton(onClick = { showInfoDialog = false }) {
-                    Text(stringResource(R.string.ho_capito))
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        key(appLang) {
+            AlertDialog(
+                onDismissRequest = { showInfoDialog = false },
+                title = { Text(stringResource(R.string.info_dialog_title)) },
+                text = {
+                    Text(stringResource(R.string.radar_info_text))
+                },
+                confirmButton = {
+                    TextButton(onClick = { showInfoDialog = false }) {
+                        Text(stringResource(R.string.ho_capito))
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

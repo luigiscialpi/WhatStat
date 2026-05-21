@@ -25,7 +25,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,15 +42,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.R
 import com.whatstat.domain.model.MilestonePrediction
 import com.whatstat.domain.model.MilestonePredictionState
 import com.whatstat.domain.model.PredictionConfidence
 import com.whatstat.domain.prediction.MilestonePredictionCalculator
+import com.whatstat.ui.MainViewModel
 import java.text.NumberFormat
 import java.util.Calendar
 import java.util.Date
-import java.util.Locale
 
 private sealed interface PredictionSelection {
     data class Suggested(val index: Int) : PredictionSelection
@@ -64,6 +67,8 @@ fun MilestonePredictionCard(
     title: String = stringResource(R.string.prediction_title),
     periodLabel: String? = null,
 ) {
+    val mainVm: MainViewModel = hiltViewModel()
+    val appLang by mainVm.appLanguage.collectAsState()
     val numberFormat = remember { NumberFormat.getNumberInstance() }
 
     var selectedMode by remember(state.currentCount) {
@@ -132,16 +137,18 @@ fun MilestonePredictionCard(
                 )
 
                 if (showInfo) {
-                    AlertDialog(
-                        onDismissRequest = { showInfo = false },
-                        title = { Text(stringResource(R.string.prediction_info_title)) },
-                        text = { Text(stringResource(R.string.prediction_info_desc)) },
-                        confirmButton = {
-                            TextButton(onClick = { showInfo = false }) {
-                                Text(stringResource(android.R.string.ok))
-                            }
-                        },
-                    )
+                    key(appLang) {
+                        AlertDialog(
+                            onDismissRequest = { showInfo = false },
+                            title = { Text(stringResource(R.string.prediction_info_title)) },
+                            text = { Text(stringResource(R.string.prediction_info_desc)) },
+                            confirmButton = {
+                                TextButton(onClick = { showInfo = false }) {
+                                    Text(stringResource(android.R.string.ok))
+                                }
+                            },
+                        )
+                    }
                 }
             }
 
@@ -369,20 +376,21 @@ private fun formatMonthYear(date: Date): String {
     val cal = Calendar.getInstance().apply { time = date }
     val month = cal.get(Calendar.MONTH)
     val year = cal.get(Calendar.YEAR)
-    val monthName = when (month) {
-        Calendar.JANUARY -> stringResource(R.string.month_january)
-        Calendar.FEBRUARY -> stringResource(R.string.month_february)
-        Calendar.MARCH -> stringResource(R.string.month_march)
-        Calendar.APRIL -> stringResource(R.string.month_april)
-        Calendar.MAY -> stringResource(R.string.month_may_full)
-        Calendar.JUNE -> stringResource(R.string.month_june)
-        Calendar.JULY -> stringResource(R.string.month_july)
-        Calendar.AUGUST -> stringResource(R.string.month_august)
-        Calendar.SEPTEMBER -> stringResource(R.string.month_september)
-        Calendar.OCTOBER -> stringResource(R.string.month_october)
-        Calendar.NOVEMBER -> stringResource(R.string.month_november)
-        Calendar.DECEMBER -> stringResource(R.string.month_december)
-        else -> ""
-    }
+    val monthName =
+        when (month) {
+            Calendar.JANUARY -> stringResource(R.string.month_january)
+            Calendar.FEBRUARY -> stringResource(R.string.month_february)
+            Calendar.MARCH -> stringResource(R.string.month_march)
+            Calendar.APRIL -> stringResource(R.string.month_april)
+            Calendar.MAY -> stringResource(R.string.month_may_full)
+            Calendar.JUNE -> stringResource(R.string.month_june)
+            Calendar.JULY -> stringResource(R.string.month_july)
+            Calendar.AUGUST -> stringResource(R.string.month_august)
+            Calendar.SEPTEMBER -> stringResource(R.string.month_september)
+            Calendar.OCTOBER -> stringResource(R.string.month_october)
+            Calendar.NOVEMBER -> stringResource(R.string.month_november)
+            Calendar.DECEMBER -> stringResource(R.string.month_december)
+            else -> ""
+        }
     return "$monthName $year"
 }

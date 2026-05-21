@@ -1,6 +1,7 @@
 package com.whatstat
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -35,12 +36,42 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    companion object {
+        const val LANGUAGE_PREFS_NAME = "app_language_prefs"
+        const val LANGUAGE_PREFS_KEY = "app_language"
+    }
+
     @Inject lateinit var repository: WhatsAppRepository
     private lateinit var mainViewModel: MainViewModel
     private var lastHandledIncomingUri: String? = null
     private var lastHandledIncomingAtMs: Long = 0L
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    override fun attachBaseContext(newBase: Context) {
+        val lang =
+            newBase
+                .getSharedPreferences(LANGUAGE_PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(LANGUAGE_PREFS_KEY, "system") ?: "system"
+        val locale =
+            when {
+                lang == "system" ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        newBase.resources.configuration.locales[0]
+                    } else {
+                        @Suppress("DEPRECATION")
+                        newBase.resources.configuration.locale
+                    }
+                lang.contains("_") -> {
+                    val parts = lang.split("_")
+                    Locale(parts[0], parts[1])
+                }
+                else -> Locale(lang)
+            }
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -20,6 +20,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,7 +32,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.R
+import com.whatstat.ui.MainViewModel
 import com.whatstat.ui.theme.senderPieColors
 
 @Composable
@@ -40,6 +45,8 @@ fun SenderColorPickerDialog(
     onColorChosen: (Int) -> Unit,
     onReset: () -> Unit,
 ) {
+    val mainVm: MainViewModel = hiltViewModel()
+    val appLang by mainVm.appLanguage.collectAsState()
     val palette =
         remember {
             senderPieColors +
@@ -55,64 +62,66 @@ fun SenderColorPickerDialog(
                 )
         }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = stringResource(R.string.sender_color_picker_title, contactName),
-                style = MaterialTheme.typography.titleLarge,
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+    key(appLang) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
                 Text(
-                    text = stringResource(R.string.sender_color_picker_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.sender_color_picker_title, contactName),
+                    style = MaterialTheme.typography.titleLarge,
                 )
-                Spacer(Modifier.height(16.dp))
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(5),
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(220.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(4.dp),
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    items(palette.size) { i ->
-                        val c = palette[i]
-                        BoxWithColorChoice(
-                            color = c,
-                            onClick = {
-                                onColorChosen(c.toArgb())
-                                onDismiss()
-                            },
-                        )
+                    Text(
+                        text = stringResource(R.string.sender_color_picker_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(5),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(220.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(4.dp),
+                    ) {
+                        items(palette.size) { i ->
+                            val c = palette[i]
+                            BoxWithColorChoice(
+                                color = c,
+                                onClick = {
+                                    onColorChosen(c.toArgb())
+                                    onDismiss()
+                                },
+                            )
+                        }
                     }
                 }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = {
-                onReset()
-                onDismiss()
-            }) {
-                Text(stringResource(R.string.sender_color_reset))
-            }
-        },
-    )
+            },
+            confirmButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    onReset()
+                    onDismiss()
+                }) {
+                    Text(stringResource(R.string.sender_color_reset))
+                }
+            },
+        )
+    }
 }
 
 @Composable

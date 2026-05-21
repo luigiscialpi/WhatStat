@@ -1,5 +1,8 @@
 package com.whatstat.ui.component
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -35,10 +39,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.whatstat.MainActivity
 import com.whatstat.R
 import com.whatstat.data.store.ThemeMode
 import com.whatstat.ui.MainViewModel
@@ -51,6 +57,7 @@ val LocalDrawerState = compositionLocalOf<DrawerState> { error("No DrawerState p
 fun AppDrawerContent(mainViewModel: MainViewModel = hiltViewModel()) {
     val themeMode by mainViewModel.themeMode.collectAsState()
     val appLanguage by mainViewModel.appLanguage.collectAsState()
+    val context = LocalContext.current
 
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -141,8 +148,14 @@ fun AppDrawerContent(mainViewModel: MainViewModel = hiltViewModel()) {
     if (showLanguageDialog) {
         LanguageSelectionDialog(
             currentLang = appLanguage,
-            onLangSelected = {
-                mainViewModel.setAppLanguage(it)
+            onLangSelected = { lang ->
+                context
+                    .getSharedPreferences(MainActivity.LANGUAGE_PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(MainActivity.LANGUAGE_PREFS_KEY, lang)
+                    .commit()
+                mainViewModel.setAppLanguage(lang)
+                context.findActivity()?.recreate()
                 showLanguageDialog = false
             },
             onDismiss = { showLanguageDialog = false },
@@ -150,44 +163,48 @@ fun AppDrawerContent(mainViewModel: MainViewModel = hiltViewModel()) {
     }
 
     if (showCacheDialog) {
-        AlertDialog(
-            onDismissRequest = { showCacheDialog = false },
-            title = { Text(stringResource(R.string.dialog_clear_cache_title)) },
-            text = {
-                Text(
-                    stringResource(R.string.dialog_clear_cache_message),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showCacheDialog = false
-                }) {
-                    Text(stringResource(R.string.dialog_clear))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCacheDialog = false }) {
-                    Text(stringResource(R.string.dialog_cancel))
-                }
-            },
-        )
+        key(appLanguage) {
+            AlertDialog(
+                onDismissRequest = { showCacheDialog = false },
+                title = { Text(stringResource(R.string.dialog_clear_cache_title)) },
+                text = {
+                    Text(
+                        stringResource(R.string.dialog_clear_cache_message),
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showCacheDialog = false
+                    }) {
+                        Text(stringResource(R.string.dialog_clear))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCacheDialog = false }) {
+                        Text(stringResource(R.string.dialog_cancel))
+                    }
+                },
+            )
+        }
     }
 
     if (showAboutDialog) {
-        AlertDialog(
-            onDismissRequest = { showAboutDialog = false },
-            title = { Text(stringResource(R.string.dialog_about_title)) },
-            text = {
-                Text(
-                    stringResource(R.string.dialog_about_message),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { showAboutDialog = false }) {
-                    Text(stringResource(R.string.dialog_close))
-                }
-            },
-        )
+        key(appLanguage) {
+            AlertDialog(
+                onDismissRequest = { showAboutDialog = false },
+                title = { Text(stringResource(R.string.dialog_about_title)) },
+                text = {
+                    Text(
+                        stringResource(R.string.dialog_about_message),
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { showAboutDialog = false }) {
+                        Text(stringResource(R.string.dialog_close))
+                    }
+                },
+            )
+        }
     }
 }
 
@@ -227,42 +244,46 @@ private fun ThemeSelectionDialog(
     onModeSelected: (ThemeMode) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dialog_choose_theme)) },
-        text = {
-            Column {
-                ThemeMode.entries.forEach { mode ->
-                    val text =
-                        when (mode) {
-                            ThemeMode.SYSTEM -> stringResource(R.string.theme_system_default)
-                            ThemeMode.LIGHT -> stringResource(R.string.theme_light)
-                            ThemeMode.DARK -> stringResource(R.string.theme_dark)
+    val mainVm: MainViewModel = hiltViewModel()
+    val appLang by mainVm.appLanguage.collectAsState()
+    key(appLang) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(R.string.dialog_choose_theme)) },
+            text = {
+                Column {
+                    ThemeMode.entries.forEach { mode ->
+                        val text =
+                            when (mode) {
+                                ThemeMode.SYSTEM -> stringResource(R.string.theme_system_default)
+                                ThemeMode.LIGHT -> stringResource(R.string.theme_light)
+                                ThemeMode.DARK -> stringResource(R.string.theme_dark)
+                            }
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onModeSelected(mode) }
+                                    .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(
+                                selected = mode == currentMode,
+                                onClick = { onModeSelected(mode) },
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text)
                         }
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable { onModeSelected(mode) }
-                                .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = mode == currentMode,
-                            onClick = { onModeSelected(mode) },
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text)
                     }
                 }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.dialog_cancel))
-            }
-        },
-    )
+            },
+            confirmButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -272,28 +293,32 @@ private fun LanguageSelectionDialog(
     onLangSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.dialog_choose_language)) },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                LanguageEntry("system", "System default", currentLang, onLangSelected)
-                LanguageEntry("en", "English", currentLang, onLangSelected)
-                LanguageEntry("it", "Italiano", currentLang, onLangSelected)
-                LanguageEntry("es", "Español", currentLang, onLangSelected)
-                LanguageEntry("fr", "Français", currentLang, onLangSelected)
-                LanguageEntry("de", "Deutsch", currentLang, onLangSelected)
-                LanguageEntry("pt_BR", "Português (BR)", currentLang, onLangSelected)
-                LanguageEntry("tr", "Türkçe", currentLang, onLangSelected)
-                LanguageEntry("hi", "हिन्दी", currentLang, onLangSelected)
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.dialog_cancel))
-            }
-        },
-    )
+    val mainVm: MainViewModel = hiltViewModel()
+    val appLang by mainVm.appLanguage.collectAsState()
+    key(appLang) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(R.string.dialog_choose_language)) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    LanguageEntry("system", "System default", currentLang, onLangSelected)
+                    LanguageEntry("en", "English", currentLang, onLangSelected)
+                    LanguageEntry("it", "Italiano", currentLang, onLangSelected)
+                    LanguageEntry("es", "Español", currentLang, onLangSelected)
+                    LanguageEntry("fr", "Français", currentLang, onLangSelected)
+                    LanguageEntry("de", "Deutsch", currentLang, onLangSelected)
+                    LanguageEntry("pt_BR", "Português (BR)", currentLang, onLangSelected)
+                    LanguageEntry("tr", "Türkçe", currentLang, onLangSelected)
+                    LanguageEntry("hi", "हिन्दी", currentLang, onLangSelected)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -318,4 +343,13 @@ private fun LanguageEntry(
         Spacer(modifier = Modifier.width(8.dp))
         Text(label)
     }
+}
+
+private fun Context.findActivity(): Activity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }

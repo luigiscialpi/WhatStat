@@ -71,6 +71,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -106,6 +107,7 @@ import coil.request.ImageRequest
 import com.whatstat.R
 import com.whatstat.data.db.model.SenderStat
 import com.whatstat.data.db.model.TimeRange
+import com.whatstat.ui.MainViewModel
 import com.whatstat.ui.component.ActivityRecapCard
 import com.whatstat.ui.component.AnimatedInfoButton
 import com.whatstat.ui.component.ContactNameWithPhone
@@ -151,6 +153,8 @@ fun ChatDetailScreen(
     onNavigateToMedia: (Long) -> Unit = { _ -> },
     onNavigateToHistory: (Long) -> Unit = { _ -> },
 ) {
+    val mainVm: MainViewModel = hiltViewModel()
+    val appLang by mainVm.appLanguage.collectAsState()
     val stats by viewModel.chatStats.collectAsState()
     val headerInfo by viewModel.headerInfo.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -1137,39 +1141,43 @@ fun ChatDetailScreen(
 
         // ── Info Dialog ────────────────────────────────────────
         if (showTopSendersInfoDialog) {
-            AlertDialog(
-                onDismissRequest = { showTopSendersInfoDialog = false },
-                title = { Text(stringResource(R.string.top_senders_info_title)) },
-                text = {
-                    Text(stringResource(R.string.top_senders_info_desc))
-                },
-                confirmButton = {
-                    TextButton(onClick = { showTopSendersInfoDialog = false }) {
-                        Text(stringResource(R.string.ho_capito))
-                    }
-                },
-                containerColor = MaterialTheme.colorScheme.surface,
-                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            key(appLang) {
+                AlertDialog(
+                    onDismissRequest = { showTopSendersInfoDialog = false },
+                    title = { Text(stringResource(R.string.top_senders_info_title)) },
+                    text = {
+                        Text(stringResource(R.string.top_senders_info_desc))
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showTopSendersInfoDialog = false }) {
+                            Text(stringResource(R.string.ho_capito))
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
         if (showInfoDialog) {
-            AlertDialog(
-                onDismissRequest = { showInfoDialog = false },
-                title = { Text(stringResource(R.string.info_dialog_title)) },
-                text = {
-                    Text(stringResource(R.string.conv_starters_info))
-                },
-                confirmButton = {
-                    TextButton(onClick = { showInfoDialog = false }) {
-                        Text(stringResource(R.string.ho_capito))
-                    }
-                },
-                containerColor = MaterialTheme.colorScheme.surface,
-                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            key(appLang) {
+                AlertDialog(
+                    onDismissRequest = { showInfoDialog = false },
+                    title = { Text(stringResource(R.string.info_dialog_title)) },
+                    text = {
+                        Text(stringResource(R.string.conv_starters_info))
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showInfoDialog = false }) {
+                            Text(stringResource(R.string.ho_capito))
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
         val pickerSender = colorPickerSender

@@ -47,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -63,6 +64,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstat.R
 import com.whatstat.data.db.model.ChatListItem
+import com.whatstat.ui.MainViewModel
 import com.whatstat.ui.component.ContactNameWithPhone
 import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
@@ -77,6 +79,8 @@ fun ChatListScreen(
     onImportChat: () -> Unit = {},
     onAllChatsDeleted: () -> Unit = {},
 ) {
+    val mainVm: MainViewModel = hiltViewModel()
+    val appLang by mainVm.appLanguage.collectAsState()
     val chats by viewModel.filteredChats.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -246,61 +250,65 @@ fun ChatListScreen(
 
     // ── Dialogo conferma eliminazione ────────────────────────────
     chatToDelete?.let { chat ->
-        AlertDialog(
-            onDismissRequest = { chatToDelete = null },
-            title = { Text(stringResource(R.string.delete_chat_title)) },
-            text = { Text(stringResource(R.string.delete_chat_confirm, chat.displayName)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteChat(chat.chatId)
-                        chatToDelete = null
-                    },
-                ) {
-                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { chatToDelete = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
+        key(appLang) {
+            AlertDialog(
+                onDismissRequest = { chatToDelete = null },
+                title = { Text(stringResource(R.string.delete_chat_title)) },
+                text = { Text(stringResource(R.string.delete_chat_confirm, chat.displayName)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteChat(chat.chatId)
+                            chatToDelete = null
+                        },
+                    ) {
+                        Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { chatToDelete = null }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                },
+            )
+        }
     }
 
     // ── Dialogo rinomina chat ─────────────────────────────────────
     chatToRename?.let { chat ->
         var newName by remember(chat.chatId) { mutableStateOf(chat.displayName) }
-        AlertDialog(
-            onDismissRequest = { chatToRename = null },
-            title = { Text(stringResource(R.string.rename_chat_title)) },
-            text = {
-                OutlinedTextField(
-                    value = newName,
-                    onValueChange = { newName = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.chat_name_label)) },
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.renameChat(chat.chatId, newName)
-                        chatToRename = null
-                    },
-                    enabled = newName.trim().isNotBlank(),
-                ) {
-                    Text(stringResource(R.string.save))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { chatToRename = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
+        key(appLang) {
+            AlertDialog(
+                onDismissRequest = { chatToRename = null },
+                title = { Text(stringResource(R.string.rename_chat_title)) },
+                text = {
+                    OutlinedTextField(
+                        value = newName,
+                        onValueChange = { newName = it },
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.chat_name_label)) },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.renameChat(chat.chatId, newName)
+                            chatToRename = null
+                        },
+                        enabled = newName.trim().isNotBlank(),
+                    ) {
+                        Text(stringResource(R.string.save))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { chatToRename = null }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                },
+            )
+        }
     }
 }
 
