@@ -31,11 +31,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import com.whatstat.R
 import com.whatstat.data.db.model.HourlyCount
 import com.whatstat.data.db.model.SenderStat
 import com.whatstat.ui.theme.getSenderColor
@@ -298,7 +300,7 @@ private fun ChartPointBubble(
                     fontSize = 10.sp,
                 )
                 Text(
-                    text = "$total messaggi",
+                    text = stringResource(R.string.prediction_messages_format, total),
                     style = MaterialTheme.typography.labelMedium,
                     color = onBubbleColor,
                     fontSize = 13.sp,

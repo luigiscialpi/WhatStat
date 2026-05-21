@@ -312,6 +312,34 @@
     <string name="time_range_custom">Personnalisé</string>
     <string name="time_range_custom_button">Personnalisé</string>
 
+    <string name="drawer_app_name">WhatStat</string>
+    <string name="whatstat_drawer_theme">Theme</string>
+    <string name="whatstat_drawer_language">Langue</string>
+    <string name="whatstat_drawer_cache">Cache</string>
+    <string name="whatstat_drawer_about">Infos</string>
+    <string name="dialog_choose_theme">Theme</string>
+    <string name="theme_system_default">Systeme</string>
+    <string name="theme_light">Clair</string>
+    <string name="theme_dark">Sombre</string>
+    <string name="dialog_choose_language">Langue</string>
+    <string name="dialog_cancel">Annuler</string>
+    <string name="dialog_clear_cache_title">Cache</string>
+    <string name="dialog_clear_cache_message">Vider le cache ?</string>
+    <string name="dialog_clear">Vider</string>
+    <string name="dialog_about_title">Infos</string>
+    <string name="dialog_about_message">WhatStat</string>
+    <string name="dialog_close">Fermer</string>
+    <string name="loading_calculating">Calcul...</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_messages_format">%s messages</string>
+    <string name="prediction_daily_rate_format">Rythme: %.1f messages/jour</string>
+    <string name="days_remaining_format">%d jours</string>
+    <string name="month_remaining_format">1 mois</string>
+    <string name="months_remaining_format">%d mois</string>
+    <string name="year_remaining_format">1 an</string>
+    <string name="years_remaining_format">%d ans</string>
+
     <!-- New DB Update -->
     <string name="new_db_available_title">Nouveau backup disponible</string>
     <string name="new_db_available_desc">Un nouveau backup WhatsApp est disponible. Voulez-vous mettre à jour les données de WhatStat?</string>

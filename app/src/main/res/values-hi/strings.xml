@@ -312,6 +312,35 @@
     <string name="time_range_custom">कस्टम</string>
     <string name="time_range_custom_button">कस्टम</string>
 
+    <!-- Drawer -->
+    <string name="drawer_app_name">WhatStat</string>
+    <string name="whatstat_drawer_theme">ऐप थीम</string>
+    <string name="whatstat_drawer_language">भाषा बदलें</string>
+    <string name="whatstat_drawer_cache">कैशे साफ़ करें</string>
+    <string name="whatstat_drawer_about">जानकारी</string>
+    <string name="dialog_choose_theme">थीम चुनें</string>
+    <string name="theme_system_default">सिस्टम डिफ़ॉल्ट</string>
+    <string name="theme_light">हल्का</string>
+    <string name="theme_dark">गहरा</string>
+    <string name="dialog_choose_language">भाषा चुनें</string>
+    <string name="dialog_cancel">रद्द करें</string>
+    <string name="dialog_clear_cache_title">कैशे साफ़ करें</string>
+    <string name="dialog_clear_cache_message">क्या आप वाक़़ाया कैशे साफ़ करना चाहते हैं? अगली बार शुरू करते ही आँक़़ड़ और लेक्सिकल विश्लेषण पुनः गणना किए जाएँगे।</string>
+    <string name="dialog_clear">साफ़ करें</string>
+    <string name="dialog_about_title">जानकारी</string>
+    <string name="dialog_about_message">WhatStat\nसंस्करण: 1.0\n\nWhatStat आपके WhatsApp चैट को पूरी तरह स्थानीय रूप से प्रोसेस करता है। कोई भी डेटा बाहरी सर्वर पर नहीं भेजा जाता है।</string>
+    <string name="dialog_close">बंद करें</string>
+    <string name="loading_calculating">गणना हो रही है...</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_messages_format">%s संदेश</string>
+    <string name="prediction_daily_rate_format">दर: %.1f संदेश/दिन</string>
+    <string name="days_remaining_format">%d दिन</string>
+    <string name="month_remaining_format">1 महीना</string>
+    <string name="months_remaining_format">%d महीने</string>
+    <string name="year_remaining_format">1 साल</string>
+    <string name="years_remaining_format">%d साल</string>
+
     <!-- New DB Update -->
     <string name="new_db_available_title">नया बैकअप उपलब्ध</string>
     <string name="new_db_available_desc">एक नया व्हाट्सएप बैकअप उपलब्ध है। क्या आप WhatStat डेटा अपडेट करना चाहेंगे?</string>

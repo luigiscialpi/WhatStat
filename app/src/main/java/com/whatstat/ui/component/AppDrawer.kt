@@ -35,9 +35,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.whatstat.R
 import com.whatstat.data.store.ThemeMode
 import com.whatstat.ui.MainViewModel
 import kotlinx.coroutines.launch
@@ -74,7 +76,7 @@ fun AppDrawerContent(mainViewModel: MainViewModel = hiltViewModel()) {
                         .verticalScroll(rememberScrollState()),
             ) {
                 Text(
-                    text = "WhatStat",
+                    text = stringResource(R.string.drawer_app_name),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
@@ -85,7 +87,7 @@ fun AppDrawerContent(mainViewModel: MainViewModel = hiltViewModel()) {
 
                 DrawerItem(
                     icon = Icons.Outlined.BrightnessMedium,
-                    label = "Tema App",
+                    label = stringResource(R.string.whatstat_drawer_theme),
                     onClick = {
                         showThemeDialog = true
                         closeDrawer()
@@ -94,7 +96,7 @@ fun AppDrawerContent(mainViewModel: MainViewModel = hiltViewModel()) {
 
                 DrawerItem(
                     icon = Icons.Outlined.Language,
-                    label = "Cambia Lingua",
+                    label = stringResource(R.string.whatstat_drawer_language),
                     onClick = {
                         showLanguageDialog = true
                         closeDrawer()
@@ -103,7 +105,7 @@ fun AppDrawerContent(mainViewModel: MainViewModel = hiltViewModel()) {
 
                 DrawerItem(
                     icon = Icons.Outlined.Cached,
-                    label = "Svuota Cache",
+                    label = stringResource(R.string.whatstat_drawer_cache),
                     onClick = {
                         showCacheDialog = true
                         closeDrawer()
@@ -115,7 +117,7 @@ fun AppDrawerContent(mainViewModel: MainViewModel = hiltViewModel()) {
                 HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
                 DrawerItem(
                     icon = Icons.Outlined.Info,
-                    label = "Informazioni",
+                    label = stringResource(R.string.whatstat_drawer_about),
                     onClick = {
                         showAboutDialog = true
                         closeDrawer()
@@ -150,22 +152,22 @@ fun AppDrawerContent(mainViewModel: MainViewModel = hiltViewModel()) {
     if (showCacheDialog) {
         AlertDialog(
             onDismissRequest = { showCacheDialog = false },
-            title = { Text("Svuota Cache") },
+            title = { Text(stringResource(R.string.dialog_clear_cache_title)) },
             text = {
                 Text(
-                    "Sei sicuro di voler svuotare la cache? Al prossimo avvio verranno ricalcolate le statistiche e l'analisi lessicale.",
+                    stringResource(R.string.dialog_clear_cache_message),
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     showCacheDialog = false
                 }) {
-                    Text("Svuota")
+                    Text(stringResource(R.string.dialog_clear))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCacheDialog = false }) {
-                    Text("Annulla")
+                    Text(stringResource(R.string.dialog_cancel))
                 }
             },
         )
@@ -174,19 +176,15 @@ fun AppDrawerContent(mainViewModel: MainViewModel = hiltViewModel()) {
     if (showAboutDialog) {
         AlertDialog(
             onDismissRequest = { showAboutDialog = false },
-            title = { Text("Informazioni") },
+            title = { Text(stringResource(R.string.dialog_about_title)) },
             text = {
                 Text(
-                    "WhatStat\n" +
-                        "Versione: 1.0\n" +
-                        "\n" +
-                        "WhatStat elabora le tue chat WhatsApp interamente in locale. " +
-                        "Nessun dato viene inviato a server esterni.",
+                    stringResource(R.string.dialog_about_message),
                 )
             },
             confirmButton = {
                 TextButton(onClick = { showAboutDialog = false }) {
-                    Text("Chiudi")
+                    Text(stringResource(R.string.dialog_close))
                 }
             },
         )
@@ -231,15 +229,15 @@ private fun ThemeSelectionDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Scegli Tema") },
+        title = { Text(stringResource(R.string.dialog_choose_theme)) },
         text = {
             Column {
                 ThemeMode.entries.forEach { mode ->
                     val text =
                         when (mode) {
-                            ThemeMode.SYSTEM -> "Predefinito di sistema"
-                            ThemeMode.LIGHT -> "Chiaro"
-                            ThemeMode.DARK -> "Scuro"
+                            ThemeMode.SYSTEM -> stringResource(R.string.theme_system_default)
+                            ThemeMode.LIGHT -> stringResource(R.string.theme_light)
+                            ThemeMode.DARK -> stringResource(R.string.theme_dark)
                         }
                     Row(
                         modifier =
@@ -261,7 +259,7 @@ private fun ThemeSelectionDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annulla")
+                Text(stringResource(R.string.dialog_cancel))
             }
         },
     )
@@ -274,47 +272,50 @@ private fun LanguageSelectionDialog(
     onLangSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val langs =
-        listOf(
-            "system" to "Predefinito di sistema",
-            "en" to "English",
-            "it" to "Italiano",
-            "es" to "Español",
-            "fr" to "Français",
-            "de" to "Deutsch",
-            "pt_BR" to "Português (BR)",
-            "tr" to "Türkçe",
-            "hi" to "हिन्दी",
-        )
-
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Scegli Lingua") },
+        title = { Text(stringResource(R.string.dialog_choose_language)) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                langs.forEach { (code, label) ->
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable { onLangSelected(code) }
-                                .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = code == currentLang,
-                            onClick = { onLangSelected(code) },
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(label)
-                    }
-                }
+                LanguageEntry("system", "System default", currentLang, onLangSelected)
+                LanguageEntry("en", "English", currentLang, onLangSelected)
+                LanguageEntry("it", "Italiano", currentLang, onLangSelected)
+                LanguageEntry("es", "Español", currentLang, onLangSelected)
+                LanguageEntry("fr", "Français", currentLang, onLangSelected)
+                LanguageEntry("de", "Deutsch", currentLang, onLangSelected)
+                LanguageEntry("pt_BR", "Português (BR)", currentLang, onLangSelected)
+                LanguageEntry("tr", "Türkçe", currentLang, onLangSelected)
+                LanguageEntry("hi", "हिन्दी", currentLang, onLangSelected)
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annulla")
+                Text(stringResource(R.string.dialog_cancel))
             }
         },
     )
+}
+
+@Composable
+private fun LanguageEntry(
+    code: String,
+    label: String,
+    currentLang: String,
+    onLangSelected: (String) -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onLangSelected(code) }
+                .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = code == currentLang,
+            onClick = { onLangSelected(code) },
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(label)
+    }
 }

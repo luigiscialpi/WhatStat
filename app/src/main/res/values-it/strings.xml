@@ -312,6 +312,35 @@
     <string name="time_range_custom">Personalizzato</string>
     <string name="time_range_custom_button">Personalizzato</string>
 
+    <!-- Drawer -->
+    <string name="drawer_app_name">WhatStat</string>
+    <string name="whatstat_drawer_theme">Tema App</string>
+    <string name="whatstat_drawer_language">Cambia Lingua</string>
+    <string name="whatstat_drawer_cache">Svuota Cache</string>
+    <string name="whatstat_drawer_about">Informazioni</string>
+    <string name="dialog_choose_theme">Scegli Tema</string>
+    <string name="theme_system_default">Predefinito di sistema</string>
+    <string name="theme_light">Chiaro</string>
+    <string name="theme_dark">Scuro</string>
+    <string name="dialog_choose_language">Scegli Lingua</string>
+    <string name="dialog_cancel">Annulla</string>
+    <string name="dialog_clear_cache_title">Svuota Cache</string>
+    <string name="dialog_clear_cache_message">Sei sicuro di voler svuotare la cache? Al prossimo avvio verranno ricalcolate le statistiche e l\'analisi lessicale.</string>
+    <string name="dialog_clear">Svuota</string>
+    <string name="dialog_about_title">Informazioni</string>
+    <string name="dialog_about_message">WhatStat\nVersione: 1.0\n\nWhatStat elabora le tue chat WhatsApp interamente in locale. Nessun dato viene inviato a server esterni.</string>
+    <string name="dialog_close">Chiudi</string>
+    <string name="loading_calculating">Calcolo in corso...</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_messages_format">%s messaggi</string>
+    <string name="prediction_daily_rate_format">Ritmo: %.1f messaggi/giorno</string>
+    <string name="days_remaining_format">%d giorni</string>
+    <string name="month_remaining_format">1 mese</string>
+    <string name="months_remaining_format">%d mesi</string>
+    <string name="year_remaining_format">1 anno</string>
+    <string name="years_remaining_format">%d anni</string>
+
     <!-- New DB Update -->
     <string name="new_db_available_title">Nuovo backup rilevato</string>
     <string name="new_db_available_desc">È disponibile un nuovo backup di WhatsApp. Vuoi aggiornare i dati di WhatStat?</string>

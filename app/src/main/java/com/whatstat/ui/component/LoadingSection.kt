@@ -13,7 +13,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.whatstat.R
 
 /**
  * Sezione di caricamento standard con supporto per la percentuale di progresso.
@@ -21,7 +23,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 @Suppress("FunctionName")
 fun LoadingSection(
-    message: String = "Calcolo in corso…",
+    message: String = stringResource(R.string.loading_calculating),
     progress: Int? = null,
     modifier: Modifier = Modifier,
 ) {

@@ -232,7 +232,7 @@ private fun PredictionDetails(
             verticalAlignment = Alignment.Bottom,
         ) {
             Text(
-                text = "${numberFormat.format(prediction.targetCount)} messaggi",
+                text = stringResource(R.string.prediction_messages_format, numberFormat.format(prediction.targetCount)),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
             )
@@ -329,7 +329,7 @@ private fun PredictionDetails(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Ritmo: ${String.format("%.1f", prediction.dailyRate)} messaggi/giorno",
+                text = stringResource(R.string.prediction_daily_rate_format, prediction.dailyRate),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             )
@@ -357,14 +357,14 @@ private fun formatShortCount(count: Long): String {
 @Composable
 private fun formatDaysRemaining(days: Long): String {
     return when {
-        days < 30 -> "$days giorni"
+        days < 30 -> stringResource(R.string.days_remaining_format, days)
         days < 365 -> {
             val months = days / 30
-            if (months == 1L) "1 mese" else "$months mesi"
+            if (months == 1L) stringResource(R.string.month_remaining_format) else stringResource(R.string.months_remaining_format, months)
         }
         else -> {
             val years = days / 365
-            if (years == 1L) "1 anno" else "$years anni"
+            if (years == 1L) stringResource(R.string.year_remaining_format) else stringResource(R.string.years_remaining_format, years)
         }
     }
 }

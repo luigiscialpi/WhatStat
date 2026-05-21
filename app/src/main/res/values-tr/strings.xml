@@ -312,6 +312,35 @@
     <string name="time_range_custom">Özel</string>
     <string name="time_range_custom_button">Özelleştir</string>
 
+    <!-- Drawer -->
+    <string name="drawer_app_name">WhatStat</string>
+    <string name="whatstat_drawer_theme">Uygulama temasi</string>
+    <string name="whatstat_drawer_language">Dili degistir</string>
+    <string name="whatstat_drawer_cache">Onbellegi temizle</string>
+    <string name="whatstat_drawer_about">Bilgiler</string>
+    <string name="dialog_choose_theme">Tema seç</string>
+    <string name="theme_system_default">Sistem varsayılanı</string>
+    <string name="theme_light">Açık</string>
+    <string name="theme_dark">Koyu</string>
+    <string name="dialog_choose_language">Dil seç</string>
+    <string name="dialog_cancel">İptal</string>
+    <string name="dialog_clear_cache_title">Önbelleği temizle</string>
+    <string name="dialog_clear_cache_message">Önbelleği temizlemek istediğinizden emin misiniz? Bir sonraki başlatılışta istatistikler ve leksik analiz yeniden hesaplanacak.</string>
+    <string name="dialog_clear">Temizle</string>
+    <string name="dialog_about_title">Bilgiler</string>
+    <string name="dialog_about_message">WhatStat\nSürüm: 1.0\n\nWhatStat, WhatsApp sohbetlerinizi tamamen yerel olarak işler. Veriler dış sunuculara gönderilmez.</string>
+    <string name="dialog_close">Kapat</string>
+    <string name="loading_calculating">Hesaplanıyor...</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_messages_format">%s mesaj</string>
+    <string name="prediction_daily_rate_format">Hız: %.1f mesaj/gün</string>
+    <string name="days_remaining_format">%d gün</string>
+    <string name="month_remaining_format">1 ay</string>
+    <string name="months_remaining_format">%d ay</string>
+    <string name="year_remaining_format">1 yıl</string>
+    <string name="years_remaining_format">%d yıl</string>
+
     <!-- New DB Update -->
     <string name="new_db_available_title">Yeni yedekleme mevcut</string>
     <string name="new_db_available_desc">Yeni bir WhatsApp yedeği mevcut. WhatStat verilerini güncellemek ister misiniz?</string>
