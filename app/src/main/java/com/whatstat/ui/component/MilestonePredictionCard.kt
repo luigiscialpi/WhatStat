@@ -46,7 +46,7 @@ import com.whatstat.domain.model.MilestonePredictionState
 import com.whatstat.domain.model.PredictionConfidence
 import com.whatstat.domain.prediction.MilestonePredictionCalculator
 import java.text.NumberFormat
-import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -65,7 +65,6 @@ fun MilestonePredictionCard(
     periodLabel: String? = null,
 ) {
     val numberFormat = remember { NumberFormat.getNumberInstance() }
-    val dateFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()) }
 
     var selectedMode by remember(state.currentCount) {
         mutableStateOf<PredictionSelection>(
@@ -204,7 +203,6 @@ fun MilestonePredictionCard(
                 PredictionDetails(
                     prediction = currentPrediction,
                     numberFormat = numberFormat,
-                    dateFormat = dateFormat,
                     confidence = state.confidence,
                 )
             } else {
@@ -222,7 +220,6 @@ fun MilestonePredictionCard(
 private fun PredictionDetails(
     prediction: MilestonePrediction,
     numberFormat: NumberFormat,
-    dateFormat: SimpleDateFormat,
     confidence: PredictionConfidence,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -284,9 +281,7 @@ private fun PredictionDetails(
                         prediction.targetCount <= prediction.dailyRate.toLong() && prediction.progress >= 1f ->
                             stringResource(R.string.prediction_reached)
                         prediction.estimatedDate != null ->
-                            dateFormat.format(Date(prediction.estimatedDate)).replaceFirstChar {
-                                if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
-                            }
+                            formatMonthYear(Date(prediction.estimatedDate))
                         prediction.daysRemaining != null ->
                             stringResource(R.string.prediction_date_unavailable)
                         else -> stringResource(R.string.prediction_uncalculable)
@@ -367,4 +362,27 @@ private fun formatDaysRemaining(days: Long): String {
             if (years == 1L) stringResource(R.string.year_remaining_format) else stringResource(R.string.years_remaining_format, years)
         }
     }
+}
+
+@Composable
+private fun formatMonthYear(date: Date): String {
+    val cal = Calendar.getInstance().apply { time = date }
+    val month = cal.get(Calendar.MONTH)
+    val year = cal.get(Calendar.YEAR)
+    val monthName = when (month) {
+        Calendar.JANUARY -> stringResource(R.string.month_january)
+        Calendar.FEBRUARY -> stringResource(R.string.month_february)
+        Calendar.MARCH -> stringResource(R.string.month_march)
+        Calendar.APRIL -> stringResource(R.string.month_april)
+        Calendar.MAY -> stringResource(R.string.month_may_full)
+        Calendar.JUNE -> stringResource(R.string.month_june)
+        Calendar.JULY -> stringResource(R.string.month_july)
+        Calendar.AUGUST -> stringResource(R.string.month_august)
+        Calendar.SEPTEMBER -> stringResource(R.string.month_september)
+        Calendar.OCTOBER -> stringResource(R.string.month_october)
+        Calendar.NOVEMBER -> stringResource(R.string.month_november)
+        Calendar.DECEMBER -> stringResource(R.string.month_december)
+        else -> ""
+    }
+    return "$monthName $year"
 }
