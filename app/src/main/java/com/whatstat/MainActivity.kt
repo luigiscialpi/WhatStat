@@ -70,7 +70,12 @@ class MainActivity : ComponentActivity() {
                 if (appLanguage == "system") {
                     Locale.getDefault()
                 } else {
-                    Locale(appLanguage)
+                    val parts = appLanguage.split("_")
+                    if (parts.size == 2) {
+                        Locale(parts[0], parts[1])
+                    } else {
+                        Locale(appLanguage)
+                    }
                 }
 
             val configuration = Configuration(context.resources.configuration)

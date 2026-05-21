@@ -282,7 +282,7 @@ private fun LanguageSelectionDialog(
             "es" to "Español",
             "fr" to "Français",
             "de" to "Deutsch",
-            "pt-rBR" to "Português (BR)",
+            "pt_BR" to "Português (BR)",
             "tr" to "Türkçe",
             "hi" to "हिन्दी",
         )
