@@ -316,7 +316,7 @@
     <string name="drawer_app_name">WhatStat</string>
     <string name="whatstat_drawer_theme">App Theme</string>
     <string name="whatstat_drawer_language">Change Language</string>
-    <string name="whatstat_drawer_cache">Clear Cache</string>
+    <string name="whatstat_drawer_cache">Delete Data</string>
     <string name="whatstat_drawer_about">Information</string>
     <string name="dialog_choose_theme">Choose Theme</string>
     <string name="theme_system_default">System default</string>
@@ -324,9 +324,11 @@
     <string name="theme_dark">Dark</string>
     <string name="dialog_choose_language">Choose Language</string>
     <string name="dialog_cancel">Cancel</string>
-    <string name="dialog_clear_cache_title">Clear Cache</string>
-    <string name="dialog_clear_cache_message">Are you sure you want to clear the cache? Statistics and lexical analysis will be recalculated on next launch.</string>
-    <string name="dialog_clear">Clear</string>
+    <string name="dialog_clear_cache_title">Delete Data</string>
+    <string name="dialog_clear_data_message_root">This will permanently delete the extracted database, avatars and Root cache. You will need to run the Root setup again.</string>
+    <string name="dialog_clear_data_message_lite">This will permanently delete all imported chats, media files and Lite cache. You will need to re-import your chats.</string>
+    <string name="dialog_clear_data_message_both">This will permanently delete all data: Root database, all imported Lite chats, media files and cache. You will need to run the setup again.</string>
+    <string name="dialog_clear">Delete</string>
     <string name="dialog_about_title">Information</string>
     <string name="dialog_about_message">WhatStat\nVersion: 1.0\n\nWhatStat processes your WhatsApp chats entirely offline. No data is sent to external servers.</string>
     <string name="dialog_close">Close</string>

@@ -15,6 +15,7 @@ import com.whatstat.ui.component.AppDrawerContent
 import com.whatstat.ui.component.LocalDrawerState
 import com.whatstat.ui.navigation.BottomNavigationBar
 import com.whatstat.ui.navigation.NavGraphRoute
+import com.whatstat.ui.navigation.Screen
 
 @Composable
 @Suppress("FunctionName")
@@ -26,6 +27,10 @@ fun AppScaffold(
 ) {
     val route = currentDestination?.route.orEmpty()
     val isLiteImportRoute = route.contains("lite_setup")
+    val isOnSetupScreen =
+        currentDestination
+            ?.hierarchy
+            ?.any { it.route == NavGraphRoute.SETUP } == true
     val showBottomBar =
         currentDestination
             ?.hierarchy
@@ -38,7 +43,17 @@ fun AppScaffold(
     CompositionLocalProvider(LocalDrawerState provides drawerState) {
         ModalNavigationDrawer(
             drawerState = drawerState,
-            drawerContent = { AppDrawerContent() },
+            drawerContent = {
+                AppDrawerContent(
+                    isOnSetupScreen = isOnSetupScreen,
+                    onNavigateToSetup = {
+                        navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
+                            popUpTo("app_graph") { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            },
         ) {
             Scaffold(
                 contentWindowInsets = WindowInsets(0),

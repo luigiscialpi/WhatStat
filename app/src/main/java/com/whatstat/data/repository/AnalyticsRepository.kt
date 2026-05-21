@@ -145,6 +145,20 @@ class AnalyticsRepository
         }
 
         /**
+         * Svuota le cache dei namespace richiesti.
+         * Chiamato dall'AppDrawer quando l'utente preme "Elimina cache".
+         * [clearRoot] = true quando si è nel grafo Root o nella SetupScreen.
+         * [clearLite] = true quando si è nel grafo Lite o nella SetupScreen.
+         */
+        suspend fun clearCaches(
+            clearRoot: Boolean,
+            clearLite: Boolean,
+        ) {
+            if (clearRoot) cacheManager.clearRootCache(resetWordIndexes = true)
+            if (clearLite) cacheManager.clearLiteCache(resetWordIndexes = true)
+        }
+
+        /**
          * Cancellazione completa: elimina i file DB Lite, svuota la cache e disattiva la Lite mode.
          * Da chiamare solo quando l'utente ha eliminato l'ultima chat rimasta.
          */

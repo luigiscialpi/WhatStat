@@ -314,9 +314,9 @@
 
     <!-- Drawer -->
     <string name="drawer_app_name">WhatStat</string>
-    <string name="whatstat_drawer_theme">Uygulama temasi</string>
-    <string name="whatstat_drawer_language">Dili degistir</string>
-    <string name="whatstat_drawer_cache">Onbellegi temizle</string>
+    <string name="whatstat_drawer_theme">Uygulama teması</string>
+    <string name="whatstat_drawer_language">Dili değiştir</string>
+    <string name="whatstat_drawer_cache">Verileri sil</string>
     <string name="whatstat_drawer_about">Bilgiler</string>
     <string name="dialog_choose_theme">Tema seç</string>
     <string name="theme_system_default">Sistem varsayılanı</string>
@@ -324,9 +324,11 @@
     <string name="theme_dark">Koyu</string>
     <string name="dialog_choose_language">Dil seç</string>
     <string name="dialog_cancel">İptal</string>
-    <string name="dialog_clear_cache_title">Önbelleği temizle</string>
-    <string name="dialog_clear_cache_message">Önbelleği temizlemek istediğinizden emin misiniz? Bir sonraki başlatılışta istatistikler ve leksik analiz yeniden hesaplanacak.</string>
-    <string name="dialog_clear">Temizle</string>
+    <string name="dialog_clear_cache_title">Verileri sil</string>
+    <string name="dialog_clear_data_message_root">Bu işlem, ayıklanan veritabanını, avatarları ve Root önbelleğini kalıcı olarak siler. Root kurulumunu yeniden çalıştırmanız gerekecek.</string>
+    <string name="dialog_clear_data_message_lite">Bu işlem, tüm içe aktarılan sohbetleri, medya dosyalarını ve Lite önbelleğini kalıcı olarak siler. Sohbetlerinizi yeniden içe aktarmanız gerekecek.</string>
+    <string name="dialog_clear_data_message_both">Bu işlem tüm verileri kalıcı olarak siler: Root veritabanı, tüm içe aktarılan Lite sohbetleri, medya dosyaları ve önbellek. Kurulumu yeniden çalıştırmanız gerekecek.</string>
+    <string name="dialog_clear">Sil</string>
     <string name="dialog_about_title">Bilgiler</string>
     <string name="dialog_about_message">WhatStat\nSürüm: 1.0\n\nWhatStat, WhatsApp sohbetlerinizi tamamen yerel olarak işler. Veriler dış sunuculara gönderilmez.</string>
     <string name="dialog_close">Kapat</string>

@@ -313,21 +313,23 @@
     <string name="time_range_custom_button">Personnalisé</string>
 
     <string name="drawer_app_name">WhatStat</string>
-    <string name="whatstat_drawer_theme">Theme</string>
-    <string name="whatstat_drawer_language">Langue</string>
-    <string name="whatstat_drawer_cache">Cache</string>
-    <string name="whatstat_drawer_about">Infos</string>
-    <string name="dialog_choose_theme">Theme</string>
-    <string name="theme_system_default">Systeme</string>
+    <string name="whatstat_drawer_theme">Thème</string>
+    <string name="whatstat_drawer_language">Changer la langue</string>
+    <string name="whatstat_drawer_cache">Supprimer les données</string>
+    <string name="whatstat_drawer_about">Informations</string>
+    <string name="dialog_choose_theme">Choisir le thème</string>
+    <string name="theme_system_default">Système par défaut</string>
     <string name="theme_light">Clair</string>
     <string name="theme_dark">Sombre</string>
-    <string name="dialog_choose_language">Langue</string>
+    <string name="dialog_choose_language">Choisir la langue</string>
     <string name="dialog_cancel">Annuler</string>
-    <string name="dialog_clear_cache_title">Cache</string>
-    <string name="dialog_clear_cache_message">Vider le cache ?</string>
-    <string name="dialog_clear">Vider</string>
-    <string name="dialog_about_title">Infos</string>
-    <string name="dialog_about_message">WhatStat</string>
+    <string name="dialog_clear_cache_title">Supprimer les données</string>
+    <string name="dialog_clear_data_message_root">Cela supprimera définitivement la base de données extraite, les avatars et le cache Root. Vous devrez relancer la configuration Root.</string>
+    <string name="dialog_clear_data_message_lite">Cela supprimera définitivement tous les chats importés, les fichiers médias et le cache Lite. Vous devrez réimporter vos chats.</string>
+    <string name="dialog_clear_data_message_both">Cela supprimera définitivement toutes les données : base de données Root, chats Lite importés, fichiers médias et cache. Vous devrez relancer la configuration.</string>
+    <string name="dialog_clear">Supprimer</string>
+    <string name="dialog_about_title">Informations</string>
+    <string name="dialog_about_message">WhatStat\nVersion : 1.0\n\nWhatStat traite vos discussions WhatsApp entièrement en local. Aucune donnée n\'est envoyée à des serveurs externes.</string>
     <string name="dialog_close">Fermer</string>
     <string name="loading_calculating">Calcul...</string>
 

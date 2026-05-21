@@ -204,7 +204,13 @@ La cache viene invalidata esplicitamente in quattro occasioni:
 
 4. **DB Root modificato** (signature oltre soglia): `FileExtractor.calculateSourceDbSignature()` calcola la firma del database live (`/data/user/*/com.whatsapp/databases/msgstore.db`) usando esclusivamente la dimensione del file (`length`). `CacheManager.isRootDbChanged()` confronta la dimensione attuale con quella salvata applicando una **soglia di 128 KB** (`SIGNATURE_CHANGE_THRESHOLD`): variazioni inferiori vengono ignorate per filtrare gli auto-checkpoint frequenti di SQLite. Se la differenza supera la soglia, l'app mostra la card "Nuovo backup rilevato" e lascia all'utente la scelta. Se l'utente aggiorna, viene chiamato `clearRootCache()` (non `clearCache()`, per proteggere la cache Lite). Per le signature non numeriche (fallback crypt14, formato `size_lastModified`), il confronto resta esatto.
 
-5. **Rename chat Lite** (AnalyticsRepository.notifyLiteRenameChat()): La cache slow stats della chat (chat_slow_{id}) viene invalidata completamente. Non viene tentato alcun aggiornamento parziale (patch) del senderBreakdown, perché in Lite Mode i JID del mittente e della chat divergono nelle chat 1-1, rendendo il match inaffidabile. Al successivo accesso, getSlowChatStats ricalcola da zero leggendo wa_contacts aggiornata.
+5. **Rename chat Lite** (`AnalyticsRepository.notifyLiteRenameChat()`): La cache slow stats della chat (`chat_slow_{id}`) viene invalidata completamente.
+
+6. **Elimina dati da AppDrawer** (`MainViewModel.fullReset()`): reset completo attivato dal bottone "Elimina dati" nel navigation drawer. Scopo equivalente ad Android Impostazioni → App → Elimina tutti i dati, ma specifico per modalità:
+   - **Root** (`clearRoot = true`): chiama `WhatsAppRepository.cleanup()` (cancella `msgstore.db`, `wa.db`, file WAL/SHM, `whatsapp.key`, `msgstore.db.crypt14` da `filesDir` + invalida cache root) + elimina `filesDir/avatars/` ricorsivamente.
+   - **Lite** (`clearLite = true`): chiama `AnalyticsRepository.fullResetLiteMode()` (cancella `lite_msgstore.db`, `lite_wa.db` + invalida cache lite) + elimina `filesDir/lite_media/` ricorsivamente (ZIP sorgente + video/audio estratti).
+   - **Setup screen** (`isOnSetupScreen = true`): esegue entrambi i reset.
+   - Al termine naviga a `SetupScreen` (se non già lì) tramite `popUpTo("app_graph") { inclusive = false }`. I file originali WhatsApp in `/data/user/*/com.whatsapp/` non vengono mai toccati. Non viene tentato alcun aggiornamento parziale (patch) del senderBreakdown, perché in Lite Mode i JID del mittente e della chat divergono nelle chat 1-1, rendendo il match inaffidabile. Al successivo accesso, getSlowChatStats ricalcola da zero leggendo wa_contacts aggiornata.
 
 ### Refresh reattivo in Lite Mode (`liteCacheVersion`)
 
@@ -693,6 +699,17 @@ Tutte le schermate di primo livello espongono l'icona hamburger (`Icons.Default.
 
 Le schermate di dettaglio (back stack secondario) mostrano invece il pulsante freccia indietro (`ArrowBack`).
 
+**Opzioni del drawer** (`AppDrawerContent`):
+
+| Opzione | Comportamento |
+|---------|---------------|
+| Tema | `AlertDialog` con `RadioButton` per scegliere tra System/Light/Dark. Persistito via `AppPreferencesStore`. |
+| Lingua | `AlertDialog` con lista lingue. Alla selezione: salva in `SharedPreferences` (`app_language_prefs`), chiama `MainViewModel.setAppLanguage()`, chiama `Activity.recreate()` per applicare il nuovo locale. |
+| Elimina dati | `AlertDialog` di conferma. Alla conferma: chiama `MainViewModel.fullReset()` (reset completo specifico per modalità — vedi §3 punto 6) e naviga a `SetupScreen` se non già lì. |
+| Info | `AlertDialog` statico con versione e descrizione app. |
+
+`AppDrawerContent` riceve `isOnSetupScreen: Boolean` (calcolato da `AppScaffold` via `NavDestination.hierarchy`) e `onNavigateToSetup: () -> Unit` (lambda fornita da `AppScaffold` con `navController`). Il parametro `isOnSetupScreen` determina se il reset deve coprire entrambe le modalità.
+
 **Implementazione per schermata**:
 
 | Schermata | Meccanismo hamburger |
@@ -865,6 +882,8 @@ Tutte le stringhe visibili nella UI sono esternalizzate in file di risorse Andro
 | `values-tr/` | Turco |
 
 Le stringhe coprono navigazione, titoli, pulsanti, dialog, formati data/ora e label di accessibilità.
+
+**Cambio lingua a runtime** — La lingua selezionata dall'utente viene persistita in `SharedPreferences` (`app_language_prefs`, chiave `app_language`, valori `"system"` / `"en"` / `"it"` / ecc.). `MainActivity.attachBaseContext()` legge questa preferenza in modo sincrono **prima** che il contesto Activity venga creato e applica il `Locale` tramite `Context.createConfigurationContext()`. Questo garantisce che tutti i contesti derivati — inclusi quelli creati internamente da `Dialog` e `ModalBottomSheet` in Compose — ereditino il locale corretto senza eccezioni. Al cambio di lingua da UI, `Activity.recreate()` riapplica il meccanismo.
 
 ---
 

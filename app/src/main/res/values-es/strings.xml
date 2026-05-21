@@ -316,7 +316,7 @@
     <string name="drawer_app_name">WhatStat</string>
     <string name="whatstat_drawer_theme">Tema de la app</string>
     <string name="whatstat_drawer_language">Cambiar idioma</string>
-    <string name="whatstat_drawer_cache">Borrar caché</string>
+    <string name="whatstat_drawer_cache">Eliminar datos</string>
     <string name="whatstat_drawer_about">Información</string>
     <string name="dialog_choose_theme">Elegir tema</string>
     <string name="theme_system_default">Predeterminado del sistema</string>
@@ -324,9 +324,11 @@
     <string name="theme_dark">Oscuro</string>
     <string name="dialog_choose_language">Elegir idioma</string>
     <string name="dialog_cancel">Cancelar</string>
-    <string name="dialog_clear_cache_title">Borrar caché</string>
-    <string name="dialog_clear_cache_message">¿Estás seguro de que quieres borrar la caché? Las estadísticas y el análisis léxico se volverán a calcular en el próximo inicio.</string>
-    <string name="dialog_clear">Borrar</string>
+    <string name="dialog_clear_cache_title">Eliminar datos</string>
+    <string name="dialog_clear_data_message_root">Se eliminarán permanentemente la base de datos extraída, los avatares y la caché Root. Deberás ejecutar el setup Root de nuevo.</string>
+    <string name="dialog_clear_data_message_lite">Se eliminarán permanentemente todos los chats importados, los archivos multimedia y la caché Lite. Deberás reimportar tus chats.</string>
+    <string name="dialog_clear_data_message_both">Se eliminarán permanentemente todos los datos: base de datos Root, todos los chats Lite importados, archivos multimedia y caché. Deberás ejecutar el setup de nuevo.</string>
+    <string name="dialog_clear">Eliminar</string>
     <string name="dialog_about_title">Información</string>
     <string name="dialog_about_message">WhatStat\nVersión: 1.0\n\nWhatStat procesa tus chats de WhatsApp completamente localmente. No se envían datos a servidores externos.</string>
     <string name="dialog_close">Cerrar</string>

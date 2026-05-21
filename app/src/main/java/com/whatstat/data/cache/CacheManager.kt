@@ -1100,6 +1100,26 @@ class CacheManager
             }
         }
 
+        suspend fun clearLiteCache(resetWordIndexes: Boolean = false) {
+            context.liteCacheDataStore.edit { it.clear() }
+            java.io.File(context.cacheDir, "lite_media_index.gz").delete()
+            // Se siamo attivamente nel namespace lite in memoria, resettiamo anche le var
+            if (activeDb.isLiteMode) {
+                mediaFileIndex = null
+                globalWordIndex = null
+                monthlyWordIndex = null
+                chatWordIndexCache.clear()
+            }
+            if (resetWordIndexes) {
+                java.io.File(context.filesDir, "lite_word_index_global.gz").delete()
+                java.io.File(context.filesDir, "lite_word_index_monthly.gz").delete()
+                val prefix = "lite_word_index_chat_"
+                context.cacheDir.listFiles()
+                    ?.filter { it.name.startsWith(prefix) && it.name.endsWith(".gz") }
+                    ?.forEach { it.delete() }
+            }
+        }
+
         /**
          * Patcha il nome visualizzato di una chat in tutte le cache persistenti in cui compare.
          * Evita di ricalcolare statistiche pesanti solo per un cambio di nome.

@@ -54,9 +54,14 @@ val LocalDrawerState = compositionLocalOf<DrawerState> { error("No DrawerState p
 
 @Composable
 @Suppress("FunctionName")
-fun AppDrawerContent(mainViewModel: MainViewModel = hiltViewModel()) {
+fun AppDrawerContent(
+    isOnSetupScreen: Boolean = false,
+    onNavigateToSetup: () -> Unit = {},
+    mainViewModel: MainViewModel = hiltViewModel(),
+) {
     val themeMode by mainViewModel.themeMode.collectAsState()
     val appLanguage by mainViewModel.appLanguage.collectAsState()
+    val isLiteMode by mainViewModel.isLiteMode.collectAsState()
     val context = LocalContext.current
 
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -164,17 +169,30 @@ fun AppDrawerContent(mainViewModel: MainViewModel = hiltViewModel()) {
 
     if (showCacheDialog) {
         key(appLanguage) {
+            val clearMessageRes =
+                when {
+                    isOnSetupScreen -> R.string.dialog_clear_data_message_both
+                    !isLiteMode -> R.string.dialog_clear_data_message_root
+                    else -> R.string.dialog_clear_data_message_lite
+                }
             AlertDialog(
                 onDismissRequest = { showCacheDialog = false },
                 title = { Text(stringResource(R.string.dialog_clear_cache_title)) },
                 text = {
                     Text(
-                        stringResource(R.string.dialog_clear_cache_message),
+                        stringResource(clearMessageRes),
                     )
                 },
                 confirmButton = {
                     TextButton(onClick = {
+                        mainViewModel.fullReset(
+                            clearRoot = isOnSetupScreen || !isLiteMode,
+                            clearLite = isOnSetupScreen || isLiteMode,
+                        )
                         showCacheDialog = false
+                        if (!isOnSetupScreen) {
+                            onNavigateToSetup()
+                        }
                     }) {
                         Text(stringResource(R.string.dialog_clear))
                     }

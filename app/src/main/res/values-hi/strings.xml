@@ -316,7 +316,7 @@
     <string name="drawer_app_name">WhatStat</string>
     <string name="whatstat_drawer_theme">ऐप थीम</string>
     <string name="whatstat_drawer_language">भाषा बदलें</string>
-    <string name="whatstat_drawer_cache">कैशे साफ़ करें</string>
+    <string name="whatstat_drawer_cache">डेटा हटाएं</string>
     <string name="whatstat_drawer_about">जानकारी</string>
     <string name="dialog_choose_theme">थीम चुनें</string>
     <string name="theme_system_default">सिस्टम डिफ़ॉल्ट</string>
@@ -324,9 +324,11 @@
     <string name="theme_dark">गहरा</string>
     <string name="dialog_choose_language">भाषा चुनें</string>
     <string name="dialog_cancel">रद्द करें</string>
-    <string name="dialog_clear_cache_title">कैशे साफ़ करें</string>
-    <string name="dialog_clear_cache_message">क्या आप वाक़़ाया कैशे साफ़ करना चाहते हैं? अगली बार शुरू करते ही आँक़़ड़ और लेक्सिकल विश्लेषण पुनः गणना किए जाएँगे।</string>
-    <string name="dialog_clear">साफ़ करें</string>
+    <string name="dialog_clear_cache_title">डेटा हटाएं</string>
+    <string name="dialog_clear_data_message_root">इससे निकाला गया डेटाबेस, अवतार और Root कैशे स्थायी रूप से हट जाएंगे। आपको Root सेटअप फिर से चलाना होगा।</string>
+    <string name="dialog_clear_data_message_lite">इससे सभी आयातित चैट, मीडिया फ़ाइलें और Lite कैशे स्थायी रूप से हट जाएंगे। आपको अपनी चैट फिर से आयात करनी होगी।</string>
+    <string name="dialog_clear_data_message_both">इससे सभी डेटा स्थायी रूप से हट जाएगा: Root डेटाबेस, सभी आयातित Lite चैट, मीडिया फ़ाइलें और कैशे। आपको सेटअप फिर से चलाना होगा।</string>
+    <string name="dialog_clear">हटाएं</string>
     <string name="dialog_about_title">जानकारी</string>
     <string name="dialog_about_message">WhatStat\nसंस्करण: 1.0\n\nWhatStat आपके WhatsApp चैट को पूरी तरह स्थानीय रूप से प्रोसेस करता है। कोई भी डेटा बाहरी सर्वर पर नहीं भेजा जाता है।</string>
     <string name="dialog_close">बंद करें</string>
