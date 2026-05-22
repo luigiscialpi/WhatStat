@@ -139,6 +139,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        mainViewModel.requestAdsConsent(this)
         requestNotificationPermissionIfNeeded()
     }
 

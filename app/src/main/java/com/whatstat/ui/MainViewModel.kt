@@ -3,6 +3,8 @@ package com.whatstat.ui
 import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.whatstat.ads.AdsRepository
+import com.whatstat.ads.AdsUiState
 import com.whatstat.billing.BillingRepository
 import com.whatstat.billing.ProBillingUiState
 import com.whatstat.data.repository.AnalyticsRepository
@@ -31,10 +33,12 @@ class MainViewModel
         private val whatsAppRepository: WhatsAppRepository,
         private val appPreferencesStore: AppPreferencesStore,
         private val billingRepository: BillingRepository,
+        private val adsRepository: AdsRepository,
         @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     ) : ViewModel() {
         val isLiteMode: StateFlow<Boolean> = analyticsRepository.isLiteMode
         val proBillingUiState: StateFlow<ProBillingUiState> = billingRepository.uiState
+        val adsUiState: StateFlow<AdsUiState> = adsRepository.uiState
 
         val themeMode: StateFlow<ThemeMode> =
             appPreferencesStore.themeMode.stateIn(
@@ -79,6 +83,25 @@ class MainViewModel
 
         fun dismissProBillingMessage() {
             billingRepository.clearMessage()
+        }
+
+        fun requestAdsConsent(activity: Activity) {
+            adsRepository.requestConsent(activity)
+        }
+
+        fun showAdsPrivacyOptions(activity: Activity) {
+            adsRepository.showPrivacyOptions(activity)
+        }
+
+        fun dismissAdsMessage() {
+            adsRepository.clearMessage()
+        }
+
+        fun tryShowInterstitialAfterLongOperation(
+            activity: Activity,
+            source: String,
+        ): Boolean {
+            return adsRepository.tryShowInterstitialAfterLongOperation(activity, source)
         }
 
         fun resetLiteMode() {

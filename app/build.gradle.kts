@@ -27,7 +27,36 @@ android {
         versionCode = 1
         versionName = "1.1.0"
         val proProductId = (project.findProperty("PRO_PRODUCT_ID") ?: localProps.getProperty("PRO_PRODUCT_ID") ?: "whatstat_pro").toString()
+        val admobAppId =
+            project
+                .findProperty("ADMOB_APP_ID")
+                ?.toString()
+                ?: localProps.getProperty("ADMOB_APP_ID")
+                ?: "ca-app-pub-3940256099942544~3347511713"
+        val admobBannerUnitId =
+            project
+                .findProperty("ADMOB_BANNER_UNIT_ID")
+                ?.toString()
+                ?: localProps.getProperty("ADMOB_BANNER_UNIT_ID")
+                ?: "ca-app-pub-3940256099942544/9214589741"
+        val admobNativeUnitId =
+            project
+                .findProperty("ADMOB_NATIVE_UNIT_ID")
+                ?.toString()
+                ?: localProps.getProperty("ADMOB_NATIVE_UNIT_ID")
+                ?: "ca-app-pub-3940256099942544/2247696110"
+        val admobInterstitialUnitId =
+            project
+                .findProperty("ADMOB_INTERSTITIAL_UNIT_ID")
+                ?.toString()
+                ?: localProps.getProperty("ADMOB_INTERSTITIAL_UNIT_ID")
+                ?: "ca-app-pub-3940256099942544/1033173712"
         buildConfigField("String", "PRO_PRODUCT_ID", "\"${proProductId.replace("\"", "\\\"")}\"")
+        buildConfigField("String", "ADMOB_APP_ID", "\"${admobAppId.replace("\"", "\\\"")}\"")
+        buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"${admobBannerUnitId.replace("\"", "\\\"")}\"")
+        buildConfigField("String", "ADMOB_NATIVE_UNIT_ID", "\"${admobNativeUnitId.replace("\"", "\\\"")}\"")
+        buildConfigField("String", "ADMOB_INTERSTITIAL_UNIT_ID", "\"${admobInterstitialUnitId.replace("\"", "\\\"")}\"")
+        manifestPlaceholders["ADMOB_APP_ID"] = admobAppId
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -129,6 +158,10 @@ dependencies {
 
     // ── Play Billing (Pro unlock) ────────────────────────────────
     implementation("com.android.billingclient:billing:9.0.0")
+
+    // ── AdMob + UMP ───────────────────────────────────────────────
+    implementation("com.google.android.gms:play-services-ads:23.6.0")
+    implementation("com.google.android.ump:user-messaging-platform:4.0.0")
 
     // ── Test ─────────────────────────────────────────────────────
     testImplementation("junit:junit:4.13.2")

@@ -333,6 +333,7 @@
     <string name="pro_price_loading">Loading price...</string>
     <string name="pro_buy_button">Unlock Pro</string>
     <string name="pro_restore_button">Restore purchase</string>
+    <string name="drawer_ads_privacy_options">Ads privacy options</string>
     <string name="whatstat_drawer_about">Information</string>
     <string name="dialog_choose_theme">Choose Theme</string>
     <string name="theme_system_default">System default</string>

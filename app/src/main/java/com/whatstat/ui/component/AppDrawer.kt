@@ -66,6 +66,7 @@ fun AppDrawerContent(
     val appLanguage by mainViewModel.appLanguage.collectAsState()
     val isLiteMode by mainViewModel.isLiteMode.collectAsState()
     val proBillingState by mainViewModel.proBillingUiState.collectAsState()
+    val adsUiState by mainViewModel.adsUiState.collectAsState()
     val context = LocalContext.current
 
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -137,6 +138,20 @@ fun AppDrawerContent(
                         closeDrawer()
                     },
                 )
+
+                if (adsUiState.isPrivacyOptionsRequired) {
+                    DrawerItem(
+                        icon = Icons.Outlined.Info,
+                        label = stringResource(R.string.drawer_ads_privacy_options),
+                        onClick = {
+                            val activity = context.findActivity()
+                            if (activity != null) {
+                                mainViewModel.showAdsPrivacyOptions(activity)
+                            }
+                            closeDrawer()
+                        },
+                    )
+                }
             }
 
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {

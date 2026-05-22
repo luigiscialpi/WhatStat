@@ -79,6 +79,7 @@ import com.whatstat.ui.component.MilestonePredictionCard
 import com.whatstat.ui.component.StatCard
 import com.whatstat.ui.component.StickerPreviewModal
 import com.whatstat.ui.component.TimeRangeFilterRow
+import com.whatstat.ui.component.ads.NativeAdCard
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -86,6 +87,7 @@ import java.io.File
 @Suppress("FunctionName")
 fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
+    showNativeAds: Boolean = false,
     onNavigateToChatList: () -> Unit = {},
     onNavigateToWordSearch: () -> Unit = {},
     onNavigateToCalls: () -> Unit = {},
@@ -314,6 +316,12 @@ fun DashboardScreen(
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    if (showNativeAds) {
+                        item {
+                            NativeAdCard()
                         }
                     }
 

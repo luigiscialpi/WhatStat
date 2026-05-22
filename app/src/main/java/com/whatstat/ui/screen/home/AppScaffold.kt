@@ -1,8 +1,10 @@
 package com.whatstat.ui.screen.home
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
@@ -13,6 +15,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import com.whatstat.ui.component.AppDrawerContent
 import com.whatstat.ui.component.LocalDrawerState
+import com.whatstat.ui.component.ads.BottomBannerAd
 import com.whatstat.ui.navigation.BottomNavigationBar
 import com.whatstat.ui.navigation.NavGraphRoute
 import com.whatstat.ui.navigation.Screen
@@ -23,6 +26,7 @@ fun AppScaffold(
     navController: NavHostController,
     currentDestination: NavDestination?,
     isLiteMode: Boolean = false,
+    showBannerAd: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val route = currentDestination?.route.orEmpty()
@@ -59,11 +63,17 @@ fun AppScaffold(
                 contentWindowInsets = WindowInsets(0),
                 bottomBar = {
                     if (showBottomBar) {
-                        BottomNavigationBar(
-                            navController = navController,
-                            currentDestination = currentDestination,
-                            isLiteMode = isLiteMode,
-                        )
+                        Column {
+                            if (showBannerAd) {
+                                BottomBannerAd()
+                                HorizontalDivider()
+                            }
+                            BottomNavigationBar(
+                                navController = navController,
+                                currentDestination = currentDestination,
+                                isLiteMode = isLiteMode,
+                            )
+                        }
                     }
                 },
             ) { innerPadding ->

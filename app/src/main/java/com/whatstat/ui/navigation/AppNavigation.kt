@@ -1,5 +1,8 @@
 package com.whatstat.ui.navigation
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraphBuilder
@@ -113,6 +117,7 @@ fun appNavigation(
     val currentDestination = navBackStackEntry?.destination
 
     val isLiteMode by mainViewModel.isLiteMode.collectAsState()
+    val adsUiState by mainViewModel.adsUiState.collectAsState()
 
     // Quando arriva un URI da share intent e NON siamo su Setup,
     // naviga a Setup per consumare l'URI.
@@ -132,6 +137,7 @@ fun appNavigation(
         navController = navController,
         currentDestination = currentDestination,
         isLiteMode = isLiteMode,
+        showBannerAd = adsUiState.shouldShowBanner,
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -146,11 +152,16 @@ fun appNavigation(
                     if (mainViewModel.isLiteMode.value) NavGraphRoute.LITE else NavGraphRoute.ROOT
                 },
             )
-            rootModeGraph(navController, repository)
+            rootModeGraph(
+                navController = navController,
+                repository = repository,
+                showNativeAds = adsUiState.areAdsEnabled,
+            )
             liteModeGraph(
                 navController = navController,
                 mainViewModel = mainViewModel,
                 onResetLite = { mainViewModel.resetLiteMode() },
+                showNativeAds = adsUiState.areAdsEnabled,
             )
         }
     }
@@ -205,6 +216,7 @@ private fun NavGraphBuilder.setupGraph(
 private fun NavGraphBuilder.rootModeGraph(
     navController: NavHostController,
     repository: WhatsAppRepository,
+    showNativeAds: Boolean,
 ) {
     navigation(
         startDestination = NavGraphRoute.OVERVIEW,
@@ -217,6 +229,7 @@ private fun NavGraphBuilder.rootModeGraph(
             composable(Screen.Dashboard.route) {
                 val scope = androidx.compose.runtime.rememberCoroutineScope()
                 DashboardScreen(
+                    showNativeAds = showNativeAds,
                     onNavigateBack = {
                         scope.launch {
                             repository.resetState()
@@ -288,6 +301,7 @@ private fun NavGraphBuilder.liteModeGraph(
     navController: NavHostController,
     mainViewModel: MainViewModel,
     onResetLite: () -> Unit,
+    showNativeAds: Boolean,
 ) {
     navigation(
         startDestination = NavGraphRoute.OVERVIEW,
@@ -299,6 +313,7 @@ private fun NavGraphBuilder.liteModeGraph(
         ) {
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
+                    showNativeAds = showNativeAds,
                     onNavigateBack = {
                         mainViewModel.setIncomingZipUri(null)
                         navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
@@ -347,6 +362,7 @@ private fun NavGraphBuilder.liteModeGraph(
                 val zipUri = backStackEntry.arguments?.getString("zipUri")?.let { Uri.decode(it) }
                 AddChatZipScreen(
                     incomingZipUri = zipUri,
+                    mainViewModel = mainViewModel,
                     onNavigateBack = { navController.popBackStack() },
                     onImportComplete = { navController.popBackStack() },
                 )
@@ -443,16 +459,24 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostControl
 @Suppress("FunctionName")
 private fun AddChatZipScreen(
     incomingZipUri: String? = null,
+    mainViewModel: MainViewModel,
     viewModel: LiteSetupViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
     onNavigateBack: () -> Unit,
     onImportComplete: () -> Unit,
 ) {
+    val context = LocalContext.current
     val state by viewModel.state.collectAsState()
 
     androidx.activity.compose.BackHandler(enabled = state.isLoading || state.showSenderSelection) {}
 
     androidx.compose.runtime.LaunchedEffect(state.isComplete) {
         if (state.isComplete) {
+            context.findActivity()?.let { activity ->
+                mainViewModel.tryShowInterstitialAfterLongOperation(
+                    activity = activity,
+                    source = "lite_import_completed",
+                )
+            }
             onImportComplete()
             viewModel.consumeImportComplete()
         }
@@ -545,5 +569,13 @@ private fun AddChatZipScreen(
             senders = state.identifiedSenders,
             onSenderSelected = { viewModel.onSenderSelected(it) },
         )
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? {
+    return when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
     }
 }

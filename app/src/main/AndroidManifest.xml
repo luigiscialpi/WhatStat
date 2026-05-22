@@ -15,9 +15,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Blocca tutto il traffico di rete — l'app funziona 100% offline -->
-    <uses-permission android:name="android.permission.INTERNET"
-        tools:node="remove" />
+    <!-- Rete necessaria per Billing/AdMob/UMP -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <queries>
         <package android:name="com.whatsapp" />
@@ -36,6 +35,9 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:usesCleartextTraffic="false"
         tools:targetApi="35">
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${ADMOB_APP_ID}" />
 
         <activity
             android:name=".MainActivity"

@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Network Security Configuration: blocca TUTTO il traffico di rete.
-    WhatStat è un'app 100% offline — nessun dato esce dal dispositivo.
+    Network Security Configuration:
+    - Cleartext disabilitato.
+    - HTTPS consentito tramite certificati di sistema.
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
-            <!-- Nessun trust anchor = nessuna connessione HTTPS possibile -->
+            <certificates src="system" />
         </trust-anchors>
     </base-config>
 </network-security-config>
