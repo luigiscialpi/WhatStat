@@ -1,6 +1,8 @@
 package com.whatstat.ui.screen.setup
 
 import android.Manifest
+import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -53,7 +55,9 @@ import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Terminal
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -69,6 +73,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -84,15 +89,21 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.R
 import com.whatstat.data.root.FileExtractor
+import com.whatstat.ui.component.AnimatedInfoButton
 import com.whatstat.ui.component.LocalDrawerState
 import kotlinx.coroutines.launch
 
@@ -126,7 +137,7 @@ fun setupScreen(
             awaitLiteImport = true
             hasNavigated = false
             shouldAutoNavigate = true
-            liteViewModel.onZipSelected(android.net.Uri.parse(incomingZipUri))
+            liteViewModel.onZipSelected(Uri.parse(incomingZipUri))
             onUriConsumed()
         }
     }
@@ -155,7 +166,7 @@ fun setupScreen(
         }
     }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val permissionLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission(),
@@ -355,6 +366,7 @@ fun setupScreen(
 
                     // ── Tab 0: Lite ──────────────────────────────
                     AnimatedVisibility(visible = selectedTab == 0) {
+                        val liteContext = LocalContext.current
                         liteTabContent(
                             hasLiteDb = state.hasLiteDb,
                             isLoading = liteState.isLoading,
@@ -364,6 +376,15 @@ fun setupScreen(
                             onNavigateToDashboard = {
                                 viewModel.activateLiteMode()
                                 onNavigateToDashboard()
+                            },
+                            onOpenWhatsApp = {
+                                if (!openInstalledWhatsApp(liteContext)) {
+                                    Toast.makeText(
+                                        liteContext,
+                                        liteContext.getString(R.string.lite_whatsapp_not_installed),
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
                             },
                             onImportZip = { zipLauncher.launch("application/zip") },
                         )
@@ -530,8 +551,16 @@ private fun liteTabContent(
     progressLabel: String,
     error: String?,
     onNavigateToDashboard: () -> Unit,
+    onOpenWhatsApp: () -> Unit,
     onImportZip: () -> Unit,
 ) {
+    // Stato locale per mostrare/nascondere il dialogo guida.
+    var showGuide by remember { mutableStateOf(false) }
+
+    if (showGuide) {
+        liteGuideDialog(onDismiss = { showGuide = false })
+    }
+
     Column(
         modifier =
             Modifier
@@ -539,21 +568,35 @@ private fun liteTabContent(
                 .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Hint contestuale
-        Text(
-            text =
-                if (hasLiteDb) {
-                    stringResource(R.string.lite_hint_import_found)
-                } else {
-                    stringResource(R.string.lite_hint_no_import)
-                },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // ── Riga hint + icona informativa ────────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Text(
+                text =
+                    if (hasLiteDb) {
+                        stringResource(R.string.lite_hint_import_found)
+                    } else {
+                        stringResource(R.string.lite_hint_no_import)
+                    },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            AnimatedInfoButton(
+                onClick = { showGuide = true },
+                modifier = Modifier.size(32.dp),
+                contentDescription = stringResource(R.string.lite_guide_cd),
+                iconSize = 20.dp,
+                tint = MaterialTheme.colorScheme.primary,
+                glowColor = MaterialTheme.colorScheme.primary,
+            )
+        }
 
         Spacer(Modifier.height(4.dp))
 
-        // Pulsante dashboard (abilitato solo se il db lite esiste)
+        // ── Pulsante 1: Dashboard (abilitato solo se db lite esiste) ──
         Button(
             onClick = onNavigateToDashboard,
             enabled = hasLiteDb,
@@ -578,6 +621,7 @@ private fun liteTabContent(
         }
 
         if (isLoading) {
+            // ── Indicatore di progresso durante import ───────────
             val progressInt = (progressPercent * 100).toInt()
             Text(
                 text = if (progressLabel.isNotEmpty()) progressLabel else stringResource(R.string.processing),
@@ -594,6 +638,37 @@ private fun liteTabContent(
                 color = MaterialTheme.colorScheme.primary,
             )
         } else {
+            // ── Pulsante 2: Condividi da WhatsApp ────────────────
+            OutlinedButton(
+                onClick = onOpenWhatsApp,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                border =
+                    BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+                    ),
+                colors =
+                    ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.secondary,
+                    ),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Share,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    stringResource(R.string.lite_open_whatsapp_button),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+
+            // ── Pulsante 3: Importa ZIP da file ──────────────────
             OutlinedButton(
                 onClick = onImportZip,
                 modifier =
@@ -602,7 +677,7 @@ private fun liteTabContent(
                         .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 border =
-                    androidx.compose.foundation.BorderStroke(
+                    BorderStroke(
                         1.dp,
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                     ),
@@ -632,6 +707,120 @@ private fun liteTabContent(
     }
 }
 
+/**
+ * Dialog modale che guida l'utente nell'esportazione di una chat da WhatsApp.
+ * Mostra 4 step sequenziali con testo esplicativo.
+ */
+@Composable
+private fun liteGuideDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Outlined.Share,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        },
+        title = {
+            Text(
+                stringResource(R.string.lite_guide_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                liteGuideStep(text = boldTagsToAnnotated(stringResource(R.string.lite_guide_step1)))
+                liteGuideStep(text = boldTagsToAnnotated(stringResource(R.string.lite_guide_step2)))
+                liteGuideStep(text = boldTagsToAnnotated(stringResource(R.string.lite_guide_step3)))
+                liteGuideStep(text = boldTagsToAnnotated(stringResource(R.string.lite_guide_step4)))
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.ho_capito))
+            }
+        },
+    )
+}
+
+/**
+ * Parses a plain string that may contain <b>...</b> tags and returns an
+ * AnnotatedString where the tagged spans have FontWeight.Bold applied.
+ * Only <b> / </b> are supported; all other HTML is left as-is.
+ */
+private fun boldTagsToAnnotated(raw: String): AnnotatedString =
+    buildAnnotatedString {
+        val openTag = "<b>"
+        val closeTag = "</b>"
+        var cursor = 0
+        while (cursor < raw.length) {
+            val openIdx = raw.indexOf(openTag, cursor, ignoreCase = true)
+            if (openIdx == -1) {
+                append(raw.substring(cursor))
+                break
+            }
+            append(raw.substring(cursor, openIdx))
+            val closeIdx = raw.indexOf(closeTag, openIdx + openTag.length, ignoreCase = true)
+            if (closeIdx == -1) {
+                // malformed: no closing tag; emit the rest verbatim
+                append(raw.substring(openIdx))
+                break
+            }
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                append(raw.substring(openIdx + openTag.length, closeIdx))
+            }
+            cursor = closeIdx + closeTag.length
+        }
+    }
+
+private val WHATSAPP_PACKAGE_NAMES =
+    listOf(
+        "com.whatsapp",
+        "com.whatsapp.w4b",
+    )
+
+private fun openInstalledWhatsApp(context: Context): Boolean {
+    val packageManager = context.packageManager
+    val launchIntent =
+        WHATSAPP_PACKAGE_NAMES.firstNotNullOfOrNull { packageName ->
+            packageManager.getLaunchIntentForPackage(packageName)
+        }
+    if (launchIntent != null) {
+        context.startActivity(launchIntent)
+        return true
+    }
+    return false
+}
+
+/**
+ * Riga singola di uno step nella guida Lite.
+ * Usa un bullet visivo colorato per distinguere i passi.
+ * Accetta AnnotatedString per supportare il grassetto nei tag <b>.
+ */
+@Composable
+private fun liteGuideStep(text: AnnotatedString) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .padding(top = 5.dp)
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 // ── Tab Root ──────────────────────────────────────────────────────────────────
 
 @Composable
@@ -643,7 +832,7 @@ private fun rootTabContent(
     onCancelSetup: () -> Unit,
     onResumeRoot: () -> Unit,
     onClearRoot: () -> Unit,
-    onManualFileSelected: (android.net.Uri, String) -> Unit,
+    onManualFileSelected: (Uri, String) -> Unit,
 ) {
     Column(
         modifier =

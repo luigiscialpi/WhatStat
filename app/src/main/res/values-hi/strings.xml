@@ -94,6 +94,14 @@
     <string name="manual_file_crypt14">डेटाबेस (msgstore.db.crypt14)</string>
     <string name="manual_file_decrypted">पहले से डिक्रिप्टेड डेटाबेस (msgstore.db)</string>
     <string name="manual_file_wadb">संपर्क (wa.db) - वैकल्पिक</string>
+    <string name="lite_open_whatsapp_button">WhatsApp से शेयर करें</string>
+    <string name="lite_whatsapp_not_installed">WhatsApp इंस्टॉल नहीं है</string>
+    <string name="lite_guide_cd">चैट कैसे निर्यात करें</string>
+    <string name="lite_guide_title">चैट कैसे निर्यात करें</string>
+    <string name="lite_guide_step1">अपने डिवाइस पर WhatsApp खोलें।</string>
+    <string name="lite_guide_step2">एक चैट खोलें, ऊपर दाईं ओर तीन बिंदुओं (...) पर टैप करें, फिर चैट निर्यात करें पर टैप करें।</string>
+    <string name="lite_guide_step3">मीडिया के बिना या मीडिया शामिल करें &lt;b&gt;(अनुशंसित!)&lt;/b&gt; चुनें, फिर शेयर करें पर टैप करें।</string>
+    <string name="lite_guide_step4">शेयर मेनू में WhatStat चुनें। चैट स्वतः आयात हो जाएगी। वैकल्पिक रूप से ZIP सहेजें (या आप इसे किसी मित्र से भी मंगवा सकते हैं!) और नीचे दिए बटन से मैन्युअल रूप से आयात करें।</string>
     <string name="start_analysis">विश्लेषण शुरू करें</string>
     <string name="decrypt_db_button">डेटाबेस डिक्रिप्ट करें</string>
     <string name="button_replace">बदलें</string>

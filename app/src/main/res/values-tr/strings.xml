@@ -94,6 +94,14 @@
     <string name="manual_file_crypt14">Veritabanı (msgstore.db.crypt14)</string>
     <string name="manual_file_decrypted">Zaten şifresi çözülmüş veritabanı (msgstore.db)</string>
     <string name="manual_file_wadb">Kişiler (wa.db) - İsteğe bağlı</string>
+    <string name="lite_open_whatsapp_button">WhatsApp\'tan paylaş</string>
+    <string name="lite_whatsapp_not_installed">WhatsApp yüklü değil</string>
+    <string name="lite_guide_cd">Sohbet nasıl dışa aktarılır</string>
+    <string name="lite_guide_title">Sohbet nasıl dışa aktarılır</string>
+    <string name="lite_guide_step1">Cihazınızda WhatsApp\'ı açın.</string>
+    <string name="lite_guide_step2">Bir sohbet açın, sağ üstteki üç noktaya (...) dokunun ve ardından Sohbeti dışa aktar\'a dokunun.</string>
+    <string name="lite_guide_step3">Medyasız veya Medyayı dahil et &lt;b&gt;(önerilen!)&lt;/b&gt; seçeneğini belirleyin, ardından Paylaş\'a dokunun.</string>
+    <string name="lite_guide_step4">Paylaşım menüsünde WhatStat\'ı seçin. Sohbet otomatik olarak içe aktarılacaktır. Alternatif olarak ZIP\'i kaydedip (veya bir arkadaşınızın size göndermesini sağlayabilirsiniz!) aşağıdaki düğmeyle manuel olarak içe aktarabilirsiniz.</string>
     <string name="start_analysis">Analizi başlat</string>
     <string name="decrypt_db_button">Veritabanı şifresini çöz</string>
     <string name="button_replace">Değiştir</string>

@@ -19,6 +19,11 @@
     <uses-permission android:name="android.permission.INTERNET"
         tools:node="remove" />
 
+    <queries>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+    </queries>
+
     <application
         android:name=".App"
         android:allowBackup="false"

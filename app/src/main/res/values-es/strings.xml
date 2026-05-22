@@ -94,6 +94,14 @@
     <string name="manual_file_crypt14">Base de datos (msgstore.db.crypt14)</string>
     <string name="manual_file_decrypted">Base de datos ya descifrada (msgstore.db)</string>
     <string name="manual_file_wadb">Contactos (wa.db) - Opcional</string>
+    <string name="lite_open_whatsapp_button">Compartir desde WhatsApp</string>
+    <string name="lite_whatsapp_not_installed">WhatsApp no está instalado</string>
+    <string name="lite_guide_cd">Cómo exportar un chat</string>
+    <string name="lite_guide_title">Cómo exportar un chat</string>
+    <string name="lite_guide_step1">Abre WhatsApp en tu dispositivo.</string>
+    <string name="lite_guide_step2">Abre un chat, pulsa los tres puntos (...) en la parte superior derecha y luego Exportar chat.</string>
+    <string name="lite_guide_step3">Elige Sin archivos adjuntos o Con archivos adjuntos &lt;b&gt;(¡recomendado!)&lt;/b&gt; y pulsa Compartir.</string>
+    <string name="lite_guide_step4">En el menú de compartir, selecciona WhatStat. El chat se importará automáticamente. También puedes guardar el ZIP (¡o puedes pedirle a un amigo que te lo envíe!) e importarlo manualmente con el botón de abajo.</string>
     <string name="start_analysis">Iniciar análisis</string>
     <string name="decrypt_db_button">Descifrar base de datos</string>
     <string name="button_replace">Reemplazar</string>
