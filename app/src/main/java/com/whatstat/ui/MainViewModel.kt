@@ -1,7 +1,10 @@
 package com.whatstat.ui
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.whatstat.billing.BillingRepository
+import com.whatstat.billing.ProBillingUiState
 import com.whatstat.data.repository.AnalyticsRepository
 import com.whatstat.data.repository.WhatsAppRepository
 import com.whatstat.data.store.AppPreferencesStore
@@ -27,9 +30,11 @@ class MainViewModel
         private val analyticsRepository: AnalyticsRepository,
         private val whatsAppRepository: WhatsAppRepository,
         private val appPreferencesStore: AppPreferencesStore,
+        private val billingRepository: BillingRepository,
         @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     ) : ViewModel() {
         val isLiteMode: StateFlow<Boolean> = analyticsRepository.isLiteMode
+        val proBillingUiState: StateFlow<ProBillingUiState> = billingRepository.uiState
 
         val themeMode: StateFlow<ThemeMode> =
             appPreferencesStore.themeMode.stateIn(
@@ -62,6 +67,18 @@ class MainViewModel
 
         fun setIncomingZipUri(uri: String?) {
             _incomingZipUri.value = uri
+        }
+
+        fun purchasePro(activity: Activity) {
+            billingRepository.launchPurchase(activity)
+        }
+
+        fun restoreProPurchases() {
+            billingRepository.restorePurchases()
+        }
+
+        fun dismissProBillingMessage() {
+            billingRepository.clearMessage()
         }
 
         fun resetLiteMode() {

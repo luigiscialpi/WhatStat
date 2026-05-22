@@ -26,6 +26,8 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.1.0"
+        val proProductId = (project.findProperty("PRO_PRODUCT_ID") ?: localProps.getProperty("PRO_PRODUCT_ID") ?: "whatstat_pro").toString()
+        buildConfigField("String", "PRO_PRODUCT_ID", "\"${proProductId.replace("\"", "\\\"")}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -124,6 +126,9 @@ dependencies {
 
     // ── Accompanist ──────────────────────────────────────────────
     implementation("com.google.accompanist:accompanist-permissions:0.36.0")
+
+    // ── Play Billing (Pro unlock) ────────────────────────────────
+    implementation("com.android.billingclient:billing:9.0.0")
 
     // ── Test ─────────────────────────────────────────────────────
     testImplementation("junit:junit:4.13.2")

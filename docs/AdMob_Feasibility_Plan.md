@@ -127,7 +127,7 @@ Versioni ufficiali aggiornate al 2026-05-22:
 
 - `com.google.android.gms:play-services-ads:25.2.0`
 - `com.google.android.ump:user-messaging-platform:4.0.0`
-- `com.android.billingclient:billing-ktx:9.0.0`
+- `com.android.billingclient:billing:9.0.0` (nota: `billing-ktx` e deprecato da Billing 6.0+, le Kotlin extensions sono incluse nell'artefatto `billing` dalla 5.0)
 
 ## 7. Compatibilita tecnica
 
@@ -160,7 +160,7 @@ aggiungere:
 ```kotlin
 implementation("com.google.android.gms:play-services-ads:25.2.0")
 implementation("com.google.android.ump:user-messaging-platform:4.0.0")
-implementation("com.android.billingclient:billing-ktx:9.0.0")
+implementation("com.android.billingclient:billing:9.0.0")
 ```
 
 In debug usare sempre test ad units e test app ID.
@@ -182,6 +182,8 @@ oggi e presente una rimozione esplicita del permesso internet:
 ```
 
 Per usare AdMob, questa riga va rimossa o modificata.
+
+Nota: l'SDK Google Mobile Ads aggiunge automaticamente il permesso `com.google.android.gms.permission.AD_ID` via manifest merge. Questo permesso consente l'accesso all'Advertising ID. Se in futuro si vuole rimuoverlo per utenti Pro, servira un `tools:node="remove"` condizionale o un approccio diverso.
 
 Servira aggiungere anche il meta-data AdMob:
 
@@ -294,6 +296,8 @@ Regole:
 - acquisto non consumabile va acknowledged
 
 Per MVP e accettabile una verifica client-only. In futuro, un backend renderebbe piu robusta la verifica contro manomissioni.
+
+Attenzione: il target di WhatStat Root sono dispositivi rootati. Su device rooted, la verifica client-only e particolarmente debole perche l'utente puo manipolare SharedPreferences/DataStore e intercettare chiamate Billing. Prioritizzare la verifica server-side dopo MVP.
 
 ## 11. UI Pro in AppDrawer
 
@@ -454,6 +458,7 @@ Regole:
 - non vicino search bar
 - non vicino FAB Lite
 - non alterare click sulle chat
+- non mostrare ads quando la lista e filtrata da ricerca
 
 ### 13.4 Native ad in ChatDetail
 
@@ -571,7 +576,7 @@ Trigger vietati:
 
 Gate consigliato:
 
-- massimo un interstitial ogni 10-15 minuti
+- massimo un interstitial ogni 12 minuti (valore fisso per implementazione)
 - mai prima che l'utente abbia visto valore nell'app
 - mai se utente Pro
 - mai se consenso mancante
@@ -723,7 +728,7 @@ Passi:
 2. Aggiornare manifest.
 3. Aggiornare network security config.
 4. Creare `AdsConsentManager`.
-5. Chiamare UMP a ogni avvio.
+5. Chiamare UMP a ogni avvio (anche per Pro, perche UMP potrebbe servire per analytics futuri, ma se `isPro == true` saltare `MobileAds.initialize()` e il caricamento ads).
 6. Aggiungere privacy options in `AppDrawer`.
 7. Inizializzare Mobile Ads solo dopo consenso.
 8. Non inizializzare ads se utente Pro.
