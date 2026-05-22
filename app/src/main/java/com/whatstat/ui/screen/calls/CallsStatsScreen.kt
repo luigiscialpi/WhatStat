@@ -63,6 +63,7 @@ import com.whatstat.ui.component.ContactNameWithPhone
 import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
 import com.whatstat.ui.component.TimeRangeFilterRow
+import com.whatstat.ui.component.ads.NativeAdCard
 
 private fun formatDuration(
     seconds: Long,
@@ -80,6 +81,7 @@ fun CallsStatsScreen(
     chatId: Long? = null,
     viewModel: CallsStatsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
+    showNativeAds: Boolean = false,
 ) {
     val callStats by viewModel.callStats.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -222,6 +224,13 @@ fun CallsStatsScreen(
                     // ── Riepilogo totale ──────────────────────────
                     item {
                         CallSummaryCard(totals)
+                    }
+
+                    // ── Native Ad (Free only) ─────────────────────
+                    if (showNativeAds) {
+                        item(key = "native_ad_calls") {
+                            NativeAdCard()
+                        }
                     }
 
                     item {

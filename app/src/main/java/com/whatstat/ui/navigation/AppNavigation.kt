@@ -188,12 +188,21 @@ private fun NavGraphBuilder.setupGraph(
         ) { backStackEntry ->
             val autoNavigate = backStackEntry.arguments?.getBoolean("autoNavigate", true) ?: true
             val incomingZipUri by mainViewModel.incomingZipUri.collectAsState()
+            val context = LocalContext.current
             setupScreen(
                 autoNavigate = autoNavigate,
                 incomingZipUri = incomingZipUri,
                 onUriConsumed = { mainViewModel.setIncomingZipUri(null) },
                 onSetupComplete = {
                     val target = resolveTargetGraph()
+                    if (target == NavGraphRoute.ROOT) {
+                        context.findActivity()?.let { activity ->
+                            mainViewModel.tryShowInterstitialAfterLongOperation(
+                                activity = activity,
+                                source = "root_analysis_completed",
+                            )
+                        }
+                    }
                     navController.navigate(target) {
                         popUpTo(NavGraphRoute.SETUP) { inclusive = false }
                         launchSingleTop = true
@@ -257,10 +266,11 @@ private fun NavGraphBuilder.rootModeGraph(
                     // non disponibile in Root mode
                     onImportChat = {},
                     onAllChatsDeleted = {},
+                    showNativeAds = showNativeAds,
                 )
             }
 
-            sharedChatDetailRoutes(navController)
+            sharedChatDetailRoutes(navController, showNativeAds)
         }
 
         navigation(
@@ -269,7 +279,7 @@ private fun NavGraphBuilder.rootModeGraph(
         ) {
             composable(Screen.MediaStats.route) {
                 DoubleBackToExitHandler()
-                mediaStatsScreen(chatId = null, onNavigateBack = {})
+                mediaStatsScreen(chatId = null, onNavigateBack = {}, showNativeAds = showNativeAds)
             }
         }
 
@@ -279,7 +289,7 @@ private fun NavGraphBuilder.rootModeGraph(
         ) {
             composable(Screen.WordSearch.route) {
                 DoubleBackToExitHandler()
-                WordSearchScreen(chatId = null, onNavigateBack = {})
+                WordSearchScreen(chatId = null, onNavigateBack = {}, showNativeAds = showNativeAds)
             }
         }
 
@@ -289,7 +299,7 @@ private fun NavGraphBuilder.rootModeGraph(
         ) {
             composable(Screen.CallsStats.route) {
                 DoubleBackToExitHandler()
-                CallsStatsScreen(chatId = null, onNavigateBack = {})
+                CallsStatsScreen(chatId = null, onNavigateBack = {}, showNativeAds = showNativeAds)
             }
         }
     }
@@ -344,6 +354,7 @@ private fun NavGraphBuilder.liteModeGraph(
                             popUpTo("app_graph") { inclusive = false }
                         }
                     },
+                    showNativeAds = showNativeAds,
                 )
             }
 
@@ -368,7 +379,7 @@ private fun NavGraphBuilder.liteModeGraph(
                 )
             }
 
-            sharedChatDetailRoutes(navController)
+            sharedChatDetailRoutes(navController, showNativeAds)
         }
 
         navigation(
@@ -377,7 +388,7 @@ private fun NavGraphBuilder.liteModeGraph(
         ) {
             composable(Screen.MediaStats.route) {
                 DoubleBackToExitHandler()
-                mediaStatsScreen(chatId = null, onNavigateBack = {})
+                mediaStatsScreen(chatId = null, onNavigateBack = {}, showNativeAds = showNativeAds)
             }
         }
 
@@ -387,7 +398,7 @@ private fun NavGraphBuilder.liteModeGraph(
         ) {
             composable(Screen.WordSearch.route) {
                 DoubleBackToExitHandler()
-                WordSearchScreen(chatId = null, onNavigateBack = {})
+                WordSearchScreen(chatId = null, onNavigateBack = {}, showNativeAds = showNativeAds)
             }
         }
     }
@@ -395,7 +406,10 @@ private fun NavGraphBuilder.liteModeGraph(
 
 // ── Route condivise ChatDetail (usate da entrambi i graph) ─────────────────────
 
-private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostController) {
+private fun NavGraphBuilder.sharedChatDetailRoutes(
+    navController: NavHostController,
+    showNativeAds: Boolean = false,
+) {
     composable(
         route = Screen.ChatDetail.route,
         arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
@@ -416,6 +430,7 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostControl
             onNavigateToHistory = { targetChatId ->
                 navController.navigate(Screen.GroupHistory.createRoute(targetChatId))
             },
+            showNativeAds = showNativeAds,
         )
     }
 
@@ -424,7 +439,7 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostControl
         arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId")
-        WordSearchScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() })
+        WordSearchScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() }, showNativeAds = showNativeAds)
     }
 
     composable(
@@ -432,7 +447,7 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostControl
         arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId")
-        CallsStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() })
+        CallsStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() }, showNativeAds = showNativeAds)
     }
 
     composable(
@@ -440,7 +455,7 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(navController: NavHostControl
         arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId")
-        mediaStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() })
+        mediaStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() }, showNativeAds = showNativeAds)
     }
 
     composable(

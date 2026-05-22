@@ -124,6 +124,7 @@ import com.whatstat.ui.component.StatCard
 import com.whatstat.ui.component.StickerPreviewModal
 import com.whatstat.ui.component.TimeRangeFilterRow
 import com.whatstat.ui.component.ZoomableImageGallery
+import com.whatstat.ui.component.ads.NativeAdCard
 import com.whatstat.ui.component.rememberShimmerBrush
 import com.whatstat.ui.theme.getSenderColor
 import com.whatstat.ui.theme.senderColorOverrideKey
@@ -152,6 +153,7 @@ fun ChatDetailScreen(
     onNavigateToCalls: (Long) -> Unit = { _ -> },
     onNavigateToMedia: (Long) -> Unit = { _ -> },
     onNavigateToHistory: (Long) -> Unit = { _ -> },
+    showNativeAds: Boolean = false,
 ) {
     val mainVm: MainViewModel = hiltViewModel()
     val appLang by mainVm.appLanguage.collectAsState()
@@ -479,6 +481,13 @@ fun ChatDetailScreen(
                                     icon = Icons.Outlined.EmojiEmotions,
                                 )
                             }
+                        }
+                    }
+
+                    // ── Native Ad (Free only) ─────────────────────────────────
+                    if (showNativeAds) {
+                        item {
+                            NativeAdCard()
                         }
                     }
 

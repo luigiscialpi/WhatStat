@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,6 +67,7 @@ import com.whatstat.ui.MainViewModel
 import com.whatstat.ui.component.ContactNameWithPhone
 import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
+import com.whatstat.ui.component.ads.NativeAdCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +78,7 @@ fun ChatListScreen(
     onNavigateBack: () -> Unit,
     onImportChat: () -> Unit = {},
     onAllChatsDeleted: () -> Unit = {},
+    showNativeAds: Boolean = false,
 ) {
     val mainVm: MainViewModel = hiltViewModel()
     val appLang by mainVm.appLanguage.collectAsState()
@@ -187,24 +188,33 @@ fun ChatListScreen(
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn() + slideInVertically { it / 3 },
-                        ) {
-                            ChatListItem(
-                                rank = index + 1,
-                                name = chat.displayName,
-                                jid = chat.jid,
-                                messageCount = chat.totalMessages,
-                                isGroup = chat.isGroup,
-                                avatarPath = chat.avatarPath,
-                                importTimestamp = chat.importTimestamp,
-                                isLiteMode = isLiteMode,
-                                onDelete = { chatToDelete = chat },
-                                onRename = { chatToRename = chat },
-                                onClick = { onChatSelected(chat.chatId) },
-                            )
+                    val showAdsInList = showNativeAds && chats.size >= 10 && searchQuery.isBlank()
+                    chats.forEachIndexed { index, chat ->
+                        item(key = chat.chatId) {
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn() + slideInVertically { it / 3 },
+                            ) {
+                                ChatListItem(
+                                    rank = index + 1,
+                                    name = chat.displayName,
+                                    jid = chat.jid,
+                                    messageCount = chat.totalMessages,
+                                    isGroup = chat.isGroup,
+                                    avatarPath = chat.avatarPath,
+                                    importTimestamp = chat.importTimestamp,
+                                    isLiteMode = isLiteMode,
+                                    onDelete = { chatToDelete = chat },
+                                    onRename = { chatToRename = chat },
+                                    onClick = { onChatSelected(chat.chatId) },
+                                )
+                            }
+                        }
+                        // Native ad: dopo il 6° item, poi ogni 12
+                        if (showAdsInList && (index == 5 || (index > 5 && (index - 5) % 12 == 0))) {
+                            item(key = "native_ad_$index") {
+                                NativeAdCard()
+                            }
                         }
                     }
 

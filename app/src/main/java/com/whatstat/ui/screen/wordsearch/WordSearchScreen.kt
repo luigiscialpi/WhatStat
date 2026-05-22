@@ -89,6 +89,7 @@ import com.whatstat.ui.component.LoadingSection
 import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
 import com.whatstat.ui.component.TimeRangeFilterRow
+import com.whatstat.ui.component.ads.NativeAdCard
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -100,6 +101,7 @@ fun WordSearchScreen(
     chatId: Long? = null,
     viewModel: WordSearchViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
+    showNativeAds: Boolean = false,
 ) {
     val mainVm: MainViewModel = hiltViewModel()
     val appLang by mainVm.appLanguage.collectAsState()
@@ -361,86 +363,94 @@ fun WordSearchScreen(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(results) { result ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors =
-                                    CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    ),
-                                shape = RoundedCornerShape(12.dp),
-                            ) {
-                                Row(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                    horizontalArrangement = Arrangement.Start,
-                                    verticalAlignment = Alignment.CenterVertically,
+                        results.forEachIndexed { index, result ->
+                            item(key = result.jid) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors =
+                                        CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                        ),
+                                    shape = RoundedCornerShape(12.dp),
                                 ) {
-                                    // Immagine Profilo
-                                    Box(
+                                    Row(
                                         modifier =
                                             Modifier
-                                                .size(40.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primaryContainer),
-                                        contentAlignment = Alignment.Center,
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                        horizontalArrangement = Arrangement.Start,
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        if (result.avatarPath != null) {
-                                            AsyncImage(
-                                                model =
-                                                    ImageRequest.Builder(LocalContext.current)
-                                                        .data(result.avatarPath)
-                                                        .crossfade(true)
-                                                        .build(),
-                                                contentDescription = null,
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentScale = ContentScale.Crop,
+                                        // Immagine Profilo
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .size(40.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            if (result.avatarPath != null) {
+                                                AsyncImage(
+                                                    model =
+                                                        ImageRequest.Builder(LocalContext.current)
+                                                            .data(result.avatarPath)
+                                                            .crossfade(true)
+                                                            .build(),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentScale = ContentScale.Crop,
+                                                )
+                                            } else {
+                                                Icon(
+                                                    Icons.Outlined.People,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    modifier = Modifier.size(24.dp),
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(Modifier.width(12.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            ContactNameWithPhone(
+                                                name = result.displayName ?: result.jid.substringBefore("@"),
+                                                jid = result.jid,
+                                                nameStyle = MaterialTheme.typography.titleMedium,
                                             )
-                                        } else {
-                                            Icon(
-                                                Icons.Outlined.People,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                modifier = Modifier.size(24.dp),
+                                        }
+
+                                        Spacer(Modifier.width(8.dp))
+
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
+                                                    .clickable {
+                                                        viewModel.loadMessagesForSender(
+                                                            senderJid = result.jid,
+                                                            senderName =
+                                                                result.displayName
+                                                                    ?: result.jid.substringBefore("@"),
+                                                        )
+                                                    }
+                                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        ) {
+                                            Text(
+                                                "${result.count}",
+                                                style = MaterialTheme.typography.headlineSmall,
+                                                color = MaterialTheme.colorScheme.primary,
                                             )
                                         }
                                     }
-
-                                    Spacer(Modifier.width(12.dp))
-
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        ContactNameWithPhone(
-                                            name = result.displayName ?: result.jid.substringBefore("@"),
-                                            jid = result.jid,
-                                            nameStyle = MaterialTheme.typography.titleMedium,
-                                        )
-                                    }
-
-                                    Spacer(Modifier.width(8.dp))
-
-                                    Box(
-                                        modifier =
-                                            Modifier
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
-                                                .clickable {
-                                                    viewModel.loadMessagesForSender(
-                                                        senderJid = result.jid,
-                                                        senderName =
-                                                            result.displayName
-                                                                ?: result.jid.substringBefore("@"),
-                                                    )
-                                                }
-                                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                                    ) {
-                                        Text(
-                                            "${result.count}",
-                                            style = MaterialTheme.typography.headlineSmall,
-                                            color = MaterialTheme.colorScheme.primary,
-                                        )
-                                    }
+                                }
+                            }
+                            // Native ad dopo il 5° risultato, solo se Free e >= 10 risultati
+                            if (showNativeAds && hasSearched && results.size >= 10 && index == 4) {
+                                item(key = "native_ad_radar") {
+                                    NativeAdCard()
                                 }
                             }
                         }

@@ -115,6 +115,7 @@ import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
 import com.whatstat.ui.component.TimeRangeFilterRow
 import com.whatstat.ui.component.ZoomableImageGallery
+import com.whatstat.ui.component.ads.NativeAdCard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -131,6 +132,7 @@ fun mediaStatsScreen(
     chatId: Long? = null,
     viewModel: MediaStatsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
+    showNativeAds: Boolean = false,
 ) {
     val linkStats by viewModel.linkStats.collectAsState()
     val linkStatsBySender by viewModel.linkStatsBySender.collectAsState()
@@ -378,23 +380,31 @@ fun mediaStatsScreen(
                             )
                         }
 
-                        items(displayStats) { stat ->
-                            LinkStatCard(
-                                stat = stat,
-                                showTotal = true,
-                                onClick =
-                                    if (isChatDetail || isShowingBreakdown) {
-                                        null
-                                    } else {
-                                        { viewModel.loadLinkStatsBySenderForJid(stat.jid) }
+                        displayStats.forEachIndexed { index, stat ->
+                            item(key = stat.jid) {
+                                LinkStatCard(
+                                    stat = stat,
+                                    showTotal = true,
+                                    onClick =
+                                        if (isChatDetail || isShowingBreakdown) {
+                                            null
+                                        } else {
+                                            { viewModel.loadLinkStatsBySenderForJid(stat.jid) }
+                                        },
+                                    onLinksClick = {
+                                        viewModel.loadDomainStatsForContact(stat.jid, stat.displayName)
                                     },
-                                onLinksClick = {
-                                    viewModel.loadDomainStatsForContact(stat.jid, stat.displayName)
-                                },
-                                onMediaClick = {
-                                    viewModel.loadMediaGalleryForContact(stat.jid, stat.displayName)
-                                },
-                            )
+                                    onMediaClick = {
+                                        viewModel.loadMediaGalleryForContact(stat.jid, stat.displayName)
+                                    },
+                                )
+                            }
+                            // Native ad dopo il 3° item (index 2), solo utente Free
+                            if (showNativeAds && index == 2 && searchQuery.isBlank()) {
+                                item(key = "native_ad_links") {
+                                    NativeAdCard()
+                                }
+                            }
                         }
 
                         item { Spacer(Modifier.height(48.dp)) }
