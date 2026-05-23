@@ -269,24 +269,25 @@ fun ActivityRecapCard(
                                 modifier = Modifier.padding(vertical = 24.dp),
                             )
                         } else {
-                        val context = androidx.compose.ui.platform.LocalContext.current
-                        InteractiveBarChart(
-                            data = points,
-                            referenceSenders = referenceSenders,
-                            scopeChatId = scopeChatId,
-                            senderColorArgbOverrides = senderColorArgbOverrides,
-                            barWidth = 48.dp,
-                            spacing = 16.dp,
-                            dismissSignal = dismissSignal,
-                            onPointClick = { point ->
-                                val title = context.getString(R.string.click_year_prefix, point.label)
-                                val value = context.getString(R.string.messages_count_suffix, point.count)
-                                handlePointClick(title, value)
-                                detailDialogData = Triple(title, point.count, point.senderBreakdown)
-                            },
-                        )
+                            val context = androidx.compose.ui.platform.LocalContext.current
+                            InteractiveBarChart(
+                                data = points,
+                                referenceSenders = referenceSenders,
+                                scopeChatId = scopeChatId,
+                                senderColorArgbOverrides = senderColorArgbOverrides,
+                                barWidth = 48.dp,
+                                spacing = 16.dp,
+                                dismissSignal = dismissSignal,
+                                onPointClick = { point ->
+                                    val title = context.getString(R.string.click_year_prefix, point.label)
+                                    val value = context.getString(R.string.messages_count_suffix, point.count)
+                                    handlePointClick(title, value)
+                                    detailDialogData = Triple(title, point.count, point.senderBreakdown)
+                                },
+                            )
                         }
                     }
+                }
             }
         }
     }
