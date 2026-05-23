@@ -106,6 +106,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstat.R
 import com.whatstat.data.root.FileExtractor
 import com.whatstat.ui.component.AnimatedInfoButton
+import com.whatstat.ui.component.DoubleBackToExitHandler
 import com.whatstat.ui.component.LocalDrawerState
 import com.whatstat.ui.component.ads.BottomBannerAd
 import kotlinx.coroutines.launch
@@ -224,6 +225,7 @@ fun setupScreen(
             }
         }
 
+    DoubleBackToExitHandler()
     BackHandler(enabled = liteState.isLoading || liteState.showSenderSelection) {}
 
     Box(

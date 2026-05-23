@@ -132,6 +132,7 @@
     <string name="no_emojis_found">कोई इमोजी नहीं मिला</string>
     <string name="sticker_info_hint">समान स्टिकर कई बार दिख सकते हैं क्योंकि WhatsApp उन्हें अलग-अलग फ़ाइलों के रूप में सहेजता है।</string>
     <string name="no_stickers_found">कोई स्टिकर नहीं मिला</string>
+    <string name="no_data_for_period">इस अवधि के लिए कोई डेटा नहीं</string>
 
     <!-- Errors (Service) -->
     <string name="error_root_not_available">Root उपलब्ध नहीं है। सुनिश्चित करें कि Magisk इंस्टॉल है और ऐप को Root अनुमतियां मिली हैं।</string>

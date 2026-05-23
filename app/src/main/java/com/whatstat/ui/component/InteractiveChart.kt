@@ -54,9 +54,7 @@ fun InteractiveHourlyHeatmap(
     dismissSignal: Int = 0,
     onHourClick: ((HourlyCount) -> Unit)? = null,
 ) {
-    if (hourlyData.isEmpty()) return
-
-    val maxCount = hourlyData.maxOf { it.count }.toFloat().coerceAtLeast(1f)
+    val maxCount = if (hourlyData.isEmpty()) 1f else hourlyData.maxOf { it.count }.toFloat().coerceAtLeast(1f)
     val primary = MaterialTheme.colorScheme.primary
     var selectedHour by remember { mutableIntStateOf(-1) }
     LaunchedEffect(dismissSignal) { if (dismissSignal > 0) selectedHour = -1 }

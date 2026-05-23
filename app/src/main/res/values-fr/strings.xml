@@ -132,6 +132,7 @@
     <string name="no_emojis_found">Aucun emoji trouvé</string>
     <string name="sticker_info_hint">Des stickers similaires peuvent apparaître plusieurs fois car WhatsApp les enregistre comme des fichiers séparés.</string>
     <string name="no_stickers_found">Aucun sticker trouvé</string>
+    <string name="no_data_for_period">Aucune donnée pour cette période</string>
 
     <!-- Errors (Service) -->
     <string name="error_root_not_available">Root non disponible. Assurez-vous que Magisk est installé et que l\'application dispose des permissions root.</string>
@@ -331,7 +332,7 @@
     <string name="pro_price_label">Prix : %1$s</string>
     <string name="pro_price_loading">Chargement du prix…</string>
     <string name="pro_buy_button">Débloquer Pro</string>
-    <string name="pro_restore_button">Restaurer l'achat</string>
+    <string name="pro_restore_button">Restaurer l\'achat</string>
     <string name="whatstat_drawer_about">Informations</string>
     <string name="dialog_choose_theme">Choisir le thème</string>
     <string name="theme_system_default">Système par défaut</string>

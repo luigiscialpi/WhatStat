@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,7 +31,6 @@ import androidx.navigation.navigation
 import com.whatstat.R
 import com.whatstat.data.repository.WhatsAppRepository
 import com.whatstat.ui.MainViewModel
-import com.whatstat.ui.component.DoubleBackToExitHandler
 import com.whatstat.ui.screen.calls.CallsStatsScreen
 import com.whatstat.ui.screen.chatdetail.ChatDetailScreen
 import com.whatstat.ui.screen.chatlist.ChatListScreen
@@ -259,7 +259,13 @@ private fun NavGraphBuilder.rootModeGraph(
             route = NavGraphRoute.CHATS,
         ) {
             composable(Screen.ChatList.route) {
-                DoubleBackToExitHandler()
+                BackHandler {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(NavGraphRoute.ROOT) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
                 val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 ChatListScreen(
                     onChatSelected = { chatId ->
@@ -281,7 +287,13 @@ private fun NavGraphBuilder.rootModeGraph(
             route = NavGraphRoute.MEDIA,
         ) {
             composable(Screen.MediaStats.route) {
-                DoubleBackToExitHandler()
+                BackHandler {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(NavGraphRoute.ROOT) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
                 val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 mediaStatsScreen(chatId = null, onNavigateBack = {}, showNativeAds = areAdsEnabled)
             }
@@ -292,7 +304,13 @@ private fun NavGraphBuilder.rootModeGraph(
             route = NavGraphRoute.RADAR,
         ) {
             composable(Screen.WordSearch.route) {
-                DoubleBackToExitHandler()
+                BackHandler {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(NavGraphRoute.ROOT) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
                 val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 WordSearchScreen(chatId = null, onNavigateBack = {}, showNativeAds = areAdsEnabled)
             }
@@ -303,7 +321,13 @@ private fun NavGraphBuilder.rootModeGraph(
             route = NavGraphRoute.CALLS,
         ) {
             composable(Screen.CallsStats.route) {
-                DoubleBackToExitHandler()
+                BackHandler {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(NavGraphRoute.ROOT) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
                 val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 CallsStatsScreen(chatId = null, onNavigateBack = {}, showNativeAds = areAdsEnabled)
             }
@@ -346,7 +370,13 @@ private fun NavGraphBuilder.liteModeGraph(
             route = NavGraphRoute.CHATS,
         ) {
             composable(Screen.ChatList.route) {
-                DoubleBackToExitHandler()
+                BackHandler {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(NavGraphRoute.LITE) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
                 val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 ChatListScreen(
                     onChatSelected = { chatId ->
@@ -394,7 +424,13 @@ private fun NavGraphBuilder.liteModeGraph(
             route = NavGraphRoute.MEDIA,
         ) {
             composable(Screen.MediaStats.route) {
-                DoubleBackToExitHandler()
+                BackHandler {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(NavGraphRoute.LITE) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
                 val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 mediaStatsScreen(chatId = null, onNavigateBack = {}, showNativeAds = areAdsEnabled)
             }
@@ -405,7 +441,13 @@ private fun NavGraphBuilder.liteModeGraph(
             route = NavGraphRoute.RADAR,
         ) {
             composable(Screen.WordSearch.route) {
-                DoubleBackToExitHandler()
+                BackHandler {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(NavGraphRoute.LITE) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
                 val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 WordSearchScreen(chatId = null, onNavigateBack = {}, showNativeAds = areAdsEnabled)
             }

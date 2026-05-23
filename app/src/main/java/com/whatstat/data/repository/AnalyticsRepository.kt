@@ -896,16 +896,13 @@ class AnalyticsRepository
                     }
 
                     val dStickers = async { messageDao.getTopStickers(chatId, null, startTime, endTime, 50) }
-                    val dStarters = async { messageDao.getConversationStarters(chatId) }
-                    val dAvgResp = async { messageDao.getAverageResponseTime(chatId) }
+                    val dAvgResp = async { messageDao.getAverageResponseTime(chatId, startTime, endTime) }
                     val dSenders = async { messageDao.getMessageCountBySender(chatId, startTime, endTime) }
                     val dStartersBySender = async { messageDao.getConversationStartersBySender(chatId, startTime, endTime) }
                     val dLongest = async { messageDao.getLongestMessage(chatId) }
                     val dSenderEmojis = async { getEmojiStatsBySender(chatId, startTime, endTime, 50) }
 
                     onProgress(20)
-                    val starters = dStarters.await()
-                    onProgress(35)
                     val rawSenders = dSenders.await()
                     onProgress(50)
                     val rawStarters = dStartersBySender.await()
@@ -963,8 +960,8 @@ class AnalyticsRepository
                             senderBreakdown = aggregatedSenders,
                             conversationStarterBreakdown = aggregatedStarters,
                             averageResponseTimeMs = avgResp,
-                            iStartedConversations = starters.startedByMe,
-                            theyStartedConversations = starters.startedByThem,
+                            iStartedConversations = rawStarters.find { it.jid == "me@s.whatsapp.net" }?.count ?: 0,
+                            theyStartedConversations = rawStarters.filter { it.jid != "me@s.whatsapp.net" }.sumOf { it.count },
                             longestMessage = longest,
                             sentEmojis = sentEmojisCount,
                             receivedEmojis = receivedEmojisCount,

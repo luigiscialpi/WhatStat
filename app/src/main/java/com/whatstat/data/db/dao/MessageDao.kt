@@ -1588,7 +1588,23 @@ class MessageDao
          * Calcola il tempo medio di risposta (ms) per una chat.
          * Considera solo i cambi di mittente e ignora risposte dopo 24h.
          */
-        fun getAverageResponseTime(chatId: Long): Long {
+        fun getAverageResponseTime(
+            chatId: Long,
+            startTime: Long? = null,
+            endTime: Long? = null,
+        ): Long {
+            val timeConditions = mutableListOf<String>()
+            val args = mutableListOf(chatId.toString())
+            if (startTime != null) {
+                timeConditions.add("AND timestamp >= ?")
+                args.add(startTime.toString())
+            }
+            if (endTime != null) {
+                timeConditions.add("AND timestamp <= ?")
+                args.add(endTime.toString())
+            }
+            val timeFilter = if (timeConditions.isNotEmpty()) " ${timeConditions.joinToString(" ")}" else ""
+
             val query =
                 """
                 SELECT AVG(response_time) FROM (
@@ -1597,13 +1613,13 @@ class MessageDao
                         from_me,
                         LAG(from_me) OVER (ORDER BY timestamp) AS prev_from_me
                     FROM message
-                    WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)
+                    WHERE chat_row_id = ? AND message_type NOT IN (7, 15, 90)$timeFilter
                 )
                 WHERE prev_from_me IS NOT NULL AND from_me != prev_from_me
                   AND response_time > 0 AND response_time < 86400000
                 """.trimIndent()
 
-            val cursor = database.getMsgDb().rawQuery(query, arrayOf(chatId.toString()))
+            val cursor = database.getMsgDb().rawQuery(query, args.toTypedArray())
             return cursor.use { if (it.moveToFirst()) it.getLong(0) else 0L }
         }
 

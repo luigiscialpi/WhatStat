@@ -132,6 +132,7 @@
     <string name="no_emojis_found">Nessuna emoji trovata</string>
     <string name="sticker_info_hint">Sticker simili possono comparire più volte perché WhatsApp li salva come file separati.</string>
     <string name="no_stickers_found">Nessuno sticker trovato</string>
+    <string name="no_data_for_period">Nessun dato per questo periodo</string>
 
     <!-- Errors (Service) -->
     <string name="error_root_not_available">Root non disponibile. Assicurati che Magisk sia installato e che l\'app abbia i permessi root.</string>
@@ -327,7 +328,7 @@
     <string name="whatstat_drawer_cache">Elimina Dati</string>
     <string name="drawer_upgrade_pro">Aggiorna a Pro</string>
     <string name="pro_active">Pro attivo</string>
-    <string name="pro_upgrade_description">Rimuovi tutte le pubblicità e mantieni l'interfaccia pulita, senza spazi riservati per gli annunci.</string>
+    <string name="pro_upgrade_description">Rimuovi tutte le pubblicità e mantieni l\'interfaccia pulita, senza spazi riservati per gli annunci.</string>
     <string name="pro_active_description">Pro è attivo. Le pubblicità sono disabilitate e gli spazi pubblicitari nascosti.</string>
     <string name="pro_price_label">Prezzo: %1$s</string>
     <string name="pro_price_loading">Caricamento prezzo…</string>

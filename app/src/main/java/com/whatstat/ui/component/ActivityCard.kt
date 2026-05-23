@@ -261,6 +261,14 @@ fun ActivityRecapCard(
                             sortedYears.map {
                                 StatPoint(it.year, "${it.year}", it.count, it.senderBreakdown)
                             }
+                        if (points.isEmpty()) {
+                            Text(
+                                stringResource(R.string.no_data_for_period),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 24.dp),
+                            )
+                        } else {
                         val context = androidx.compose.ui.platform.LocalContext.current
                         InteractiveBarChart(
                             data = points,
@@ -277,8 +285,8 @@ fun ActivityRecapCard(
                                 detailDialogData = Triple(title, point.count, point.senderBreakdown)
                             },
                         )
+                        }
                     }
-                }
             }
         }
     }

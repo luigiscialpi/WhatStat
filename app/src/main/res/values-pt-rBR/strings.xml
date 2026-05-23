@@ -132,6 +132,7 @@
     <string name="no_emojis_found">Nenhum emoji encontrado</string>
     <string name="sticker_info_hint">Stickers semelhantes podem aparecer mais de uma vez porque o WhatsApp os salva como arquivos separados.</string>
     <string name="no_stickers_found">Nenhum sticker encontrado</string>
+    <string name="no_data_for_period">Nenhum dado para este período</string>
 
     <!-- Errors (Service) -->
     <string name="error_root_not_available">Root não disponível. Certifique-se de que o Magisk está instalado e que o app tem permissões root.</string>
