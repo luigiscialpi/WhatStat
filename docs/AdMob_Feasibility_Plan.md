@@ -891,15 +891,81 @@ Output:
 
 ### Fase 6: Documentazione e release — [IN CORSO]
 
-Passi:
+#### 6.1 Prerequisiti completati
 
-1. Aggiornare README.
-2. Aggiornare privacy policy.
-3. Aggiornare Play Store Data Safety.
-4. Testare UMP per EEA/UK/Svizzera.
-5. Testare acquisti con license testers.
-6. Usare test ad unit in debug.
-7. Usare ID reali solo in release.
+- Account AdMob creato. App registrata in AdMob (senza Play Store listing per ora — limiti rimossi dopo pubblicazione).
+- ID reali inseriti in `local.properties` (non committare):
+  - `ADMOB_APP_ID=ca-app-pub-7687170186470171~9029274402`
+  - `ADMOB_BANNER_UNIT_ID=ca-app-pub-7687170186470171/1717383292`
+  - `ADMOB_NATIVE_UNIT_ID=ca-app-pub-7687170186470171/5465056611`
+  - `ADMOB_INTERSTITIAL_UNIT_ID=ca-app-pub-7687170186470171/9510140610`
+- `assembleRelease` con ID reali: BUILD SUCCESSFUL. `isTestBuild = false` confermato.
+- Account Google Play Developer registrato (€25 una tantum). In attesa verifica.
+
+#### 6.2 Appena la verifica account e completata
+
+1. **Genera AAB** (formato richiesto da Play Store, non APK):
+   ```bash
+   ./gradlew bundleRelease
+   ```
+   Output: `app/build/outputs/bundle/release/app-release.aab`
+
+2. **Crea l'app su Play Console**:
+   - Apps → Create app → Android
+   - Tipo: App (non gioco)
+   - Distribuzione: Gratuita (prezzo app = €0,00)
+   - Package name: `com.whatstat`
+
+3. **Carica AAB in Internal Testing**:
+   - Testing → Internal testing → Create release → carica `.aab`
+   - Questa traccia e privata, solo gli account aggiunti come tester la vedono
+
+4. **Compila le sezioni obbligatorie** (Play Console le segnala in rosso):
+   - Scheda negozio: descrizione, screenshot, icona
+   - Valutazione contenuti: compila questionario
+   - Target audience
+   - Accesso all'app: segnala che la Root mode richiede dispositivo rootato
+
+5. **Data Safety** — sezione critica per AdMob (obbligatoria):
+   - Raccoglie dati? → Si
+   - Dati condivisi con terze parti → Google AdMob (scopo: pubblicita)
+   - Dati raccolti: Advertising ID, interazioni con annunci
+   - Crittografati in transito → Si
+   - Utente puo richiedere cancellazione → Si (tramite impostazioni Google)
+   - I contenuti WhatsApp analizzati restano locali → non dichiarare raccolta dati chat
+
+6. **Crea prodotto in-app `whatstat_pro`**:
+   - Monetize → In-app products → Create product
+   - Product ID: `whatstat_pro` (deve corrispondere esatto a `BuildConfig.PRO_PRODUCT_ID`)
+   - Tipo: Prodotto gestito (acquisto singolo non consumabile)
+   - Stato: Attivo
+   - Prezzo: scegliere (es. €2,99 o €4,99)
+
+7. **Collega Play Store listing ad AdMob**:
+   - AdMob console → Apps → tua app → Add store
+   - Inserisci package name `com.whatstat`
+   - Questo sblocca i limiti degli annunci e avvia revisione AdMob
+
+8. **Aggiungi license tester per test acquisti gratuiti**:
+   - Play Console → Setup → License testing → aggiungi il tuo account Google
+   - Con quell'account sul device, gli acquisti Pro sono simulati e gratuiti
+
+#### 6.3 Documentazione tecnica
+
+1. Aggiornare README: rimuovere claim "100% offline", aggiungere sezione Pro/ads
+2. Creare privacy policy pubblica (pagina web):
+   - Dichiarare uso AdMob SDK per annunci nella versione Free
+   - Dichiarare che i contenuti WhatsApp restano locali sul dispositivo
+   - Dichiarare uso Google Play Billing per acquisto Pro
+   - Link da Play Store listing e da AppDrawer
+3. Aggiornare Play Store Data Safety dopo aver completato il punto 6.2.5
+
+#### 6.4 Test pre-release
+
+- Testare UMP: consenso richiesto alla prima apertura su device EEA
+- Testare con license tester: acquisto Pro → ads spariscono → restore → ads spariscono ancora
+- Verificare che `isTestBuild = false` in release (confrontare `BuildConfig.ADMOB_APP_ID` con demo ID)
+- Registrare device fisico come test device in AdMob per non rischiare invalid clicks durante sviluppo
 
 Output:
 
