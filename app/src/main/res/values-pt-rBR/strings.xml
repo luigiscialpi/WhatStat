@@ -325,6 +325,14 @@
     <string name="whatstat_drawer_theme">Tema do app</string>
     <string name="whatstat_drawer_language">Mudar idioma</string>
     <string name="whatstat_drawer_cache">Excluir dados</string>
+    <string name="drawer_upgrade_pro">Atualizar para Pro</string>
+    <string name="pro_active">Pro ativo</string>
+    <string name="pro_upgrade_description">Remova todos os anúncios e mantenha a interface limpa, sem espaços reservados para anúncios.</string>
+    <string name="pro_active_description">Pro está ativo. Os anúncios estão desativados e os espaços de anúncio ocultos.</string>
+    <string name="pro_price_label">Preço: %1$s</string>
+    <string name="pro_price_loading">Carregando preço…</string>
+    <string name="pro_buy_button">Desbloquear Pro</string>
+    <string name="pro_restore_button">Restaurar compra</string>
     <string name="whatstat_drawer_about">Informações</string>
     <string name="dialog_choose_theme">Escolher tema</string>
     <string name="theme_system_default">Padrão do sistema</string>
