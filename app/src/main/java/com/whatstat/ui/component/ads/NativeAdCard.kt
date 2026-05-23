@@ -1,13 +1,15 @@
 package com.whatstat.ui.component.ads
 
 import android.content.Context
-import android.graphics.Color
 import android.util.TypedValue
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -15,7 +17,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.setPadding
 import com.google.android.gms.ads.AdListener
@@ -28,6 +32,7 @@ import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.whatstat.BuildConfig
 import com.whatstat.util.DebugLogManager
+import android.graphics.Color as AndroidColor
 
 @Composable
 @Suppress("FunctionName")
@@ -67,7 +72,19 @@ fun NativeAdCard(
         }
     }
 
-    val loadedAd = nativeAd ?: return
+    val loadedAd = nativeAd
+
+    if (loadedAd == null) {
+        // Placeholder: riserva spazio mentre l'ad carica, evita layout shift
+        Box(
+            modifier =
+                modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .background(Color(0xFFEEEEEE)),
+        )
+        return
+    }
 
     AndroidView(
         modifier = modifier.fillMaxWidth(),
@@ -104,23 +121,23 @@ private fun createNativeAdView(context: Context): NativeAdView {
         LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(paddingPx)
-            setBackgroundColor(Color.parseColor("#EAF3FF"))
+            setBackgroundColor(AndroidColor.parseColor("#EAF3FF"))
         }
 
     val adLabel =
         TextView(context).apply {
             text = "Ad"
-            setTextColor(Color.parseColor("#0D47A1"))
+            setTextColor(AndroidColor.parseColor("#0D47A1"))
             textSize = 12f
         }
 
     headlineText.apply {
-        setTextColor(Color.parseColor("#111111"))
+        setTextColor(AndroidColor.parseColor("#111111"))
         textSize = 16f
     }
 
     bodyText.apply {
-        setTextColor(Color.parseColor("#333333"))
+        setTextColor(AndroidColor.parseColor("#333333"))
         textSize = 14f
     }
 
@@ -132,8 +149,8 @@ private fun createNativeAdView(context: Context): NativeAdView {
 
     ctaButton.apply {
         isAllCaps = false
-        setBackgroundColor(Color.parseColor("#1565C0"))
-        setTextColor(Color.WHITE)
+        setBackgroundColor(AndroidColor.parseColor("#1565C0"))
+        setTextColor(AndroidColor.WHITE)
         textSize = 14f
     }
 

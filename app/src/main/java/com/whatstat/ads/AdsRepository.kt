@@ -6,8 +6,10 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.RequestConfiguration
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.google.android.ump.ConsentDebugSettings
 import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
@@ -34,7 +36,7 @@ class AdsRepository
         @ApplicationContext private val context: android.content.Context,
         billingRepository: BillingRepository,
     ) {
-        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         private val consentInformation = UserMessagingPlatform.getConsentInformation(context)
 
         private var isMobileAdsInitialized = false
@@ -47,7 +49,17 @@ class AdsRepository
 
         private companion object {
             const val INTERSTITIAL_COOLDOWN_MS = 12 * 60 * 1000L
+
+            // True quando si usano gli App ID di test Google (default nel repo).
+            // Diventa false automaticamente non appena si configurano ID reali in local.properties.
+            val isTestBuild: Boolean
+                get() = BuildConfig.ADMOB_APP_ID == "ca-app-pub-3940256099942544~3347511713"
         }
+
+        // Con ID di test bypassa il check UMP (DEBUG_GEOGRAPHY_DISABLED richiede hash device).
+        // Con ID reali delega a ConsentInformation per rispettare il GDPR.
+        private val canRequestAds: Boolean
+            get() = isTestBuild || consentInformation.canRequestAds()
 
         init {
             scope.launch {
@@ -61,13 +73,30 @@ class AdsRepository
                     publishState()
                 }
             }
+            // Con ID di test non servono UMP callbacks: avvia init SDK immediatamente.
+            if (isTestBuild) {
+                initializeMobileAdsIfPossible()
+            }
         }
 
         fun requestConsent(activity: Activity) {
             val requestParameters =
                 ConsentRequestParameters
                     .Builder()
-                    .build()
+                    .apply {
+                        if (isTestBuild) {
+                            // Con gli ID di test Google bypassa il gate geografico EEA:
+                            // canRequestAds() diventa true immediatamente, senza form UMP.
+                            // Quando aggiungi gli ID reali in local.properties questo blocco
+                            // non viene piu eseguito e UMP funziona correttamente.
+                            setConsentDebugSettings(
+                                ConsentDebugSettings
+                                    .Builder(activity)
+                                    .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_DISABLED)
+                                    .build(),
+                            )
+                        }
+                    }.build()
 
             consentInformation.requestConsentInfoUpdate(
                 activity,
@@ -116,7 +145,7 @@ class AdsRepository
             activity: Activity,
             source: String,
         ): Boolean {
-            if (isPro || !isMobileAdsInitialized || !consentInformation.canRequestAds()) return false
+            if (isPro || !isMobileAdsInitialized || !canRequestAds) return false
             val now = System.currentTimeMillis()
             if ((now - lastInterstitialShownAtMs) < INTERSTITIAL_COOLDOWN_MS) {
                 preloadInterstitialIfPossible()
@@ -151,9 +180,25 @@ class AdsRepository
 
         private fun initializeMobileAdsIfPossible() {
             if (isMobileAdsInitialized) return
-            if (!consentInformation.canRequestAds()) return
+            if (!canRequestAds) return
 
-            MobileAds.initialize(context) {}
+            if (isTestBuild) {
+                MobileAds.setRequestConfiguration(
+                    RequestConfiguration.Builder()
+                        .setTestDeviceIds(listOf(AdRequest.DEVICE_ID_EMULATOR))
+                        .build(),
+                )
+            }
+            MobileAds.initialize(context) {
+                // Callback: tutti gli adapter sono pronti. Pubblica stato se non gia fatto.
+                if (!isMobileAdsInitialized) {
+                    isMobileAdsInitialized = true
+                    preloadInterstitialIfPossible()
+                    publishState()
+                }
+            }
+            // Imposta subito per sbloccare il gate UI. AdLoader/AdView gestiscono
+            // internamente il caso in cui l'init non e ancora completato.
             isMobileAdsInitialized = true
             preloadInterstitialIfPossible()
             publishState()
@@ -161,7 +206,7 @@ class AdsRepository
 
         private fun preloadInterstitialIfPossible() {
             if (isPro) return
-            if (!isMobileAdsInitialized || !consentInformation.canRequestAds()) return
+            if (!isMobileAdsInitialized || !canRequestAds) return
             if (interstitialAd != null) return
 
             InterstitialAd.load(
@@ -184,16 +229,16 @@ class AdsRepository
         }
 
         private fun publishState(message: String? = null) {
-            val canRequestAds = consentInformation.canRequestAds()
+            val canRequestAdsValue = canRequestAds
             val isPrivacyOptionsRequired =
                 consentInformation.privacyOptionsRequirementStatus ==
                     ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
-            val areAdsEnabled = canRequestAds && isMobileAdsInitialized && !isPro
+            val areAdsEnabled = canRequestAdsValue && isMobileAdsInitialized && !isPro
 
             _uiState.update { current ->
                 current.copy(
                     areAdsEnabled = areAdsEnabled,
-                    canRequestAds = canRequestAds,
+                    canRequestAds = canRequestAdsValue,
                     isPrivacyOptionsRequired = isPrivacyOptionsRequired,
                     isMobileAdsInitialized = isMobileAdsInitialized,
                     shouldShowBanner = areAdsEnabled,

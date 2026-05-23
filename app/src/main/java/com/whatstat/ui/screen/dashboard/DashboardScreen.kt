@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -364,9 +365,9 @@ fun DashboardScreen(
                                     modifier = Modifier.padding(bottom = 12.dp),
                                 ) {
                                     Icon(
-                                        Icons.Outlined.Info,
+                                        Icons.Outlined.Warning,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = MaterialTheme.colorScheme.error,
                                         modifier = Modifier.size(16.dp),
                                     )
                                     Spacer(Modifier.width(8.dp))

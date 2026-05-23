@@ -27,6 +27,12 @@
 # ── Compose ───────────────────────────────────────────────────────
 -dontwarn androidx.compose.**
 
+# ── Google Mobile Ads + UMP ───────────────────────────────────────
+-keep class com.google.android.gms.ads.** { *; }
+-keep class com.google.android.gms.internal.ads.** { *; }
+-keep class com.google.android.ump.** { *; }
+-keep class com.google.ads.** { *; }
+
 # ── Rimozione Log in Release ──────────────────────────────────────
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
