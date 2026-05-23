@@ -1,6 +1,7 @@
 # Piano di fattibilita per AdMob e versione Pro in WhatStat
 
 Data: 2026-05-22
+Ultimo aggiornamento: 2026-05-23 — Refactor AppNavigation completato; tutti i placement reattivi a state change
 
 ## 1. Contesto del progetto
 
@@ -155,7 +156,7 @@ Nel file:
 
 `app/build.gradle.kts`
 
-aggiungere:
+**Versioni pianificate (al 2026-05-22):**
 
 ```kotlin
 implementation("com.google.android.gms:play-services-ads:25.2.0")
@@ -163,9 +164,21 @@ implementation("com.google.android.ump:user-messaging-platform:4.0.0")
 implementation("com.android.billingclient:billing:9.0.0")
 ```
 
+**Versioni effettivamente usate in implementazione:**
+
+```kotlin
+implementation("com.google.android.gms:play-services-ads:23.6.0")
+implementation("com.google.android.ump:user-messaging-platform:4.0.0")
+implementation("com.android.billingclient:billing:9.0.0")
+```
+
+Nota: `play-services-ads:23.6.0` usata per compatibilita con le dipendenze transitive gia presenti. Da aggiornare a 25.x.x in un prossimo ciclo dopo verifica.
+
 In debug usare sempre test ad units e test app ID.
 
 Gli ID reali non dovrebbero essere hardcoded direttamente nel repository. Meglio leggerli da `local.properties`, Gradle properties o secrets di CI.
+
+**Implementazione ID ads:** gli ID di default in `build.gradle.kts` sono i Google demo ID. Gli ID reali vanno in `local.properties`. Il flag `isTestBuild` in `AdsRepository` e calcolato automaticamente confrontando `BuildConfig.ADMOB_APP_ID` con il demo ID Google — nessun toggle manuale necessario.
 
 ## 9. Manifest e rete
 
@@ -205,27 +218,50 @@ La regola da mantenere e:
 - HTTP cleartext non consentito
 - nessuna apertura generica a traffico non sicuro
 
-## 10. Architettura proposta
+## 10. Architettura proposta e implementata
 
 La logica ads e billing deve essere isolata in package dedicati. Non deve entrare dentro DAO, repository analytics o query database.
 
-### Package ads
+### Package ads — architettura effettiva
 
-Creare:
+Creato:
 
 `app/src/main/java/com/whatstat/ads/`
 
-Classi consigliate:
+**Classe unica implementata (consolidamento rispetto al piano):**
 
-- `AdsConfig`
-- `AdsConsentManager`
-- `MobileAdsInitializer`
-- `AdStateRepository`
-- `InterstitialGate`
-- `NativeAdCache`
-- `AdPlacementPolicy`
+- `AdsRepository` — singleton `@Inject` che unifica: consenso UMP, init MobileAds, state publishing, cooldown interstitial, flag `isTestBuild`, flag `isMobileAdsInitialized`
 
-Responsabilita:
+**Classi pianificate ma non create separatamente** (logica assorbita da `AdsRepository`):
+
+- `AdsConfig`, `AdsConsentManager`, `MobileAdsInitializer`, `AdStateRepository`, `InterstitialGate`, `NativeAdCache`, `AdPlacementPolicy`
+
+**Quirk critici implementati:**
+
+- `isTestBuild`: `BuildConfig.ADMOB_APP_ID == "ca-app-pub-3940256099942544~3347511713"`. Auto-disabilita bypass test quando si usano ID reali.
+- `canRequestAds`: property che bypassa `consentInformation.canRequestAds()` per i test ID (EEA con UMP richiederebbe device hash registrato, impossibile senza logcat).
+- Scope `Dispatchers.Main` obbligatorio: `InterstitialAd.load()` richiede main thread; scope IO causava crash.
+- `isMobileAdsInitialized` settato sia sincrono (pre-callback) che nel callback (safety net) per evitare race con `NativeAdCard`.
+- ProGuard: aggiunte regole esplicite `-keep` per `com.google.android.gms.ads.**`, `com.google.android.gms.internal.ads.**`, `com.google.android.ump.**` — senza queste le classi vengono strippate da `-repackageclasses '' -overloadaggressively`.
+
+### AppNavigation — architettura effettiva del passaggio ads state
+
+**Problema risolto:** `NavBackStackEntry` cattura il `ComposeNavigator.Destination` content lambda al momento della costruzione del nav graph. I Boolean `showBannerAd`/`showNativeAds` passati come parametri chiusi nella lambda NON aggiornano le destinazioni gia mostrate quando lo state cambia in seguito (es. easter egg attiva Pro a runtime).
+
+**Soluzione implementata:** rimossi tutti i parametri Boolean `showBannerAd`/`showNativeAds` dalle funzioni del nav graph; ogni composable lambda raccoglie lo stato direttamente:
+
+```kotlin
+val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+```
+
+Funzioni modificate:
+
+- `setupGraph`: rimosso `showBannerAd: Boolean = false`; `mainViewModel` gia presente
+- `rootModeGraph`: sostituito `showNativeAds: Boolean` con `mainViewModel: MainViewModel`
+- `liteModeGraph`: rimosso `showNativeAds: Boolean`; `mainViewModel` gia presente
+- `sharedChatDetailRoutes`: sostituito `showNativeAds: Boolean = false` con `mainViewModel: MainViewModel`
+
+Ogni composable dentro questi graph (Dashboard, ChatList, ChatDetail, MediaStats, WordSearch, CallsStats) raccoglie `areAdsEnabled` dalla prima riga della lambda. Questo garantisce reattivita immediata a qualsiasi cambio di `adsUiState`, incluso l'easter egg Pro.
 
 - gestire consenso UMP
 - sapere se si possono richiedere ads
@@ -502,6 +538,62 @@ Non mostrare ads:
 - dentro video/audio viewer
 - dentro gallery fullscreen
 
+### 13.8 Banner in SetupScreen
+
+**[IMPLEMENTATO]**
+
+File:
+
+`app/src/main/java/com/whatstat/ui/screen/setup/SetupScreen.kt`
+
+Formato:
+
+- `BottomBannerAd` fissato in basso tramite outer `Box` con `Alignment.BottomCenter`
+
+Regole:
+
+- mostrato solo se `adsUiState.areAdsEnabled`
+- passato da `setupGraph` in `AppNavigation.kt` tramite param `showBannerAd`
+- non interferisce con i tab Lite/Root della schermata
+
+### 13.9 Banner fisso nelle BottomSheet di MediaStats
+
+**[IMPLEMENTATO]**
+
+File:
+
+`app/src/main/java/com/whatstat/ui/screen/media/MediaStatsScreen.kt`
+
+Placement:
+
+- **Domain Analysis sheet**: `Column(fillMaxHeight(0.80f))` con `Box(weight(1f))` per il contenuto + `BottomBannerAd()` fisso in fondo
+- **Media Gallery sheet**: stesso pattern con `fillMaxHeight(0.85f)`
+
+Regole:
+
+- banner non scrollabile, fissato sotto il contenuto della sheet
+- visibile solo se `showNativeAds == true`
+- `ModalBottomSheet` gestisce l'inset della navigation bar
+
+### 13.10 Banner in ZoomableImageGallery
+
+**[IMPLEMENTATO]**
+
+File:
+
+`app/src/main/java/com/whatstat/ui/component/ZoomableImageViewer.kt`
+
+Formato:
+
+- `Box(fillMaxSize, Alignment.BottomCenter)` con `BottomBannerAd()` + `navigationBarsPadding()`
+- overlay sul viewer fullscreen, non interferisce con pager o gesture zoom
+
+Regole:
+
+- aggiunto param `showNativeAds: Boolean = false` a `ZoomableImageGallery`
+- passato da `MediaGallerySheet` che lo riceve da `MediaStatsScreen`
+- visibile solo se `showNativeAds == true`
+
 ### 13.6 Native ad in Radar Parole
 
 File:
@@ -698,7 +790,7 @@ Nuovi file probabili:
 
 ## 19. Piano implementazione
 
-### Fase 1: Pro e Billing
+### Fase 1: Pro e Billing — [COMPLETATA]
 
 Implementare prima lo stato Pro, anche senza ads visibili.
 
@@ -720,17 +812,17 @@ Output:
 - app riconosce Pro
 - nessuna pubblicita ancora implementata
 
-### Fase 2: UMP e AdMob base
+### Fase 2: UMP e AdMob base — [COMPLETATA]
 
 Passi:
 
 1. Aggiungere dipendenze Ads e UMP.
 2. Aggiornare manifest.
 3. Aggiornare network security config.
-4. Creare `AdsConsentManager`.
-5. Chiamare UMP a ogni avvio (anche per Pro, perche UMP potrebbe servire per analytics futuri, ma se `isPro == true` saltare `MobileAds.initialize()` e il caricamento ads).
+4. Creare `AdsRepository` (consolida logica UMP + init + state).
+5. UMP chiamato a ogni avvio; bypass `canRequestAds` per test ID.
 6. Aggiungere privacy options in `AppDrawer`.
-7. Inizializzare Mobile Ads solo dopo consenso.
+7. Inizializzare Mobile Ads solo dopo consenso (o immediatamente se `isTestBuild`).
 8. Non inizializzare ads se utente Pro.
 
 Output:
@@ -739,7 +831,7 @@ Output:
 - app non carica ads senza consenso valido
 - Pro bypassa ads
 
-### Fase 3: Banner sopra bottom bar
+### Fase 3: Banner sopra bottom bar — [COMPLETATA]
 
 Passi:
 
@@ -755,16 +847,17 @@ Output:
 - banner stabile sopra bottom bar
 - zero spazio banner su Pro
 
-### Fase 4: Native ads
+### Fase 4: Native ads — [COMPLETATA]
 
 Passi:
 
-1. Creare `NativeAdCard`.
-2. Creare `NativeAdCache`.
-3. Inserire native ad in Dashboard.
-4. Inserire native ad in ChatList.
-5. Inserire native ad in ChatDetail.
-6. Inserire native ad in Media, Radar e Calls se si vuole estendere MVP.
+1. Creare `NativeAdCard` con placeholder 120dp mentre l'ad carica.
+2. Inserire native ad in Dashboard.
+3. Inserire native ad in ChatList.
+4. Inserire native ad in ChatDetail.
+5. Inserire native ad in Media (LinkStatCard).
+6. Inserire native ad in Radar Parole.
+7. Inserire native ad in Chiamate.
 
 Output:
 
@@ -772,12 +865,12 @@ Output:
 - niente overlay
 - niente spazio su Pro
 
-### Fase 5: Interstitial
+### Fase 5: Interstitial — [COMPLETATA]
 
 Passi:
 
-1. Creare `InterstitialGate`.
-2. Implementare cooldown 10-15 minuti.
+1. Logica interstitial dentro `AdsRepository`.
+2. Cooldown 12 minuti (fisso).
 3. Precaricare interstitial.
 4. Trigger dopo import Lite completato.
 5. Trigger dopo analisi Root completata.
@@ -789,7 +882,14 @@ Output:
 - mai durante DB/progress
 - mai su navigazione frequente
 
-### Fase 6: Documentazione e release
+### Placement extra — [COMPLETATI]
+
+- **SetupScreen banner**: `BottomBannerAd` fissato in basso, visibile solo se `areAdsEnabled`.
+- **MediaStats BottomSheet Domain + Gallery**: banner fisso in fondo alle sheet tramite `Column` + `weight(1f)` + `BottomBannerAd()`.
+- **ZoomableImageGallery**: `BottomBannerAd` sovrapposto in basso al viewer fullscreen con `navigationBarsPadding()`.
+- **AppNavigation state propagation fix**: tutti i graph function aggiornati; `areAdsEnabled` raccolto con `collectAsState()` dentro ogni composable lambda (easter egg → ads spariscono immediatamente su tutte le schermate attive).
+
+### Fase 6: Documentazione e release — [IN CORSO]
 
 Passi:
 
@@ -913,7 +1013,26 @@ Mitigazione:
 - acknowledge solo acquisti `PURCHASED`
 - messaggi chiari per pending e restore
 
-## 22. Raccomandazione finale
+## 22. Easter Egg Pro
+
+Implementato in `SetupScreen`. Non documentato nel piano originale.
+
+Meccanismo:
+
+- 10 tap rapidi (< 500ms tra un tap e il successivo) sull'icona circolare in cima a `SetupScreen`
+- chiama `viewModel.unlockProEasterEgg()` → `billingRepository.unlockProForSession()`
+- `unlockProForSession()` aggiorna solo `_uiState.isPro = true` in memory, **senza scrivere su DataStore**
+- al riavvio dell'app, `BillingRepository.init` rilancia `entitlementStore.isPro` (ancora `false`) e il flag scade automaticamente
+- toast localizzato con stringa `easter_egg_pro_unlocked` in tutte le lingue supportate
+
+Effetto:
+
+- Pro attiva solo per la sessione corrente
+- ads disabilitati per tutta la sessione — le schermate gia visibili reagiscono immediatamente grazie al pattern `collectAsState()` in ogni composable lambda (nessun riavvio necessario)
+- nessun acquisto Play Store coinvolto
+- al riavvio, stato torna Free
+
+## 23. Raccomandazione finale
 
 Procedere con una sola app.
 

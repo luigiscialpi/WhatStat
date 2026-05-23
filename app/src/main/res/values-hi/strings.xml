@@ -355,4 +355,7 @@
     <string name="new_db_available_title">नया बैकअप उपलब्ध</string>
     <string name="new_db_available_desc">एक नया व्हाट्सएप बैकअप उपलब्ध है। क्या आप WhatStat डेटा अपडेट करना चाहेंगे?</string>
     <string name="new_db_update_button">अभी अपडेट करें</string>
+
+    <!-- Easter Egg -->
+    <string name="easter_egg_pro_unlocked">Pro version unlocked! Courtesy of Luigi Scialpi</string>
 </resources>

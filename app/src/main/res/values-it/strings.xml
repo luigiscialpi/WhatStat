@@ -355,4 +355,7 @@
     <string name="new_db_available_title">Nuovo backup rilevato</string>
     <string name="new_db_available_desc">È disponibile un nuovo backup di WhatsApp. Vuoi aggiornare i dati di WhatStat?</string>
     <string name="new_db_update_button">Aggiorna adesso</string>
+
+    <!-- Easter Egg -->
+    <string name="easter_egg_pro_unlocked">Versione Pro sbloccata! Su gentile concessione di Luigi Scialpi</string>
 </resources>

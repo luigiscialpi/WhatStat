@@ -44,6 +44,7 @@ class BillingRepository
         private val _uiState = MutableStateFlow(ProBillingUiState())
         val uiState: StateFlow<ProBillingUiState> = _uiState.asStateFlow()
 
+        private var sessionProUnlocked = false
         private val purchaseListener =
             PurchasesUpdatedListener { billingResult, purchases ->
                 when (billingResult.responseCode) {
@@ -69,8 +70,10 @@ class BillingRepository
         init {
             scope.launch {
                 entitlementStore.isPro.collect { cachedIsPro ->
-                    _uiState.update { current ->
-                        current.copy(isPro = cachedIsPro)
+                    if (!sessionProUnlocked) {
+                        _uiState.update { current ->
+                            current.copy(isPro = cachedIsPro)
+                        }
                     }
                 }
             }
@@ -274,6 +277,11 @@ class BillingRepository
                     )
                 }
             }
+        }
+
+        fun unlockProForSession() {
+            sessionProUnlocked = true
+            _uiState.update { it.copy(isPro = true) }
         }
 
         private fun updateMessage(message: String) {

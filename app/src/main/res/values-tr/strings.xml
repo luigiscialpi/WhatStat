@@ -355,4 +355,7 @@
     <string name="new_db_available_title">Yeni yedekleme mevcut</string>
     <string name="new_db_available_desc">Yeni bir WhatsApp yedeği mevcut. WhatStat verilerini güncellemek ister misiniz?</string>
     <string name="new_db_update_button">Şimdi güncelle</string>
+
+    <!-- Easter Egg -->
+    <string name="easter_egg_pro_unlocked">Pro sürümü açıldı! Luigi Scialpi\'nin izniyle</string>
 </resources>

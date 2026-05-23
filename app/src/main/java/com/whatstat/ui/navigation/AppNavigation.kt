@@ -155,13 +155,12 @@ fun appNavigation(
             rootModeGraph(
                 navController = navController,
                 repository = repository,
-                showNativeAds = adsUiState.areAdsEnabled,
+                mainViewModel = mainViewModel,
             )
             liteModeGraph(
                 navController = navController,
                 mainViewModel = mainViewModel,
                 onResetLite = { mainViewModel.resetLiteMode() },
-                showNativeAds = adsUiState.areAdsEnabled,
             )
         }
     }
@@ -189,10 +188,12 @@ private fun NavGraphBuilder.setupGraph(
             val autoNavigate = backStackEntry.arguments?.getBoolean("autoNavigate", true) ?: true
             val incomingZipUri by mainViewModel.incomingZipUri.collectAsState()
             val context = LocalContext.current
+            val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
             setupScreen(
                 autoNavigate = autoNavigate,
                 incomingZipUri = incomingZipUri,
                 onUriConsumed = { mainViewModel.setIncomingZipUri(null) },
+                showBannerAd = areAdsEnabled,
                 onSetupComplete = {
                     val target = resolveTargetGraph()
                     if (target == NavGraphRoute.ROOT) {
@@ -225,7 +226,7 @@ private fun NavGraphBuilder.setupGraph(
 private fun NavGraphBuilder.rootModeGraph(
     navController: NavHostController,
     repository: WhatsAppRepository,
-    showNativeAds: Boolean,
+    mainViewModel: MainViewModel,
 ) {
     navigation(
         startDestination = NavGraphRoute.OVERVIEW,
@@ -237,8 +238,9 @@ private fun NavGraphBuilder.rootModeGraph(
         ) {
             composable(Screen.Dashboard.route) {
                 val scope = androidx.compose.runtime.rememberCoroutineScope()
+                val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 DashboardScreen(
-                    showNativeAds = showNativeAds,
+                    showNativeAds = areAdsEnabled,
                     onNavigateBack = {
                         scope.launch {
                             repository.resetState()
@@ -258,6 +260,7 @@ private fun NavGraphBuilder.rootModeGraph(
         ) {
             composable(Screen.ChatList.route) {
                 DoubleBackToExitHandler()
+                val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 ChatListScreen(
                     onChatSelected = { chatId ->
                         navController.navigate(Screen.ChatDetail.createRoute(chatId))
@@ -266,11 +269,11 @@ private fun NavGraphBuilder.rootModeGraph(
                     // non disponibile in Root mode
                     onImportChat = {},
                     onAllChatsDeleted = {},
-                    showNativeAds = showNativeAds,
+                    showNativeAds = areAdsEnabled,
                 )
             }
 
-            sharedChatDetailRoutes(navController, showNativeAds)
+            sharedChatDetailRoutes(navController, mainViewModel)
         }
 
         navigation(
@@ -279,7 +282,8 @@ private fun NavGraphBuilder.rootModeGraph(
         ) {
             composable(Screen.MediaStats.route) {
                 DoubleBackToExitHandler()
-                mediaStatsScreen(chatId = null, onNavigateBack = {}, showNativeAds = showNativeAds)
+                val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+                mediaStatsScreen(chatId = null, onNavigateBack = {}, showNativeAds = areAdsEnabled)
             }
         }
 
@@ -289,7 +293,8 @@ private fun NavGraphBuilder.rootModeGraph(
         ) {
             composable(Screen.WordSearch.route) {
                 DoubleBackToExitHandler()
-                WordSearchScreen(chatId = null, onNavigateBack = {}, showNativeAds = showNativeAds)
+                val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+                WordSearchScreen(chatId = null, onNavigateBack = {}, showNativeAds = areAdsEnabled)
             }
         }
 
@@ -299,7 +304,8 @@ private fun NavGraphBuilder.rootModeGraph(
         ) {
             composable(Screen.CallsStats.route) {
                 DoubleBackToExitHandler()
-                CallsStatsScreen(chatId = null, onNavigateBack = {}, showNativeAds = showNativeAds)
+                val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+                CallsStatsScreen(chatId = null, onNavigateBack = {}, showNativeAds = areAdsEnabled)
             }
         }
     }
@@ -311,7 +317,6 @@ private fun NavGraphBuilder.liteModeGraph(
     navController: NavHostController,
     mainViewModel: MainViewModel,
     onResetLite: () -> Unit,
-    showNativeAds: Boolean,
 ) {
     navigation(
         startDestination = NavGraphRoute.OVERVIEW,
@@ -322,8 +327,9 @@ private fun NavGraphBuilder.liteModeGraph(
             route = NavGraphRoute.OVERVIEW,
         ) {
             composable(Screen.Dashboard.route) {
+                val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 DashboardScreen(
-                    showNativeAds = showNativeAds,
+                    showNativeAds = areAdsEnabled,
                     onNavigateBack = {
                         mainViewModel.setIncomingZipUri(null)
                         navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
@@ -341,6 +347,7 @@ private fun NavGraphBuilder.liteModeGraph(
         ) {
             composable(Screen.ChatList.route) {
                 DoubleBackToExitHandler()
+                val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 ChatListScreen(
                     onChatSelected = { chatId ->
                         navController.navigate(Screen.ChatDetail.createRoute(chatId))
@@ -354,7 +361,7 @@ private fun NavGraphBuilder.liteModeGraph(
                             popUpTo("app_graph") { inclusive = false }
                         }
                     },
-                    showNativeAds = showNativeAds,
+                    showNativeAds = areAdsEnabled,
                 )
             }
 
@@ -379,7 +386,7 @@ private fun NavGraphBuilder.liteModeGraph(
                 )
             }
 
-            sharedChatDetailRoutes(navController, showNativeAds)
+            sharedChatDetailRoutes(navController, mainViewModel)
         }
 
         navigation(
@@ -388,7 +395,8 @@ private fun NavGraphBuilder.liteModeGraph(
         ) {
             composable(Screen.MediaStats.route) {
                 DoubleBackToExitHandler()
-                mediaStatsScreen(chatId = null, onNavigateBack = {}, showNativeAds = showNativeAds)
+                val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+                mediaStatsScreen(chatId = null, onNavigateBack = {}, showNativeAds = areAdsEnabled)
             }
         }
 
@@ -398,7 +406,8 @@ private fun NavGraphBuilder.liteModeGraph(
         ) {
             composable(Screen.WordSearch.route) {
                 DoubleBackToExitHandler()
-                WordSearchScreen(chatId = null, onNavigateBack = {}, showNativeAds = showNativeAds)
+                val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+                WordSearchScreen(chatId = null, onNavigateBack = {}, showNativeAds = areAdsEnabled)
             }
         }
     }
@@ -408,13 +417,14 @@ private fun NavGraphBuilder.liteModeGraph(
 
 private fun NavGraphBuilder.sharedChatDetailRoutes(
     navController: NavHostController,
-    showNativeAds: Boolean = false,
+    mainViewModel: MainViewModel,
 ) {
     composable(
         route = Screen.ChatDetail.route,
         arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId") ?: return@composable
+        val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
         ChatDetailScreen(
             chatId = chatId,
             onNavigateBack = { navController.popBackStack() },
@@ -430,7 +440,7 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(
             onNavigateToHistory = { targetChatId ->
                 navController.navigate(Screen.GroupHistory.createRoute(targetChatId))
             },
-            showNativeAds = showNativeAds,
+            showNativeAds = areAdsEnabled,
         )
     }
 
@@ -439,7 +449,8 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(
         arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId")
-        WordSearchScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() }, showNativeAds = showNativeAds)
+        val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+        WordSearchScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() }, showNativeAds = areAdsEnabled)
     }
 
     composable(
@@ -447,7 +458,8 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(
         arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId")
-        CallsStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() }, showNativeAds = showNativeAds)
+        val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+        CallsStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() }, showNativeAds = areAdsEnabled)
     }
 
     composable(
@@ -455,7 +467,8 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(
         arguments = listOf(navArgument("chatId") { type = NavType.LongType }),
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId")
-        mediaStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() }, showNativeAds = showNativeAds)
+        val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+        mediaStatsScreen(chatId = chatId, onNavigateBack = { navController.popBackStack() }, showNativeAds = areAdsEnabled)
     }
 
     composable(

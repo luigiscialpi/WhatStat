@@ -351,7 +351,10 @@
     <string name="years_remaining_format">%d ans</string>
 
     <!-- New DB Update -->
-    <string name="new_db_available_title">Nouveau backup disponible</string>
-    <string name="new_db_available_desc">Un nouveau backup WhatsApp est disponible. Voulez-vous mettre à jour les données de WhatStat?</string>
+    <string name="new_db_available_title">Nouvelle sauvegarde détectée</string>
+    <string name="new_db_available_desc">Une nouvelle base de données WhatsApp est disponible. Voulez-vous mettre à jour les données de WhatStat&#8239;?</string>
     <string name="new_db_update_button">Mettre à jour maintenant</string>
+
+    <!-- Easter Egg -->
+    <string name="easter_egg_pro_unlocked">Version Pro débloquée&#8239;! Courtoisie de Luigi Scialpi</string>
 </resources>

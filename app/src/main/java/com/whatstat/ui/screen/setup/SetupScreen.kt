@@ -19,6 +19,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -105,6 +107,7 @@ import com.whatstat.R
 import com.whatstat.data.root.FileExtractor
 import com.whatstat.ui.component.AnimatedInfoButton
 import com.whatstat.ui.component.LocalDrawerState
+import com.whatstat.ui.component.ads.BottomBannerAd
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,6 +120,7 @@ fun setupScreen(
     onUriConsumed: () -> Unit = {},
     onSetupComplete: () -> Unit,
     onNavigateToDashboard: () -> Unit,
+    showBannerAd: Boolean = false,
 ) {
     val state by viewModel.state.collectAsState()
     val liteState by liteViewModel.state.collectAsState()
@@ -278,6 +282,8 @@ fun setupScreen(
                 label = "pulseAlpha",
             )
 
+            var easterEggTaps by remember { mutableIntStateOf(0) }
+            var easterEggLastTapMs by remember { mutableStateOf(0L) }
             Box(
                 modifier =
                     Modifier
@@ -285,7 +291,24 @@ fun setupScreen(
                         .clip(CircleShape)
                         .background(
                             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                        ),
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) {
+                            val now = System.currentTimeMillis()
+                            easterEggTaps = if (now - easterEggLastTapMs < 500L) easterEggTaps + 1 else 1
+                            easterEggLastTapMs = now
+                            if (easterEggTaps >= 10) {
+                                easterEggTaps = 0
+                                viewModel.unlockProEasterEgg()
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.easter_egg_pro_unlocked),
+                                    Toast.LENGTH_LONG,
+                                ).show()
+                            }
+                        },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -484,6 +507,9 @@ fun setupScreen(
                     )
                 }
             }
+        }
+        if (showBannerAd) {
+            BottomBannerAd(modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
         }
     }
 

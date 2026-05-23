@@ -115,6 +115,7 @@ import com.whatstat.ui.component.ScrollToEdgeFab
 import com.whatstat.ui.component.SimpleScreenHeader
 import com.whatstat.ui.component.TimeRangeFilterRow
 import com.whatstat.ui.component.ZoomableImageGallery
+import com.whatstat.ui.component.ads.BottomBannerAd
 import com.whatstat.ui.component.ads.NativeAdCard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -434,14 +435,19 @@ fun mediaStatsScreen(
                         )
                     },
                 ) {
-                    Box(modifier = Modifier.fillMaxHeight(0.80f)) {
-                        DomainBreakdownSheet(
-                            contactName = contactDomainStats?.first ?: "",
-                            avatarPath = contactDomainStats?.second,
-                            domains = contactDomainStats?.third ?: emptyList(),
-                            isLoading = isDomainLoading,
-                            progress = progressDomains,
-                        )
+                    Column(modifier = Modifier.fillMaxHeight(0.80f)) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            DomainBreakdownSheet(
+                                contactName = contactDomainStats?.first ?: "",
+                                avatarPath = contactDomainStats?.second,
+                                domains = contactDomainStats?.third ?: emptyList(),
+                                isLoading = isDomainLoading,
+                                progress = progressDomains,
+                            )
+                        }
+                        if (showNativeAds) {
+                            BottomBannerAd()
+                        }
                     }
                 }
             }
@@ -468,15 +474,21 @@ fun mediaStatsScreen(
                         )
                     },
                 ) {
-                    Box(modifier = Modifier.fillMaxHeight(0.85f)) {
-                        MediaGallerySheet(
-                            contactName = mediaGalleryState!!.first,
-                            avatarPath = mediaGalleryState!!.second,
-                            mediaFiles = mediaGalleryState!!.third,
-                            isLoading = isMediaGalleryLoading,
-                            progress = progressMediaGallery,
-                            isLiteMode = viewModel.isLiteMode.collectAsState().value,
-                        )
+                    Column(modifier = Modifier.fillMaxHeight(0.85f)) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            MediaGallerySheet(
+                                contactName = mediaGalleryState!!.first,
+                                avatarPath = mediaGalleryState!!.second,
+                                mediaFiles = mediaGalleryState!!.third,
+                                isLoading = isMediaGalleryLoading,
+                                progress = progressMediaGallery,
+                                isLiteMode = viewModel.isLiteMode.collectAsState().value,
+                                showNativeAds = showNativeAds,
+                            )
+                        }
+                        if (showNativeAds) {
+                            BottomBannerAd()
+                        }
                     }
                 }
             }
@@ -524,6 +536,7 @@ private fun MediaGallerySheet(
     isLoading: Boolean,
     progress: Int?,
     isLiteMode: Boolean = false,
+    showNativeAds: Boolean = false,
 ) {
     val mainVm: MainViewModel = hiltViewModel()
     val appLang by mainVm.appLanguage.collectAsState()
@@ -1047,6 +1060,7 @@ private fun MediaGallerySheet(
                 filePaths = imageList,
                 initialIndex = if (index >= 0) index else 0,
                 onDismiss = { selectedImageForPreview = null },
+                showNativeAds = showNativeAds,
                 onShare = { pathToShare ->
                     val currentTime = System.currentTimeMillis()
                     // Soglia di 1.5 secondi per evitare l'apertura di molteplici dialog di condivisione

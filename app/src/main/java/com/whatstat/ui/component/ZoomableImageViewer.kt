@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -45,6 +46,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.whatstat.ui.component.ads.BottomBannerAd
 import kotlinx.coroutines.delay
 import java.io.File
 
@@ -55,6 +57,7 @@ fun ZoomableImageGallery(
     initialIndex: Int,
     onDismiss: () -> Unit,
     onShare: ((String) -> Unit)? = null,
+    showNativeAds: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -169,6 +172,14 @@ fun ZoomableImageGallery(
                         tint = Color.White,
                     )
                 }
+            }
+        }
+        if (showNativeAds) {
+            Box(
+                modifier = Modifier.fillMaxSize().navigationBarsPadding(),
+                contentAlignment = Alignment.BottomCenter,
+            ) {
+                BottomBannerAd()
             }
         }
     }

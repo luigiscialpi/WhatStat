@@ -364,4 +364,7 @@
     <string name="new_db_available_title">New Backup Detected</string>
     <string name="new_db_available_desc">A new WhatsApp database is available. Would you like to update WhatStat data?</string>
     <string name="new_db_update_button">Update now</string>
+
+    <!-- Easter Egg -->
+    <string name="easter_egg_pro_unlocked">Pro version unlocked! Courtesy of Luigi Scialpi</string>
 </resources>
