@@ -1,6 +1,8 @@
 package com.whatstat.ui.component
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
@@ -33,7 +35,7 @@ fun DoubleBackToExitHandler() {
     BackHandler {
         val now = System.currentTimeMillis()
         if (now - lastBackPressTime < EXIT_CONFIRM_WINDOW_MS) {
-            (context as? Activity)?.finish()
+            context.findActivity()?.finish()
         } else {
             lastBackPressTime = now
             Toast.makeText(context, "Premi di nuovo per uscire", Toast.LENGTH_SHORT).show()
@@ -43,3 +45,10 @@ fun DoubleBackToExitHandler() {
 
 /** Finestra temporale per la conferma di uscita (millisecondi). */
 private const val EXIT_CONFIRM_WINDOW_MS = 2000L
+
+private tailrec fun Context.findActivity(): Activity? =
+    when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
