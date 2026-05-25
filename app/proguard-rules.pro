@@ -21,8 +21,8 @@
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
 
 # ── Data Classes (mantenere per serializzazione) ──────────────────
--keepclassmembers class com.whatstat.domain.model.** { *; }
--keepclassmembers class com.whatstat.data.db.model.** { *; }
+-keepclassmembers class com.whatstats.domain.model.** { *; }
+-keepclassmembers class com.whatstats.data.db.model.** { *; }
 
 # ── Compose ───────────────────────────────────────────────────────
 -dontwarn androidx.compose.**

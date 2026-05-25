@@ -17,11 +17,11 @@ val localProps =
     }
 
 android {
-    namespace = "com.whatstat"
+    namespace = "com.whatstats"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.whatstat"
+        applicationId = "com.whatstats"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
