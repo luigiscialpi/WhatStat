@@ -73,6 +73,9 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -245,6 +248,7 @@ fun setupScreen(
     ) {
         val drawerState = LocalDrawerState.current
         val scope = rememberCoroutineScope()
+        val snackbarHostState = remember { SnackbarHostState() }
 
         IconButton(
             onClick = { scope.launch { drawerState.open() } },
@@ -286,6 +290,7 @@ fun setupScreen(
 
             var easterEggTaps by remember { mutableIntStateOf(0) }
             var easterEggLastTapMs by remember { mutableStateOf(0L) }
+            var easterEggLastWasIcon by remember { mutableStateOf<Boolean?>(null) }
             Box(
                 modifier =
                     Modifier
@@ -299,16 +304,18 @@ fun setupScreen(
                             indication = null,
                         ) {
                             val now = System.currentTimeMillis()
-                            easterEggTaps = if (now - easterEggLastTapMs < 500L) easterEggTaps + 1 else 1
+                            val continues =
+                                easterEggLastWasIcon != true &&
+                                    (easterEggLastWasIcon == null || now - easterEggLastTapMs < 500L)
+                            easterEggTaps = if (continues) easterEggTaps + 1 else 1
+                            easterEggLastWasIcon = true
                             easterEggLastTapMs = now
                             if (easterEggTaps >= 10) {
                                 easterEggTaps = 0
+                                easterEggLastWasIcon = null
                                 viewModel.unlockProEasterEgg()
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.easter_egg_pro_unlocked),
-                                    Toast.LENGTH_LONG,
-                                ).show()
+                                val msg = context.getString(R.string.easter_egg_pro_unlocked)
+                                scope.launch { snackbarHostState.showSnackbar(msg) }
                             }
                         },
                 contentAlignment = Alignment.Center,
@@ -330,6 +337,26 @@ fun setupScreen(
                 stringResource(R.string.setup_title),
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground,
+                modifier =
+                    Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) {
+                        val now = System.currentTimeMillis()
+                        val continues =
+                            easterEggLastWasIcon != false &&
+                                (easterEggLastWasIcon == null || now - easterEggLastTapMs < 500L)
+                        easterEggTaps = if (continues) easterEggTaps + 1 else 1
+                        easterEggLastWasIcon = false
+                        easterEggLastTapMs = now
+                        if (easterEggTaps >= 10) {
+                            easterEggTaps = 0
+                            easterEggLastWasIcon = null
+                            viewModel.unlockProEasterEgg()
+                            val msg = context.getString(R.string.easter_egg_pro_unlocked)
+                            scope.launch { snackbarHostState.showSnackbar(msg) }
+                        }
+                    },
             )
 
             Spacer(Modifier.height(8.dp))
@@ -510,6 +537,21 @@ fun setupScreen(
                 }
             }
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = if (showBannerAd) 56.dp else 0.dp),
+            snackbar = { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = MaterialTheme.colorScheme.inverseSurface,
+                    contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                )
+            },
+        )
         if (showBannerAd) {
             BottomBannerAd(modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
         }

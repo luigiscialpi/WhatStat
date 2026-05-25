@@ -1,6 +1,6 @@
 # WhatStat — Documentazione funzionale
 
-> App Android nativa che legge, decifra e analizza il database di WhatsApp direttamente sul dispositivo, senza mai inviare dati a server esterni. Tutto avviene in locale.
+> App Android nativa che legge, decifra e analizza il database di WhatsApp direttamente sul dispositivo. I contenuti delle chat non vengono mai inviati a server esterni. La versione Free utilizza Google AdMob per gli annunci; la versione Pro rimuove completamente la pubblicità.
 
 ---
 
@@ -24,6 +24,7 @@
 16. [Internazionalizzazione (i18n)](#16-internazionalizzazione-i18n)
 17. [Modalità Lite (non-root)](#17-modalità-lite-non-root)
 18. [Linee Guida per Assistenti AI](#18-linee-guida-per-assistenti-ai)
+19. [Monetizzazione: Ads e Pro](#19-monetizzazione-ads-e-pro)
 
 ---
 
@@ -517,7 +518,7 @@ Funzione di ricerca che conta le occorrenze di una parola o frase in una chat sp
 
 ## 10. Privacy, Sicurezza e Build Automation
 
-- Nessuna connessione di rete. Il traffico è bloccato a livello di configurazione Android (`network_security_config.xml` con `cleartextTrafficPermitted="false"` e nessuna trust anchor).
+- **Dati WhatsApp locali**: i contenuti delle chat (messaggi, nomi, numeri di telefono, media) non lasciano mai il dispositivo. Il traffico cleartext è bloccato (`network_security_config.xml`, `cleartextTrafficPermitted="false"`). La connessione HTTPS è consentita esclusivamente per Google AdMob (annunci versione Free), Google UMP (consenso privacy) e Google Play Billing (acquisto Pro).
 - Tutti i file estratti (chiave, database cifrato, database decifrato, avatar) sono salvati in `context.filesDir`, la directory privata dell'app non accessibile ad altre app senza root.
 - La chiave di cifratura AES-256 non viene mai inclusa nei log di sistema e viene sottoposta a "wiping" (azzeramento in memoria) post-utilizzo.
 - I contenuti dei messaggi, i nomi e i numeri di telefono non vengono loggati in produzione. Tutti i log standard (`Log.d`) vengono estirpati dal bytecode in fase di release tramite ProGuard/R8.
@@ -1201,3 +1202,172 @@ La Lite Mode ha un proprio grafo di navigazione `NavGraphRoute.Lite`, con la ste
 
 Le regole operative per gli assistenti AI sono definite in `AGENTS.md` nella root del progetto.
 Quel file è la fonte di verità — questa sezione è deprecata.
+
+---
+
+## 19. Monetizzazione: Ads e Pro
+
+WhatStat usa un modello **Free con pubblicità / Pro senza pubblicità** all'interno di un'unica app su Google Play. Non esistono flavor separati: la differenza tra le due versioni è determinata esclusivamente dallo stato di acquisto rilevato a runtime da Google Play Billing.
+
+### Modello di monetizzazione
+
+| Versione | Accesso | Pubblicità | Layout |
+|----------|---------|-----------|--------|
+| Free | Tutte le funzionalità | Banner, native ads, interstitial occasionali | Come oggi, con spazi pub |
+| Pro | Tutte le funzionalità | Nessuna | Identico al layout attuale senza ads |
+
+L'acquisto Pro è un **prodotto gestito non consumabile** (`whatstat_pro`) tramite Google Play Billing. Non è possibile acquistarlo più volte; è persistente e ripristinabile su tutti i dispositivi associati all'account Google.
+
+### Architettura: package `ads` e `billing`
+
+**`ads/AdsRepository`** — singleton `@Inject` che centralizza:
+- gestione consenso UMP (`UserMessagingPlatform`)
+- inizializzazione `MobileAds`
+- precaricamento e mostraggio interstitial
+- pubblicazione di `AdsUiState` come `StateFlow`
+- cooldown interstitial (fisso: 12 minuti)
+- flag `isTestBuild` (confronta `BuildConfig.ADMOB_APP_ID` con il demo ID Google)
+
+```kotlin
+// areAdsEnabled = true solo se tutte e tre le condizioni sono vere
+val areAdsEnabled = canRequestAds && isMobileAdsInitialized && !isPro
+```
+
+`AdsRepository` osserva `BillingRepository.uiState` nel proprio `init`: quando `isPro` diventa `true`, scarta l'interstitial in cache e smette di precaricare. Quando `isPro` torna `false`, riprende il precaricamento.
+
+**`ads/AdsUiState`** — data class esposta come `StateFlow` da `MainViewModel.adsUiState`:
+
+| Campo | Tipo | Significato |
+|-------|------|-------------|
+| `areAdsEnabled` | `Boolean` | Condizione master: `canRequestAds && isMobileAdsInitialized && !isPro` |
+| `canRequestAds` | `Boolean` | Consenso UMP valido (bypass automatico in test build) |
+| `isPrivacyOptionsRequired` | `Boolean` | UMP richiede il pulsante "Opzioni privacy" nell'AppDrawer |
+| `isMobileAdsInitialized` | `Boolean` | `MobileAds.initialize()` completato |
+| `shouldShowBanner` | `Boolean` | Alias di `areAdsEnabled` (usato da `AppScaffold`) |
+
+**`billing/BillingRepository`** — singleton `@Inject` che gestisce il ciclo di vita di `BillingClient`:
+- connessione a Google Play Billing con retry automatico
+- query prodotto `whatsat_pro` per leggere il prezzo live
+- acquisto e acknowledge
+- restore (`restorePurchases()`)
+- Easter egg session unlock (`unlockProForSession()`)
+
+**`billing/ProEntitlementStore`** — DataStore Preferences (`pro_entitlement`):
+
+| Chiave | Tipo | Significato |
+|--------|------|-------------|
+| `is_pro_cached` | `Boolean` | Cache locale dello stato Pro (sorgente autoritativa: Play Billing) |
+| `last_purchase_check_ms` | `Long` | Timestamp dell'ultimo sync con Play |
+
+`BillingRepository` osserva `ProEntitlementStore.isPro` nel proprio `init` per ripristinare lo stato Pro alla riapertura dell'app, prima ancora che `BillingClient` si connetta (avvio istantaneo senza flash di stato Free).
+
+**`billing/ProBillingUiState`** — data class esposta come `StateFlow` da `MainViewModel.proBillingUiState`:
+
+| Campo | Tipo | Significato |
+|-------|------|-------------|
+| `isPro` | `Boolean` | Stato Pro corrente (comprende session unlock) |
+| `isProcessing` | `Boolean` | Acquisto/restore in corso |
+| `isBillingReady` | `Boolean` | `BillingClient` connesso e prodotto caricato |
+| `productPrice` | `String?` | Prezzo letto da Play (es. `"€2,99"`) |
+| `message` | `String?` | Messaggio di stato/errore per la UI |
+
+### Flusso consenso UMP
+
+All'avvio (`MainActivity.requestAdsConsent()`), `AdsRepository.requestConsent()` chiama:
+1. `consentInformation.requestConsentInfoUpdate()` — verifica se il consenso è necessario
+2. `UserMessagingPlatform.loadAndShowConsentFormIfRequired()` — mostra il form UMP se richiesto dalla zona geografica (EEA)
+3. Se `canRequestAds()` è `true` dopo il form → `initializeMobileAdsIfPossible()`
+
+In test build (`isTestBuild = true`), il consenso UMP è bypassato (`DEBUG_GEOGRAPHY_DISABLED`) e `MobileAds` viene inizializzato immediatamente, senza attendere callbacks.
+
+### Flag `isTestBuild` e configurazione ID
+
+Gli ID AdMob sono configurati in `local.properties` (non committato) e iniettati in `BuildConfig` via Gradle. Il repo contiene i **demo ID Google** come default:
+
+```
+# local.properties (non committare mai)
+ADMOB_APP_ID=ca-app-pub-7687170186470171~9029274402
+ADMOB_BANNER_UNIT_ID=ca-app-pub-7687170186470171/1717383292
+ADMOB_NATIVE_UNIT_ID=ca-app-pub-7687170186470171/5465056611
+ADMOB_INTERSTITIAL_UNIT_ID=ca-app-pub-7687170186470171/9510140610
+```
+
+`isTestBuild` è calcolato automaticamente: `BuildConfig.ADMOB_APP_ID == "ca-app-pub-3940256099942544~3347511713"`. Nessun toggle manuale — basta inserire gli ID reali in `local.properties` per disabilitare il bypass test.
+
+### Placement pubblicitari
+
+**Banner adattivo sopra la bottom navigation** — `ui/component/ads/BottomBannerAd.kt`, inserito in `AppScaffold.bottomBar` tramite una `Column` con `HorizontalDivider`. Visibile solo quando `adsUiState.shouldShowBanner = true`. Assente in SetupScreen e durante import Lite. Presente anche:
+- `SetupScreen` — fissato in basso tramite outer `Box(Alignment.BottomCenter)`
+- Bottom sheet Domain Analysis e Media Gallery in `MediaStatsScreen` — banner fisso in fondo alla sheet (layout `Column` + `weight(1f)`)
+- `ZoomableImageGallery` — sovrapposto in basso al viewer fullscreen con `navigationBarsPadding()`
+
+**Native ads** — `ui/component/ads/NativeAdCard.kt`, card `AndroidView` che ospita una `NativeAdView`. Visibili quando `areAdsEnabled = true`. Placement:
+
+| Schermata | Posizione |
+|-----------|-----------|
+| `DashboardScreen` | Dopo la grid `StatCard`, prima di `ActivityRecapCard` |
+| `ChatListScreen` | Dopo la 6ª chat, poi ogni 12 chat (solo se ≥ 10 chat; nascosto durante ricerca attiva) |
+| `ChatDetailScreen` | Dopo le prime card statistiche, prima delle sezioni opt-in |
+| `MediaStatsScreen` | Dopo la 3ª `LinkStatCard` (non nella griglia immagini) |
+| `WordSearchScreen` | Dopo i risultati (solo dopo ricerca avvenuta, ≥ 10 risultati) |
+| `CallsStatsScreen` | Dopo il riepilogo alto livello, prima della lista dettagliata |
+
+**Interstitial** — caricati in anticipo da `AdsRepository.preloadInterstitialIfPossible()`, mostrati da `tryShowInterstitialAfterLongOperation()`. Gate: cooldown 12 minuti, `isPro = false`, `canRequestAds = true`. Trigger validi: import Lite completato, analisi Root completata, analisi lessicale lenta completata. Trigger esplicitamente vietati: back, cambio tab, apertura chat/media, progress in corso, errori.
+
+### Propagazione stato ads in AppNavigation
+
+I Boolean `areAdsEnabled` non sono passati come parametri chiusi nelle lambda del nav graph (causerebbero stale capture). Ogni composable legge lo stato direttamente:
+
+```kotlin
+// Dentro ogni lambda composable del nav graph
+val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+```
+
+Questo garantisce reattività immediata a qualsiasi cambio di `adsUiState`, incluso l'easter egg Pro.
+
+### Easter egg Pro
+
+Meccanismo di sblocco temporaneo per test/sviluppo, presente in `SetupScreen`:
+- Chiama `SetupViewModel.unlockProEasterEgg()` → `BillingRepository.unlockProForSession()`
+- Imposta `isPro = true` solo in memoria (`sessionProUnlocked = true`), **senza scrivere su DataStore**
+- Al riavvio dell'app, `BillingRepository.init` legge `ProEntitlementStore.isPro` (ancora `false`) e il flag scade automaticamente
+- Feedback visivo: `Snackbar` Material 3 (stringa localizzata `easter_egg_pro_unlocked`) — usa `inverseSurface`/`inverseOnSurface` del tema, senza limite di righe a differenza del `Toast` nativo
+- Le schermate già visibili reagiscono immediatamente grazie al pattern `collectAsState()` in ogni lambda del nav graph
+
+### AppDrawer — voci Pro e Privacy
+
+`AppDrawerContent` espone:
+
+| Voce | Condizione di visibilità | Comportamento |
+|------|--------------------------|---------------|
+| "Passa a Pro" | `!isPro` | Apre `ProPurchaseDialog` con prezzo live, pulsante acquisto e restore |
+| "Pro attiva" | `isPro` | Apre `ProPurchaseDialog` (solo restore visibile) |
+| "Opzioni privacy" | `adsUiState.isPrivacyOptionsRequired` | Chiama `mainViewModel.showAdsPrivacyOptions(activity)` → UMP form |
+
+### ProGuard
+
+Il file `proguard-rules.pro` include regole esplicite `-keep` per:
+- `com.google.android.gms.ads.**`
+- `com.google.android.gms.internal.ads.**`
+- `com.google.android.ump.**`
+
+Senza queste regole, le classi vengono strippate da `-repackageclasses '' -overloadaggressively` causando crash a runtime in release.
+
+### File coinvolti (riepilogo)
+
+| File | Ruolo |
+|------|-------|
+| `ads/AdsRepository.kt` | Centralizza consenso UMP, init MobileAds, interstitial, state |
+| `ads/AdsUiState.kt` | Data class stato ads |
+| `billing/BillingRepository.kt` | Ciclo vita BillingClient, acquisto, restore, easter egg |
+| `billing/ProEntitlementStore.kt` | DataStore cache stato Pro (`pro_entitlement`) |
+| `billing/ProBillingUiState.kt` | Data class stato billing |
+| `ui/component/ads/BottomBannerAd.kt` | Composable banner adattivo |
+| `ui/component/ads/NativeAdCard.kt` | Composable native ad (`AndroidView` + `NativeAdView`) |
+| `ui/MainViewModel.kt` | Espone `adsUiState` e `proBillingUiState` come `StateFlow` |
+| `ui/screen/home/AppScaffold.kt` | Inserisce `BottomBannerAd` in `bottomBar` |
+| `ui/component/AppDrawer.kt` | Voci Pro e Privacy options nel drawer |
+| `ui/navigation/AppNavigation.kt` | `areAdsEnabled` letto con `collectAsState()` in ogni lambda composable |
+| `app/proguard-rules.pro` | Regole `-keep` per AdMob e UMP |
+| `AndroidManifest.xml` | `meta-data` App ID AdMob, permesso `INTERNET` |
+| `res/xml/network_security_config.xml` | HTTPS consentito, cleartext bloccato |

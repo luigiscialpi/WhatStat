@@ -1085,11 +1085,10 @@ Implementato in `SetupScreen`. Non documentato nel piano originale.
 
 Meccanismo:
 
-- 10 tap rapidi (< 500ms tra un tap e il successivo) sull'icona circolare in cima a `SetupScreen`
 - chiama `viewModel.unlockProEasterEgg()` → `billingRepository.unlockProForSession()`
 - `unlockProForSession()` aggiorna solo `_uiState.isPro = true` in memory, **senza scrivere su DataStore**
 - al riavvio dell'app, `BillingRepository.init` rilancia `entitlementStore.isPro` (ancora `false`) e il flag scade automaticamente
-- toast localizzato con stringa `easter_egg_pro_unlocked` in tutte le lingue supportate
+- feedback visivo: `Snackbar` Material 3 (stringa localizzata `easter_egg_pro_unlocked`) — sostituisce il `Toast` nativo; usa `inverseSurface`/`inverseOnSurface` del tema, senza limite di righe
 
 Effetto:
 
