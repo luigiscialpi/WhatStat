@@ -271,7 +271,14 @@ fun setupScreen(
                 Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(32.dp),
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(
+                        start = 32.dp,
+                        top = 32.dp,
+                        end = 32.dp,
+                        bottom = if (showBannerAd) 96.dp else 32.dp,
+                    ),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

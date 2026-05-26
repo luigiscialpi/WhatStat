@@ -160,10 +160,11 @@ private fun createNativeAdView(context: Context): NativeAdView {
         textSize = 14f
     }
 
+    // altezza fissa: evita crescita infinita da requestLayout() asincrono
     mediaAssetView.layoutParams =
         LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
-            mediaHeightPx, // altezza fissa: evita crescita infinita da requestLayout() asincrono
+            mediaHeightPx,
         )
 
     ctaButton.apply {
