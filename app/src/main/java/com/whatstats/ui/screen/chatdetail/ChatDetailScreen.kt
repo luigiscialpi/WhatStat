@@ -588,6 +588,7 @@ fun ChatDetailScreen(
                                 value = "%,d".format(s.mediaCount),
                                 icon = Icons.Outlined.PhotoLibrary,
                                 isSmallText = true,
+                                onClick = { onNavigateToMedia(chatId) },
                             )
                             StatCard(
                                 modifier = Modifier.weight(1f),

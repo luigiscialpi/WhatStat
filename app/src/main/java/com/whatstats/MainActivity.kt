@@ -57,10 +57,10 @@ class MainActivity : ComponentActivity() {
             when {
                 lang == "system" ->
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        newBase.resources.configuration.locales[0]
+                        android.content.res.Resources.getSystem().configuration.locales[0]
                     } else {
                         @Suppress("DEPRECATION")
-                        newBase.resources.configuration.locale
+                        android.content.res.Resources.getSystem().configuration.locale
                     }
                 lang.contains("_") -> {
                     val parts = lang.split("_")
@@ -68,6 +68,7 @@ class MainActivity : ComponentActivity() {
                 }
                 else -> Locale(lang)
             }
+        Locale.setDefault(locale)
         val config = Configuration(newBase.resources.configuration)
         config.setLocale(locale)
         super.attachBaseContext(newBase.createConfigurationContext(config))
@@ -104,7 +105,12 @@ class MainActivity : ComponentActivity() {
             val context = LocalContext.current
             val currentLocale =
                 if (appLanguage == "system") {
-                    Locale.getDefault()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        android.content.res.Resources.getSystem().configuration.locales[0]
+                    } else {
+                        @Suppress("DEPRECATION")
+                        android.content.res.Resources.getSystem().configuration.locale
+                    }
                 } else {
                     val parts = appLanguage.split("_")
                     if (parts.size == 2) {
@@ -114,6 +120,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+            Locale.setDefault(currentLocale)
             val configuration = Configuration(context.resources.configuration)
             configuration.setLocale(currentLocale)
             val localizedContext = context.createConfigurationContext(configuration)

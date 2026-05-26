@@ -144,12 +144,16 @@ class MediaStatsViewModel
                     analyticsRepository.liteCacheVersion.collect { version ->
                         if (version > 0L && version != lastKnownCacheVersion) {
                             lastKnownCacheVersion = version
-                            initialized = false
-                            // Ricarica immediatamente con il chatId corrente
-                            _linkStats.value = emptyList()
-                            _linkStatsBySender.value = emptyList()
-                            _topDomains.value = emptyList()
-                            initialize(_chatId.value, force = true)
+                            // Solo se già inizializzato: ricarica con il chatId corrente.
+                            // Se non ancora inizializzato, il LaunchedEffect chiamerà
+                            // initialize(chatId) con il valore corretto e troverà dati freschi.
+                            if (initialized) {
+                                initialized = false
+                                _linkStats.value = emptyList()
+                                _linkStatsBySender.value = emptyList()
+                                _topDomains.value = emptyList()
+                                initialize(_chatId.value, force = true)
+                            }
                         }
                     }
                 }

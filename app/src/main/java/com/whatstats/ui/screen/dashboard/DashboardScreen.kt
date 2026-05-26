@@ -306,6 +306,7 @@ fun DashboardScreen(
                                             value = "%,d".format(s.totalMediaFiles),
                                             icon = Icons.Outlined.PhotoLibrary,
                                             isSmallText = true,
+                                            onClick = onNavigateToMedia,
                                         )
                                         StatCard(
                                             modifier = Modifier.weight(1f),

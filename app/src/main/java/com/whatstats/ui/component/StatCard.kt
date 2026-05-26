@@ -9,6 +9,7 @@ import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -41,6 +42,7 @@ fun StatCard(
     subtitle: String? = null,
     icon: ImageVector,
     isSmallText: Boolean = false,
+    onClick: (() -> Unit)? = null,
 ) {
     val motionSpec =
         remember(label, subtitle, isSmallText) {
@@ -95,6 +97,7 @@ fun StatCard(
                     scaleY = cardScale
                 }
                 .clip(RoundedCornerShape(16.dp))
+                .then(onClick?.let { Modifier.clickable(onClick = it) } ?: Modifier)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 .padding(16.dp),
     ) {

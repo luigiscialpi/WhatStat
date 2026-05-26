@@ -241,6 +241,13 @@ private fun NavGraphBuilder.rootModeGraph(
                 val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 DashboardScreen(
                     showNativeAds = areAdsEnabled,
+                    onNavigateToMedia = {
+                        navController.navigate(Screen.MediaStats.route) {
+                            popUpTo(NavGraphRoute.ROOT) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                     onNavigateBack = {
                         scope.launch {
                             repository.resetState()
@@ -354,6 +361,13 @@ private fun NavGraphBuilder.liteModeGraph(
                 val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
                 DashboardScreen(
                     showNativeAds = areAdsEnabled,
+                    onNavigateToMedia = {
+                        navController.navigate(Screen.MediaStats.route) {
+                            popUpTo(NavGraphRoute.LITE) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                     onNavigateBack = {
                         mainViewModel.setIncomingZipUri(null)
                         navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
