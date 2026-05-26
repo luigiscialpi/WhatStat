@@ -347,7 +347,7 @@ class LiteModeManager
             if (!isGroup) {
                 return distinctSenders.firstOrNull { it != ownerName }
                     ?: distinctSenders.firstOrNull()
-                    ?: "Chat importata"
+                    ?: context.getString(R.string.lite_fallback_chat_name)
             }
 
             val previewNames =
@@ -357,7 +357,7 @@ class LiteModeManager
                     .take(3)
             val suffix = (distinctSenders.size - previewNames.size).coerceAtLeast(0)
             return when {
-                previewNames.isEmpty() -> "Gruppo importato"
+                previewNames.isEmpty() -> context.getString(R.string.lite_fallback_group_name)
                 suffix > 0 -> "${previewNames.joinToString(", ")} +$suffix"
                 else -> previewNames.joinToString(", ")
             }

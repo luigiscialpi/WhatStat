@@ -15,12 +15,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.rememberNavController
@@ -69,7 +66,7 @@ class MainActivity : ComponentActivity() {
                 else -> Locale(lang)
             }
         Locale.setDefault(locale)
-        val config = Configuration(newBase.resources.configuration)
+        val config = Configuration()
         config.setLocale(locale)
         super.attachBaseContext(newBase.createConfigurationContext(config))
     }
@@ -101,52 +98,16 @@ class MainActivity : ComponentActivity() {
                     ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 }
 
-            val appLanguage by mainViewModel.appLanguage.collectAsState()
-            val context = LocalContext.current
-            val currentLocale =
-                if (appLanguage == "system") {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        android.content.res.Resources.getSystem().configuration.locales[0]
-                    } else {
-                        @Suppress("DEPRECATION")
-                        android.content.res.Resources.getSystem().configuration.locale
-                    }
-                } else {
-                    val parts = appLanguage.split("_")
-                    if (parts.size == 2) {
-                        Locale(parts[0], parts[1])
-                    } else {
-                        Locale(appLanguage)
-                    }
-                }
-
-            Locale.setDefault(currentLocale)
-            val configuration = Configuration(context.resources.configuration)
-            configuration.setLocale(currentLocale)
-            val localizedContext = context.createConfigurationContext(configuration)
-
-            // Usa un ContextWrapper per mantenere il riferimento all'Activity per Hilt,
-            // altrimenti hiltViewModel() crasha trovando un ContextImpl.
-            val activityContextWrapper =
-                object : android.content.ContextWrapper(context) {
-                    override fun getResources(): android.content.res.Resources {
-                        return localizedContext.resources
-                    }
-                }
-
-            CompositionLocalProvider(
-                LocalContext provides activityContextWrapper,
-                LocalConfiguration provides configuration,
-            ) {
-                WhatStatTheme(darkTheme = darkTheme) {
-                    Surface(modifier = Modifier.fillMaxSize()) {
-                        val navController = rememberNavController()
-                        appNavigation(
-                            navController = navController,
-                            repository = repository,
-                            mainViewModel = mainViewModel,
-                        )
-                    }
+            // Il locale e' gestito esclusivamente da attachBaseContext (SharedPreferences, sincrono).
+            // Nessun override in setContent: evita race condition con DataStore asincrono.
+            WhatStatTheme(darkTheme = darkTheme) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    val navController = rememberNavController()
+                    appNavigation(
+                        navController = navController,
+                        repository = repository,
+                        mainViewModel = mainViewModel,
+                    )
                 }
             }
         }

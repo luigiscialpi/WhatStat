@@ -95,7 +95,7 @@ class LiteDbWriter
                 // Costruisci mappa timestamp→messageId per matching media O(log n)
                 val messageTimestampMap = java.util.TreeMap<Long, Long>() // timestamp → _id
                 db.rawQuery(
-                    "SELECT _id, timestamp FROM message WHERE chat_row_id = ? AND message_type != 0",
+                    "SELECT _id, timestamp FROM message WHERE chat_row_id = ? AND (message_type != 0 OR text_data IS NULL)",
                     arrayOf(chatId.toString()),
                 ).use { cursor ->
                     while (cursor.moveToNext()) {

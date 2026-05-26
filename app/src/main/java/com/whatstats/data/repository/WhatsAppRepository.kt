@@ -124,7 +124,7 @@ class WhatsAppRepository
                                     else ->
                                         throw AppErrorException(
                                             AppError.ExtractionError(
-                                                throwable.message ?: "Errore sconosciuto",
+                                                throwable.message ?: context.getString(R.string.error_unknown_simple),
                                             ),
                                         )
                                 }
@@ -147,7 +147,7 @@ class WhatsAppRepository
                         decryptResult.getOrElse { throwable ->
                             _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
                             throw AppErrorException(
-                                AppError.DecryptionFailed(throwable.message ?: "Errore sconosciuto"),
+                                AppError.DecryptionFailed(throwable.message ?: context.getString(R.string.error_unknown_simple)),
                             )
                         }
                         _setupState.update {
@@ -180,7 +180,7 @@ class WhatsAppRepository
                     } catch (e: Exception) {
                         _setupState.update { it.copy(contactsStatus = GlobalStepStatus.ERROR) }
                         throw AppErrorException(
-                            AppError.DatabaseError(e.message ?: "Impossibile aprire il database"),
+                            AppError.DatabaseError(e.message ?: context.getString(R.string.error_db_unavailable)),
                         )
                     }
                     _setupState.update {
@@ -199,8 +199,8 @@ class WhatsAppRepository
                     }
                     val errorMessage =
                         when (throwable) {
-                            is AppErrorException -> throwable.appError.userMessage
-                            else -> throwable.message ?: "Errore sconosciuto"
+                            is AppErrorException -> throwable.appError.resolveMessage(context)
+                            else -> throwable.message ?: context.getString(R.string.error_unknown_simple)
                         }
                     _setupState.update { it.copy(isLoading = false, error = errorMessage) }
                 }
@@ -258,7 +258,11 @@ class WhatsAppRepository
                         } catch (e: AppErrorException) {
                             throw e
                         } catch (e: Exception) {
-                            throw AppErrorException(AppError.DecryptionError("Errore lettura file: ${e.message}"))
+                            throw AppErrorException(
+                                AppError.DecryptionError(
+                                    context.getString(R.string.error_file_read_detail, e.message ?: ""),
+                                ),
+                            )
                         }
                     } else {
                         // Decifra il file crypt14
@@ -271,7 +275,7 @@ class WhatsAppRepository
                         decryptResult.getOrElse { throwable ->
                             _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
                             throw AppErrorException(
-                                AppError.DecryptionFailed(throwable.message ?: "Errore sconosciuto"),
+                                AppError.DecryptionFailed(throwable.message ?: context.getString(R.string.error_unknown_simple)),
                             )
                         }
                     }
@@ -295,7 +299,7 @@ class WhatsAppRepository
                     } catch (e: Exception) {
                         _setupState.update { it.copy(contactsStatus = GlobalStepStatus.ERROR) }
                         throw AppErrorException(
-                            AppError.DatabaseError(e.message ?: "Impossibile aprire il database"),
+                            AppError.DatabaseError(e.message ?: context.getString(R.string.error_db_unavailable)),
                         )
                     }
                     _setupState.update { it.copy(contactsStatus = GlobalStepStatus.SUCCESS, isLoading = false, isComplete = true) }
@@ -308,8 +312,8 @@ class WhatsAppRepository
                     }
                     val errorMessage =
                         when (throwable) {
-                            is AppErrorException -> throwable.appError.userMessage
-                            else -> throwable.message ?: "Errore sconosciuto"
+                            is AppErrorException -> throwable.appError.resolveMessage(context)
+                            else -> throwable.message ?: context.getString(R.string.error_unknown_simple)
                         }
                     _setupState.update { it.copy(isLoading = false, error = errorMessage) }
                 }
@@ -416,4 +420,4 @@ enum class GlobalStepStatus { IDLE, LOADING, SUCCESS, ERROR }
 /**
  * Wrapper per lanciare AppError come eccezione nel flusso Result.
  */
-class AppErrorException(val appError: AppError) : Exception(appError.userMessage)
+class AppErrorException(val appError: AppError) : Exception(appError.javaClass.simpleName)

@@ -365,6 +365,40 @@
     <string name="new_db_available_desc">Yeni bir WhatsApp yedeği mevcut. WhatStat verilerini güncellemek ister misiniz?</string>
     <string name="new_db_update_button">Şimdi güncelle</string>
 
+    <!-- Lite fallback chat names -->
+    <string name="lite_fallback_chat_name">İçe aktarılan sohbet</string>
+    <string name="lite_fallback_group_name">İçe aktarılan grup</string>
+
+    <!-- Emoji / Sticker preview -->
+    <string name="used_n_times">%1$s kez kullanıldı</string>
+
+    <!-- SetupService notification -->
+    <string name="setup_service_channel_name">WhatStat Kurulumu</string>
+    <string name="setup_service_channel_desc">Veritabanı şifre çözme ilerlemesini gösterir</string>
+    <string name="setup_service_notif_title">Veritabanı Şifre Çözme</string>
+    <string name="setup_service_progress">İlerleme: %d%%</string>
+    <string name="setup_service_starting">Başlatılıyor…</string>
+
+    <!-- Billing -->
+    <string name="billing_purchase_ok_no_product">Satın alma tamamlandı, ancak ürün alınamadı.</string>
+    <string name="billing_purchase_cancelled">Satın alma iptal edildi.</string>
+    <string name="billing_purchase_failed">Satın alma başarısız (%d).</string>
+    <string name="billing_product_unavailable">Pro ürün mevcut değil. Daha sonra tekrar deneyin.</string>
+    <string name="billing_launch_failed">Satın alma başlatılamadı (%d).</string>
+    <string name="billing_unavailable">Ödeme sistemi kullanılamıyor (%d).</string>
+    <string name="billing_price_load_error">Pro fiyatı yüklenirken hata (%d).</string>
+    <string name="billing_restore_error">Satın almalar geri yüklenirken hata (%d).</string>
+    <string name="billing_pro_activated">Pro başarıyla etkinleştirildi.</string>
+    <string name="billing_no_pro_purchase">Aktif Pro satın alımı yok.</string>
+
+    <!-- Errors -->
+    <string name="error_decryption_error">Şifre çözme hatası: %s</string>
+    <string name="error_extraction">Dosya çıkarma hatası: %s</string>
+    <string name="error_unknown_simple">Bilinmeyen hata</string>
+    <string name="error_db_unavailable">Veritabanı kullanılamıyor</string>
+    <string name="error_file_read_detail">Dosya okuma hatası: %s</string>
+    <string name="error_with_detail">Hata: %s</string>
+
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Pro sürümü açıldı! Luigi Scialpi\'nin nazik katkılarıyla 😉</string>
 </resources>

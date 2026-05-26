@@ -365,6 +365,40 @@
     <string name="new_db_available_desc">Ein neues WhatsApp-Datenbank-Backup ist verfügbar. Möchten Sie die WhatStat-Daten aktualisieren?</string>
     <string name="new_db_update_button">Jetzt aktualisieren</string>
 
+    <!-- Lite fallback chat names -->
+    <string name="lite_fallback_chat_name">Importierter Chat</string>
+    <string name="lite_fallback_group_name">Importierte Gruppe</string>
+
+    <!-- Emoji / Sticker preview -->
+    <string name="used_n_times">%1$s Mal verwendet</string>
+
+    <!-- SetupService notification -->
+    <string name="setup_service_channel_name">WhatStat-Setup</string>
+    <string name="setup_service_channel_desc">Zeigt den Entschlüsselungsfortschritt an</string>
+    <string name="setup_service_notif_title">Datenbankentschlüsselung</string>
+    <string name="setup_service_progress">Fortschritt: %d%%</string>
+    <string name="setup_service_starting">Wird gestartet…</string>
+
+    <!-- Billing -->
+    <string name="billing_purchase_ok_no_product">Kauf abgeschlossen, aber kein Produkt erhalten.</string>
+    <string name="billing_purchase_cancelled">Kauf abgebrochen.</string>
+    <string name="billing_purchase_failed">Kauf fehlgeschlagen (%d).</string>
+    <string name="billing_product_unavailable">Pro-Produkt nicht verfügbar. Bitte später versuchen.</string>
+    <string name="billing_launch_failed">Kauf konnte nicht gestartet werden (%d).</string>
+    <string name="billing_unavailable">Billing nicht verfügbar (%d).</string>
+    <string name="billing_price_load_error">Fehler beim Laden des Pro-Preises (%d).</string>
+    <string name="billing_restore_error">Fehler beim Wiederherstellen der Käufe (%d).</string>
+    <string name="billing_pro_activated">Pro erfolgreich aktiviert.</string>
+    <string name="billing_no_pro_purchase">Kein aktiver Pro-Kauf.</string>
+
+    <!-- Errors -->
+    <string name="error_decryption_error">Entschlüsselungsfehler: %s</string>
+    <string name="error_extraction">Dateiextraktionsfehler: %s</string>
+    <string name="error_unknown_simple">Unbekannter Fehler</string>
+    <string name="error_db_unavailable">Datenbank nicht verfügbar</string>
+    <string name="error_file_read_detail">Fehler beim Lesen der Datei: %s</string>
+    <string name="error_with_detail">Fehler: %s</string>
+
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Pro-Version freigeschaltet! Mit freundlicher Genehmigung von Luigi Scialpi 😉</string>
 </resources>

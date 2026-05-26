@@ -365,6 +365,40 @@
     <string name="new_db_available_desc">È disponibile un nuovo backup di WhatsApp. Vuoi aggiornare i dati di WhatStat?</string>
     <string name="new_db_update_button">Aggiorna adesso</string>
 
+    <!-- Lite fallback chat names -->
+    <string name="lite_fallback_chat_name">Chat importata</string>
+    <string name="lite_fallback_group_name">Gruppo importato</string>
+
+    <!-- Emoji / Sticker preview -->
+    <string name="used_n_times">Usato %1$s volte</string>
+
+    <!-- SetupService notification -->
+    <string name="setup_service_channel_name">Setup WhatStat</string>
+    <string name="setup_service_channel_desc">Mostra l\'avanzamento della decifratura</string>
+    <string name="setup_service_notif_title">Decifratura Database</string>
+    <string name="setup_service_progress">Progresso: %d%%</string>
+    <string name="setup_service_starting">Avvio in corso…</string>
+
+    <!-- Billing -->
+    <string name="billing_purchase_ok_no_product">Acquisto completato, ma nessun prodotto ricevuto.</string>
+    <string name="billing_purchase_cancelled">Acquisto annullato.</string>
+    <string name="billing_purchase_failed">Acquisto non riuscito (%d).</string>
+    <string name="billing_product_unavailable">Prodotto Pro non disponibile. Riprova tra poco.</string>
+    <string name="billing_launch_failed">Impossibile avviare l\'acquisto (%d).</string>
+    <string name="billing_unavailable">Billing non disponibile (%d).</string>
+    <string name="billing_price_load_error">Errore caricamento prezzo Pro (%d).</string>
+    <string name="billing_restore_error">Errore ripristino acquisti (%d).</string>
+    <string name="billing_pro_activated">Pro attivata con successo.</string>
+    <string name="billing_no_pro_purchase">Nessun acquisto Pro attivo.</string>
+
+    <!-- Errors -->
+    <string name="error_decryption_error">Errore decifratura: %s</string>
+    <string name="error_extraction">Errore estrazione file: %s</string>
+    <string name="error_unknown_simple">Errore sconosciuto</string>
+    <string name="error_db_unavailable">Database non disponibile</string>
+    <string name="error_file_read_detail">Errore lettura file: %s</string>
+    <string name="error_with_detail">Errore: %s</string>
+
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Versione Pro sbloccata! Su gentile concessione di Luigi Scialpi 😉</string>
 </resources>

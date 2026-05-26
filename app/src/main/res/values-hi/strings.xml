@@ -365,6 +365,40 @@
     <string name="new_db_available_desc">एक नया व्हाट्सएप बैकअप उपलब्ध है। क्या आप WhatStat डेटा अपडेट करना चाहेंगे?</string>
     <string name="new_db_update_button">अभी अपडेट करें</string>
 
+    <!-- Lite fallback chat names -->
+    <string name="lite_fallback_chat_name">आयातित चैट</string>
+    <string name="lite_fallback_group_name">आयातित समूह</string>
+
+    <!-- Emoji / Sticker preview -->
+    <string name="used_n_times">%1$s बार उपयोग किया गया</string>
+
+    <!-- SetupService notification -->
+    <string name="setup_service_channel_name">WhatStat सेटअप</string>
+    <string name="setup_service_channel_desc">डेटाबेस डिक्रिप्शन की प्रगति दिखाता है</string>
+    <string name="setup_service_notif_title">डेटाबेस डिक्रिप्शन</string>
+    <string name="setup_service_progress">प्रगति: %d%%</string>
+    <string name="setup_service_starting">शुरू हो रहा है…</string>
+
+    <!-- Billing -->
+    <string name="billing_purchase_ok_no_product">खरीदारी पूरी हुई, लेकिन कोई उत्पाद नहीं मिला।</string>
+    <string name="billing_purchase_cancelled">खरीदारी रद्द की गई।</string>
+    <string name="billing_purchase_failed">खरीदारी विफल (%d)।</string>
+    <string name="billing_product_unavailable">Pro उत्पाद उपलब्ध नहीं। बाद में पुनः प्रयास करें।</string>
+    <string name="billing_launch_failed">खरीदारी शुरू नहीं हो सकी (%d)।</string>
+    <string name="billing_unavailable">बिलिंग उपलब्ध नहीं (%d)।</string>
+    <string name="billing_price_load_error">Pro की कीमत लोड करने में त्रुटि (%d)।</string>
+    <string name="billing_restore_error">खरीदारी पुनर्स्थापित करने में त्रुटि (%d)।</string>
+    <string name="billing_pro_activated">Pro सफलतापूर्वक सक्रिय।</string>
+    <string name="billing_no_pro_purchase">कोई सक्रिय Pro खरीदारी नहीं।</string>
+
+    <!-- Errors -->
+    <string name="error_decryption_error">डिक्रिप्शन त्रुटि: %s</string>
+    <string name="error_extraction">फ़ाइल निष्कर्षण त्रुटि: %s</string>
+    <string name="error_unknown_simple">अज्ञात त्रुटि</string>
+    <string name="error_db_unavailable">डेटाबेस अनुपलब्ध</string>
+    <string name="error_file_read_detail">फ़ाइल पढ़ने में त्रुटि: %s</string>
+    <string name="error_with_detail">त्रुटि: %s</string>
+
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Pro version unlocked! Courtesy of Luigi Scialpi 😉</string>
 </resources>

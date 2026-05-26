@@ -3,6 +3,7 @@ package com.whatstats.ui.screen.history
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.whatstats.R
 import com.whatstats.data.repository.AnalyticsRepository
 import com.whatstats.data.root.FileExtractor
 import com.whatstats.domain.model.GroupEvent
@@ -168,7 +169,7 @@ class GroupHistoryViewModel
 
                     _uiState.value = HistoryUiState.Success(uiModels)
                 } catch (e: Exception) {
-                    _uiState.value = HistoryUiState.Error(e.message ?: "Errore sconosciuto")
+                    _uiState.value = HistoryUiState.Error(e.message ?: context.getString(R.string.error_unknown_simple))
                 }
             }
         }

@@ -41,19 +41,126 @@ data class ParseResult(
 class TextChatParser
     @Inject
     constructor() {
-        // Regex per l'intestazione standard (Data, Ora - Mittente: Messaggio)
-        // Supporta separatori comuni come / . - e formati 24h
         private val headerRegex = Regex("""^(\d{1,2}[/.,-]\d{1,2}[/.,-]\d{2,4})[,\s]+(\d{1,2}[:.]\d{2})\s+-\s+(.+?):(.*)$""")
 
-        // Regex per eventi di sistema (senza i due punti dopo il mittente/azione)
         private val systemEventRegex = Regex("""^(\d{1,2}[/.,-]\d{1,2}[/.,-]\d{2,4})[,\s]+(\d{1,2}[:.]\d{2})\s+-\s+(.+)$""")
 
-        // Rileva parole chiave negli eventi di gruppo (versione Italiana)
-        private val groupActionRegex =
-            Regex(
-                """(.+)\s(ha aggiunto|ha rimosso|ha creato il gruppo|ha cambiato l'immagine del gruppo|" +
-                    "ha abbandonato il gruppo|ha modificato il nome del gruppo|ha cambiato l'oggetto del gruppo)(.*)""",
-            )
+        // Single source of truth for group-event keywords.
+        // To add a language: append its keywords to the relevant list with a locale comment.
+        private val groupEventKeywords: Map<GroupEventType, List<String>> = mapOf(
+            GroupEventType.PARTICIPANT_JOIN to listOf(
+                "ha aggiunto",              // it
+                "added",                    // en
+                "joined using",             // en
+                "hat hinzugefügt",          // de
+                "añadió",                   // es
+                "a ajouté",                 // fr
+                "adicionou",                // pt
+                "ekledi",                   // tr
+                "को जोड़ा",                   // hi
+            ),
+            GroupEventType.PARTICIPANT_LEAVE to listOf(
+                "ha rimosso",               // it
+                "ha abbandonato il gruppo", // it
+                "removed",                  // en
+                "left",                     // en
+                "hat entfernt",             // de
+                "hat die Gruppe verlassen", // de
+                "eliminó",                  // es
+                "salió del grupo",          // es
+                "a supprimé",               // fr
+                "a quitté le groupe",       // fr
+                "removeu",                  // pt
+                "saiu do grupo",            // pt
+                "çıkardı",                  // tr
+                "gruptan ayrıldı",          // tr
+                "को हटाया",                  // hi
+                "ने ग्रुप छोड़ दिया",         // hi
+            ),
+            GroupEventType.GROUP_CREATE to listOf(
+                "ha creato il gruppo",      // it
+                "created group",            // en
+                "hat die Gruppe erstellt",  // de
+                "creó el grupo",            // es
+                "a créé le groupe",         // fr
+                "criou o grupo",            // pt
+                "grubu oluşturdu",          // tr
+                "ने ग्रुप बनाया",             // hi
+            ),
+            GroupEventType.ICON_CHANGE to listOf(
+                "ha cambiato l'immagine del gruppo",    // it
+                "changed the group icon",               // en
+                "hat das Gruppenbild geändert",         // de
+                "cambió el ícono del grupo",            // es
+                "a modifié l'icône du groupe",          // fr
+                "alterou o ícone do grupo",             // pt
+                "grup simgesini değiştirdi",            // tr
+                "ने ग्रुप की फ़ोटो बदली",                // hi
+            ),
+            GroupEventType.NAME_CHANGE to listOf(
+                "ha modificato il nome del gruppo",         // it
+                "ha cambiato l'oggetto del gruppo",         // it
+                "changed the group name",                   // en
+                "changed the subject",                      // en
+                "hat den Betreff dieser Gruppe geändert",  // de
+                "cambió el asunto del grupo",               // es
+                "a modifié le sujet du groupe",             // fr
+                "alterou o assunto do grupo",               // pt
+                "grup konusunu değiştirdi",                 // tr
+                "ने ग्रुप का नाम बदला",                      // hi
+            ),
+        )
+
+        // Built lazily from groupEventKeywords — no duplication
+        private val groupActionRegex: Regex by lazy {
+            val allKeywords = groupEventKeywords.values
+                .flatten()
+                .sortedByDescending { it.length }
+                .joinToString("|") { Regex.escape(it) }
+            Regex("""(.+?)\s+($allKeywords)(.*)""", setOf(RegexOption.IGNORE_CASE))
+        }
+
+        // Media-body keywords per locale. "<Media" and "PTE-" are locale-neutral.
+        private val mediaKeywords: List<String> = listOf(
+            "omesso", "omessi", "allegato",              // it
+            "omitted", "attached",                       // en
+            "weggelassen", "angehängt",                  // de
+            "omitido", "omitida", "adjunto", "adjunta",  // es
+            "omis", "joint", "jointe",                   // fr
+            "oculta", "oculto", "anexo", "anexa",        // pt
+            "ausgeschlossen",                            // de (alt)
+            "atlandı", "eklendi",                        // tr
+            "शामिल नहीं",                                  // hi
+            "<Media", "PTE-",                            // universal
+        )
+
+        private val mediaBodyRegex: Regex by lazy {
+            val pattern = mediaKeywords
+                .sortedByDescending { it.length }
+                .joinToString("|") { Regex.escape(it) }
+            Regex(pattern, RegexOption.IGNORE_CASE)
+        }
+
+        // Parenthesised "file attached" placeholders per locale
+        private val mediaPlaceholders: List<String> = listOf(
+            "(file allegato)",    // it
+            "(file attached)",    // en
+            "(Datei angehängt)",  // de
+            "(archivo adjunto)",  // es
+            "(fichier joint)",    // fr
+            "(arquivo anexado)",  // pt
+            "(dosya eklendi)",    // tr
+            "(फ़ाइल अटैच)",         // hi
+        )
+
+        private val mediaTagRegex = Regex("""<[^>\n]{2,50}>""")
+
+        private val mediaPlaceholderRegex: Regex by lazy {
+            val pattern = mediaPlaceholders
+                .sortedByDescending { it.length }
+                .joinToString("|") { Regex.escape(it) }
+            Regex(pattern, RegexOption.IGNORE_CASE)
+        }
 
         private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yy, HH:mm")
         private val dateFormatterAlt = DateTimeFormatter.ofPattern("dd/MM/yyyy, HH:mm")
@@ -72,47 +179,29 @@ class TextChatParser
 
                 val headerMatch = headerRegex.find(trimmedLine)
                 if (headerMatch != null) {
-                    // Nuovo messaggio trovato: salva il precedente
                     currentMsg?.let { messages.add(it) }
 
                     val (date, time, sender, body) = headerMatch.destructured
                     val timestamp = parseDateTime(date, time)
-
-                    val hasMedia =
-                        body.contains("omesso", ignoreCase = true) ||
-                            body.contains("omessi", ignoreCase = true) ||
-                            body.contains("allegato", ignoreCase = true) ||
-                            body.contains("<Media", ignoreCase = true) ||
-                            body.contains("PTE-", ignoreCase = true)
-
+                    val hasMedia = mediaBodyRegex.containsMatchIn(body)
                     val links = extractLinkCount(body)
                     val emojis = extractEmojiCount(body)
 
                     val cleanSender = sender.replace("\u200E", "").trim()
-                    val cleanBody =
-                        body
-                            .replace("\u200E", "") // Rimuove Left-to-Right Mark
-                            .replace("(file allegato)", "")
-                            .replace("<Media omesso>", "")
-                            .trim()
-
-                    // Manteniamo cleanBody anche per i media: il nome file (es. IMG-xxx.jpg) serve
-                    // per associare il file fisico al mittente. La parola count già filtra hasMedia=true.
-                    val finalContent = cleanBody
+                    val cleanBody = stripMediaPlaceholders(body)
 
                     currentMsg =
                         ParsedMessage(
                             timestamp = timestamp,
                             senderName = cleanSender,
-                            content = finalContent,
+                            content = cleanBody,
                             isCurrentUser = (cleanSender == ownerName),
-                            isSystemMessage = hasMedia && finalContent.isEmpty(),
+                            isSystemMessage = hasMedia && cleanBody.isEmpty(),
                             linkCount = links,
                             emojiCount = emojis,
                             hasMedia = hasMedia,
                         )
                 } else {
-                    // Potrebbe essere un evento di sistema o una riga di continuazione
                     val systemMatch = systemEventRegex.find(trimmedLine)
                     if (systemMatch != null) {
                         val (date, _, action) = systemMatch.destructured
@@ -122,11 +211,9 @@ class TextChatParser
                             currentMsg = null
                             groupEvents.add(GroupEvent(date, action.trim(), eventType))
                         } else {
-                            // Se non è un evento noto, lo trattiamo come testo del messaggio precedente (raro)
                             appendToCurrent(currentMsg, trimmedLine)?.let { currentMsg = it }
                         }
                     } else {
-                        // Riga di continuazione
                         appendToCurrent(currentMsg, trimmedLine)?.let { currentMsg = it }
                     }
                 }
@@ -135,6 +222,15 @@ class TextChatParser
             currentMsg?.let { messages.add(it) }
             return ParseResult(messages, groupEvents)
         }
+
+        private fun stripMediaPlaceholders(text: String): String =
+            text
+                .replace("\u200E", "")
+                .replace(mediaTagRegex) { match ->
+                    if (mediaBodyRegex.containsMatchIn(match.value)) "" else match.value
+                }
+                .replace(mediaPlaceholderRegex, "")
+                .trim()
 
         private fun appendToCurrent(
             current: ParsedMessage?,
@@ -157,23 +253,17 @@ class TextChatParser
                     LocalDateTime.parse(dateTimeStr, dateFormatter)
                 }
             } catch (e: Exception) {
-                // Fallback: usa l'ora corrente se il parsing fallisce miseramente
                 LocalDateTime.now()
             }
         }
 
         private fun detectGroupEventType(action: String): GroupEventType {
             val match = groupActionRegex.find(action) ?: return GroupEventType.UNKNOWN
-            val phrase = match.groupValues[2].lowercase()
-
-            return when {
-                phrase.contains("aggiunto") -> GroupEventType.PARTICIPANT_JOIN
-                phrase.contains("rimosso") || phrase.contains("abbandonato") -> GroupEventType.PARTICIPANT_LEAVE
-                phrase.contains("creato") -> GroupEventType.GROUP_CREATE
-                phrase.contains("immagine") -> GroupEventType.ICON_CHANGE
-                phrase.contains("nome") || phrase.contains("oggetto") -> GroupEventType.NAME_CHANGE
-                else -> GroupEventType.UNKNOWN
-            }
+            val matchedKeyword = match.groupValues[2].lowercase()
+            return groupEventKeywords.entries
+                .firstOrNull { (_, keywords) -> keywords.any { it.lowercase() == matchedKeyword } }
+                ?.key
+                ?: GroupEventType.UNKNOWN
         }
 
         private fun extractLinkCount(text: String): Int {

@@ -94,7 +94,7 @@ fun GroupHistoryScreen(
             }
             is GroupHistoryViewModel.HistoryUiState.Error -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = "Errore: ${state.message}", color = MaterialTheme.colorScheme.error)
+                    Text(text = stringResource(R.string.error_with_detail, state.message ?: ""), color = MaterialTheme.colorScheme.error)
                 }
             }
             is GroupHistoryViewModel.HistoryUiState.Success -> {

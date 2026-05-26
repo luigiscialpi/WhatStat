@@ -115,10 +115,10 @@ class SetupService : Service() {
             val channel =
                 NotificationChannel(
                     CHANNEL_ID,
-                    "Setup WhatsApp",
+                    getString(R.string.setup_service_channel_name),
                     NotificationManager.IMPORTANCE_LOW,
                 ).apply {
-                    description = "Mostra l'avanzamento della decifratura"
+                    description = getString(R.string.setup_service_channel_desc)
                 }
             notificationManager.createNotificationChannel(channel)
         }
@@ -140,8 +140,14 @@ class SetupService : Service() {
         val progressInt = (progress * 100).toInt()
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Decifratura Database")
-            .setContentText(if (progressInt > 0) "Progresso: $progressInt%" else "Avvio in corso...")
+            .setContentTitle(getString(R.string.setup_service_notif_title))
+            .setContentText(
+                if (progressInt > 0) {
+                    getString(R.string.setup_service_progress, progressInt)
+                } else {
+                    getString(R.string.setup_service_starting)
+                },
+            )
             .setSmallIcon(R.drawable.ic_launcher)
             .setOngoing(true)
             .setProgress(100, progressInt, progress == 0f)

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.whatstats.R
 import com.whatstats.data.lite.LiteModeManager
 import com.whatstats.data.repository.AnalyticsRepository
 import com.whatstats.data.repository.WhatsAppRepository
@@ -123,7 +124,7 @@ class LiteSetupViewModel
                     showSenderSelection = false,
                     isLoading = true,
                     progressPercent = 0.96f,
-                    progressLabel = "Finalizzazione...",
+                    progressLabel = context.getString(R.string.lite_import_finalize_owner),
                 )
             }
 

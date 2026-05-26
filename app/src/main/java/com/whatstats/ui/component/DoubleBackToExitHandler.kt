@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import com.whatstats.R
 
 /**
  * Intercetta il tasto back fisico e richiede una doppia pressione entro
@@ -38,7 +39,7 @@ fun DoubleBackToExitHandler() {
             context.findActivity()?.finish()
         } else {
             lastBackPressTime = now
-            Toast.makeText(context, "Premi di nuovo per uscire", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.exit_toast), Toast.LENGTH_SHORT).show()
         }
     }
 }

@@ -13,6 +13,7 @@ import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.whatstats.BuildConfig
+import com.whatstats.R
 import com.whatstats.util.DebugLogManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -50,18 +51,18 @@ class BillingRepository
                 when (billingResult.responseCode) {
                     BillingClient.BillingResponseCode.OK -> {
                         if (purchases.isNullOrEmpty()) {
-                            updateMessage("Acquisto completato, ma nessun prodotto ricevuto.")
+                            updateMessage(context.getString(R.string.billing_purchase_ok_no_product))
                             _uiState.update { it.copy(isProcessing = false) }
                         } else {
                             handlePurchases(purchases)
                         }
                     }
                     BillingClient.BillingResponseCode.USER_CANCELED -> {
-                        updateMessage("Acquisto annullato.")
+                        updateMessage(context.getString(R.string.billing_purchase_cancelled))
                         _uiState.update { it.copy(isProcessing = false) }
                     }
                     else -> {
-                        updateMessage("Acquisto non riuscito (${billingResult.responseCode}).")
+                        updateMessage(context.getString(R.string.billing_purchase_failed, billingResult.responseCode))
                         _uiState.update { it.copy(isProcessing = false) }
                     }
                 }
@@ -93,7 +94,7 @@ class BillingRepository
                 val details = productDetails
                 if (details == null) {
                     _uiState.update { it.copy(isProcessing = false) }
-                    updateMessage("Prodotto Pro non disponibile. Riprova tra poco.")
+                    updateMessage(context.getString(R.string.billing_product_unavailable))
                     refreshProductDetails()
                     return@connectIfNeeded
                 }
@@ -113,7 +114,7 @@ class BillingRepository
                 val result = requireNotNull(billingClient).launchBillingFlow(activity, flowParams)
                 if (result.responseCode != BillingClient.BillingResponseCode.OK) {
                     _uiState.update { it.copy(isProcessing = false) }
-                    updateMessage("Impossibile avviare acquisto (${result.responseCode}).")
+                    updateMessage(context.getString(R.string.billing_launch_failed, result.responseCode))
                 }
             }
         }
@@ -150,7 +151,7 @@ class BillingRepository
                         _uiState.update { it.copy(isBillingReady = connected) }
                         if (!connected) {
                             _uiState.update { it.copy(isProcessing = false) }
-                            updateMessage("Billing non disponibile (${billingResult.responseCode}).")
+                            updateMessage(context.getString(R.string.billing_unavailable, billingResult.responseCode))
                             onReadyQueue.clear()
                             return
                         }
@@ -201,7 +202,7 @@ class BillingRepository
 
             client.queryProductDetailsAsync(params) { billingResult, queryResult ->
                 if (billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
-                    updateMessage("Errore caricamento prezzo Pro (${billingResult.responseCode}).")
+                    updateMessage(context.getString(R.string.billing_price_load_error, billingResult.responseCode))
                     return@queryProductDetailsAsync
                 }
 
@@ -225,7 +226,7 @@ class BillingRepository
             client.queryPurchasesAsync(params) { billingResult, purchases ->
                 if (billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
                     _uiState.update { it.copy(isProcessing = false) }
-                    updateMessage("Errore ripristino acquisti (${billingResult.responseCode}).")
+                    updateMessage(context.getString(R.string.billing_restore_error, billingResult.responseCode))
                     return@queryPurchasesAsync
                 }
                 handlePurchases(purchases)
@@ -253,9 +254,9 @@ class BillingRepository
                 entitlementStore.setPro(hasPro)
                 _uiState.update { it.copy(isProcessing = false, isPro = hasPro) }
                 if (hasPro) {
-                    updateMessage("Pro attivata con successo.")
+                    updateMessage(context.getString(R.string.billing_pro_activated))
                 } else {
-                    updateMessage("Nessun acquisto Pro attivo.")
+                    updateMessage(context.getString(R.string.billing_no_pro_purchase))
                 }
             }
         }

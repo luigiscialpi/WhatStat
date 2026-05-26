@@ -1,50 +1,36 @@
 package com.whatstats.domain.model
 
-/**
- * Sealed class per gli errori dell'app.
- * Ogni variante contiene un messaggio user-friendly in italiano.
- */
-sealed class AppError(val userMessage: String) {
-    object RootNotAvailable : AppError(
-        "Root non disponibile. Assicurati che Magisk sia installato correttamente.",
-    )
+import android.content.Context
+import androidx.annotation.StringRes
+import com.whatstats.R
 
-    object RootNotGranted : AppError(
-        "Permessi root negati. Apri Magisk e concedi i permessi a WhatStat.",
-    )
+sealed class AppError(
+    @StringRes val resId: Int,
+    val formatArgs: Array<out Any> = emptyArray(),
+) {
+    object RootNotAvailable : AppError(R.string.error_root_not_available)
 
-    object KeyFileNotFound : AppError(
-        "File chiave non trovato. WhatsApp è installato sul dispositivo?",
-    )
+    object RootNotGranted : AppError(R.string.error_root_not_granted)
 
-    object Crypt14NotFound : AppError(
-        "Database cifrato non trovato. Assicurati che il backup locale " +
-            "sia attivo in WhatsApp (Impostazioni → Chat → Backup delle chat).",
-    )
+    object KeyFileNotFound : AppError(R.string.error_key_not_found)
 
-    object Crypt15Detected : AppError(
-        "Rilevato backup crypt15 (crittografia end-to-end). " +
-            "Disattiva il backup crittografato E2E nelle impostazioni di WhatsApp " +
-            "e rifai il backup.",
-    )
+    object Crypt14NotFound : AppError(R.string.error_crypt14_not_found)
 
-    data class DecryptionFailed(val reason: String) : AppError(
-        "Decifratura fallita: $reason",
-    )
+    object Crypt15Detected : AppError(R.string.error_crypt15_detected)
 
-    data class DecryptionError(val reason: String) : AppError(
-        "Errore decifratura: $reason",
-    )
+    data class DecryptionFailed(val reason: String) : AppError(R.string.error_decryption_failed, arrayOf(reason))
 
-    data class DatabaseError(val reason: String) : AppError(
-        "Errore nel database: $reason",
-    )
+    data class DecryptionError(val reason: String) : AppError(R.string.error_decryption_error, arrayOf(reason))
 
-    data class ExtractionError(val reason: String) : AppError(
-        "Errore durante l'estrazione dei file: $reason",
-    )
+    data class DatabaseError(val reason: String) : AppError(R.string.error_database_open, arrayOf(reason))
+
+    data class ExtractionError(val reason: String) : AppError(R.string.error_extraction, arrayOf(reason))
 
     data class UnknownError(val throwable: Throwable) : AppError(
-        "Errore imprevisto: ${throwable.localizedMessage ?: throwable.javaClass.simpleName}",
+        R.string.error_unknown,
+        arrayOf(throwable.localizedMessage ?: throwable.javaClass.simpleName),
     )
+
+    fun resolveMessage(context: Context): String =
+        if (formatArgs.isEmpty()) context.getString(resId) else context.getString(resId, *formatArgs)
 }

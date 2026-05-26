@@ -22,12 +22,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.whatstats.R
 import java.io.File
 
 @Composable
@@ -67,7 +69,7 @@ fun EmojiPreviewModal(
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "Usato ${"%,d".format(count)} volte",
+                    text = stringResource(R.string.used_n_times, "%,d".format(count)),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -144,7 +146,7 @@ fun StickerPreviewModal(
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "Usato $count volte",
+                    text = stringResource(R.string.used_n_times, "%,d".format(count)),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )

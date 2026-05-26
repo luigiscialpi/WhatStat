@@ -365,6 +365,40 @@
     <string name="new_db_available_desc">Um novo banco de dados do WhatsApp está disponível. Você gostaria de atualizar os dados do WhatStat?</string>
     <string name="new_db_update_button">Atualizar agora</string>
 
+    <!-- Lite fallback chat names -->
+    <string name="lite_fallback_chat_name">Conversa importada</string>
+    <string name="lite_fallback_group_name">Grupo importado</string>
+
+    <!-- Emoji / Sticker preview -->
+    <string name="used_n_times">Usado %1$s vezes</string>
+
+    <!-- SetupService notification -->
+    <string name="setup_service_channel_name">Configuração WhatStat</string>
+    <string name="setup_service_channel_desc">Mostra o progresso da descriptografia</string>
+    <string name="setup_service_notif_title">Descriptografia do Banco de Dados</string>
+    <string name="setup_service_progress">Progresso: %d%%</string>
+    <string name="setup_service_starting">Iniciando…</string>
+
+    <!-- Billing -->
+    <string name="billing_purchase_ok_no_product">Compra concluída, mas nenhum produto recebido.</string>
+    <string name="billing_purchase_cancelled">Compra cancelada.</string>
+    <string name="billing_purchase_failed">Compra falhou (%d).</string>
+    <string name="billing_product_unavailable">Produto Pro indisponível. Tente novamente mais tarde.</string>
+    <string name="billing_launch_failed">Não foi possível iniciar a compra (%d).</string>
+    <string name="billing_unavailable">Cobrança indisponível (%d).</string>
+    <string name="billing_price_load_error">Erro ao carregar o preço do Pro (%d).</string>
+    <string name="billing_restore_error">Erro ao restaurar compras (%d).</string>
+    <string name="billing_pro_activated">Pro ativado com sucesso.</string>
+    <string name="billing_no_pro_purchase">Nenhuma compra Pro ativa.</string>
+
+    <!-- Errors -->
+    <string name="error_decryption_error">Erro de descriptografia: %s</string>
+    <string name="error_extraction">Erro de extração de arquivo: %s</string>
+    <string name="error_unknown_simple">Erro desconhecido</string>
+    <string name="error_db_unavailable">Banco de dados indisponível</string>
+    <string name="error_file_read_detail">Erro ao ler o arquivo: %s</string>
+    <string name="error_with_detail">Erro: %s</string>
+
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Versão Pro desbloqueada! Cortesia de Luigi Scialpi 😉</string>
 </resources>
