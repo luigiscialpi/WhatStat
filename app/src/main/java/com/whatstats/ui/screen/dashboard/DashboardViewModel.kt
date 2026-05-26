@@ -317,6 +317,7 @@ class DashboardViewModel
                     _globalStats.value =
                         _globalStats.value?.copy(
                             mostActiveChat = quickStats.mostActiveChat,
+                            mostActiveChatId = quickStats.mostActiveChatId,
                         )
                 }.onFailure { e ->
                     android.util.Log.w("WhatStat", "refreshMostActiveChatName failed: ${e.message}")

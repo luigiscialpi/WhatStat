@@ -258,7 +258,7 @@
     <string name="last_link_prefix">Dernier lien : %s</string>
     <string name="sent_by_prefix">Envoyé par : %s</string>
     <string name="media_info_title">Informations sur les médias</string>
-    <string name="media_info_text_global">Les compteurs incluent les Photos et Vidéos échangées dans le temps.\n\nLes boutons affichent le total historique absolu, tandis que dans la galerie seuls les fichiers encore présents sur le téléphone sont chargés (les fichiers supprimés ne peuvent pas être affichés).</string>
+    <string name="media_info_text_global">Les compteurs incluent les Photos et Vidéos échangées dans le temps.\n\nLes boutons affichent le total historique absolu, tandis que la galerie ne charge que les fichiers encore présents sur le téléphone (les fichiers supprimés ne peuvent pas être affichés).\n\n💡 Conseil : appuie sur le nombre de médias ou de liens pour voir plus de détails 😉</string>
     <string name="media_info_text_gallery">La galerie affiche uniquement les fichiers actuellement présents sur le téléphone. Les compteurs et les détails peuvent être plus élevés car ils incluent également les médias supprimés avec le temps.\n\n💡 Astuce : appuyez longuement sur un média pour le sélectionner et le partager.</string>
     <string name="error_open_file">Impossible d\'ouvrir le fichier</string>
     <string name="back_to_all_links">← Tous les liens</string>

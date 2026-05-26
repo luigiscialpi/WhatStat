@@ -258,7 +258,7 @@
     <string name="last_link_prefix">Ultimo link: %s</string>
     <string name="sent_by_prefix">Inviato da: %s</string>
     <string name="media_info_title">Informazioni sui Media</string>
-    <string name="media_info_text_global">I contatori includono Foto e Video scambiati nel tempo.\n\nI pulsanti mostrano il totale storico assoluto, mentre nella galleria vengono caricati solo i file ancora presenti nel telefono (quelli eliminati non possono essere mostrati).</string>
+    <string name="media_info_text_global">I contatori includono Foto e Video scambiati nel tempo.\n\nI pulsanti mostrano il totale storico assoluto, mentre nella galleria vengono caricati solo i file ancora presenti nel telefono (quelli eliminati non possono essere mostrati).\n\n💡 Suggerimento: tocca il numero dei media o dei link per vedere ulteriori dettagli 😉</string>
     <string name="media_info_text_gallery">La galleria mostra solo i file attualmente presenti nel telefono. I contatori e i breakdown possono essere più alti perché includono anche media eliminati nel tempo.\n\n💡 Suggerimento: tieni premuto sui media per selezionarli e condividerli.</string>
     <string name="error_open_file">Impossibile aprire il file</string>
     <string name="back_to_all_links">← Tutti i link</string>

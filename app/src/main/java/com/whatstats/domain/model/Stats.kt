@@ -50,6 +50,7 @@ data class GlobalStats(
     // Unix timestamp ms
     val oldestMessageDate: Long,
     val mostActiveChat: String,
+    val mostActiveChatId: Long? = null,
     // 0–23
     val mostActiveHour: Int,
     // 0=domenica

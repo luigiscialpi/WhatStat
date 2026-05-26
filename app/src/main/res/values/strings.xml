@@ -258,7 +258,7 @@
     <string name="last_link_prefix">Last link: %s</string>
     <string name="sent_by_prefix">Sent by: %s</string>
     <string name="media_info_title">Media Information</string>
-    <string name="media_info_text_global">Counters include Photos and Videos exchanged over time.\n\nButtons show the absolute historical total, while the gallery only loads files still present on the device (deleted files cannot be displayed).</string>
+    <string name="media_info_text_global">Counters include Photos and Videos exchanged over time.\n\nThe buttons show the absolute historical total, while the gallery only loads files still present on the device (deleted files cannot be displayed).\n\n💡 Tip: tap on the media or link count to see more details 😉</string>
     <string name="media_info_text_gallery">The gallery only shows files currently on the device. Counters and breakdowns may be higher because they also include media deleted over time.\n\n💡 Tip: long-press on media to select and share them.</string>
     <string name="error_open_file">Could not open file</string>
     <string name="back_to_all_links">← All links</string>

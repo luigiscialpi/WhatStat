@@ -258,7 +258,7 @@
     <string name="last_link_prefix">Último link: %s</string>
     <string name="sent_by_prefix">Enviado por: %s</string>
     <string name="media_info_title">Informações sobre mídia</string>
-    <string name="media_info_text_global">Os contadores incluem Fotos e Vídeos trocados ao longo do tempo.\n\nOs botões mostram o total histórico absoluto, enquanto na galeria são carregados apenas os arquivos ainda presentes no celular (os excluídos não podem ser exibidos).</string>
+    <string name="media_info_text_global">Os contadores incluem Fotos e Vídeos trocados ao longo do tempo.\n\nOs botões mostram o total histórico absoluto, enquanto na galeria são carregados apenas os arquivos ainda presentes no celular (os excluídos não podem ser exibidos).\n\n💡 Dica: toque no número de mídias ou links para ver mais detalhes 😉</string>
     <string name="media_info_text_gallery">A galeria mostra apenas os arquivos atualmente presentes no celular. Os contadores e detalhamentos podem ser maiores porque incluem mídias excluídas ao longo do tempo.\n\n💡 Dica: pressione longamente as mídias para selecioná-las e compartilhá-las.</string>
     <string name="error_open_file">Não foi possível abrir o arquivo</string>
     <string name="back_to_all_links">← Todos os links</string>

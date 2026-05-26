@@ -57,15 +57,15 @@ class ChatDao
             }
         }
 
-        /** Ritorna il nome della chat più attiva (più messaggi) filtrata per data. */
+        /** Ritorna chatId e nome/jid della chat più attiva (più messaggi) filtrata per data. */
         fun getMostActiveChat(
             startTime: Long? = null,
             endTime: Long? = null,
-        ): String {
+        ): Pair<Long, String> {
             val queryBuilder =
                 StringBuilder(
                     """
-                    SELECT COALESCE(c.subject, j.raw_string) AS display_name
+                    SELECT c._id, COALESCE(c.subject, j.raw_string) AS display_name
                     FROM chat c
                     JOIN jid j ON c.jid_row_id = j._id
                     JOIN message m ON m.chat_row_id = c._id
@@ -86,7 +86,9 @@ class ChatDao
             queryBuilder.append(" GROUP BY c._id ORDER BY COUNT(*) DESC LIMIT 1")
 
             val cursor = database.getMsgDb().rawQuery(queryBuilder.toString(), if (args.isEmpty()) null else args.toTypedArray())
-            return cursor.use { if (it.moveToFirst()) it.getString(0) ?: "Sconosciuto" else "Nessuna" }
+            return cursor.use {
+                if (it.moveToFirst()) Pair(it.getLong(0), it.getString(1) ?: "Sconosciuto") else Pair(-1L, "Nessuna")
+            }
         }
 
         /**

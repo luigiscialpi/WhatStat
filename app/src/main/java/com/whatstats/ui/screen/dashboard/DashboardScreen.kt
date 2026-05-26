@@ -93,6 +93,7 @@ fun DashboardScreen(
     onNavigateToWordSearch: () -> Unit = {},
     onNavigateToCalls: () -> Unit = {},
     onNavigateToMedia: () -> Unit = {},
+    onNavigateToChatDetail: (Long) -> Unit = {},
     onNavigateBack: () -> Unit,
 ) {
     val stats by viewModel.globalStats.collectAsState()
@@ -314,6 +315,7 @@ fun DashboardScreen(
                                             value = s.mostActiveChat,
                                             icon = Icons.AutoMirrored.Outlined.TrendingUp,
                                             isSmallText = true,
+                                            onClick = s.mostActiveChatId?.let { id -> { onNavigateToChatDetail(id) } },
                                         )
                                     }
                                 }

@@ -248,6 +248,9 @@ private fun NavGraphBuilder.rootModeGraph(
                             restoreState = true
                         }
                     },
+                    onNavigateToChatDetail = { chatId ->
+                        navController.navigate(Screen.ChatDetail.createRoute(chatId))
+                    },
                     onNavigateBack = {
                         scope.launch {
                             repository.resetState()
@@ -367,6 +370,9 @@ private fun NavGraphBuilder.liteModeGraph(
                             launchSingleTop = true
                             restoreState = true
                         }
+                    },
+                    onNavigateToChatDetail = { chatId ->
+                        navController.navigate(Screen.ChatDetail.createRoute(chatId))
                     },
                     onNavigateBack = {
                         mainViewModel.setIncomingZipUri(null)

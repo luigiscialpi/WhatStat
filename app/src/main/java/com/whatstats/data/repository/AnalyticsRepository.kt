@@ -370,7 +370,7 @@ class AnalyticsRepository
                     val oldestTs = dOldestTs.await()
                     onProgress(95)
                     val mediaCount = dMediaCount.await()
-                    val mostActiveChatJid = dMostActiveChat.await()
+                    val (mostActiveChatId, mostActiveChatJid) = dMostActiveChat.await()
                     onProgress(100)
 
                     val avgPerDay =
@@ -413,6 +413,7 @@ class AnalyticsRepository
                             totalMediaFiles = mediaCount,
                             oldestMessageDate = oldestTs,
                             mostActiveChat = mostActiveChatName,
+                            mostActiveChatId = mostActiveChatId.takeIf { it >= 0L },
                             mostActiveHour = hourly.maxByOrNull { it.count }?.hour ?: 0,
                             mostActiveDayOfWeek = weekly.maxByOrNull { it.count }?.dayOfWeek ?: 0,
                             averageMessagesPerDay = avgPerDay,
