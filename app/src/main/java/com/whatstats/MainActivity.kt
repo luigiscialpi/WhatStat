@@ -86,6 +86,11 @@ class MainActivity : ComponentActivity() {
         // quindi dobbiamo resettare lo stato Lite *prima* che la UI venga creata.
         intent?.let { handleIncomingIntent(it) }
 
+        // Richiesta consenso UMP prima di setContent per minimizzare la latenza
+        // (pattern standard Google: requestConsentInfoUpdate deve essere la prima
+        // chiamata significativa nell'Activity, prima del layout).
+        mainViewModel.requestAdsConsent(this)
+
         setContent {
             val themeMode by mainViewModel.themeMode.collectAsState()
             val darkTheme =
@@ -139,7 +144,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        mainViewModel.requestAdsConsent(this)
         requestNotificationPermissionIfNeeded()
     }
 

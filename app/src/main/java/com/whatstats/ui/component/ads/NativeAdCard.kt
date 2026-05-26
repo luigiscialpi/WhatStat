@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -87,10 +88,15 @@ fun NativeAdCard(
     }
 
     AndroidView(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().wrapContentHeight(),
         factory = { createNativeAdView(it) },
         update = { adView ->
-            bindNativeAd(adView, loadedAd)
+            // Evita re-bind se lo stesso ad è già montato (MediaView chiama
+            // requestLayout() ad ogni set, causando cicli di misura infiniti).
+            val state = adView.tag as? NativeAdViewState
+            if (state?.boundAd !== loadedAd) {
+                bindNativeAd(adView, loadedAd)
+            }
         },
     )
 }
@@ -100,6 +106,11 @@ private data class NativeAdAssets(
     val bodyText: TextView,
     val ctaButton: Button,
     val mediaAssetView: MediaView,
+)
+
+private class NativeAdViewState(
+    val assets: NativeAdAssets,
+    var boundAd: NativeAd? = null,
 )
 
 private fun createNativeAdView(context: Context): NativeAdView {
@@ -114,6 +125,14 @@ private fun createNativeAdView(context: Context): NativeAdView {
             .applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP,
                 12f,
+                context.resources.displayMetrics,
+            ).toInt()
+
+    val mediaHeightPx =
+        TypedValue
+            .applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                160f,
                 context.resources.displayMetrics,
             ).toInt()
 
@@ -144,7 +163,7 @@ private fun createNativeAdView(context: Context): NativeAdView {
     mediaAssetView.layoutParams =
         LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT,
+            mediaHeightPx, // altezza fissa: evita crescita infinita da requestLayout() asincrono
         )
 
     ctaButton.apply {
@@ -171,7 +190,7 @@ private fun createNativeAdView(context: Context): NativeAdView {
     adView.setBodyView(bodyText)
     adView.setMediaView(mediaAssetView)
     adView.setCallToActionView(ctaButton)
-    adView.tag = NativeAdAssets(headlineText, bodyText, ctaButton, mediaAssetView)
+    adView.tag = NativeAdViewState(NativeAdAssets(headlineText, bodyText, ctaButton, mediaAssetView))
     return adView
 }
 
@@ -179,7 +198,8 @@ private fun bindNativeAd(
     adView: NativeAdView,
     nativeAd: NativeAd,
 ) {
-    val assets = adView.tag as? NativeAdAssets ?: return
+    val state = adView.tag as? NativeAdViewState ?: return
+    val assets = state.assets
     assets.headlineText.text = nativeAd.headline.orEmpty()
     assets.bodyText.text = nativeAd.body.orEmpty()
     val callToAction = nativeAd.callToAction.orEmpty()
@@ -187,4 +207,5 @@ private fun bindNativeAd(
     assets.ctaButton.visibility = if (callToAction.isBlank()) View.GONE else View.VISIBLE
     assets.mediaAssetView.mediaContent = nativeAd.mediaContent
     adView.setNativeAd(nativeAd)
+    state.boundAd = nativeAd
 }

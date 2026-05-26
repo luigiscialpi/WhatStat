@@ -73,13 +73,22 @@ class AdsRepository
                     publishState()
                 }
             }
-            // Con ID di test non servono UMP callbacks: avvia init SDK immediatamente.
-            if (isTestBuild) {
+            // Test build: bypassa UMP, avvia SDK immediatamente.
+            // Real build: se consenso già ottenuto in sessione precedente, avvia in parallelo
+            // senza attendere il callback di requestConsentInfoUpdate (pattern Google standard).
+            if (isTestBuild || consentInformation.canRequestAds()) {
                 initializeMobileAdsIfPossible()
             }
         }
 
         fun requestConsent(activity: Activity) {
+            DebugLogManager.log(
+                "AdsRepository.requestConsent | " +
+                    "consentStatus=${consentInformation.consentStatus} " +
+                    "isConsentFormAvailable=${consentInformation.isConsentFormAvailable} " +
+                    "canRequestAds=${consentInformation.canRequestAds()} " +
+                    "isTestBuild=$isTestBuild",
+            )
             val requestParameters =
                 ConsentRequestParameters
                     .Builder()
