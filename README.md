@@ -20,11 +20,12 @@
 12. [Struttura dei dati sorgente](#12-struttura-dei-dati-sorgente)
 13. [Comportamenti noti e quirk del database](#13-comportamenti-noti-e-quirk-del-database)
 14. [Struttura della navigazione](#14-struttura-della-navigazione)
-15. [Roadmap](#15-roadmap)
-16. [Internazionalizzazione (i18n)](#16-internazionalizzazione-i18n)
-17. [Modalità Lite (non-root)](#17-modalità-lite-non-root)
-18. [Linee Guida per Assistenti AI](#18-linee-guida-per-assistenti-ai)
-19. [Monetizzazione: Ads e Pro](#19-monetizzazione-ads-e-pro)
+15. [Tutorial di onboarding](#15-tutorial-di-onboarding)
+16. [Roadmap](#16-roadmap)
+17. [Internazionalizzazione (i18n)](#17-internazionalizzazione-i18n)
+18. [Modalità Lite (non-root)](#18-modalità-lite-non-root)
+19. [Linee Guida per Assistenti AI](#19-linee-guida-per-assistenti-ai)
+20. [Monetizzazione: Ads e Pro](#20-monetizzazione-ads-e-pro)
 
 ---
 
@@ -848,7 +849,63 @@ Intent → mainViewModel.setIncomingZipUri(nuovoUri)
 
 ---
 
-## 15. Roadmap
+## 15. Tutorial di onboarding
+
+Un overlay a 7 pagine (`HorizontalPager`) mostra il tutorial interattivo al primo avvio e, in qualsiasi momento, dal menu hamburger.
+
+### Trigger e stato
+
+| Meccanismo | Comportamento |
+|-----------|---------------|
+| Primo avvio | `LaunchedEffect` in `AppNavigation.kt` rileva `hasSeenTutorial = false` → chiama `mainViewModel.requestTutorial()` |
+| Voce drawer "Tutorial" | `DrawerItem` con `Icons.AutoMirrored.Outlined.HelpOutline` → `mainViewModel.requestTutorial()` |
+| Completamento | `mainViewModel.completeTutorial()` → salva `tutorial_seen = true` in DataStore e chiude l'overlay |
+| "Salta" | Chiude senza salvare il flag (il tutorial riappare al prossimo avvio) |
+
+**Persistenza** — chiave `booleanPreferencesKey("tutorial_seen")` in `AppPreferencesStore`, stesso DataStore (`"app_preferences"`) delle altre preferenze. Esposta come `hasSeenTutorial: StateFlow<Boolean>` in `MainViewModel` (initialValue = `true` per evitare flash durante la raccolta iniziale).
+
+**State flow tutorial**:
+```
+MainViewModel._showTutorial: MutableStateFlow<Boolean>
+    requestTutorial()  → _showTutorial = true
+    dismissTutorial()  → _showTutorial = false
+    completeTutorial() → setTutorialSeen(true) + _showTutorial = false
+```
+
+**Overlay** — Dialog full-screen (`DialogProperties(usePlatformDefaultWidth = false)`) sovrapposto al `Box` principale in `AppNavigation.kt`, all'esterno dell'`AppScaffold`. Non interrompe il grafo di navigazione.
+
+### Struttura delle 7 pagine
+
+Ogni pagina è una `@Composable private fun` dedicata. Non esiste un template generico condiviso: ogni layout rispecchia la schermata reale corrispondente.
+
+| # | Composable | Contenuto mockup |
+|---|-----------|-----------------|
+| 0 | `WelcomeTutorialPage` | Icona `Security` 120 dp in cerchio + nome app in `displaySmall` + tagline privacy. Sfondo gradiente `primaryContainer → surface`. |
+| 1 | `ModesTutorialPage` | Due `ElevatedCard` affiancate: Root (`AdminPanelSettings`, `primaryContainer`) e Lite (`FolderZip`, `secondaryContainer`), con icona 48 dp, titolo e sottotitolo. |
+| 2 | `ImportTutorialPage` | 4 passaggi numerati (`NumberedStep`) con frecce animate tra un passo e l'altro (`StepArrow` con `infiniteRepeatable`). |
+| 3 | `DashboardTutorialPage` | 3 `FakeStatCard` (messaggi totali / media/giorno / streak) + grafico a barre settimanale 7 colonne reale con etichette L/M/M/G/V/S/D. |
+| 4 | `RadarTutorialPage` | `OutlinedTextField` mock con parola cercata + riga 4 `FilterChip` (Aa / ab / ? / Multi) + sezione "Occorrenze per mittente" con 3 `SenderOccurrenceBar` + anteprima messaggio con parola evidenziata in `buildAnnotatedString` (`SpanStyle(fontWeight = Bold, color = tertiary, background = tertiaryContainer)`). |
+| 5 | `MediaTutorialPage` | Tab bar "Galleria / Link" (`FakeTab`) + riga 4 `MediaCountChip` (Immagini / Video / Audio / Link con contatori) + griglia 3×2 di `Box` thumbnail colorate. |
+| 6 | `ReadyTutorialPage` | `CheckCircle` 96 dp con animazione pulse-scala (`infiniteRepeatable`, `FastOutSlowInEasing`) + titolo + descrizione. |
+
+### Barra di navigazione pager
+
+In basso: indicatori dot animati (dot attivo = `width 20 dp`, inattivo = `8 dp`) + pulsante **Avanti** (diventa **Inizia** sull'ultima pagina). Il pulsante "Salta" è sempre visibile in alto a destra.
+
+### File coinvolti
+
+| File | Ruolo |
+|------|-------|
+| `ui/screen/tutorial/TutorialOverlay.kt` | Overlay completo e tutte le 7 composable pagina |
+| `data/store/AppPreferencesStore.kt` | Chiave `tutorial_seen`, flow `hasSeenTutorial`, `setTutorialSeen()` |
+| `ui/MainViewModel.kt` | `showTutorial: StateFlow`, `requestTutorial()`, `dismissTutorial()`, `completeTutorial()` |
+| `ui/component/AppDrawer.kt` | Voce "Tutorial" con icona `HelpOutline` |
+| `ui/navigation/AppNavigation.kt` | `LaunchedEffect` primo avvio + overlay Dialog sovrapposto all'`AppScaffold` |
+| `res/values*/strings.xml` | Chiavi `tutorial_*` in 8 lingue |
+
+---
+
+## 16. Roadmap
 
 ### Pianificato (non ancora implementato)
 
@@ -865,7 +922,7 @@ Intent → mainViewModel.setIncomingZipUri(nuovoUri)
 
 ---
 
-## 16. Internazionalizzazione (i18n)
+## 17. Internazionalizzazione (i18n)
 
 Tutte le stringhe visibili nella UI sono esternalizzate in file di risorse Android (`res/values-*/strings.xml`). Non sono presenti stringhe hardcodate nelle classi Kotlin o Composable: ogni testo è referenziato tramite `stringResource(R.string.xxx)`.
 
@@ -888,7 +945,7 @@ Le stringhe coprono navigazione, titoli, pulsanti, dialog, formati data/ora e la
 
 ---
 
-## 17. Modalità Lite (non-root)
+## 18. Modalità Lite (non-root)
 
 La **Modalità Lite** permette di analizzare le chat WhatsApp senza permessi root. Invece di leggere `msgstore.db` direttamente, l'utente importa uno o più **ZIP di esportazione WhatsApp** (generati da WhatsApp con "Esporta chat → Includi media"). Ogni ZIP aggiunge una chat al database locale, rendendo possibile l'analisi multi-chat anche in Lite Mode.
 
@@ -1198,14 +1255,14 @@ La Lite Mode ha un proprio grafo di navigazione `NavGraphRoute.Lite`, con la ste
 
 ---
 
-## 18. Linee Guida per Assistenti AI
+## 19. Linee Guida per Assistenti AI
 
 Le regole operative per gli assistenti AI sono definite in `AGENTS.md` nella root del progetto.
 Quel file è la fonte di verità — questa sezione è deprecata.
 
 ---
 
-## 19. Monetizzazione: Ads e Pro
+## 20. Monetizzazione: Ads e Pro
 
 WhatStat usa un modello **Free con pubblicità / Pro senza pubblicità** all'interno di un'unica app su Google Play. Non esistono flavor separati: la differenza tra le due versioni è determinata esclusivamente dallo stato di acquisto rilevato a runtime da Google Play Billing.
 
