@@ -1304,7 +1304,7 @@ val areAdsEnabled = canRequestAds && isMobileAdsInitialized && !isPro
 
 **`billing/BillingRepository`** — singleton `@Inject` che gestisce il ciclo di vita di `BillingClient`:
 - connessione a Google Play Billing con retry automatico
-- query prodotto `whatsat_pro` per leggere il prezzo live
+- query prodotto `whatstat_pro` per leggere il prezzo live
 - acquisto e acknowledge
 - restore (`restorePurchases()`)
 - Easter egg session unlock (`unlockProForSession()`)
@@ -1343,10 +1343,10 @@ Gli ID AdMob sono configurati in `local.properties` (non committato) e iniettati
 
 ```
 # local.properties (non committare mai)
-ADMOB_APP_ID=ca-app-pub-7687170186470171~9029274402
-ADMOB_BANNER_UNIT_ID=ca-app-pub-7687170186470171/1717383292
-ADMOB_NATIVE_UNIT_ID=ca-app-pub-7687170186470171/5465056611
-ADMOB_INTERSTITIAL_UNIT_ID=ca-app-pub-7687170186470171/9510140610
+ADMOB_APP_ID=<real_app_id>
+ADMOB_BANNER_UNIT_ID=<real_banner_unit_id>
+ADMOB_NATIVE_UNIT_ID=<real_native_unit_id>
+ADMOB_INTERSTITIAL_UNIT_ID=<real_interstitial_unit_id>
 ```
 
 `isTestBuild` è calcolato automaticamente: `BuildConfig.ADMOB_APP_ID == "ca-app-pub-3940256099942544~3347511713"`. Nessun toggle manuale — basta inserire gli ID reali in `local.properties` per disabilitare il bypass test.
@@ -1369,7 +1369,16 @@ ADMOB_INTERSTITIAL_UNIT_ID=ca-app-pub-7687170186470171/9510140610
 | `WordSearchScreen` | Dopo i risultati (solo dopo ricerca avvenuta, ≥ 10 risultati) |
 | `CallsStatsScreen` | Dopo il riepilogo alto livello, prima della lista dettagliata |
 
-**Interstitial** — caricati in anticipo da `AdsRepository.preloadInterstitialIfPossible()`, mostrati da `tryShowInterstitialAfterLongOperation()`. Gate: cooldown 12 minuti, `isPro = false`, `canRequestAds = true`. Trigger validi: import Lite completato, analisi Root completata, analisi lessicale lenta completata. Trigger esplicitamente vietati: back, cambio tab, apertura chat/media, progress in corso, errori.
+**Interstitial** — caricati in anticipo da `AdsRepository.preloadInterstitialIfPossible()`, mostrati da `tryShowInterstitialAfterLongOperation()`. Gate: cooldown 12 minuti, `isPro = false`, `canRequestAds = true`. Trigger validi:
+
+| Source | Momento |
+|--------|---------|
+| `root_analysis_completed` | Analisi Root completata, prima di navigare alla Dashboard |
+| `lite_import_completed` | Import ZIP Lite completato |
+| `dashboard_arrived` | Prima apertura Dashboard nella sessione (cold start) |
+| `chat_detail_enter` | Apertura di una chat in `ChatDetailScreen` |
+
+Trigger esplicitamente vietati: back, cambio tab, apertura media, progress in corso, errori. Il cooldown da 12 minuti garantisce che qualsiasi trigger consecutivo venga silenziosamente ignorato.
 
 ### Propagazione stato ads in AppNavigation
 

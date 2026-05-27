@@ -257,6 +257,15 @@ private fun NavGraphBuilder.rootModeGraph(
             composable(Screen.Dashboard.route) {
                 val scope = androidx.compose.runtime.rememberCoroutineScope()
                 val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+                val context = LocalContext.current
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    context.findActivity()?.let { activity ->
+                        mainViewModel.tryShowInterstitialAfterLongOperation(
+                            activity = activity,
+                            source = "dashboard_arrived",
+                        )
+                    }
+                }
                 DashboardScreen(
                     showNativeAds = areAdsEnabled,
                     onNavigateToMedia = {
@@ -380,6 +389,15 @@ private fun NavGraphBuilder.liteModeGraph(
         ) {
             composable(Screen.Dashboard.route) {
                 val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+                val context = LocalContext.current
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    context.findActivity()?.let { activity ->
+                        mainViewModel.tryShowInterstitialAfterLongOperation(
+                            activity = activity,
+                            source = "dashboard_arrived",
+                        )
+                    }
+                }
                 DashboardScreen(
                     showNativeAds = areAdsEnabled,
                     onNavigateToMedia = {
@@ -505,6 +523,15 @@ private fun NavGraphBuilder.sharedChatDetailRoutes(
     ) { backStackEntry ->
         val chatId = backStackEntry.arguments?.getLong("chatId") ?: return@composable
         val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
+        val context = LocalContext.current
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            context.findActivity()?.let { activity ->
+                mainViewModel.tryShowInterstitialAfterLongOperation(
+                    activity = activity,
+                    source = "chat_detail_enter",
+                )
+            }
+        }
         ChatDetailScreen(
             chatId = chatId,
             onNavigateBack = { navController.popBackStack() },
