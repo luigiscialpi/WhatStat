@@ -2,6 +2,7 @@ package com.whatstats.data.store
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -30,6 +31,7 @@ class AppPreferencesStore
         companion object {
             private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
             private val LANGUAGE_KEY = stringPreferencesKey("app_language")
+            private val TUTORIAL_SEEN_KEY = booleanPreferencesKey("tutorial_seen")
         }
 
         val themeMode: Flow<ThemeMode> =
@@ -56,6 +58,17 @@ class AppPreferencesStore
         suspend fun setLanguage(langCode: String) {
             dataStore.edit { preferences ->
                 preferences[LANGUAGE_KEY] = langCode
+            }
+        }
+
+        val hasSeenTutorial: Flow<Boolean> =
+            dataStore.data.map { preferences ->
+                preferences[TUTORIAL_SEEN_KEY] ?: false
+            }
+
+        suspend fun setTutorialSeen(seen: Boolean = true) {
+            dataStore.edit { preferences ->
+                preferences[TUTORIAL_SEEN_KEY] = seen
             }
         }
     }

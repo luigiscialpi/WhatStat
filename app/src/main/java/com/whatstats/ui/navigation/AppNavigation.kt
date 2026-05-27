@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,6 +42,7 @@ import com.whatstats.ui.screen.media.mediaStatsScreen
 import com.whatstats.ui.screen.setup.LiteSetupViewModel
 import com.whatstats.ui.screen.setup.senderSelectionDialog
 import com.whatstats.ui.screen.setup.setupScreen
+import com.whatstats.ui.screen.tutorial.TutorialOverlay
 import com.whatstats.ui.screen.wordsearch.WordSearchScreen
 import kotlinx.coroutines.launch
 
@@ -118,6 +120,8 @@ fun appNavigation(
 
     val isLiteMode by mainViewModel.isLiteMode.collectAsState()
     val adsUiState by mainViewModel.adsUiState.collectAsState()
+    val hasSeenTutorial by mainViewModel.hasSeenTutorial.collectAsState()
+    val showTutorial by mainViewModel.showTutorial.collectAsState()
 
     // Quando arriva un URI da share intent e NON siamo su Setup,
     // naviga a Setup per consumare l'URI.
@@ -133,34 +137,48 @@ fun appNavigation(
         }
     }
 
-    AppScaffold(
-        navController = navController,
-        currentDestination = currentDestination,
-        isLiteMode = isLiteMode,
-        showBannerAd = adsUiState.shouldShowBanner,
-    ) { innerPadding ->
-        NavHost(
+    LaunchedEffect(hasSeenTutorial, showTutorial) {
+        if (!hasSeenTutorial && !showTutorial) {
+            mainViewModel.requestTutorial()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AppScaffold(
             navController = navController,
-            startDestination = NavGraphRoute.SETUP,
-            route = "app_graph",
-            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
-        ) {
-            setupGraph(
+            currentDestination = currentDestination,
+            isLiteMode = isLiteMode,
+            showBannerAd = adsUiState.shouldShowBanner,
+        ) { innerPadding ->
+            NavHost(
                 navController = navController,
-                mainViewModel = mainViewModel,
-                resolveTargetGraph = {
-                    if (mainViewModel.isLiteMode.value) NavGraphRoute.LITE else NavGraphRoute.ROOT
-                },
-            )
-            rootModeGraph(
-                navController = navController,
-                repository = repository,
-                mainViewModel = mainViewModel,
-            )
-            liteModeGraph(
-                navController = navController,
-                mainViewModel = mainViewModel,
-                onResetLite = { mainViewModel.resetLiteMode() },
+                startDestination = NavGraphRoute.SETUP,
+                route = "app_graph",
+                modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
+            ) {
+                setupGraph(
+                    navController = navController,
+                    mainViewModel = mainViewModel,
+                    resolveTargetGraph = {
+                        if (mainViewModel.isLiteMode.value) NavGraphRoute.LITE else NavGraphRoute.ROOT
+                    },
+                )
+                rootModeGraph(
+                    navController = navController,
+                    repository = repository,
+                    mainViewModel = mainViewModel,
+                )
+                liteModeGraph(
+                    navController = navController,
+                    mainViewModel = mainViewModel,
+                    onResetLite = { mainViewModel.resetLiteMode() },
+                )
+            }
+        }
+
+        if (showTutorial) {
+            TutorialOverlay(
+                onComplete = { mainViewModel.completeTutorial() },
             )
         }
     }

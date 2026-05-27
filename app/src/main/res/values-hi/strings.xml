@@ -321,6 +321,35 @@
     <string name="time_range_custom">कस्टम</string>
     <string name="time_range_custom_button">कस्टम</string>
 
+    <!-- Tutorial -->
+    <string name="drawer_tutorial">ट्यूटोरियल</string>
+    <string name="tutorial_skip">छोड़ें</string>
+    <string name="tutorial_next">आगे</string>
+    <string name="tutorial_start">शुरू करें</string>
+    <string name="tutorial_title_welcome">WhatStat में आपका स्वागत है</string>
+    <string name="tutorial_desc_welcome">अपनी WhatsApp चैट सुरक्षित तरीके से विश्लेषित करें। आपका डेटा कभी डिवाइस से बाहर नहीं जाता।</string>
+    <string name="tutorial_title_modes">दो मोड</string>
+    <string name="tutorial_desc_modes">Root: लाइव डेटाबेस से पूरी विश्लेषण। Lite: बिना root WhatsApp एक्सपोर्ट ZIP आयात करें।</string>
+    <string name="tutorial_title_import">चैट कैसे आयात करें</string>
+    <string name="tutorial_import_step_1">अपने डिवाइस पर WhatsApp खोलें।</string>
+    <string name="tutorial_import_step_2">एक चैट खोलें, ऊपर दाईं ओर तीन डॉट्स (...) दबाएं, फिर Export chat चुनें।</string>
+    <string name="tutorial_import_step_3">Include media (अनुशंसित) चुनें, फिर Share दबाएं।</string>
+    <string name="tutorial_import_step_4">शेयर मेनू से WhatStat चुनें, या ZIP सेव करके मैन्युअली आयात करें।</string>
+    <string name="tutorial_title_dashboard">डैशबोर्ड और सांख्यिकी</string>
+    <string name="tutorial_desc_dashboard">कुल, गतिविधि चार्ट, प्रेषक विभाजन और रुझान एक नजर में देखें।</string>
+    <string name="tutorial_title_radar">वर्ड रडार</string>
+    <string name="tutorial_desc_radar">चैट में शब्द खोजें, प्रेषक-विभाजन, प्रीव्यू और उन्नत फिल्टर के साथ।</string>
+    <string name="tutorial_title_media">मीडिया गैलरी</string>
+    <string name="tutorial_desc_media">फोटो, वीडियो, ऑडियो और लिंक को समृद्ध सांख्यिकी और त्वरित प्रीव्यू के साथ देखें।</string>
+    <string name="tutorial_title_ready">तैयार</string>
+    <string name="tutorial_radar_search_example">कोई शब्द या वाक्यांश खोजें…</string>
+    <string name="tutorial_radar_keyword">घर</string>
+    <string name="tutorial_radar_preview_before">“… kal</string>
+    <string name="tutorial_radar_preview_after">dekha, kya tum bhi yahi dhundh rahe the? …”</string>
+    <string name="tutorial_modes_root_sub">लाइव DB का पूर्ण विश्लेषण, रूट जरूरी।</string>
+    <string name="tutorial_modes_lite_sub">WhatsApp ZIP आयात करें, रूट जरूरी नहीं।</string>
+    <string name="tutorial_desc_ready">पहला विश्लेषण शुरू करने के लिए शुरू करें दबाएं। इस ट्यूटोरियल को आप कभी भी मेनू से फिर खोल सकते हैं।</string>
+
     <!-- Drawer -->
     <string name="drawer_app_name">WhatStat</string>
     <string name="whatstat_drawer_theme">ऐप थीम</string>

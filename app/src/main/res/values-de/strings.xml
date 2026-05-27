@@ -321,6 +321,35 @@
     <string name="time_range_custom">Benutzerdefiniert</string>
     <string name="time_range_custom_button">Benutzerdefiniert</string>
 
+    <!-- Tutorial -->
+    <string name="drawer_tutorial">Tutorial</string>
+    <string name="tutorial_skip">Ueberspringen</string>
+    <string name="tutorial_next">Weiter</string>
+    <string name="tutorial_start">Los geht\'s</string>
+    <string name="tutorial_title_welcome">Willkommen bei WhatStat</string>
+    <string name="tutorial_desc_welcome">Analysieren Sie Ihre WhatsApp-Chats sicher. Ihre Daten verlassen das Geraet nie.</string>
+    <string name="tutorial_title_modes">Zwei Modi</string>
+    <string name="tutorial_desc_modes">Root: vollstaendige Analyse aus der Live-Datenbank. Lite: WhatsApp-Export-ZIP ohne Root importieren.</string>
+    <string name="tutorial_title_import">So importieren Sie einen Chat</string>
+    <string name="tutorial_import_step_1">Oeffnen Sie WhatsApp auf Ihrem Geraet.</string>
+    <string name="tutorial_import_step_2">Oeffnen Sie einen Chat, tippen Sie oben rechts auf die drei Punkte (...) und dann auf Chat exportieren.</string>
+    <string name="tutorial_import_step_3">Waehlen Sie Medien einschliessen (empfohlen) und tippen Sie auf Teilen.</string>
+    <string name="tutorial_import_step_4">Waehlen Sie WhatStat im Teilen-Menue oder speichern Sie die ZIP und importieren Sie sie manuell.</string>
+    <string name="tutorial_title_dashboard">Dashboard und Statistiken</string>
+    <string name="tutorial_desc_dashboard">Sehen Sie Summen, Aktivitaetsdiagramme, Absender-Breakdowns und Trends auf einen Blick.</string>
+    <string name="tutorial_radar_search_example">Ein Wort oder Satz suchen…</string>
+    <string name="tutorial_radar_keyword">Haus</string>
+    <string name="tutorial_radar_preview_before">„… habe das</string>
+    <string name="tutorial_radar_preview_after">gestern gesehen, suchtest du dasselbe? …“</string>
+    <string name="tutorial_modes_root_sub">Vollstaendige Live-DB-Analyse, Root erforderlich.</string>
+    <string name="tutorial_modes_lite_sub">ZIP-Export importieren, kein Root noetig.</string>
+    <string name="tutorial_title_radar">Wort-Radar</string>
+    <string name="tutorial_desc_radar">Suchen Sie Woerter in Chats mit Absender-Breakdown, Vorschau und erweiterten Filtern.</string>
+    <string name="tutorial_title_media">Mediengalerie</string>
+    <string name="tutorial_desc_media">Entdecken Sie Fotos, Videos, Audio und Links mit umfangreichen Statistiken und schnellen Vorschauen.</string>
+    <string name="tutorial_title_ready">Bereit</string>
+    <string name="tutorial_desc_ready">Tippen Sie auf Los geht\'s fuer Ihre erste Analyse. Dieses Tutorial koennen Sie jederzeit ueber das Menue erneut oeffnen.</string>
+
     <!-- Drawer -->
     <string name="drawer_app_name">WhatStat</string>
     <string name="whatstat_drawer_theme">App-Design</string>

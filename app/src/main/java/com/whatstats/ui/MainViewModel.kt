@@ -54,6 +54,16 @@ class MainViewModel
                 initialValue = "system",
             )
 
+        val hasSeenTutorial: StateFlow<Boolean> =
+            appPreferencesStore.hasSeenTutorial.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = true,
+            )
+
+        private val _showTutorial = MutableStateFlow(false)
+        val showTutorial: StateFlow<Boolean> = _showTutorial.asStateFlow()
+
         fun setThemeMode(mode: ThemeMode) {
             viewModelScope.launch {
                 appPreferencesStore.setThemeMode(mode)
@@ -71,6 +81,21 @@ class MainViewModel
 
         fun setIncomingZipUri(uri: String?) {
             _incomingZipUri.value = uri
+        }
+
+        fun requestTutorial() {
+            _showTutorial.value = true
+        }
+
+        fun dismissTutorial() {
+            _showTutorial.value = false
+        }
+
+        fun completeTutorial() {
+            viewModelScope.launch {
+                appPreferencesStore.setTutorialSeen(true)
+                _showTutorial.value = false
+            }
         }
 
         fun purchasePro(activity: Activity) {

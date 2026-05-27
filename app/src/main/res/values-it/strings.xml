@@ -114,7 +114,7 @@
     <string name="stat_total_messages">Messaggi totali</string>
     <string name="stat_avg_per_day">Media/giorno</string>
     <string name="stat_active_chats">Chat attive</string>
-    <string name="stat_longest_streak">Streak più lungo</string>
+    <string name="stat_longest_streak">Striscia più lunga</string>
     <string name="stat_streak_days">%d giorni</string>
     <string name="stat_contacts">Contatti</string>
     <string name="stat_total_media">File media</string>
@@ -320,6 +320,39 @@
     <string name="time_range_year">Anno</string>
     <string name="time_range_custom">Personalizzato</string>
     <string name="time_range_custom_button">Personalizzato</string>
+
+    <!-- Tutorial -->
+    <string name="drawer_tutorial">Tutorial</string>
+    <string name="tutorial_skip">Salta</string>
+    <string name="tutorial_next">Avanti</string>
+    <string name="tutorial_start">Inizia</string>
+    <string name="tutorial_title_welcome">Benvenuto in WhatStat</string>
+    <string name="tutorial_desc_welcome">Analizza le tue chat WhatsApp in sicurezza. I tuoi dati non lasciano mai il dispositivo.</string>
+    <string name="tutorial_title_modes">Due modalità</string>
+    <string name="tutorial_desc_modes">Root: analisi completa dal database live. Lite: importa il file ZIP creato da WhatsApp con Esporta chat, senza root.</string>
+    <string name="tutorial_title_import">Come importare una chat</string>
+    <string name="tutorial_import_step_1">Apri WhatsApp sul tuo dispositivo.</string>
+    <string name="tutorial_import_step_2">Apri una chat, tocca i tre puntini (...) in alto a destra, poi tocca Esporta chat.</string>
+    <string name="tutorial_import_step_3">Scegli Includi media (consigliato), poi tocca Condividi.</string>
+    <string name="tutorial_import_step_4">Seleziona WhatStat dal menu di condivisione, oppure salva lo ZIP e importalo manualmente.</string>
+    <string name="tutorial_title_dashboard">Dashboard e statistiche</string>
+    <string name="tutorial_desc_dashboard">Guarda totali, grafici attività, breakdown per mittente e trend in un colpo d\'occhio.</string>
+    <string name="tutorial_title_radar">Radar parole</string>
+    <string name="tutorial_desc_radar">Cerca parole nelle chat con breakdown per mittente e anteprime complete dei messaggi, piu filtri avanzati.</string>
+    <string name="tutorial_radar_previews_badge">Anteprime messaggi in evidenza</string>
+    <string name="tutorial_radar_search_example">Cerca una parola o frase…</string>
+    <string name="tutorial_radar_keyword">casa</string>
+    <string name="tutorial_radar_preview_before">“… ho visto la</string>
+    <string name="tutorial_radar_preview_after">ieri, stavi cercando la stessa cosa? …”</string>
+    <string name="tutorial_radar_preview_1">[Anteprima] "... ti mando il file domani ..."</string>
+    <string name="tutorial_radar_preview_2">[Anteprima] "... dove hai visto quella parola?"</string>
+    <string name="tutorial_radar_preview_3">[Anteprima] "... controllo nelle anteprime prima ..."</string>
+    <string name="tutorial_modes_root_sub">Analisi completa dal DB live, richiede root.</string>
+    <string name="tutorial_modes_lite_sub">Importa ZIP da WhatsApp, senza root.</string>
+    <string name="tutorial_title_media">Galleria media</string>
+    <string name="tutorial_desc_media">Esplora foto, video, audio e link con statistiche ricche e anteprime rapide.</string>
+    <string name="tutorial_title_ready">Pronto</string>
+    <string name="tutorial_desc_ready">Tocca Inizia per avviare la tua prima analisi. Puoi riaprire questo tutorial dal menu in qualsiasi momento.</string>
 
     <!-- Drawer -->
     <string name="drawer_app_name">WhatStat</string>

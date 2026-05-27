@@ -321,6 +321,35 @@
     <string name="time_range_custom">Personalizado</string>
     <string name="time_range_custom_button">Personalizado</string>
 
+    <!-- Tutorial -->
+    <string name="drawer_tutorial">Tutorial</string>
+    <string name="tutorial_skip">Saltar</string>
+    <string name="tutorial_next">Siguiente</string>
+    <string name="tutorial_start">Comenzar</string>
+    <string name="tutorial_title_welcome">Bienvenido a WhatStat</string>
+    <string name="tutorial_desc_welcome">Analiza tus chats de WhatsApp de forma segura. Tus datos nunca salen del dispositivo.</string>
+    <string name="tutorial_title_modes">Dos modos</string>
+    <string name="tutorial_desc_modes">Root: analisis completo desde la base de datos en vivo. Lite: importa un ZIP exportado de WhatsApp sin root.</string>
+    <string name="tutorial_title_import">Como importar un chat</string>
+    <string name="tutorial_import_step_1">Abre WhatsApp en tu dispositivo.</string>
+    <string name="tutorial_import_step_2">Abre un chat, toca los tres puntos (...) arriba a la derecha y luego toca Exportar chat.</string>
+    <string name="tutorial_import_step_3">Elige Incluir archivos multimedia (recomendado) y toca Compartir.</string>
+    <string name="tutorial_import_step_4">Selecciona WhatStat en el menu de compartir, o guarda el ZIP e importalo manualmente.</string>
+    <string name="tutorial_title_dashboard">Panel y estadisticas</string>
+    <string name="tutorial_desc_dashboard">Ve totales, graficos de actividad, desglose por remitente y tendencias de un vistazo.</string>
+    <string name="tutorial_radar_search_example">Buscar una palabra o frase…</string>
+    <string name="tutorial_radar_keyword">casa</string>
+    <string name="tutorial_radar_preview_before">“… vi la</string>
+    <string name="tutorial_radar_preview_after">ayer, ¿tambien la buscabas? …”</string>
+    <string name="tutorial_modes_root_sub">Analisis completo del DB live, requiere root.</string>
+    <string name="tutorial_modes_lite_sub">Importa el ZIP de WhatsApp, sin root.</string>
+    <string name="tutorial_title_radar">Radar de palabras</string>
+    <string name="tutorial_desc_radar">Busca palabras en chats con desglose por remitente, vista previa y filtros avanzados.</string>
+    <string name="tutorial_title_media">Galeria multimedia</string>
+    <string name="tutorial_desc_media">Explora fotos, videos, audios y enlaces con estadisticas completas y vistas rapidas.</string>
+    <string name="tutorial_title_ready">Listo</string>
+    <string name="tutorial_desc_ready">Toca Comenzar para iniciar tu primer analisis. Puedes abrir este tutorial de nuevo desde el menu cuando quieras.</string>
+
     <!-- Drawer -->
     <string name="drawer_app_name">WhatStat</string>
     <string name="whatstat_drawer_theme">Tema de la app</string>

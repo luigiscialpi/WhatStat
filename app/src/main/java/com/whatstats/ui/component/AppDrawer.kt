@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.BrightnessMedium
 import androidx.compose.material.icons.outlined.Cached
 import androidx.compose.material.icons.outlined.Info
@@ -118,6 +119,15 @@ fun AppDrawerContent(
                     label = stringResource(R.string.whatstat_drawer_language),
                     onClick = {
                         showLanguageDialog = true
+                        closeDrawer()
+                    },
+                )
+
+                DrawerItem(
+                    icon = Icons.AutoMirrored.Outlined.HelpOutline,
+                    label = stringResource(R.string.drawer_tutorial),
+                    onClick = {
+                        mainViewModel.requestTutorial()
                         closeDrawer()
                     },
                 )

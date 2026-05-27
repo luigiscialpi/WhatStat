@@ -321,6 +321,35 @@
     <string name="time_range_custom">Personalizado</string>
     <string name="time_range_custom_button">Personalizado</string>
 
+    <!-- Tutorial -->
+    <string name="drawer_tutorial">Tutorial</string>
+    <string name="tutorial_skip">Pular</string>
+    <string name="tutorial_next">Avancar</string>
+    <string name="tutorial_start">Comecar</string>
+    <string name="tutorial_title_welcome">Bem-vindo ao WhatStat</string>
+    <string name="tutorial_desc_welcome">Analise suas conversas do WhatsApp com seguranca. Seus dados nunca saem do dispositivo.</string>
+    <string name="tutorial_title_modes">Dois modos</string>
+    <string name="tutorial_desc_modes">Root: analise completa do banco ao vivo. Lite: importe um ZIP exportado do WhatsApp sem root.</string>
+    <string name="tutorial_title_import">Como importar uma conversa</string>
+    <string name="tutorial_import_step_1">Abra o WhatsApp no seu dispositivo.</string>
+    <string name="tutorial_import_step_2">Abra uma conversa, toque nos tres pontos (...) no canto superior direito e depois em Exportar conversa.</string>
+    <string name="tutorial_import_step_3">Escolha Incluir midia (recomendado) e toque em Compartilhar.</string>
+    <string name="tutorial_import_step_4">Selecione WhatStat no menu de compartilhamento ou salve o ZIP e importe manualmente.</string>
+    <string name="tutorial_title_dashboard">Painel e estatisticas</string>
+    <string name="tutorial_desc_dashboard">Veja totais, graficos de atividade, distribuicao por remetente e tendencias rapidamente.</string>
+    <string name="tutorial_title_radar">Radar de palavras</string>
+    <string name="tutorial_desc_radar">Busque palavras nas conversas com distribuicao por remetente, pre-visualizacao e filtros avancados.</string>
+    <string name="tutorial_title_media">Galeria de midia</string>
+    <string name="tutorial_desc_media">Explore fotos, videos, audios e links com estatisticas ricas e pre-visualizacoes rapidas.</string>
+    <string name="tutorial_title_ready">Pronto</string>
+    <string name="tutorial_radar_search_example">Buscar uma palavra ou frase…</string>
+    <string name="tutorial_radar_keyword">casa</string>
+    <string name="tutorial_radar_preview_before">“… vi a</string>
+    <string name="tutorial_radar_preview_after">ontem, voce tambem estava procurando? …”</string>
+    <string name="tutorial_modes_root_sub">Analise completa do DB ao vivo, requer root.</string>
+    <string name="tutorial_modes_lite_sub">Importar ZIP do WhatsApp, sem root.</string>
+    <string name="tutorial_desc_ready">Toque em Comecar para iniciar sua primeira analise. Voce pode reabrir este tutorial pelo menu a qualquer momento.</string>
+
     <!-- Drawer -->
     <string name="drawer_app_name">WhatStat</string>
     <string name="whatstat_drawer_theme">Tema do app</string>

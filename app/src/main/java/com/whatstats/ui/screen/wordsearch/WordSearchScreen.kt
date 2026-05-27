@@ -377,6 +377,15 @@ fun WordSearchScreen(
                                         modifier =
                                             Modifier
                                                 .fillMaxWidth()
+                                                .clickable {
+                                                    // Sposta il click a tutta la riga per caricare i messaggi del mittente e mostrare il bottom sheet
+                                                    viewModel.loadMessagesForSender(
+                                                        senderJid = result.jid,
+                                                        senderName =
+                                                            result.displayName
+                                                                ?: result.jid.substringBefore("@"),
+                                                    )
+                                                }
                                                 .padding(16.dp),
                                         horizontalArrangement = Arrangement.Start,
                                         verticalAlignment = Alignment.CenterVertically,
@@ -428,14 +437,6 @@ fun WordSearchScreen(
                                                 Modifier
                                                     .clip(RoundedCornerShape(8.dp))
                                                     .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f))
-                                                    .clickable {
-                                                        viewModel.loadMessagesForSender(
-                                                            senderJid = result.jid,
-                                                            senderName =
-                                                                result.displayName
-                                                                    ?: result.jid.substringBefore("@"),
-                                                        )
-                                                    }
                                                     .padding(horizontal = 10.dp, vertical = 6.dp),
                                         ) {
                                             Text(

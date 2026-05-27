@@ -321,6 +321,35 @@
     <string name="time_range_custom">Özel</string>
     <string name="time_range_custom_button">Özelleştir</string>
 
+    <!-- Tutorial -->
+    <string name="drawer_tutorial">Ogretici</string>
+    <string name="tutorial_skip">Gec</string>
+    <string name="tutorial_next">Ileri</string>
+    <string name="tutorial_start">Basla</string>
+    <string name="tutorial_title_welcome">WhatStat\'e hos geldiniz</string>
+    <string name="tutorial_desc_welcome">WhatsApp sohbetlerinizi guvenle analiz edin. Verileriniz cihazdan cikmaz.</string>
+    <string name="tutorial_title_modes">Iki mod</string>
+    <string name="tutorial_desc_modes">Root: canli veritabanindan tam analiz. Lite: root olmadan WhatsApp disa aktarim ZIP dosyasini ice aktar.</string>
+    <string name="tutorial_title_import">Sohbet nasil ice aktarilir</string>
+    <string name="tutorial_import_step_1">Cihazinizda WhatsApp\'i acin.</string>
+    <string name="tutorial_import_step_2">Bir sohbet acin, sag ustteki uc noktaya (...) dokunun, sonra Sohbeti disa aktar secin.</string>
+    <string name="tutorial_import_step_3">Medyayi dahil et (onerilen) secin, sonra Paylas\'a dokunun.</string>
+    <string name="tutorial_import_step_4">Paylasim menusunden WhatStat\'i secin veya ZIP\'i kaydedip manuel ice aktarim yapin.</string>
+    <string name="tutorial_title_dashboard">Panel ve istatistikler</string>
+    <string name="tutorial_desc_dashboard">Toplamlar, aktivite grafiklerini, gonderen dagilimlarini ve trendleri tek bakista gorun.</string>
+    <string name="tutorial_title_radar">Kelime radari</string>
+    <string name="tutorial_desc_radar">Sohbetlerde kelime arayin; gonderen dagilimi, onizleme ve gelismis filtrelerle.</string>
+    <string name="tutorial_title_media">Medya galerisi</string>
+    <string name="tutorial_desc_media">Fotograf, video, ses ve baglantilari zengin istatistikler ve hizli onizleme ile kesfedin.</string>
+    <string name="tutorial_title_ready">Hazir</string>
+    <string name="tutorial_radar_search_example">Bir kelime veya ifade ara…</string>
+    <string name="tutorial_radar_keyword">ev</string>
+    <string name="tutorial_radar_preview_before">“… dun</string>
+    <string name="tutorial_radar_preview_after">gordum, sen de ayni seyi ariyor muydun? …”</string>
+    <string name="tutorial_modes_root_sub">Canli DB tam analiz, root gerektirir.</string>
+    <string name="tutorial_modes_lite_sub">WhatsApp ZIP dosyasini iceri aktar, root gerekmez.</string>
+    <string name="tutorial_desc_ready">Ilk analiziniz icin Basla\'ya dokunun. Bu ogreticiyi menuden istediginiz zaman yeniden acabilirsiniz.</string>
+
     <!-- Drawer -->
     <string name="drawer_app_name">WhatStat</string>
     <string name="whatstat_drawer_theme">Uygulama teması</string>
