@@ -47,6 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.whatstats.BuildConfig
 import com.whatstats.MainActivity
 import com.whatstats.R
 import com.whatstats.data.store.ThemeMode
@@ -244,7 +245,7 @@ fun AppDrawerContent(
                 title = { Text(stringResource(R.string.dialog_about_title)) },
                 text = {
                     Text(
-                        stringResource(R.string.dialog_about_message),
+                        stringResource(R.string.dialog_about_message, BuildConfig.VERSION_NAME),
                     )
                 },
                 confirmButton = {

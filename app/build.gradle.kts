@@ -24,8 +24,8 @@ android {
         applicationId = "com.whatstats"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.2.0"
+        versionCode = 7
+        versionName = "1.2.1"
         val proProductId = (project.findProperty("PRO_PRODUCT_ID") ?: localProps.getProperty("PRO_PRODUCT_ID") ?: "whatstat_pro").toString()
         val admobAppId =
             project
@@ -51,6 +51,7 @@ android {
                 ?.toString()
                 ?: localProps.getProperty("ADMOB_INTERSTITIAL_UNIT_ID")
                 ?: "ca-app-pub-3940256099942544/1033173712"
+        buildConfigField("String", "VERSION_NAME", "\"$versionName\"")
         buildConfigField("String", "PRO_PRODUCT_ID", "\"${proProductId.replace("\"", "\\\"")}\"")
         buildConfigField("String", "ADMOB_APP_ID", "\"${admobAppId.replace("\"", "\\\"")}\"")
         buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"${admobBannerUnitId.replace("\"", "\\\"")}\"")

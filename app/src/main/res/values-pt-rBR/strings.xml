@@ -347,7 +347,7 @@
     <string name="dialog_clear_data_message_both">Isso excluirá permanentemente todos os dados: banco de dados Root, todos os chats Lite importados, arquivos de mídia e cache. Será necessário executar o setup novamente.</string>
     <string name="dialog_clear">Excluir</string>
     <string name="dialog_about_title">Informações</string>
-    <string name="dialog_about_message">WhatStat\nVersão: 1.0\n\nWhatStat processa suas conversas do WhatsApp inteiramente localmente. Nenhum dado é enviado a servidores externos.</string>
+    <string name="dialog_about_message">WhatStat\nVersão: %s\n\nWhatStat processa suas conversas do WhatsApp inteiramente localmente. Nenhum dado é enviado a servidores externos.</string>
     <string name="dialog_close">Fechar</string>
     <string name="loading_calculating">Calculando...</string>
 

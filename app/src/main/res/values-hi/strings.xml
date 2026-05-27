@@ -347,7 +347,7 @@
     <string name="dialog_clear_data_message_both">इससे सभी डेटा स्थायी रूप से हट जाएगा: Root डेटाबेस, सभी आयातित Lite चैट, मीडिया फ़ाइलें और कैशे। आपको सेटअप फिर से चलाना होगा।</string>
     <string name="dialog_clear">हटाएं</string>
     <string name="dialog_about_title">जानकारी</string>
-    <string name="dialog_about_message">WhatStat\nसंस्करण: 1.0\n\nWhatStat आपके WhatsApp चैट को पूरी तरह स्थानीय रूप से प्रोसेस करता है। कोई भी डेटा बाहरी सर्वर पर नहीं भेजा जाता है।</string>
+    <string name="dialog_about_message">WhatStat\nसंस्करण: %s\n\nWhatStat आपके WhatsApp चैट को पूरी तरह स्थानीय रूप से प्रोसेस करता है। कोई भी डेटा बाहरी सर्वर पर नहीं भेजा जाता है।</string>
     <string name="dialog_close">बंद करें</string>
     <string name="loading_calculating">गणना हो रही है...</string>
 

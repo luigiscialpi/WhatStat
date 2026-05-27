@@ -347,7 +347,7 @@
     <string name="dialog_clear_data_message_both">Bu işlem tüm verileri kalıcı olarak siler: Root veritabanı, tüm içe aktarılan Lite sohbetleri, medya dosyaları ve önbellek. Kurulumu yeniden çalıştırmanız gerekecek.</string>
     <string name="dialog_clear">Sil</string>
     <string name="dialog_about_title">Bilgiler</string>
-    <string name="dialog_about_message">WhatStat\nSürüm: 1.0\n\nWhatStat, WhatsApp sohbetlerinizi tamamen yerel olarak işler. Veriler dış sunuculara gönderilmez.</string>
+    <string name="dialog_about_message">WhatStat\nSürüm: %s\n\nWhatStat, WhatsApp sohbetlerinizi tamamen yerel olarak işler. Veriler dış sunuculara gönderilmez.</string>
     <string name="dialog_close">Kapat</string>
     <string name="loading_calculating">Hesaplanıyor...</string>
 

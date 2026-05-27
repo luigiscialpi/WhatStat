@@ -354,7 +354,7 @@
     <string name="dialog_clear_data_message_both">This will permanently delete all data: Root database, all imported Lite chats, media files and cache. You will need to run the setup again.</string>
     <string name="dialog_clear">Delete</string>
     <string name="dialog_about_title">Information</string>
-    <string name="dialog_about_message">WhatStat\nVersion: 1.0\n\nWhatStat processes your WhatsApp chats entirely offline. No data is sent to external servers.</string>
+    <string name="dialog_about_message">WhatStat\nVersion: %s\n\nWhatStat processes your WhatsApp chats entirely offline. No data is sent to external servers.</string>
     <string name="dialog_close">Close</string>
     <string name="loading_calculating">Calculating...</string>
 
