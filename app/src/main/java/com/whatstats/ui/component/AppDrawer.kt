@@ -105,6 +105,7 @@ fun AppDrawerContent(
 
                 HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
 
+                // Prima sezione superiore: Opzioni di configurazione dell'app (Tema, Lingua, Tutorial)
                 DrawerItem(
                     icon = Icons.Outlined.BrightnessMedium,
                     label = stringResource(R.string.whatstat_drawer_theme),
@@ -131,16 +132,10 @@ fun AppDrawerContent(
                         closeDrawer()
                     },
                 )
+            }
 
-                DrawerItem(
-                    icon = Icons.Outlined.Cached,
-                    label = stringResource(R.string.whatstat_drawer_cache),
-                    onClick = {
-                        showCacheDialog = true
-                        closeDrawer()
-                    },
-                )
-
+            // Seconda sezione inferiore: Abbonamento Pro, Opzioni Privacy, Gestione Dati e Info App
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 DrawerItem(
                     icon = Icons.Outlined.Star,
                     label = if (proBillingState.isPro) stringResource(R.string.pro_active) else stringResource(R.string.drawer_upgrade_pro),
@@ -163,10 +158,18 @@ fun AppDrawerContent(
                         },
                     )
                 }
-            }
 
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
+                DrawerItem(
+                    icon = Icons.Outlined.Cached,
+                    label = stringResource(R.string.whatstat_drawer_cache),
+                    onClick = {
+                        showCacheDialog = true
+                        closeDrawer()
+                    },
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(top = 8.dp, bottom = 8.dp))
+
                 DrawerItem(
                     icon = Icons.Outlined.Info,
                     label = stringResource(R.string.whatstat_drawer_about),
