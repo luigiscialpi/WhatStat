@@ -334,6 +334,7 @@
     <string name="pro_price_loading">Caricamento prezzo…</string>
     <string name="pro_buy_button">Sblocca Pro</string>
     <string name="pro_restore_button">Ripristina acquisto</string>
+    <string name="drawer_ads_privacy_options">Opzioni sulla privacy degli annunci</string>
     <string name="whatstat_drawer_about">Informazioni</string>
     <string name="dialog_choose_theme">Scegli Tema</string>
     <string name="theme_system_default">Predefinito di sistema</string>

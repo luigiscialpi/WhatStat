@@ -334,6 +334,7 @@
     <string name="pro_price_loading">कीमत लोड हो रही है…</string>
     <string name="pro_buy_button">Pro अनलॉक करें</string>
     <string name="pro_restore_button">खरीदारी पुनर्स्थापित करें</string>
+    <string name="drawer_ads_privacy_options">विज्ञापन गोपनीयता विकल्प</string>
     <string name="whatstat_drawer_about">जानकारी</string>
     <string name="dialog_choose_theme">थीम चुनें</string>
     <string name="theme_system_default">सिस्टम डिफ़ॉल्ट</string>

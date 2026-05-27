@@ -334,6 +334,7 @@
     <string name="pro_price_loading">Fiyat yükleniyor…</string>
     <string name="pro_buy_button">Pro\'yu etkinleştir</string>
     <string name="pro_restore_button">Satın almayı geri yükle</string>
+    <string name="drawer_ads_privacy_options">Reklam gizlilik seçenekleri</string>
     <string name="whatstat_drawer_about">Bilgiler</string>
     <string name="dialog_choose_theme">Tema seç</string>
     <string name="theme_system_default">Sistem varsayılanı</string>

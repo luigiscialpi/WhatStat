@@ -25,7 +25,7 @@
     <string name="add_zip_title">Ajouter un ZIP</string>
     <string name="select_zip_file">SÉLECTIONNER UN FICHIER ZIP</string>
     <string name="processing_label">Traitement en cours...</string>
-    <string name="nav_dashboard">Tableau de bord</string>
+    <string name="nav_dashboard">Synthèse</string>
     <string name="nav_chats">Chat</string>
     <string name="nav_media">Médias</string>
     <string name="nav_radar">Radar</string>
@@ -333,6 +333,7 @@
     <string name="pro_price_loading">Chargement du prix…</string>
     <string name="pro_buy_button">Débloquer Pro</string>
     <string name="pro_restore_button">Restaurer l\'achat</string>
+    <string name="drawer_ads_privacy_options">Options de confidentialité des publicités</string>
     <string name="whatstat_drawer_about">Informations</string>
     <string name="dialog_choose_theme">Choisir le thème</string>
     <string name="theme_system_default">Système par défaut</string>
