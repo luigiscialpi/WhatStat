@@ -109,11 +109,11 @@ class DashboardViewModel
                             }
                         }
                 }
-                // Osserva i rename di chat Lite: aggiorna solo il nome della chat piu' attiva
-                // senza ricaricare tutte le statistiche pesanti del dashboard.
+                // Osserva i rename di chat Lite: ricarica stats per aggiornare nomi ovunque.
+                // Il rename e' raro (1x per sessione), il costo e' accettabile.
                 viewModelScope.launch {
                     analyticsRepository.liteRenameVersion.collect { _ ->
-                        refreshMostActiveChatName()
+                        loadStats(forceRefresh = true)
                     }
                 }
             }
@@ -285,42 +285,6 @@ class DashboardViewModel
                     _selectedTimeRange.value = TimeRange.ALL_TIME
                     filterState.setGlobal(TimeRange.ALL_TIME)
                     loadStats()
-                }
-            }
-        }
-
-        /**
-         * Ricarica solo il nome della chat piu' attiva ri-interrogando il DB
-         * senza ricaricare i conteggi dei messaggi o le distribuzioni.
-         */
-        private fun refreshMostActiveChatName() {
-            viewModelScope.launch(Dispatchers.IO) {
-                runCatching {
-                    val (startTime, endTime) =
-                        if (_selectedTimeRange.value == TimeRange.CUSTOM) {
-                            _customDateRange.value?.let {
-                                analyticsRepository.getDateRangeBounds(it)
-                            } ?: (null to null)
-                        } else {
-                            analyticsRepository.getTimeRangeBounds(_selectedTimeRange.value, _customDateRange.value)
-                        }
-
-                    // Ricarichiamo solo il JID e lo risolviamo di nuovo
-                    val quickStats =
-                        analyticsRepository.getQuickGlobalStats(
-                            timeRange = _selectedTimeRange.value,
-                            customRange = _customDateRange.value,
-                            // Forziamo per bypassare la cache vecchia nell'AnalyticsRepository
-                            forceRefresh = true,
-                        )
-
-                    _globalStats.value =
-                        _globalStats.value?.copy(
-                            mostActiveChat = quickStats.mostActiveChat,
-                            mostActiveChatId = quickStats.mostActiveChatId,
-                        )
-                }.onFailure { e ->
-                    android.util.Log.w("WhatStat", "refreshMostActiveChatName failed: ${e.message}")
                 }
             }
         }

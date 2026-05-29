@@ -16,6 +16,7 @@ import com.whatstats.data.db.model.EmojiStat
 import com.whatstats.data.db.model.HourlyCount
 import com.whatstats.data.db.model.LinkStat
 import com.whatstats.data.db.model.MediaStat
+import com.whatstats.data.db.model.SenderStat
 import com.whatstats.data.db.model.StickerStat
 import com.whatstats.data.db.model.TimeRange
 import com.whatstats.data.db.model.UrlFrequency
@@ -284,86 +285,24 @@ class AnalyticsRepository
                     val namesMap = if (allJids.isNotEmpty()) contactDao.resolveContactNames(allJids.toList()) else emptyMap()
                     val meName = context.getString(com.whatstats.R.string.fallback_me)
 
-                    val hourly =
-                        rawHourly.map { h ->
-                            h.copy(
-                                senderBreakdown =
-                                    h.senderBreakdown.map { s ->
-                                        s.copy(
-                                            displayName =
-                                                if (s.jid == "me@s.whatsapp.net") {
-                                                    meName
-                                                } else {
-                                                    namesMap[s.jid] ?: s.jid.substringBefore("@")
-                                                },
-                                        )
+                    val resolveNames: (List<SenderStat>) -> List<SenderStat> = { breakdown ->
+                        breakdown.map { s ->
+                            s.copy(
+                                displayName =
+                                    if (s.jid == "me@s.whatsapp.net") {
+                                        meName
+                                    } else {
+                                        namesMap[s.jid] ?: s.jid.substringBefore("@")
                                     },
                             )
                         }
-                    val weekly =
-                        rawWeekly.map { w ->
-                            w.copy(
-                                senderBreakdown =
-                                    w.senderBreakdown.map { s ->
-                                        s.copy(
-                                            displayName =
-                                                if (s.jid == "me@s.whatsapp.net") {
-                                                    meName
-                                                } else {
-                                                    namesMap[s.jid] ?: s.jid.substringBefore("@")
-                                                },
-                                        )
-                                    },
-                            )
-                        }
-                    val dayOfMonth =
-                        rawDayOfMonth.map { d ->
-                            d.copy(
-                                senderBreakdown =
-                                    d.senderBreakdown.map { s ->
-                                        s.copy(
-                                            displayName =
-                                                if (s.jid == "me@s.whatsapp.net") {
-                                                    meName
-                                                } else {
-                                                    namesMap[s.jid] ?: s.jid.substringBefore("@")
-                                                },
-                                        )
-                                    },
-                            )
-                        }
-                    val monthOfYear =
-                        rawMonthOfYear.map { m ->
-                            m.copy(
-                                senderBreakdown =
-                                    m.senderBreakdown.map { s ->
-                                        s.copy(
-                                            displayName =
-                                                if (s.jid == "me@s.whatsapp.net") {
-                                                    meName
-                                                } else {
-                                                    namesMap[s.jid] ?: s.jid.substringBefore("@")
-                                                },
-                                        )
-                                    },
-                            )
-                        }
-                    val yearTrend =
-                        rawYearTrend.map { y ->
-                            y.copy(
-                                senderBreakdown =
-                                    y.senderBreakdown.map { s ->
-                                        s.copy(
-                                            displayName =
-                                                if (s.jid == "me@s.whatsapp.net") {
-                                                    meName
-                                                } else {
-                                                    namesMap[s.jid] ?: s.jid.substringBefore("@")
-                                                },
-                                        )
-                                    },
-                            )
-                        }
+                    }
+
+                    val hourly = rawHourly.map { it.copy(senderBreakdown = resolveNames(it.senderBreakdown)) }
+                    val weekly = rawWeekly.map { it.copy(senderBreakdown = resolveNames(it.senderBreakdown)) }
+                    val dayOfMonth = rawDayOfMonth.map { it.copy(senderBreakdown = resolveNames(it.senderBreakdown)) }
+                    val monthOfYear = rawMonthOfYear.map { it.copy(senderBreakdown = resolveNames(it.senderBreakdown)) }
+                    val yearTrend = rawYearTrend.map { it.copy(senderBreakdown = resolveNames(it.senderBreakdown)) }
                     onProgress(80)
                     val streak = dStreak.await()
                     onProgress(90)
@@ -680,102 +619,25 @@ class AnalyticsRepository
                     val namesMap = if (allJids.isNotEmpty()) contactDao.resolveContactNames(allJids.toList()) else emptyMap()
                     val meName = context.getString(com.whatstats.R.string.fallback_me)
 
-                    val hourly =
-                        rawHourly.map { h ->
-                            h.copy(
-                                senderBreakdown =
-                                    h.senderBreakdown.map { s ->
-                                        s.copy(
-                                            displayName =
-                                                if (s.jid == "me@s.whatsapp.net") {
-                                                    meName
-                                                } else {
-                                                    namesMap[s.jid] ?: s.jid.substringBefore("@")
-                                                },
-                                        )
+                    val resolveNames: (List<SenderStat>) -> List<SenderStat> = { breakdown ->
+                        breakdown.map { s ->
+                            s.copy(
+                                displayName =
+                                    if (s.jid == "me@s.whatsapp.net") {
+                                        meName
+                                    } else {
+                                        namesMap[s.jid] ?: s.jid.substringBefore("@")
                                     },
                             )
                         }
-                    val weekly =
-                        rawWeekly.map { w ->
-                            w.copy(
-                                senderBreakdown =
-                                    w.senderBreakdown.map { s ->
-                                        s.copy(
-                                            displayName =
-                                                if (s.jid == "me@s.whatsapp.net") {
-                                                    meName
-                                                } else {
-                                                    namesMap[s.jid] ?: s.jid.substringBefore("@")
-                                                },
-                                        )
-                                    },
-                            )
-                        }
-                    val dayOfMonth =
-                        rawDayOfMonth.map { d ->
-                            d.copy(
-                                senderBreakdown =
-                                    d.senderBreakdown.map { s ->
-                                        s.copy(
-                                            displayName =
-                                                if (s.jid == "me@s.whatsapp.net") {
-                                                    meName
-                                                } else {
-                                                    namesMap[s.jid] ?: s.jid.substringBefore("@")
-                                                },
-                                        )
-                                    },
-                            )
-                        }
-                    val monthOfYear =
-                        rawMonthOfYear.map { m ->
-                            m.copy(
-                                senderBreakdown =
-                                    m.senderBreakdown.map { s ->
-                                        s.copy(
-                                            displayName =
-                                                if (s.jid == "me@s.whatsapp.net") {
-                                                    meName
-                                                } else {
-                                                    namesMap[s.jid] ?: s.jid.substringBefore("@")
-                                                },
-                                        )
-                                    },
-                            )
-                        }
-                    val yearTrend =
-                        rawYearTrend.map { y ->
-                            y.copy(
-                                senderBreakdown =
-                                    y.senderBreakdown.map { s ->
-                                        s.copy(
-                                            displayName =
-                                                if (s.jid == "me@s.whatsapp.net") {
-                                                    meName
-                                                } else {
-                                                    namesMap[s.jid] ?: s.jid.substringBefore("@")
-                                                },
-                                        )
-                                    },
-                            )
-                        }
-                    val monthly =
-                        rawMonthly.map { m ->
-                            m.copy(
-                                senderBreakdown =
-                                    m.senderBreakdown.map { s ->
-                                        s.copy(
-                                            displayName =
-                                                if (s.jid == "me@s.whatsapp.net") {
-                                                    meName
-                                                } else {
-                                                    namesMap[s.jid] ?: s.jid.substringBefore("@")
-                                                },
-                                        )
-                                    },
-                            )
-                        }
+                    }
+
+                    val hourly = rawHourly.map { it.copy(senderBreakdown = resolveNames(it.senderBreakdown)) }
+                    val weekly = rawWeekly.map { it.copy(senderBreakdown = resolveNames(it.senderBreakdown)) }
+                    val dayOfMonth = rawDayOfMonth.map { it.copy(senderBreakdown = resolveNames(it.senderBreakdown)) }
+                    val monthOfYear = rawMonthOfYear.map { it.copy(senderBreakdown = resolveNames(it.senderBreakdown)) }
+                    val yearTrend = rawYearTrend.map { it.copy(senderBreakdown = resolveNames(it.senderBreakdown)) }
+                    val monthly = rawMonthly.map { it.copy(senderBreakdown = resolveNames(it.senderBreakdown)) }
 
                     val firstTs = dFirstTs.await()
                     val lastTs = dLastTs.await()
@@ -1044,6 +906,20 @@ class AnalyticsRepository
          */
         fun getDateRangeBounds(dateRange: DateRange): Pair<Long?, Long?> {
             return dateRange.startTime to dateRange.endTime
+        }
+
+        /**
+         * Ritorna solo chatId e nome risolto della chat piu' attiva, senza ricalcolare
+         * distribuzioni o conteggi. Usato dal DashboardViewModel al rename Lite.
+         */
+        fun getMostActiveChatResolved(
+            startTime: Long?,
+            endTime: Long?,
+        ): Pair<Long?, String> {
+            val (chatId, rawName) = chatDao.getMostActiveChat(startTime, endTime)
+            if (chatId < 0) return null to rawName
+            val resolved = contactDao.resolveContactName(rawName) ?: rawName.substringBefore("@")
+            return chatId to resolved
         }
 
         /**
@@ -1871,6 +1747,7 @@ class AnalyticsRepository
 
         /**
          * Ritorna suggerimenti di parole basati sull'indice lessicale esistente.
+         * Se l'indice globale non esiste, fallback a una scansione DB limitata.
          */
         suspend fun getWordSuggestions(
             query: String,
@@ -1887,12 +1764,48 @@ class AnalyticsRepository
                         cacheManager.loadGlobalWordIndexFromDisk()
                     }
 
-                if (index == null) return@withContext emptyList()
+                if (index != null) {
+                    return@withContext index.wordFrequencies.entries
+                        .filter { it.key.startsWith(normalizedQuery) }
+                        .sortedByDescending { it.value }
+                        .take(10)
+                        .map { it.key }
+                }
 
-                index.wordFrequencies.entries
-                    .filter { it.key.startsWith(normalizedQuery) }
-                    .sortedByDescending { it.value }
-                    .take(10)
-                    .map { it.key }
+                // Fallback: scansione DB limitata quando l'indice non esiste
+                getWordSuggestionsFromDb(normalizedQuery, chatId)
             }
+
+        /**
+         * Fallback per suggerimenti: cerca messaggi contenenti il prefisso e
+         * estrae parole corrispondenti. Limitato a 500 messaggi per evitare scan pesanti.
+         */
+        private fun getWordSuggestionsFromDb(
+            prefix: String,
+            chatId: Long?,
+        ): List<String> {
+            val conditions = mutableListOf("text_data IS NOT NULL", "message_type = 0", "text_data LIKE ?")
+            val args = mutableListOf("%$prefix%")
+            if (chatId != null) {
+                conditions.add("chat_row_id = ?")
+                args.add(chatId.toString())
+            }
+            val query = "SELECT text_data FROM message WHERE ${conditions.joinToString(" AND ")} LIMIT 500"
+            val cursor = activeDatabaseProvider.getMsgDb().rawQuery(query, args.toTypedArray())
+            val wordCounts = mutableMapOf<String, Int>()
+            cursor.use {
+                while (it.moveToNext()) {
+                    val text = it.getString(0) ?: continue
+                    text.lowercase().split(Regex("[\\s\\p{Punct}]+")).forEach { word ->
+                        if (word.length > 2 && word.startsWith(prefix) && word !in MessageDao.STOP_WORDS) {
+                            wordCounts[word] = (wordCounts[word] ?: 0) + 1
+                        }
+                    }
+                }
+            }
+            return wordCounts.entries
+                .sortedByDescending { it.value }
+                .take(10)
+                .map { it.key }
+        }
     }

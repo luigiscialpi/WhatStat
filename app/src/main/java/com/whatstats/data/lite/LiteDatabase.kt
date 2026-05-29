@@ -305,5 +305,7 @@ class LiteDatabase
             database.execSQL("CREATE INDEX IF NOT EXISTS idx_message_chat_type_from ON message (chat_row_id, message_type, from_me)")
             database.execSQL("CREATE INDEX IF NOT EXISTS idx_message_sender_jid ON message (sender_jid_row_id)")
             database.execSQL("CREATE INDEX IF NOT EXISTS idx_message_media_row ON message_media (message_row_id)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS idx_chat_jid ON chat (jid_row_id)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS idx_message_type_ts ON message (message_type, timestamp)")
         }
     }

@@ -97,6 +97,7 @@ class WordSearchViewModel
         val multiWordMode: StateFlow<MultiWordMode> = _multiWordMode.asStateFlow()
 
         private var searchJob: Job? = null
+        private var suggestionsJob: Job? = null
 
         private val avatarDir: File by lazy {
             File(context.filesDir, FileExtractor.AVATAR_DIR_DEST)
@@ -215,10 +216,12 @@ class WordSearchViewModel
             if (query.isEmpty()) {
                 _results.value = emptyList()
             }
+            suggestionsJob?.cancel()
             if (query.length >= 3) {
-                viewModelScope.launch {
-                    _suggestions.value = analyticsRepository.getWordSuggestions(query, chatIdFlow.value)
-                }
+                suggestionsJob =
+                    viewModelScope.launch {
+                        _suggestions.value = analyticsRepository.getWordSuggestions(query, chatIdFlow.value)
+                    }
             } else {
                 _suggestions.value = emptyList()
             }

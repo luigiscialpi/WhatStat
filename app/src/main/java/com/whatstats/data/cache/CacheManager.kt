@@ -1132,16 +1132,12 @@ class CacheManager
             newName: String,
         ) {
             dataStore.edit { prefs ->
-                // 1. Patch Quick Chat Stats (v4)
+                // 1. Invalida Quick Chat Stats (v4).
+                // Le distribuzioni contengono senderBreakdown con displayName risolti
+                // dal JID originale — in Lite mode il JID cambia col rename, quindi
+                // il patch non e' affidabile. Invalidiamo e lasciamo ricalcolare.
                 val chatKey = stringPreferencesKey("chat_quick_${chatId}_v4")
-                prefs[chatKey]?.let { json ->
-                    try {
-                        val cached = cacheJson.decodeFromString<CachedQuickChatStats>(json)
-                        val updated = cached.copy(contactName = newName)
-                        prefs[chatKey] = cacheJson.encodeToString(updated)
-                    } catch (_: Exception) {
-                    }
-                }
+                prefs.remove(chatKey)
 
                 // 2. Patch Global Stats (v4, se la chat rinominata e' la piu' attiva)
                 val globalKey = stringPreferencesKey("global_stats_v4")

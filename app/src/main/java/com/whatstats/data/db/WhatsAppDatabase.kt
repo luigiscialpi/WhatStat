@@ -92,6 +92,9 @@ class WhatsAppDatabase
                     "CREATE INDEX IF NOT EXISTS idx_message_chat_text ON message (chat_row_id, message_type) WHERE text_data IS NOT NULL",
                 )
 
+                // Indice per query globali (senza chat_row_id): filtri su message_type + timestamp
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_message_type_ts ON message (message_type, timestamp)")
+
                 android.util.Log.d("WhatStat", "Database indexes created successfully")
             } catch (e: Exception) {
                 android.util.Log.w("WhatStat", "Failed to create some indexes: ${e.message}")

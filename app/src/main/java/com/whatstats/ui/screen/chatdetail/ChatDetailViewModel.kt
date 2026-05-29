@@ -172,11 +172,11 @@ class ChatDetailViewModel
                         loadChatStats()
                     }
                 }
-                // Osserva i rename di chat Lite: aggiorna solo il nome nell'header
-                // senza rieseguire le query pesanti di emoji, parole, ecc.
+                // Osserva i rename di chat Lite: ricarica stats per aggiornare nomi ovunque.
                 viewModelScope.launch {
                     analyticsRepository.liteRenameVersion.collect { _ ->
-                        refreshHeaderOnly()
+                        _headerInfo.value = null
+                        loadChatStats()
                     }
                 }
             } else {
