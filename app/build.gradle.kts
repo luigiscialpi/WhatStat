@@ -24,8 +24,9 @@ android {
         applicationId = "com.whatstats"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "1.2.3"
+        versionCode = 12
+        versionName = "1.2.4"
+        resourceConfigurations += listOf("en", "it", "de", "es", "fr", "hi", "pt-rBR", "tr")
         val proProductId = (project.findProperty("PRO_PRODUCT_ID") ?: localProps.getProperty("PRO_PRODUCT_ID") ?: "whatstat_pro").toString()
         val admobAppId =
             project
@@ -99,6 +100,12 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    bundle {
+        language {
+            enableSplit = false
+        }
     }
 }
 
