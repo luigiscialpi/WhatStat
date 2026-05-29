@@ -40,6 +40,7 @@ class AdsRepository
         private val consentInformation = UserMessagingPlatform.getConsentInformation(context)
 
         private var isMobileAdsInitialized = false
+        private var isConsentRequestInFlight = false
         private var isPro = false
         private var interstitialAd: InterstitialAd? = null
         private var lastInterstitialShownAtMs: Long = 0L
@@ -82,6 +83,8 @@ class AdsRepository
         }
 
         fun requestConsent(activity: Activity) {
+            if (isConsentRequestInFlight) return
+            isConsentRequestInFlight = true
             DebugLogManager.log(
                 "AdsRepository.requestConsent | " +
                     "consentStatus=${consentInformation.consentStatus} " +
@@ -111,6 +114,7 @@ class AdsRepository
                 activity,
                 requestParameters,
                 {
+                    isConsentRequestInFlight = false
                     publishState()
                     UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity) { formError ->
                         if (formError != null) {
@@ -123,6 +127,7 @@ class AdsRepository
                     }
                 },
                 { requestError ->
+                    isConsentRequestInFlight = false
                     DebugLogManager.log(
                         "Ads consent update error | code=${requestError.errorCode} msg=${requestError.message}",
                     )
