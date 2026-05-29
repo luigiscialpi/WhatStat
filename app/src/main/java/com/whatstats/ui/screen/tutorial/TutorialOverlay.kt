@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -79,9 +78,10 @@ fun TutorialOverlay(onComplete: () -> Unit) {
         Surface(modifier = Modifier.fillMaxSize(), color = colorScheme.surface) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.End,
                 ) {
                     TextButton(onClick = onComplete) {
@@ -106,9 +106,10 @@ fun TutorialOverlay(onComplete: () -> Unit) {
                 }
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Row(
@@ -119,13 +120,14 @@ fun TutorialOverlay(onComplete: () -> Unit) {
                         repeat(PAGE_COUNT) { index ->
                             val isSelected = pagerState.currentPage == index
                             Box(
-                                modifier = Modifier
-                                    .height(8.dp)
-                                    .width(if (isSelected) 20.dp else 8.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (isSelected) colorScheme.primary else colorScheme.outlineVariant,
-                                    ),
+                                modifier =
+                                    Modifier
+                                        .height(8.dp)
+                                        .width(if (isSelected) 20.dp else 8.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (isSelected) colorScheme.primary else colorScheme.outlineVariant,
+                                        ),
                             )
                         }
                     }
@@ -142,11 +144,12 @@ fun TutorialOverlay(onComplete: () -> Unit) {
                         },
                     ) {
                         Text(
-                            text = if (pagerState.currentPage == PAGE_COUNT - 1) {
-                                stringResource(R.string.tutorial_start)
-                            } else {
-                                stringResource(R.string.tutorial_next)
-                            },
+                            text =
+                                if (pagerState.currentPage == PAGE_COUNT - 1) {
+                                    stringResource(R.string.tutorial_start)
+                                } else {
+                                    stringResource(R.string.tutorial_next)
+                                },
                         )
                     }
                 }
@@ -160,13 +163,14 @@ fun TutorialOverlay(onComplete: () -> Unit) {
 private fun WelcomeTutorialPage() {
     val colorScheme = MaterialTheme.colorScheme
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(colorScheme.primaryContainer, colorScheme.surface),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(colorScheme.primaryContainer, colorScheme.surface),
+                    ),
                 ),
-            ),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -175,10 +179,11 @@ private fun WelcomeTutorialPage() {
             modifier = Modifier.padding(horizontal = 32.dp),
         ) {
             Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .background(colorScheme.primary.copy(alpha = 0.15f)),
+                modifier =
+                    Modifier
+                        .size(120.dp)
+                        .clip(CircleShape)
+                        .background(colorScheme.primary.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -210,18 +215,20 @@ private fun WelcomeTutorialPage() {
 private fun ModesTutorialPage() {
     val colorScheme = MaterialTheme.colorScheme
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(colorScheme.secondaryContainer.copy(alpha = 0.5f), colorScheme.surface),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(colorScheme.secondaryContainer.copy(alpha = 0.5f), colorScheme.surface),
+                    ),
                 ),
-            ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceEvenly,
         ) {
@@ -281,9 +288,10 @@ private fun ModeCard(
         elevation = CardDefaults.elevatedCardElevation(6.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -427,18 +435,20 @@ private fun StepArrow(offsetY: Float) {
 private fun DashboardTutorialPage() {
     val colorScheme = MaterialTheme.colorScheme
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(colorScheme.primary.copy(alpha = 0.1f), colorScheme.surface),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(colorScheme.primary.copy(alpha = 0.1f), colorScheme.surface),
+                    ),
                 ),
-            ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceEvenly,
         ) {
@@ -448,9 +458,10 @@ private fun DashboardTutorialPage() {
                 colors = CardDefaults.elevatedCardColors(containerColor = colorScheme.surfaceContainerHigh),
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Row(
@@ -477,31 +488,34 @@ private fun DashboardTutorialPage() {
                         )
                     }
                     val barHeights = listOf(0.45f, 0.80f, 0.55f, 1.0f, 0.70f, 0.90f, 0.35f)
-                    val barColors = listOf(
-                        colorScheme.primary,
-                        colorScheme.secondary,
-                        colorScheme.primary,
-                        colorScheme.tertiary,
-                        colorScheme.primary,
-                        colorScheme.secondary,
-                        colorScheme.primary,
-                    )
+                    val barColors =
+                        listOf(
+                            colorScheme.primary,
+                            colorScheme.secondary,
+                            colorScheme.primary,
+                            colorScheme.tertiary,
+                            colorScheme.primary,
+                            colorScheme.secondary,
+                            colorScheme.primary,
+                        )
                     val dayLabels = listOf("L", "M", "M", "G", "V", "S", "D")
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(72.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(72.dp),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.Bottom,
                         ) {
                             barHeights.forEachIndexed { i, h ->
                                 Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(h)
-                                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                        .background(barColors[i]),
+                                    modifier =
+                                        Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight(h)
+                                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                            .background(barColors[i]),
                                 )
                             }
                         }
@@ -555,9 +569,10 @@ private fun FakeStatCard(
         colors = CardDefaults.elevatedCardColors(containerColor = colorScheme.surface),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
@@ -582,18 +597,20 @@ private fun FakeStatCard(
 private fun RadarTutorialPage() {
     val colorScheme = MaterialTheme.colorScheme
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(colorScheme.tertiary.copy(alpha = 0.12f), colorScheme.surface),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(colorScheme.tertiary.copy(alpha = 0.12f), colorScheme.surface),
+                    ),
                 ),
-            ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceEvenly,
         ) {
@@ -610,18 +627,20 @@ private fun RadarTutorialPage() {
                 colors = CardDefaults.elevatedCardColors(containerColor = colorScheme.surfaceContainer),
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     // OutlinedTextField mock — uguale alla schermata reale
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(colorScheme.surface)
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(colorScheme.surface)
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
@@ -646,10 +665,11 @@ private fun RadarTutorialPage() {
                     ) {
                         listOf("Aa", "ab", "?", stringResource(R.string.filter_multi)).forEach { label ->
                             Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(50.dp))
-                                    .background(colorScheme.secondaryContainer)
-                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                                modifier =
+                                    Modifier
+                                        .clip(RoundedCornerShape(50.dp))
+                                        .background(colorScheme.secondaryContainer)
+                                        .padding(horizontal = 10.dp, vertical = 5.dp),
                             ) {
                                 Text(
                                     text = label,
@@ -688,11 +708,12 @@ private fun RadarTutorialPage() {
 
                     // Anteprima messaggio con parola evidenziata
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(colorScheme.surfaceContainerHigh)
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(colorScheme.surfaceContainerHigh)
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
                     ) {
                         val highlight = colorScheme.tertiary
                         val highlightBg = colorScheme.tertiaryContainer
@@ -700,19 +721,20 @@ private fun RadarTutorialPage() {
                         val before = stringResource(R.string.tutorial_radar_preview_before)
                         val after = stringResource(R.string.tutorial_radar_preview_after)
                         Text(
-                            text = buildAnnotatedString {
-                                append(before)
-                                append(" ")
-                                withStyle(
-                                    SpanStyle(
-                                        fontWeight = FontWeight.Bold,
-                                        color = highlight,
-                                        background = highlightBg,
-                                    ),
-                                ) { append(word) }
-                                append(" ")
-                                append(after)
-                            },
+                            text =
+                                buildAnnotatedString {
+                                    append(before)
+                                    append(" ")
+                                    withStyle(
+                                        SpanStyle(
+                                            fontWeight = FontWeight.Bold,
+                                            color = highlight,
+                                            background = highlightBg,
+                                        ),
+                                    ) { append(word) }
+                                    append(" ")
+                                    append(after)
+                                },
                             style = MaterialTheme.typography.bodySmall,
                             color = colorScheme.onSurface,
                         )
@@ -750,18 +772,20 @@ private fun SenderOccurrenceBar(
             modifier = Modifier.width(48.dp),
         )
         Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(10.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(colorScheme.surfaceContainerHighest),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(colorScheme.surfaceContainerHighest),
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth(fraction)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(tint),
+                modifier =
+                    Modifier
+                        .fillMaxWidth(fraction)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(tint),
             )
         }
         Text(
@@ -778,18 +802,20 @@ private fun SenderOccurrenceBar(
 private fun MediaTutorialPage() {
     val colorScheme = MaterialTheme.colorScheme
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(colorScheme.tertiary.copy(alpha = 0.12f), colorScheme.surface),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(colorScheme.tertiary.copy(alpha = 0.12f), colorScheme.surface),
+                    ),
                 ),
-            ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceEvenly,
         ) {
@@ -799,9 +825,10 @@ private fun MediaTutorialPage() {
                 colors = CardDefaults.elevatedCardColors(containerColor = colorScheme.surfaceContainerHigh),
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -843,14 +870,15 @@ private fun MediaTutorialPage() {
                             tint = colorScheme.secondary,
                         )
                     }
-                    val thumbColors = listOf(
-                        colorScheme.primaryContainer,
-                        colorScheme.secondaryContainer,
-                        colorScheme.tertiaryContainer,
-                        colorScheme.secondaryContainer,
-                        colorScheme.primaryContainer,
-                        colorScheme.tertiaryContainer,
-                    )
+                    val thumbColors =
+                        listOf(
+                            colorScheme.primaryContainer,
+                            colorScheme.secondaryContainer,
+                            colorScheme.tertiaryContainer,
+                            colorScheme.secondaryContainer,
+                            colorScheme.primaryContainer,
+                            colorScheme.tertiaryContainer,
+                        )
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         for (row in 0..1) {
                             Row(
@@ -859,11 +887,12 @@ private fun MediaTutorialPage() {
                             ) {
                                 for (col in 0..2) {
                                     Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(thumbColors[row * 3 + col]),
+                                        modifier =
+                                            Modifier
+                                                .weight(1f)
+                                                .height(44.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(thumbColors[row * 3 + col]),
                                     )
                                 }
                             }
@@ -897,10 +926,11 @@ private fun FakeTab(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (selected) colorScheme.primary else colorScheme.surfaceContainerHigh)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (selected) colorScheme.primary else colorScheme.surfaceContainerHigh)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Text(
             text = label,
@@ -942,24 +972,27 @@ private fun MediaCountChip(
 @Composable
 private fun ReadyTutorialPage() {
     val colorScheme = MaterialTheme.colorScheme
-    val scale = rememberInfiniteTransition(label = "checkPulse")
-        .animateFloat(
-            initialValue = 1f,
-            targetValue = 1.12f,
-            animationSpec = infiniteRepeatable(
-                tween(1000, easing = FastOutSlowInEasing),
-                RepeatMode.Reverse,
-            ),
-            label = "checkScale",
-        )
+    val scale =
+        rememberInfiniteTransition(label = "checkPulse")
+            .animateFloat(
+                initialValue = 1f,
+                targetValue = 1.12f,
+                animationSpec =
+                    infiniteRepeatable(
+                        tween(1000, easing = FastOutSlowInEasing),
+                        RepeatMode.Reverse,
+                    ),
+                label = "checkScale",
+            )
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(colorScheme.primaryContainer, colorScheme.surface),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(colorScheme.primaryContainer, colorScheme.surface),
+                    ),
                 ),
-            ),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -971,9 +1004,10 @@ private fun ReadyTutorialPage() {
                 imageVector = Icons.Outlined.CheckCircle,
                 contentDescription = stringResource(R.string.tutorial_title_ready),
                 tint = colorScheme.primary,
-                modifier = Modifier
-                    .size(96.dp)
-                    .scale(scale.value),
+                modifier =
+                    Modifier
+                        .size(96.dp)
+                        .scale(scale.value),
             )
             Text(
                 text = stringResource(R.string.tutorial_title_ready),

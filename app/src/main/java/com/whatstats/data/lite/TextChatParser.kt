@@ -47,118 +47,198 @@ class TextChatParser
 
         // Single source of truth for group-event keywords.
         // To add a language: append its keywords to the relevant list with a locale comment.
-        private val groupEventKeywords: Map<GroupEventType, List<String>> = mapOf(
-            GroupEventType.PARTICIPANT_JOIN to listOf(
-                "ha aggiunto",              // it
-                "added",                    // en
-                "joined using",             // en
-                "hat hinzugefügt",          // de
-                "añadió",                   // es
-                "a ajouté",                 // fr
-                "adicionou",                // pt
-                "ekledi",                   // tr
-                "को जोड़ा",                   // hi
-            ),
-            GroupEventType.PARTICIPANT_LEAVE to listOf(
-                "ha rimosso",               // it
-                "ha abbandonato il gruppo", // it
-                "removed",                  // en
-                "left",                     // en
-                "hat entfernt",             // de
-                "hat die Gruppe verlassen", // de
-                "eliminó",                  // es
-                "salió del grupo",          // es
-                "a supprimé",               // fr
-                "a quitté le groupe",       // fr
-                "removeu",                  // pt
-                "saiu do grupo",            // pt
-                "çıkardı",                  // tr
-                "gruptan ayrıldı",          // tr
-                "को हटाया",                  // hi
-                "ने ग्रुप छोड़ दिया",         // hi
-            ),
-            GroupEventType.GROUP_CREATE to listOf(
-                "ha creato il gruppo",      // it
-                "created group",            // en
-                "hat die Gruppe erstellt",  // de
-                "creó el grupo",            // es
-                "a créé le groupe",         // fr
-                "criou o grupo",            // pt
-                "grubu oluşturdu",          // tr
-                "ने ग्रुप बनाया",             // hi
-            ),
-            GroupEventType.ICON_CHANGE to listOf(
-                "ha cambiato l'immagine del gruppo",    // it
-                "changed the group icon",               // en
-                "hat das Gruppenbild geändert",         // de
-                "cambió el ícono del grupo",            // es
-                "a modifié l'icône du groupe",          // fr
-                "alterou o ícone do grupo",             // pt
-                "grup simgesini değiştirdi",            // tr
-                "ने ग्रुप की फ़ोटो बदली",                // hi
-            ),
-            GroupEventType.NAME_CHANGE to listOf(
-                "ha modificato il nome del gruppo",         // it
-                "ha cambiato l'oggetto del gruppo",         // it
-                "changed the group name",                   // en
-                "changed the subject",                      // en
-                "hat den Betreff dieser Gruppe geändert",  // de
-                "cambió el asunto del grupo",               // es
-                "a modifié le sujet du groupe",             // fr
-                "alterou o assunto do grupo",               // pt
-                "grup konusunu değiştirdi",                 // tr
-                "ने ग्रुप का नाम बदला",                      // hi
-            ),
-        )
+        private val groupEventKeywords: Map<GroupEventType, List<String>> =
+            mapOf(
+                GroupEventType.PARTICIPANT_JOIN to
+                    listOf(
+                        // it
+                        "ha aggiunto",
+                        // en
+                        "added",
+                        // en
+                        "joined using",
+                        // de
+                        "hat hinzugefügt",
+                        // es
+                        "añadió",
+                        // fr
+                        "a ajouté",
+                        // pt
+                        "adicionou",
+                        // tr
+                        "ekledi",
+                        // hi
+                        "को जोड़ा",
+                    ),
+                GroupEventType.PARTICIPANT_LEAVE to
+                    listOf(
+                        // it
+                        "ha rimosso",
+                        // it
+                        "ha abbandonato il gruppo",
+                        // en
+                        "removed",
+                        // en
+                        "left",
+                        // de
+                        "hat entfernt",
+                        // de
+                        "hat die Gruppe verlassen",
+                        // es
+                        "eliminó",
+                        // es
+                        "salió del grupo",
+                        // fr
+                        "a supprimé",
+                        // fr
+                        "a quitté le groupe",
+                        // pt
+                        "removeu",
+                        // pt
+                        "saiu do grupo",
+                        // tr
+                        "çıkardı",
+                        // tr
+                        "gruptan ayrıldı",
+                        // hi
+                        "को हटाया",
+                        // hi
+                        "ने ग्रुप छोड़ दिया",
+                    ),
+                GroupEventType.GROUP_CREATE to
+                    listOf(
+                        // it
+                        "ha creato il gruppo",
+                        // en
+                        "created group",
+                        // de
+                        "hat die Gruppe erstellt",
+                        // es
+                        "creó el grupo",
+                        // fr
+                        "a créé le groupe",
+                        // pt
+                        "criou o grupo",
+                        // tr
+                        "grubu oluşturdu",
+                        // hi
+                        "ने ग्रुप बनाया",
+                    ),
+                GroupEventType.ICON_CHANGE to
+                    listOf(
+                        // it
+                        "ha cambiato l'immagine del gruppo",
+                        // en
+                        "changed the group icon",
+                        // de
+                        "hat das Gruppenbild geändert",
+                        // es
+                        "cambió el ícono del grupo",
+                        // fr
+                        "a modifié l'icône du groupe",
+                        // pt
+                        "alterou o ícone do grupo",
+                        // tr
+                        "grup simgesini değiştirdi",
+                        // hi
+                        "ने ग्रुप की फ़ोटो बदली",
+                    ),
+                GroupEventType.NAME_CHANGE to
+                    listOf(
+                        // it
+                        "ha modificato il nome del gruppo",
+                        // it
+                        "ha cambiato l'oggetto del gruppo",
+                        // en
+                        "changed the group name",
+                        // en
+                        "changed the subject",
+                        // de
+                        "hat den Betreff dieser Gruppe geändert",
+                        // es
+                        "cambió el asunto del grupo",
+                        // fr
+                        "a modifié le sujet du groupe",
+                        // pt
+                        "alterou o assunto do grupo",
+                        // tr
+                        "grup konusunu değiştirdi",
+                        // hi
+                        "ने ग्रुप का नाम बदला",
+                    ),
+            )
 
         // Built lazily from groupEventKeywords — no duplication
         private val groupActionRegex: Regex by lazy {
-            val allKeywords = groupEventKeywords.values
-                .flatten()
-                .sortedByDescending { it.length }
-                .joinToString("|") { Regex.escape(it) }
+            val allKeywords =
+                groupEventKeywords.values
+                    .flatten()
+                    .sortedByDescending { it.length }
+                    .joinToString("|") { Regex.escape(it) }
             Regex("""(.+?)\s+($allKeywords)(.*)""", setOf(RegexOption.IGNORE_CASE))
         }
 
         // Media-body keywords per locale. "<Media" and "PTE-" are locale-neutral.
-        private val mediaKeywords: List<String> = listOf(
-            "omesso", "omessi", "allegato",              // it
-            "omitted", "attached",                       // en
-            "weggelassen", "angehängt",                  // de
-            "omitido", "omitida", "adjunto", "adjunta",  // es
-            "omis", "joint", "jointe",                   // fr
-            "oculta", "oculto", "anexo", "anexa",        // pt
-            "ausgeschlossen",                            // de (alt)
-            "atlandı", "eklendi",                        // tr
-            "शामिल नहीं",                                  // hi
-            "<Media", "PTE-",                            // universal
-        )
+        private val mediaKeywords: List<String> =
+            listOf(
+                // it
+                "omesso", "omessi", "allegato",
+                // en
+                "omitted", "attached",
+                // de
+                "weggelassen", "angehängt",
+                // es
+                "omitido", "omitida", "adjunto", "adjunta",
+                // fr
+                "omis", "joint", "jointe",
+                // pt
+                "oculta", "oculto", "anexo", "anexa",
+                // de (alt)
+                "ausgeschlossen",
+                // tr
+                "atlandı", "eklendi",
+                // hi
+                "शामिल नहीं",
+                // universal
+                "<Media", "PTE-",
+            )
 
         private val mediaBodyRegex: Regex by lazy {
-            val pattern = mediaKeywords
-                .sortedByDescending { it.length }
-                .joinToString("|") { Regex.escape(it) }
+            val pattern =
+                mediaKeywords
+                    .sortedByDescending { it.length }
+                    .joinToString("|") { Regex.escape(it) }
             Regex(pattern, RegexOption.IGNORE_CASE)
         }
 
         // Parenthesised "file attached" placeholders per locale
-        private val mediaPlaceholders: List<String> = listOf(
-            "(file allegato)",    // it
-            "(file attached)",    // en
-            "(Datei angehängt)",  // de
-            "(archivo adjunto)",  // es
-            "(fichier joint)",    // fr
-            "(arquivo anexado)",  // pt
-            "(dosya eklendi)",    // tr
-            "(फ़ाइल अटैच)",         // hi
-        )
+        private val mediaPlaceholders: List<String> =
+            listOf(
+                // it
+                "(file allegato)",
+                // en
+                "(file attached)",
+                // de
+                "(Datei angehängt)",
+                // es
+                "(archivo adjunto)",
+                // fr
+                "(fichier joint)",
+                // pt
+                "(arquivo anexado)",
+                // tr
+                "(dosya eklendi)",
+                // hi
+                "(फ़ाइल अटैच)",
+            )
 
         private val mediaTagRegex = Regex("""<[^>\n]{2,50}>""")
 
         private val mediaPlaceholderRegex: Regex by lazy {
-            val pattern = mediaPlaceholders
-                .sortedByDescending { it.length }
-                .joinToString("|") { Regex.escape(it) }
+            val pattern =
+                mediaPlaceholders
+                    .sortedByDescending { it.length }
+                    .joinToString("|") { Regex.escape(it) }
             Regex(pattern, RegexOption.IGNORE_CASE)
         }
 
