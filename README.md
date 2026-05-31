@@ -1068,18 +1068,48 @@ Lo ZIP viene elaborato da `FileExtractor.extractFullChatFolder()` in modo **ibri
 
 **File**: `data/lite/TextChatParser.kt`
 
-Il parser usa due regex principali:
+Il parser gestisce due formati di export: **Android** (predefinito) e **iOS**. La detezione avviene automaticamente controllando se il file TXT si chiama `_chat.txt` (iOS) o meno.
 
 | Regex | Scopo |
 |-------|-------|
-| `headerRegex` | Riga inizio messaggio: `DD/MM/YY, HH:MM - Mittente: body` |
-| `systemEventRegex` | Evento di sistema senza due punti (es. "Mario ha lasciato il gruppo") |
+| `headerRegex` | Riga inizio messaggio Android: `DD/MM/YY, HH:MM - Mittente: body` |
+| `iosHeaderRegex` | Riga inizio messaggio iOS: `[DD/MM/YY, HH:MM] Mittente: body` |
+| `systemEventRegex` | Evento di sistema Android senza due punti |
+| `iosSystemEventRegex` | Evento di sistema iOS senza due punti |
 
-**Rilevamento media** (`hasMedia`): un messaggio è considerato multimediale se il `body` contiene una delle seguenti stringhe (formato italiano):
-- `"omesso"` / `"omessi"` (‎<Media omesso>)
-- `"allegato"` (file allegato)
+**Formato Android** (esempio):
+```
+DD/MM/YY, HH:MM - NomeMittente: testo del messaggio
+28/07/24, 16:35 - Mario Rossi: IMG-20240728-WA0003.jpg (file allegato)
+```
+
+**Formato iOS** (esempio):
+```
+[DD/MM/YY, HH:MM] NomeMittente: testo del messaggio
+[28/07/24, 16:35] Mario Rossi: <allegato: 00000041-STICKER-2022-12-01-14-16-17.webp>
+```
+
+**Differenze iOS**:
+- I timestamp sono racchiusi in parentesi quadre `[]`
+- WhatsApp iOS antepone `\u200E` (LTR Mark) ai messaggi; il parser lo rimuove
+- I media sono indicati come `<etichetta: filename>` invece che inline
+- Gli eventi di sistema appaiono come messaggi con mittente (es. "Tu: Hai cambiato il nome del gruppo")
+
+**Rilevamento media** (`hasMedia`): un messaggio è considerato multimediale se il `body` contiene una delle seguenti stringhe (supportate in tutte le 8 localizzazioni):
+
+- IT: `"omesso"`, `"omessi"`, `"omessa"`, `"allegato"`
+- EN: `"omitted"`, `"attached"`
+- DE: `"weggelassen"`, `"ausgelassen"`, `"angehängt"`
+- ES: `"omitido"`, `"omitida"`, `"adjunto"`, `"adjunta"`
+- FR: `"omis"`, `"omise"`, `"joint"`, `"jointe"`
+- PT: `"oculta"`, `"oculto"`, `"ocultada"`, `"ocultado"`, `"anexo"`, `"anexa"`
+- TR: `"atlandı"`, `"eklendi"`
+- HI: `"छुपा"`, `"जोड़ा"`
+
 - `"<Media"`
-- `"PTE-"` (messaggi vocali con alcune versioni WhatsApp)
+- `"PTE-"` (messaggi vocali)
+
+In iOS, la funzione `stripMediaPlaceholders()` estrae prima il filename dai tag `<etichetta: filename>` preservandolo nel contenuto.
 
 **Punto critico**: il campo `content` è sempre popolato con `cleanBody` anche per i messaggi media. Questo è fondamentale per permettere a `LiteMediaManager` di recuperare il nome file (es. `IMG-20240728-WA0003.jpg`) dal testo del messaggio per associare il file fisico al mittente corretto.
 
@@ -1118,23 +1148,27 @@ Questo componente itera sulle **entry di `source.zip`** (tramite `ZipFile`, non 
 
 **`MEDIA_FILENAME_REGEX`** (definita in `LiteMetricsCalculator`):
 ```kotlin
-Regex("(?:IMG|VID|AUD|PTT|DOC)-\\d{8}-WA\\d{4,}(?:\\.[a-z0-9]+)?", RegexOption.IGNORE_CASE)
+Regex("(?:(?:IMG|VID|AUD|PTT|DOC|STK)-\\d{8}-WA\\d{4,}|\\d{8}-[A-Z]+-\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2})(?:\\.[a-z0-9]+)?", RegexOption.IGNORE_CASE)
 ```
+
+Il secondo pattern (`\\d{8}-[A-Z]+-...`) gestisce i file iOS (es. `00000041-STICKER-2022-12-01-14-16-17.webp`).
 
 **Classificazione tipo media e path salvato nel DB**:
 
 | Estensione file | Tipo | Path in `message_media.file_path` |
 |-----------------|------|-----------------------------------|
-| `.jpg`, `.jpeg`, `.png`, `.gif` | `IMAGE` | `zip://lite_chat_xxx/source.zip\|IMG-2024.jpg` |
-| `.webp` (non STK-) | `IMAGE` | `zip://lite_chat_xxx/source.zip\|foto.webp` |
-| `.webp` (STK-) | `STICKER` | `zip://lite_chat_xxx/source.zip\|STK-2024.webp` |
-| `.mp4`, `.3gp`, `.mkv`, `.avi`, `.mov` | `VIDEO` | path assoluto su disco |
-| `.opus`, `.mp3`, `.aac`, `.m4a`, `.ogg` | `AUDIO` | path assoluto su disco |
-| altro | `DOCUMENT` | `zip://lite_chat_xxx/source.zip\|doc.pdf` |
+| `.jpg`, `.jpeg`, `.png` | `IMAGE` | `zip://lite_chat_xxx/source.zip\|IMG-2024.jpg` |
+| `.gif` | `VIDEO` | `zip://lite_chat_xxx/source.zip\|GIF-2024.gif` (vedi nota GIF) |
+| `.webp` (non STK-, non STICKER) | `IMAGE` | `zip://lite_chat_xxx/source.zip\|foto.webp` |
+| `.webp` (STK- o contiene "STICKER") | `STICKER` | `zip://lite_chat_xxx/source.zip\|STK-2024.webp` |
+| `.pdf` | `DOCUMENT` | `zip://lite_chat_xxx/source.zip\|doc.pdf` |
+| altro | `DOCUMENT` | `zip://lite_chat_xxx/source.zip\|altro.xxx` |
 
-I path `zip://` sono URI virtuali interpretati da `ZipFileFetcher` (Coil). I path assoluti su disco vengono esposti tramite `FileProvider` per i player esterni.
+**Nota GIF**: Le GIF vengono classificate come `VIDEO` in Lite Mode per consentire la riproduzione via Coil Video. Il MIME salvato è `image/gif` per compatibilità con il rendering.
 
-**Nota sticker**: in Lite Mode i file `.webp` con prefisso `STK-` vengono classificati come `STICKER` e mostrati nel tab dedicato della `MediaStatsScreen`. La funzione `isLiteSticker()` estrae il nome file dopo il separatore `|` per gestire correttamente i path `zip://`.
+**Nota sticker iOS**: In Lite Mode i file `.webp` con prefisso `STK-` o che contengono "STICKER" nel nome vengono classificati come `STICKER` e mostrati nel tab dedicato della `MediaStatsScreen`. La funzione `isLiteSticker()` riconosce entrambi i formati.
+
+**Percorsi su disco**: Video (`.mp4`, `.3gp`, `.mov`, `.m4v`) e audio (`.opus`, `.aac`, `.mp3`, `.m4a`, `.wav`) richiedono seek su file reali, vengono quindi estratti su disco con path assoluti. Il `FileProvider` (`${applicationId}.fileprovider`) espone questi file ai player esterni.
 
 ---
 
@@ -1227,7 +1261,9 @@ La Lite Mode ha un proprio grafo di navigazione `NavGraphRoute.Lite`, con la ste
 | Timestamp media | Esatto (DB) | Derivato dal messaggio; fallback a `file.lastModified()` |
 | `isCurrentUser` | `from_me=1` da DB WhatsApp | Aggiornato da `finalizeOwnerSelection()` |
 | Analisi lessicale incrementale | Sì (indice gzipped delta) | No (query SQL diretta ogni volta) |
-| Supporto lingue export | N/A | Solo italiano (keyword `"omesso"`, `"allegato"`, ecc.) |
+| Supporto lingue export | N/A | Supporto multilingua completo per le 8 localizzazioni (italiano, inglese, tedesco, spagnolo, francese, portoghese, turco, hindi) |
+| Mappatura GIF | N/A | Classificate ed esposte come VIDEO nel DB e nella galleria (supportate in riproduzione da Coil Video) |
+| Classificazione Sticker iOS | N/A | Riconoscimento ed inclusione degli sticker iOS (pattern `STICKER`) nella corretta tab Galleria |
 
 ---
 
