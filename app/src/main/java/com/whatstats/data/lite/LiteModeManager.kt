@@ -82,9 +82,13 @@ class LiteModeManager
                         folder.listFiles()?.firstOrNull { it.extension == "txt" }
                             ?: throw Exception(context.getString(R.string.lite_import_error_no_txt))
 
+                    // iOS exports always name the text file "_chat.txt";
+                    // Android exports vary (e.g. "WhatsApp Chat - Contact.txt").
+                    val isIosFormat = txtFile.name == "_chat.txt"
+
                     // 2. Parsing Testo
                     _importProgress.value = LiteImportProgress(0.20f, context.getString(R.string.lite_import_read_messages))
-                    val parseResult = parser.parse(txtFile, ownerName)
+                    val parseResult = parser.parse(txtFile, ownerName, isIosFormat)
                     val identifiedSenders = parseResult.messages.map { it.senderName }.distinct()
 
                     // 3. Analisi Media
@@ -326,7 +330,18 @@ class LiteModeManager
                 }
             }
 
-            // Se "WhatsApp" non e' nel nome, restituisce il nome intero pulito
+            // Stage 2: "WhatsApp [Chat|Chats|...] - NAME" separator (iOS format and manual renames).
+            // Matches anything up to and including the first " - " that follows the word "WhatsApp".
+            val dashRegex = Regex(""".*\bWhatsApp\b[^-]*-\s*""", RegexOption.IGNORE_CASE)
+            val dashMatch = dashRegex.find(name)
+            if (dashMatch != null) {
+                val cleanName = name.substring(dashMatch.range.last + 1).trim()
+                if (cleanName.isNotBlank()) {
+                    return cleanName
+                }
+            }
+
+            // If "WhatsApp" is not in the name, return the whole cleaned name
             return name.trim().ifBlank { null }
         }
 

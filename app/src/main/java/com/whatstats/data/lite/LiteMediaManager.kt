@@ -13,10 +13,11 @@ class LiteMediaManager
     @Inject
     constructor() {
         companion object {
-            /** Pattern per i nomi file allegati WhatsApp (es. IMG-20231015-WA0001.jpg, STK-20250709-WA0005.webp). */
+            /** Pattern per i nomi file allegati WhatsApp (es. IMG-20231015-WA0001.jpg, STK-20250709-WA0005.webp, 00000041-STICKER-2022-12-01-14-16-17.webp). */
             private val MEDIA_FILENAME_REGEX =
                 Regex(
-                    "(?:IMG|VID|AUD|PTT|DOC|STK)-\\d{8}-WA\\d{4,}(?:\\.[a-z0-9]+)?",
+                    "(?:(?:IMG|VID|AUD|PTT|DOC|STK)-\\d{8}-WA\\d{4,}|" +
+                        "\\d{8}-[A-Z]+-\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2})(?:\\.[a-z0-9]+)?",
                     RegexOption.IGNORE_CASE,
                 )
         }
@@ -66,10 +67,17 @@ class LiteMediaManager
 
                                 val type =
                                     when (extension) {
-                                        // I file STK-*.webp sono sticker, gli altri .webp sono immagini normali
-                                        "webp" -> if (entryName.startsWith("STK-", ignoreCase = true)) "STICKER" else "IMAGE"
-                                        "jpg", "jpeg", "png", "gif" -> "IMAGE"
-                                        "mp4", "3gp", "mov", "m4v" -> "VIDEO"
+                                        // I file STK-*.webp o che contengono "STICKER" sono sticker, gli altri .webp sono immagini normali
+                                        "webp" ->
+                                            if (entryName.startsWith("STK-", ignoreCase = true) ||
+                                                entryName.contains("STICKER", ignoreCase = true)
+                                            ) {
+                                                "STICKER"
+                                            } else {
+                                                "IMAGE"
+                                            }
+                                        "jpg", "jpeg", "png" -> "IMAGE"
+                                        "gif", "mp4", "3gp", "mov", "m4v" -> "VIDEO"
                                         "opus", "aac", "mp3", "m4a", "wav" -> "AUDIO"
                                         "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip" -> "DOCUMENT"
                                         else -> null

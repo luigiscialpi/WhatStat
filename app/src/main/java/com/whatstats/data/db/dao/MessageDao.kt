@@ -1203,12 +1203,22 @@ class MessageDao
 
         private fun isRegionalIndicator(codePoint: Int): Boolean = codePoint in 0x1F1E6..0x1F1FF
 
-        /** Statistiche sui media per tipo MIME. */
+        /**
+         * Statistiche sui media per tipo MIME.
+         *
+         * @param includeStickers Se true, rimuove l'esclusione di message_type=20 (sticker).
+         *   Deve essere true in Lite Mode perche' gli sticker hanno mime_type='image/webp'
+         *   e vanno conteggiati come media. In Root Mode rimane false (sticker esclusi).
+         */
         fun getMediaStats(
             chatId: Long,
             startTime: Long? = null,
             endTime: Long? = null,
+            includeStickers: Boolean = false,
         ): List<MediaTypeStat> {
+            // In Root Mode gli sticker (message_type=20) non hanno mime_type e vengono esclusi.
+            // In Lite Mode il LiteDbWriter li importa con mime_type='image/webp', quindi vanno inclusi.
+            val stickerFilter = if (includeStickers) "" else "AND m.message_type != 20"
             val queryBuilder =
                 StringBuilder(
                     """
@@ -1230,7 +1240,7 @@ class MessageDao
                         COALESCE(SUM(mm.file_size), 0) AS total_size
                     FROM message m
                     JOIN all_media mm ON m._id = mm.message_row_id
-                    WHERE m.chat_row_id = ? AND m.message_type != 20 AND m.message_type != 7
+                    WHERE m.chat_row_id = ? AND m.message_type != 7 $stickerFilter
                     """.trimIndent(),
                 )
             val args = mutableListOf(chatId.toString())
@@ -1418,11 +1428,21 @@ class MessageDao
             }
         }
 
-        /** Conta i file media filtrati per data. */
+        /**
+         * Conta i file media filtrati per data.
+         *
+         * @param includeStickers Se true, rimuove l'esclusione di message_type=20 (sticker).
+         *   Deve essere true in Lite Mode perche' gli sticker hanno mime_type='image/webp'.
+         */
         fun getMediaCount(
             startTime: Long? = null,
             endTime: Long? = null,
+            includeStickers: Boolean = false,
         ): Int {
+            // La clausola base esclude sempre i messaggi di sistema (type 7).
+            // La condizione sugli sticker (type 20) viene aggiunta solo in Root Mode;
+            // in Lite Mode gli sticker hanno mime_type e devono essere conteggiati.
+            val stickerFilter = if (includeStickers) "" else "AND m.message_type != 20"
             val queryBuilder =
                 StringBuilder(
                     """
@@ -1434,7 +1454,7 @@ class MessageDao
                     SELECT COUNT(*) 
                     FROM message m
                     JOIN all_media mm ON m._id = mm.message_row_id
-                    WHERE m.message_type != 20 AND m.message_type != 7
+                    WHERE m.message_type != 7 $stickerFilter
                     """.trimIndent(),
                 )
             val args = mutableListOf<String>()

@@ -260,7 +260,8 @@ class AnalyticsRepository
                     val dYearTrend = async { messageDao.getGlobalYearTrendDistribution(startTime, endTime) }
                     val dStreak = async { calculateLongestStreak(startTime) }
                     val dOldestTs = async { if (startTime != null) startTime else messageDao.getOldestTimestamp() }
-                    val dMediaCount = async { messageDao.getMediaCount(startTime, endTime) }
+                    val dMediaCount =
+                        async { messageDao.getMediaCount(startTime, endTime, includeStickers = activeDatabaseProvider.isLiteMode) }
                     val dMostActiveChat = async { chatDao.getMostActiveChat(startTime, endTime) }
 
                     onProgress(10)
@@ -561,7 +562,8 @@ class AnalyticsRepository
                     val dMonthOfYear = async { messageDao.getMonthOfYearDistribution(chatId, startTime, endTime) }
                     val dYearTrend = async { messageDao.getYearTrendDistribution(chatId, startTime, endTime) }
                     val dMonthly = async { messageDao.getMonthlyTrend(chatId, startTime, endTime) }
-                    val dMediaStats = async { messageDao.getMediaStats(chatId, startTime, endTime) }
+                    val dMediaStats =
+                        async { messageDao.getMediaStats(chatId, startTime, endTime, includeStickers = activeDatabaseProvider.isLiteMode) }
                     val dFirstTs = async { messageDao.getFirstMessageTimestamp(chatId, startTime, endTime) }
                     val dLastTs = async { messageDao.getLastMessageTimestamp(chatId, startTime, endTime) }
                     val dAvgLen = async { messageDao.getAverageMessageLength(chatId, startTime, endTime) }

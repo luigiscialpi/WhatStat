@@ -119,7 +119,10 @@ fun DashboardScreen(
 
     LifecycleResumeEffect(Unit) {
         viewModel.syncFilterState()
-        onPauseOrDispose { }
+        viewModel.onResume()
+        onPauseOrDispose {
+            viewModel.onPause()
+        }
     }
     val selectedLimit by viewModel.selectedLimit.collectAsState()
 

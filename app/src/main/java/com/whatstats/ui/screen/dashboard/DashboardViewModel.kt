@@ -86,6 +86,9 @@ class DashboardViewModel
         private val _firstMessageTimestamp = MutableStateFlow<Long?>(null)
         val firstMessageTimestamp: StateFlow<Long?> = _firstMessageTimestamp.asStateFlow()
 
+        private var isResumed = false
+        private var lastLoadedVersion = analyticsRepository.liteCacheVersion.value
+        private var pendingRenameReload = false
         private var loadJob: Job? = null
 
         init {
@@ -105,7 +108,10 @@ class DashboardViewModel
                     analyticsRepository.liteCacheVersion
                         .collect { version ->
                             if (version > baselineVersion) {
-                                loadStats(forceRefresh = true)
+                                if (isResumed) {
+                                    lastLoadedVersion = version
+                                    loadStats(forceRefresh = true)
+                                }
                             }
                         }
                 }
@@ -113,10 +119,31 @@ class DashboardViewModel
                 // Il rename e' raro (1x per sessione), il costo e' accettabile.
                 viewModelScope.launch {
                     analyticsRepository.liteRenameVersion.collect { _ ->
-                        loadStats(forceRefresh = true)
+                        if (isResumed) {
+                            loadStats(forceRefresh = true)
+                        } else {
+                            pendingRenameReload = true
+                        }
                     }
                 }
             }
+        }
+
+        fun onResume() {
+            isResumed = true
+            if (analyticsRepository.isLiteMode.value) {
+                val currentVersion = analyticsRepository.liteCacheVersion.value
+                val needsReload = (currentVersion > lastLoadedVersion) || pendingRenameReload
+                if (needsReload) {
+                    lastLoadedVersion = currentVersion
+                    pendingRenameReload = false
+                    loadStats(forceRefresh = true)
+                }
+            }
+        }
+
+        fun onPause() {
+            isResumed = false
         }
 
         fun cancelLoad() {

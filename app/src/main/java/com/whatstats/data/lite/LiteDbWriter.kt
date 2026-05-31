@@ -64,7 +64,14 @@ class LiteDbWriter
                     messages.forEachIndexed { i, msg ->
                         val senderJidId = senderJidMap[msg.senderName] ?: 0L
                         val messageType = if (msg.hasMedia) guessMediaType(msg.content) else 0
-                        val textData = if (msg.hasMedia) null else msg.content
+                        // I messaggi di sistema (es. "codice sicurezza cambiato", "videochiamata persa")
+                        // vengono scritti con text_data = null per escluderli automaticamente dalle
+                        // query di text analysis e word search (che richiedono text_data IS NOT NULL).
+                        val textData =
+                            when {
+                                msg.hasMedia || msg.isSystemMessage -> null
+                                else -> msg.content
+                            }
                         val epochMillis =
                             msg.timestamp
                                 .atZone(ZoneId.systemDefault())
@@ -92,14 +99,19 @@ class LiteDbWriter
                     db.endTransaction()
                 }
 
-                // Costruisci mappa timestamp→messageId per matching media O(log n)
-                val messageTimestampMap = java.util.TreeMap<Long, Long>() // timestamp → _id
+                // Costruisci mappa timestamp→[messageId, ...] per matching media O(log n).
+                // Un ArrayDeque per bucket permette di gestire N messaggi con lo stesso
+                // timestamp al secondo (es. sticker iOS inviati in rapida sequenza),
+                // evitando che le entry duplicate si sovrascrivano.
+                val messageTimestampMap = java.util.TreeMap<Long, ArrayDeque<Long>>() // timestamp → [_id, ...]
                 db.rawQuery(
                     "SELECT _id, timestamp FROM message WHERE chat_row_id = ? AND (message_type != 0 OR text_data IS NULL)",
                     arrayOf(chatId.toString()),
                 ).use { cursor ->
                     while (cursor.moveToNext()) {
-                        messageTimestampMap[cursor.getLong(1)] = cursor.getLong(0)
+                        val ts = cursor.getLong(1)
+                        val id = cursor.getLong(0)
+                        messageTimestampMap.getOrPut(ts) { ArrayDeque() }.addLast(id)
                     }
                 }
 
@@ -287,11 +299,29 @@ class LiteDbWriter
 
         private fun guessMediaType(content: String): Int {
             return when {
-                content.contains("IMG-") -> 1
-                content.contains("AUD-") || content.contains("PTT-") -> 2
-                content.contains("VID-") -> 3
-                content.contains("DOC-") -> 9
-                content.contains("STK-") -> 20
+                content.contains("IMG-") ||
+                    content.contains(".jpg", ignoreCase = true) ||
+                    content.contains(".jpeg", ignoreCase = true) ||
+                    content.contains(".png", ignoreCase = true) -> 1
+
+                content.contains("AUD-") ||
+                    content.contains("PTT-") ||
+                    content.contains(".opus", ignoreCase = true) ||
+                    content.contains(".aac", ignoreCase = true) ||
+                    content.contains(".wav", ignoreCase = true) -> 2
+
+                content.contains("VID-") ||
+                    content.contains(".mp4", ignoreCase = true) ||
+                    content.contains(".gif", ignoreCase = true) ||
+                    content.contains(".mov", ignoreCase = true) -> 3
+
+                content.contains("DOC-") ||
+                    content.contains(".pdf", ignoreCase = true) -> 9
+
+                content.contains("STK-") ||
+                    content.contains("STICKER", ignoreCase = true) ||
+                    content.contains(".webp", ignoreCase = true) -> 20
+
                 else -> 0
             }
         }
@@ -300,7 +330,7 @@ class LiteDbWriter
             db: SQLiteDatabase,
             chatId: Long,
             items: List<LiteMediaItem>,
-            messageTimestampMap: java.util.TreeMap<Long, Long>,
+            messageTimestampMap: java.util.TreeMap<Long, ArrayDeque<Long>>,
         ) {
             if (items.isEmpty()) return
 
@@ -315,11 +345,21 @@ class LiteDbWriter
             db.beginTransaction()
             try {
                 for (item in items) {
-                    // Cerca il messaggio più vicino entro ±1 secondo (O(log n) con TreeMap)
+                    // Cerca il bucket con timestamp piu' vicino entro ±1 secondo (O(log n)).
+                    // Si usa floorEntry(ts+1000) per trovare l'entry con chiave <= ts+1000,
+                    // poi si verifica che sia >= ts-1000. Se il bucket ha piu' ID (messaggi
+                    // con lo stesso timestamp), si consuma il primo disponibile con removeFirst()
+                    // per associare ogni media a un messaggio distinto.
                     val floorEntry = messageTimestampMap.floorEntry(item.timestamp + 1000)
                     val messageId =
                         if (floorEntry != null && floorEntry.key >= item.timestamp - 1000) {
-                            floorEntry.value
+                            // Pop del primo ID disponibile nel bucket; se il bucket si svuota
+                            // lo rimuoviamo dalla mappa per non lasciare entry vuote.
+                            val id = floorEntry.value.removeFirstOrNull()
+                            if (floorEntry.value.isEmpty()) {
+                                messageTimestampMap.remove(floorEntry.key)
+                            }
+                            id
                         } else {
                             null
                         }
@@ -349,6 +389,7 @@ class LiteDbWriter
             return when (type) {
                 "IMAGE" -> "image/jpeg"
                 "STICKER" -> "image/webp"
+                "GIF" -> "image/gif"
                 "VIDEO" -> "video/mp4"
                 "AUDIO" -> "audio/ogg"
                 "DOCUMENT" -> "application/pdf"

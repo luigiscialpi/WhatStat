@@ -1096,7 +1096,9 @@ private fun MediaStat.isLiteSticker(): Boolean {
         } else {
             filePath.substringAfterLast('/')
         }
-    return fileName.startsWith("STK-", ignoreCase = true)
+    // Riconosce sia il prefisso Android "STK-" sia il pattern iOS "00000XXX-STICKER-..."
+    return fileName.startsWith("STK-", ignoreCase = true) ||
+        fileName.contains("STICKER", ignoreCase = true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
