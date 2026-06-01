@@ -24,8 +24,8 @@ android {
         applicationId = "com.whatstats"
         minSdk = 26
         targetSdk = 35
-        versionCode = 15
-        versionName = "1.3.0"
+        versionCode = 16
+        versionName = "1.3.1"
         resourceConfigurations += listOf("en", "it", "de", "es", "fr", "hi", "pt-rBR", "tr")
         val proProductId = (project.findProperty("PRO_PRODUCT_ID") ?: localProps.getProperty("PRO_PRODUCT_ID") ?: "whatstat_pro").toString()
         val admobAppId =
