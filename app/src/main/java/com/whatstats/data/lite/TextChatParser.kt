@@ -408,28 +408,27 @@ class TextChatParser
             listOf(
                 // it
                 "codice di sicurezza", "codice sicurezza", "chiamata persa", "videochiamata persa", "chiamata vocale",
-                "crittografati end-to-end",
+                "crittografati end-to-end", "hai eliminato questo messaggio",
                 // en
                 "security code", "missed voice call", "missed video call", "missed call",
-                "end-to-end encrypted",
+                "end-to-end encrypted", "you deleted this message",
                 // de
                 "Sicherheitsnummer", "Anruf verpasst", "Videoanruf verpasst", "Sprachanruf verpasst",
-                "Ende-zu-Ende-verschlüsselt",
+                "Ende-zu-Ende-verschlüsselt", "diese nachricht wurde gelöscht",
                 // es
                 "código de seguridad", "código seguridad", "llamada perdida", "videollamada perdida", "llamada de voz perdida",
-                "cifrados de extremo a extremo",
+                "cifrados de extremo a extremo", "este mensaje se eliminó",
                 // fr
                 "code de sécurité", "appel manqué", "appel vidéo manqué", "appel vocal manqué",
-                "chiffrés de bout en bout",
+                "chiffrés de bout en bout", "vous avez supprimé ce message",
                 // pt
                 "código de segurança", "chamada perdida", "chamada de vídeo perdida", "chamada de voz perdida",
-                "criptografia de ponta a ponta",
+                "criptografia de ponta a ponta", "esta mensagem foi apagada",
                 // tr
                 "güvenlik kodu", "cevapsız arama", "cevapsız görüntülü arama", "cevapsız sesli arama",
-                "uçtan uca şifrelidir",
+                "uçtan uca şifrelidir", "bu mesajı sildiniz",
                 // hi
-                "सुरक्षा कोड", "मिस कॉल", "मिस्ड कॉल",
-                "एंड-टू-एंड एन्क्रिप्टेड",
+                "सुरक्षा कोड", "मिस कॉल", "मिस्ड कॉल", "एंड-टू-एंड एन्क्रिप्टेड", "आपने यह मैसेज डिलीट कर दिया",
             )
 
         private val iosSystemMessageRegex: Regex by lazy {
@@ -514,11 +513,7 @@ class TextChatParser
                     val cleanBody = stripMediaPlaceholders(body, isIosFormat)
 
                     val isSystemEventText =
-                        if (isIosFormat) {
-                            iosSystemMessageRegex.containsMatchIn(cleanBody)
-                        } else {
-                            false
-                        }
+                        iosSystemMessageRegex.containsMatchIn(cleanBody)
 
                     currentMsg =
                         ParsedMessage(
