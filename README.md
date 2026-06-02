@@ -1298,20 +1298,17 @@ Quel file è la fonte di verità — questa sezione è deprecata.
 
 ---
 
-## 20. Monetizzazione: Ads e Pro
+## 20. Monetizzazione: Ads
 
-WhatStat usa un modello **Free con pubblicità / Pro senza pubblicità** all'interno di un'unica app su Google Play. Non esistono flavor separati: la differenza tra le due versioni è determinata esclusivamente dallo stato di acquisto rilevato a runtime da Google Play Billing.
+WhatStat usa un modello **Free con pubblicità** all'interno di un'unica app su Google Play. Non esistono versioni Pro separate: tutte le funzionalità sono disponibili gratuitamente con annunci AdMob.
 
 ### Modello di monetizzazione
 
 | Versione | Accesso | Pubblicità | Layout |
 |----------|---------|-----------|--------|
 | Free | Tutte le funzionalità | Banner, native ads, interstitial occasionali | Come oggi, con spazi pub |
-| Pro | Tutte le funzionalità | Nessuna | Identico al layout attuale senza ads |
 
-L'acquisto Pro è un **prodotto gestito non consumabile** (`whatstat_pro`) tramite Google Play Billing. Non è possibile acquistarlo più volte; è persistente e ripristinabile su tutti i dispositivi associati all'account Google.
-
-### Architettura: package `ads` e `billing`
+### Architettura: package `ads`
 
 **`ads/AdsRepository`** — singleton `@Inject` che centralizza:
 - gestione consenso UMP (`UserMessagingPlatform`)
@@ -1322,47 +1319,20 @@ L'acquisto Pro è un **prodotto gestito non consumabile** (`whatstat_pro`) trami
 - flag `isTestBuild` (confronta `BuildConfig.ADMOB_APP_ID` con il demo ID Google)
 
 ```kotlin
-// areAdsEnabled = true solo se tutte e tre le condizioni sono vere
-val areAdsEnabled = canRequestAds && isMobileAdsInitialized && !isPro
+val areAdsEnabled = canRequestAds && isMobileAdsInitialized
 ```
 
-`AdsRepository` osserva `BillingRepository.uiState` nel proprio `init`: quando `isPro` diventa `true`, scarta l'interstitial in cache e smette di precaricare. Quando `isPro` torna `false`, riprende il precaricamento.
+`AdsRepository` gestisce lo stato ads senza dipendenze da billing.
 
 **`ads/AdsUiState`** — data class esposta come `StateFlow` da `MainViewModel.adsUiState`:
 
 | Campo | Tipo | Significato |
 |-------|------|-------------|
-| `areAdsEnabled` | `Boolean` | Condizione master: `canRequestAds && isMobileAdsInitialized && !isPro` |
+| `areAdsEnabled` | `Boolean` | Condizione master: `canRequestAds && isMobileAdsInitialized` |
 | `canRequestAds` | `Boolean` | Consenso UMP valido (bypass automatico in test build) |
 | `isPrivacyOptionsRequired` | `Boolean` | UMP richiede il pulsante "Opzioni privacy" nell'AppDrawer |
 | `isMobileAdsInitialized` | `Boolean` | `MobileAds.initialize()` completato |
 | `shouldShowBanner` | `Boolean` | Alias di `areAdsEnabled` (usato da `AppScaffold`) |
-
-**`billing/BillingRepository`** — singleton `@Inject` che gestisce il ciclo di vita di `BillingClient`:
-- connessione a Google Play Billing con retry automatico
-- query prodotto `whatstat_pro` per leggere il prezzo live
-- acquisto e acknowledge
-- restore (`restorePurchases()`)
-- Easter egg session unlock (`unlockProForSession()`)
-
-**`billing/ProEntitlementStore`** — DataStore Preferences (`pro_entitlement`):
-
-| Chiave | Tipo | Significato |
-|--------|------|-------------|
-| `is_pro_cached` | `Boolean` | Cache locale dello stato Pro (sorgente autoritativa: Play Billing) |
-| `last_purchase_check_ms` | `Long` | Timestamp dell'ultimo sync con Play |
-
-`BillingRepository` osserva `ProEntitlementStore.isPro` nel proprio `init` per ripristinare lo stato Pro alla riapertura dell'app, prima ancora che `BillingClient` si connetta (avvio istantaneo senza flash di stato Free).
-
-**`billing/ProBillingUiState`** — data class esposta come `StateFlow` da `MainViewModel.proBillingUiState`:
-
-| Campo | Tipo | Significato |
-|-------|------|-------------|
-| `isPro` | `Boolean` | Stato Pro corrente (comprende session unlock) |
-| `isProcessing` | `Boolean` | Acquisto/restore in corso |
-| `isBillingReady` | `Boolean` | `BillingClient` connesso e prodotto caricato |
-| `productPrice` | `String?` | Prezzo letto da Play (es. `"€2,99"`) |
-| `message` | `String?` | Messaggio di stato/errore per la UI |
 
 ### Flusso consenso UMP
 
@@ -1399,13 +1369,13 @@ ADMOB_INTERSTITIAL_UNIT_ID=<real_interstitial_unit_id>
 | Schermata | Posizione |
 |-----------|-----------|
 | `DashboardScreen` | Dopo la grid `StatCard`, prima di `ActivityRecapCard` |
-| `ChatListScreen` | Dopo la 6ª chat, poi ogni 12 chat (solo se ≥ 10 chat; nascosto durante ricerca attiva) |
+| `ChatListScreen` | Dopo la 6ª chat, poi ogni 12 chat (solo se >= 10 chat; nascosto durante ricerca attiva) |
 | `ChatDetailScreen` | Dopo le prime card statistiche, prima delle sezioni opt-in |
 | `MediaStatsScreen` | Dopo la 3ª `LinkStatCard` (non nella griglia immagini) |
-| `WordSearchScreen` | Dopo i risultati (solo dopo ricerca avvenuta, ≥ 10 risultati) |
+| `WordSearchScreen` | Dopo i risultati (solo dopo ricerca avvenuta, >= 10 risultati) |
 | `CallsStatsScreen` | Dopo il riepilogo alto livello, prima della lista dettagliata |
 
-**Interstitial** — caricati in anticipo da `AdsRepository.preloadInterstitialIfPossible()`, mostrati da `tryShowInterstitialAfterLongOperation()`. Gate: cooldown 12 minuti, `isPro = false`, `canRequestAds = true`. Trigger validi:
+**Interstitial** — caricati in anticipo da `AdsRepository.preloadInterstitialIfPossible()`, mostrati da `tryShowInterstitialAfterLongOperation()`. Gate: cooldown 12 minuti, `canRequestAds = true`, `isMobileAdsInitialized = true`. Trigger validi:
 
 | Source | Momento |
 |--------|---------|
@@ -1416,34 +1386,12 @@ ADMOB_INTERSTITIAL_UNIT_ID=<real_interstitial_unit_id>
 
 Trigger esplicitamente vietati: back, cambio tab, apertura media, progress in corso, errori. Il cooldown da 12 minuti garantisce che qualsiasi trigger consecutivo venga silenziosamente ignorato.
 
-### Propagazione stato ads in AppNavigation
-
-I Boolean `areAdsEnabled` non sono passati come parametri chiusi nelle lambda del nav graph (causerebbero stale capture). Ogni composable legge lo stato direttamente:
-
-```kotlin
-// Dentro ogni lambda composable del nav graph
-val areAdsEnabled = mainViewModel.adsUiState.collectAsState().value.areAdsEnabled
-```
-
-Questo garantisce reattività immediata a qualsiasi cambio di `adsUiState`, incluso l'easter egg Pro.
-
-### Easter egg Pro
-
-Meccanismo di sblocco temporaneo per test/sviluppo, presente in `SetupScreen`:
-- Chiama `SetupViewModel.unlockProEasterEgg()` → `BillingRepository.unlockProForSession()`
-- Imposta `isPro = true` solo in memoria (`sessionProUnlocked = true`), **senza scrivere su DataStore**
-- Al riavvio dell'app, `BillingRepository.init` legge `ProEntitlementStore.isPro` (ancora `false`) e il flag scade automaticamente
-- Feedback visivo: `Snackbar` Material 3 (stringa localizzata `easter_egg_pro_unlocked`) — usa `inverseSurface`/`inverseOnSurface` del tema, senza limite di righe a differenza del `Toast` nativo
-- Le schermate già visibili reagiscono immediatamente grazie al pattern `collectAsState()` in ogni lambda del nav graph
-
-### AppDrawer — voci Pro e Privacy
+### AppDrawer — voci Privacy
 
 `AppDrawerContent` espone:
 
 | Voce | Condizione di visibilità | Comportamento |
 |------|--------------------------|---------------|
-| "Passa a Pro" | `!isPro` | Apre `ProPurchaseDialog` con prezzo live, pulsante acquisto e restore |
-| "Pro attiva" | `isPro` | Apre `ProPurchaseDialog` (solo restore visibile) |
 | "Opzioni privacy" | `adsUiState.isPrivacyOptionsRequired` | Chiama `mainViewModel.showAdsPrivacyOptions(activity)` → UMP form |
 
 ### ProGuard
@@ -1455,20 +1403,15 @@ Il file `proguard-rules.pro` include regole esplicite `-keep` per:
 
 Senza queste regole, le classi vengono strippate da `-repackageclasses '' -overloadaggressively` causando crash a runtime in release.
 
-### File coinvolti (riepilogo)
+### File coinvoluti (riepilogo)
 
 | File | Ruolo |
 |------|-------|
 | `ads/AdsRepository.kt` | Centralizza consenso UMP, init MobileAds, interstitial, state |
 | `ads/AdsUiState.kt` | Data class stato ads |
-| `billing/BillingRepository.kt` | Ciclo vita BillingClient, acquisto, restore, easter egg |
-| `billing/ProEntitlementStore.kt` | DataStore cache stato Pro (`pro_entitlement`) |
-| `billing/ProBillingUiState.kt` | Data class stato billing |
-| `ui/component/ads/BottomBannerAd.kt` | Composable banner adattivo |
-| `ui/component/ads/NativeAdCard.kt` | Composable native ad (`AndroidView` + `NativeAdView`) |
-| `ui/MainViewModel.kt` | Espone `adsUiState` e `proBillingUiState` come `StateFlow` |
+| `ui/MainViewModel.kt` | Espone `adsUiState` come `StateFlow` |
 | `ui/screen/home/AppScaffold.kt` | Inserisce `BottomBannerAd` in `bottomBar` |
-| `ui/component/AppDrawer.kt` | Voci Pro e Privacy options nel drawer |
+| `ui/component/AppDrawer.kt` | Voce Privacy options nel drawer |
 | `ui/navigation/AppNavigation.kt` | `areAdsEnabled` letto con `collectAsState()` in ogni lambda composable |
 | `app/proguard-rules.pro` | Regole `-keep` per AdMob e UMP |
 | `AndroidManifest.xml` | `meta-data` App ID AdMob, permesso `INTERNET` |

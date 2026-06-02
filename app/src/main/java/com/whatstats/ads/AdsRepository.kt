@@ -14,7 +14,6 @@ import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
 import com.whatstats.BuildConfig
-import com.whatstats.billing.BillingRepository
 import com.whatstats.util.DebugLogManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -23,9 +22,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -34,16 +31,15 @@ class AdsRepository
     @Inject
     constructor(
         @ApplicationContext private val context: android.content.Context,
-        billingRepository: BillingRepository,
     ) {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         private val consentInformation = UserMessagingPlatform.getConsentInformation(context)
 
         private var isMobileAdsInitialized = false
         private var isConsentRequestInFlight = false
-        private var isPro = false
         private var interstitialAd: InterstitialAd? = null
         private var lastInterstitialShownAtMs: Long = 0L
+        private var easterEggActive = false
 
         private val _uiState = MutableStateFlow(AdsUiState())
         val uiState: StateFlow<AdsUiState> = _uiState.asStateFlow()
@@ -51,32 +47,14 @@ class AdsRepository
         private companion object {
             const val INTERSTITIAL_COOLDOWN_MS = 12 * 60 * 1000L
 
-            // True quando si usano gli App ID di test Google (default nel repo).
-            // Diventa false automaticamente non appena si configurano ID reali in local.properties.
             val isTestBuild: Boolean
                 get() = BuildConfig.ADMOB_APP_ID == "ca-app-pub-3940256099942544~3347511713"
         }
 
-        // Con ID di test bypassa il check UMP (DEBUG_GEOGRAPHY_DISABLED richiede hash device).
-        // Con ID reali delega a ConsentInformation per rispettare il GDPR.
         private val canRequestAds: Boolean
             get() = isTestBuild || consentInformation.canRequestAds()
 
         init {
-            scope.launch {
-                billingRepository.uiState.collect { billingState ->
-                    isPro = billingState.isPro
-                    if (isPro) {
-                        interstitialAd = null
-                    } else {
-                        preloadInterstitialIfPossible()
-                    }
-                    publishState()
-                }
-            }
-            // Test build: bypassa UMP, avvia SDK immediatamente.
-            // Real build: se consenso già ottenuto in sessione precedente, avvia in parallelo
-            // senza attendere il callback di requestConsentInfoUpdate (pattern Google standard).
             if (isTestBuild || consentInformation.canRequestAds()) {
                 initializeMobileAdsIfPossible()
             }
@@ -97,10 +75,6 @@ class AdsRepository
                     .Builder()
                     .apply {
                         if (isTestBuild) {
-                            // Con gli ID di test Google bypassa il gate geografico EEA:
-                            // canRequestAds() diventa true immediatamente, senza form UMP.
-                            // Quando aggiungi gli ID reali in local.properties questo blocco
-                            // non viene piu eseguito e UMP funziona correttamente.
                             setConsentDebugSettings(
                                 ConsentDebugSettings
                                     .Builder(activity)
@@ -155,11 +129,17 @@ class AdsRepository
             _uiState.update { it.copy(message = null) }
         }
 
+        fun activateEasterEgg() {
+            easterEggActive = true
+            interstitialAd = null
+            publishState()
+        }
+
         fun tryShowInterstitialAfterLongOperation(
             activity: Activity,
             source: String,
         ): Boolean {
-            if (isPro || !isMobileAdsInitialized || !canRequestAds) return false
+            if (easterEggActive || !isMobileAdsInitialized || !canRequestAds) return false
             val now = System.currentTimeMillis()
             if ((now - lastInterstitialShownAtMs) < INTERSTITIAL_COOLDOWN_MS) {
                 preloadInterstitialIfPossible()
@@ -204,22 +184,18 @@ class AdsRepository
                 )
             }
             MobileAds.initialize(context) {
-                // Callback: tutti gli adapter sono pronti. Pubblica stato se non gia fatto.
                 if (!isMobileAdsInitialized) {
                     isMobileAdsInitialized = true
                     preloadInterstitialIfPossible()
                     publishState()
                 }
             }
-            // Imposta subito per sbloccare il gate UI. AdLoader/AdView gestiscono
-            // internamente il caso in cui l'init non e ancora completato.
             isMobileAdsInitialized = true
             preloadInterstitialIfPossible()
             publishState()
         }
 
         private fun preloadInterstitialIfPossible() {
-            if (isPro) return
             if (!isMobileAdsInitialized || !canRequestAds) return
             if (interstitialAd != null) return
 
@@ -247,7 +223,7 @@ class AdsRepository
             val isPrivacyOptionsRequired =
                 consentInformation.privacyOptionsRequirementStatus ==
                     ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
-            val areAdsEnabled = canRequestAdsValue && isMobileAdsInitialized && !isPro
+            val areAdsEnabled = canRequestAdsValue && isMobileAdsInitialized && !easterEggActive
 
             _uiState.update { current ->
                 current.copy(

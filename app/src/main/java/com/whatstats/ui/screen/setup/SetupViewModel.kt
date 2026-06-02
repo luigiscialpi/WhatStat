@@ -6,8 +6,7 @@ import android.net.Uri
 import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.whatstats.billing.BillingRepository
-import com.whatstats.billing.ProEntitlementStore
+import com.whatstats.ads.AdsRepository
 import com.whatstats.data.lite.LiteDatabase
 import com.whatstats.data.repository.GlobalStepStatus
 import com.whatstats.data.repository.WhatsAppRepository
@@ -34,9 +33,8 @@ class SetupViewModel
         private val analyticsRepository: com.whatstats.data.repository.AnalyticsRepository,
         private val liteDatabase: LiteDatabase,
         private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
+        private val adsRepository: AdsRepository,
         @ApplicationContext private val context: Context,
-        private val proEntitlementStore: ProEntitlementStore,
-        private val billingRepository: BillingRepository,
     ) : ViewModel() {
         private val _state = MutableStateFlow(SetupState())
         val state: StateFlow<SetupState> = _state.asStateFlow()
@@ -196,8 +194,8 @@ class SetupViewModel
             context.startService(intent)
         }
 
-        fun unlockProEasterEgg() {
-            billingRepository.unlockProForSession()
+        fun triggerEasterEgg() {
+            adsRepository.activateEasterEgg()
         }
 
         fun activateLiteMode() {

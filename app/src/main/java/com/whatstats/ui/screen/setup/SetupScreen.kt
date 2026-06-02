@@ -320,7 +320,7 @@ fun setupScreen(
                             if (easterEggTaps >= 10) {
                                 easterEggTaps = 0
                                 easterEggLastWasIcon = null
-                                viewModel.unlockProEasterEgg()
+                                viewModel.triggerEasterEgg()
                                 val msg = context.getString(R.string.easter_egg_pro_unlocked)
                                 scope.launch { snackbarHostState.showSnackbar(msg) }
                             }
@@ -359,7 +359,7 @@ fun setupScreen(
                         if (easterEggTaps >= 10) {
                             easterEggTaps = 0
                             easterEggLastWasIcon = null
-                            viewModel.unlockProEasterEgg()
+                            viewModel.triggerEasterEgg()
                             val msg = context.getString(R.string.easter_egg_pro_unlocked)
                             scope.launch { snackbarHostState.showSnackbar(msg) }
                         }

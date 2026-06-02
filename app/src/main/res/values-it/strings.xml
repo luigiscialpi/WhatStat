@@ -359,14 +359,6 @@
     <string name="whatstat_drawer_theme">Tema App</string>
     <string name="whatstat_drawer_language">Cambia Lingua</string>
     <string name="whatstat_drawer_cache">Elimina Dati</string>
-    <string name="drawer_upgrade_pro">Aggiorna a Pro</string>
-    <string name="pro_active">Pro attivo</string>
-    <string name="pro_upgrade_description">Rimuovi tutte le pubblicità e mantieni l\'interfaccia pulita, senza spazi riservati per gli annunci.</string>
-    <string name="pro_active_description">Pro è attivo. Le pubblicità sono disabilitate e gli spazi pubblicitari nascosti.</string>
-    <string name="pro_price_label">Prezzo: %1$s</string>
-    <string name="pro_price_loading">Caricamento prezzo…</string>
-    <string name="pro_buy_button">Sblocca Pro</string>
-    <string name="pro_restore_button">Ripristina acquisto</string>
     <string name="drawer_ads_privacy_options">Opzioni sulla privacy degli annunci</string>
     <string name="whatstat_drawer_about">Informazioni</string>
     <string name="dialog_choose_theme">Scegli Tema</string>
@@ -412,18 +404,6 @@
     <string name="setup_service_notif_title">Decifratura Database</string>
     <string name="setup_service_progress">Progresso: %d%%</string>
     <string name="setup_service_starting">Avvio in corso…</string>
-
-    <!-- Billing -->
-    <string name="billing_purchase_ok_no_product">Acquisto completato, ma nessun prodotto ricevuto.</string>
-    <string name="billing_purchase_cancelled">Acquisto annullato.</string>
-    <string name="billing_purchase_failed">Acquisto non riuscito (%d).</string>
-    <string name="billing_product_unavailable">Prodotto Pro non disponibile. Riprova tra poco.</string>
-    <string name="billing_launch_failed">Impossibile avviare l\'acquisto (%d).</string>
-    <string name="billing_unavailable">Billing non disponibile (%d).</string>
-    <string name="billing_price_load_error">Errore caricamento prezzo Pro (%d).</string>
-    <string name="billing_restore_error">Errore ripristino acquisti (%d).</string>
-    <string name="billing_pro_activated">Pro attivata con successo.</string>
-    <string name="billing_no_pro_purchase">Nessun acquisto Pro attivo.</string>
 
     <!-- Errors -->
     <string name="error_decryption_error">Errore decifratura: %s</string>

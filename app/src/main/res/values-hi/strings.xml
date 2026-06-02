@@ -355,14 +355,6 @@
     <string name="whatstat_drawer_theme">ऐप थीम</string>
     <string name="whatstat_drawer_language">भाषा बदलें</string>
     <string name="whatstat_drawer_cache">डेटा हटाएं</string>
-    <string name="drawer_upgrade_pro">Pro में अपग्रेड करें</string>
-    <string name="pro_active">Pro सक्रिय</string>
-    <string name="pro_upgrade_description">सभी विज्ञापन हटाएं और इंटरफ़ेस को साफ रखें, विज्ञापनों के लिए कोई आरक्षित स्थान नहीं होगा।</string>
-    <string name="pro_active_description">Pro सक्रिय है। विज्ञापन अक्षम हैं और विज्ञापन स्लॉट छिपाए गए हैं।</string>
-    <string name="pro_price_label">कीमत: %1$s</string>
-    <string name="pro_price_loading">कीमत लोड हो रही है…</string>
-    <string name="pro_buy_button">Pro अनलॉक करें</string>
-    <string name="pro_restore_button">खरीदारी पुनर्स्थापित करें</string>
     <string name="drawer_ads_privacy_options">विज्ञापन गोपनीयता विकल्प</string>
     <string name="whatstat_drawer_about">जानकारी</string>
     <string name="dialog_choose_theme">थीम चुनें</string>
@@ -408,18 +400,6 @@
     <string name="setup_service_notif_title">डेटाबेस डिक्रिप्शन</string>
     <string name="setup_service_progress">प्रगति: %d%%</string>
     <string name="setup_service_starting">शुरू हो रहा है…</string>
-
-    <!-- Billing -->
-    <string name="billing_purchase_ok_no_product">खरीदारी पूरी हुई, लेकिन कोई उत्पाद नहीं मिला।</string>
-    <string name="billing_purchase_cancelled">खरीदारी रद्द की गई।</string>
-    <string name="billing_purchase_failed">खरीदारी विफल (%d)।</string>
-    <string name="billing_product_unavailable">Pro उत्पाद उपलब्ध नहीं। बाद में पुनः प्रयास करें।</string>
-    <string name="billing_launch_failed">खरीदारी शुरू नहीं हो सकी (%d)।</string>
-    <string name="billing_unavailable">बिलिंग उपलब्ध नहीं (%d)।</string>
-    <string name="billing_price_load_error">Pro की कीमत लोड करने में त्रुटि (%d)।</string>
-    <string name="billing_restore_error">खरीदारी पुनर्स्थापित करने में त्रुटि (%d)।</string>
-    <string name="billing_pro_activated">Pro सफलतापूर्वक सक्रिय।</string>
-    <string name="billing_no_pro_purchase">कोई सक्रिय Pro खरीदारी नहीं।</string>
 
     <!-- Errors -->
     <string name="error_decryption_error">डिक्रिप्शन त्रुटि: %s</string>

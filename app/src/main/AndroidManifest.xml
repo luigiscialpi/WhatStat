@@ -15,7 +15,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Rete necessaria per Billing/AdMob/UMP -->
+    <!-- Rete necessaria per AdMob/UMP -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <queries>

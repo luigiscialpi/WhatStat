@@ -355,14 +355,6 @@
     <string name="whatstat_drawer_theme">Uygulama teması</string>
     <string name="whatstat_drawer_language">Dili değiştir</string>
     <string name="whatstat_drawer_cache">Verileri sil</string>
-    <string name="drawer_upgrade_pro">Pro\'ya yükselt</string>
-    <string name="pro_active">Pro etkin</string>
-    <string name="pro_upgrade_description">Tüm reklamları kaldırır ve arayüzü reklam için ayrılmış alan olmadan temiz tutar.</string>
-    <string name="pro_active_description">Pro etkin. Reklamlar devre dışı bırakıldı ve reklam alanları gizlendi.</string>
-    <string name="pro_price_label">Fiyat: %1$s</string>
-    <string name="pro_price_loading">Fiyat yükleniyor…</string>
-    <string name="pro_buy_button">Pro\'yu etkinleştir</string>
-    <string name="pro_restore_button">Satın almayı geri yükle</string>
     <string name="drawer_ads_privacy_options">Reklam gizlilik seçenekleri</string>
     <string name="whatstat_drawer_about">Bilgiler</string>
     <string name="dialog_choose_theme">Tema seç</string>
@@ -408,18 +400,6 @@
     <string name="setup_service_notif_title">Veritabanı Şifre Çözme</string>
     <string name="setup_service_progress">İlerleme: %d%%</string>
     <string name="setup_service_starting">Başlatılıyor…</string>
-
-    <!-- Billing -->
-    <string name="billing_purchase_ok_no_product">Satın alma tamamlandı, ancak ürün alınamadı.</string>
-    <string name="billing_purchase_cancelled">Satın alma iptal edildi.</string>
-    <string name="billing_purchase_failed">Satın alma başarısız (%d).</string>
-    <string name="billing_product_unavailable">Pro ürün mevcut değil. Daha sonra tekrar deneyin.</string>
-    <string name="billing_launch_failed">Satın alma başlatılamadı (%d).</string>
-    <string name="billing_unavailable">Ödeme sistemi kullanılamıyor (%d).</string>
-    <string name="billing_price_load_error">Pro fiyatı yüklenirken hata (%d).</string>
-    <string name="billing_restore_error">Satın almalar geri yüklenirken hata (%d).</string>
-    <string name="billing_pro_activated">Pro başarıyla etkinleştirildi.</string>
-    <string name="billing_no_pro_purchase">Aktif Pro satın alımı yok.</string>
 
     <!-- Errors -->
     <string name="error_decryption_error">Şifre çözme hatası: %s</string>

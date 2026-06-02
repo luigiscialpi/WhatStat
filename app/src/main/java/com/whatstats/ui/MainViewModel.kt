@@ -5,8 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.whatstats.ads.AdsRepository
 import com.whatstats.ads.AdsUiState
-import com.whatstats.billing.BillingRepository
-import com.whatstats.billing.ProBillingUiState
 import com.whatstats.data.repository.AnalyticsRepository
 import com.whatstats.data.repository.WhatsAppRepository
 import com.whatstats.data.store.AppPreferencesStore
@@ -32,12 +30,10 @@ class MainViewModel
         private val analyticsRepository: AnalyticsRepository,
         private val whatsAppRepository: WhatsAppRepository,
         private val appPreferencesStore: AppPreferencesStore,
-        private val billingRepository: BillingRepository,
         private val adsRepository: AdsRepository,
         @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     ) : ViewModel() {
         val isLiteMode: StateFlow<Boolean> = analyticsRepository.isLiteMode
-        val proBillingUiState: StateFlow<ProBillingUiState> = billingRepository.uiState
         val adsUiState: StateFlow<AdsUiState> = adsRepository.uiState
 
         val themeMode: StateFlow<ThemeMode> =
@@ -96,18 +92,6 @@ class MainViewModel
                 appPreferencesStore.setTutorialSeen(true)
                 _showTutorial.value = false
             }
-        }
-
-        fun purchasePro(activity: Activity) {
-            billingRepository.launchPurchase(activity)
-        }
-
-        fun restoreProPurchases() {
-            billingRepository.restorePurchases()
-        }
-
-        fun dismissProBillingMessage() {
-            billingRepository.clearMessage()
         }
 
         fun requestAdsConsent(activity: Activity) {

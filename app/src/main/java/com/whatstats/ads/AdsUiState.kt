@@ -7,4 +7,5 @@ data class AdsUiState(
     val isMobileAdsInitialized: Boolean = false,
     val shouldShowBanner: Boolean = false,
     val message: String? = null,
+    val easterEggActive: Boolean = false,
 )
