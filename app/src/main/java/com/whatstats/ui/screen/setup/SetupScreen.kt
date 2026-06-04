@@ -919,28 +919,34 @@ private fun rootTabContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // ── Step indicators ──────────────────────────────────────
-        // Show steps only when database is not ready or setup is active
+        // Mostra gli step solo quando il DB non è pronto o il setup è in corso.
+        // L'errorMessage viene passato solo allo step che ha effettivamente fallito,
+        // in modo che il messaggio appaia inline sotto l'indicatore corrispondente.
         if (!state.isRootReady || state.isLoading) {
             SetupStep(
                 label = stringResource(R.string.root_step_access),
                 status = state.rootStatus,
                 icon = Icons.Outlined.AdminPanelSettings,
+                errorMessage = if (state.rootStatus == StepStatus.ERROR) state.error else null,
             )
             SetupStep(
                 label = stringResource(R.string.root_step_extraction),
                 status = state.extractionStatus,
                 icon = Icons.Outlined.FolderOpen,
+                errorMessage = if (state.extractionStatus == StepStatus.ERROR) state.error else null,
             )
             SetupStep(
                 label = stringResource(R.string.root_step_decryption),
                 status = state.decryptionStatus,
                 icon = Icons.Outlined.Key,
                 progress = if (state.decryptionStatus == StepStatus.LOADING) state.decryptionProgress else null,
+                errorMessage = if (state.decryptionStatus == StepStatus.ERROR) state.error else null,
             )
             SetupStep(
                 label = stringResource(R.string.root_step_contacts),
                 status = state.contactsStatus,
                 icon = Icons.Outlined.Contacts,
+                errorMessage = if (state.contactsStatus == StepStatus.ERROR) state.error else null,
             )
         }
 
@@ -1030,37 +1036,18 @@ private fun rootTabContent(
             }
         }
 
-        // ── Error card & Manual Mode ─────────────────────────────
+        // ── Pulsante modalità manuale ─────────────────────────────
+        // Il testo dell'errore è ora mostrato inline sotto lo step che ha fallito.
+        // Qui restano solo le azioni contestuali (es. selezione file manuale).
         AnimatedVisibility(
-            visible = state.error != null,
+            visible = state.error != null && !state.isManualModeVisible,
             enter = fadeIn() + slideInVertically(),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                        ),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    SelectionContainer {
-                        Text(
-                            state.error ?: "",
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
-                if (!state.isManualModeVisible) {
-                    Button(
-                        onClick = onShowManualMode,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.manual_mode_button))
-                    }
-                }
+            Button(
+                onClick = onShowManualMode,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.manual_mode_button))
             }
         }
 
@@ -1221,6 +1208,9 @@ private fun SetupStep(
     status: StepStatus,
     icon: ImageVector,
     progress: Float? = null,
+    // Messaggio di errore da mostrare inline sotto lo step quando status == ERROR.
+    // Viene valorizzato solo dallo step che ha effettivamente fallito.
+    errorMessage: String? = null,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -1284,6 +1274,22 @@ private fun SetupStep(
             }
         }
 
+        // ── Messaggio di errore inline ────────────────────────────
+        if (status == StepStatus.ERROR && !errorMessage.isNullOrBlank()) {
+            SelectionContainer {
+                Text(
+                    text = errorMessage,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(start = 36.dp, end = 4.dp, bottom = 10.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+
+        // ── Barra di progresso decifratura ───────────────────────
         if (progress != null) {
             Row(
                 modifier =

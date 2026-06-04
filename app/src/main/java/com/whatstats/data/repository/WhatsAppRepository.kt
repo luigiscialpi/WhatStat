@@ -83,8 +83,17 @@ class WhatsAppRepository
                     _setupState.update { it.copy(rootStatus = GlobalStepStatus.LOADING) }
                     val rootStatus = rootManager.checkRootAccess()
                     when (rootStatus) {
-                        RootStatus.NOT_AVAILABLE -> throw AppErrorException(AppError.RootNotAvailable)
-                        RootStatus.NOT_GRANTED -> throw AppErrorException(AppError.RootNotGranted)
+                        RootStatus.NOT_AVAILABLE -> {
+                            // Marca lo step come ERROR prima di propagare, altrimenti
+                            // l'onFailure generico non resetta rootStatus da LOADING a ERROR
+                            // e lo spinner del primo step indicatore gira all'infinito.
+                            _setupState.update { it.copy(rootStatus = GlobalStepStatus.ERROR) }
+                            throw AppErrorException(AppError.RootNotAvailable)
+                        }
+                        RootStatus.NOT_GRANTED -> {
+                            _setupState.update { it.copy(rootStatus = GlobalStepStatus.ERROR) }
+                            throw AppErrorException(AppError.RootNotGranted)
+                        }
                         RootStatus.GRANTED -> { /* ok */ }
                     }
                     _setupState.update { it.copy(rootStatus = GlobalStepStatus.SUCCESS, extractionStatus = GlobalStepStatus.LOADING) }
