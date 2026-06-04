@@ -65,12 +65,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.whatstats.R
 import com.whatstats.ui.component.ads.BottomBannerAd
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -244,7 +246,7 @@ fun ZoomableImageGallery(
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Outlined.Close,
-                            contentDescription = "Chiudi",
+                            contentDescription = stringResource(R.string.close),
                             tint = Color.White,
                         )
                     }
@@ -269,7 +271,7 @@ fun ZoomableImageGallery(
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Share,
-                                contentDescription = "Condividi",
+                                contentDescription = stringResource(R.string.share),
                                 tint = Color.White,
                             )
                         }
@@ -541,7 +543,7 @@ private fun ZoomableImageItem(
                     .crossfade(true)
                     .build(),
             imageLoader = imageLoader,
-            contentDescription = "Immagine",
+            contentDescription = stringResource(R.string.image_desc),
             modifier =
                 Modifier
                     .fillMaxSize()

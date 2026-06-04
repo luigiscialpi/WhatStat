@@ -269,6 +269,8 @@
     <string name="error_open_file">Could not open file</string>
     <string name="back_to_all_links">← All links</string>
     <string name="avatar_desc">Avatar</string>
+    <string name="domain_no_stats">No domain statistics available.</string>
+    <string name="selected_count">%d selected</string>
 
     <!-- Calls Stats -->
     <string name="total_calls_label">Total calls</string>
@@ -413,4 +415,19 @@
 
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Pro version unlocked! Courtesy of Luigi Scialpi 😉</string>
+
+    <!-- Domain Breakdown Sheet -->
+    <string name="domain_analysis_title">Link Analysis</string>
+    <string name="link_sort_label">Sort by: </string>
+    <string name="link_sort_more_recent">Most recent</string>
+    <string name="share_media">Share media</string>
+    <string name="share">Share</string>
+    <string name="selected">Selected</string>
+    <string name="media_label">media</string>
+    <string name="link_label">link</string>
+    <string name="link_sort_less_recent">Least recent</string>
+    <string name="image_desc">Image</string>
+    <string name="menu_desc">Menu</string>
+    <string name="scroll_to_top">Scroll to top</string>
+    <string name="info_desc">Info</string>
 </resources>

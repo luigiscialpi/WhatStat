@@ -131,7 +131,7 @@ fun MilestonePredictionCard(
                 var showInfo by remember { mutableStateOf(false) }
                 AnimatedInfoButton(
                     onClick = { showInfo = true },
-                    contentDescription = "Info",
+                    contentDescription = stringResource(R.string.info_desc),
                     tint = MaterialTheme.colorScheme.primary,
                     glowColor = MaterialTheme.colorScheme.primary,
                 )

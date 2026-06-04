@@ -173,7 +173,7 @@ fun DashboardScreen(
                 IconButton(onClick = { scope.launch { drawerState.open() } }) {
                     Icon(
                         Icons.Default.Menu,
-                        contentDescription = "Menu",
+                        contentDescription = stringResource(R.string.menu_desc),
                         tint = MaterialTheme.colorScheme.onBackground,
                     )
                 }

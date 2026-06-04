@@ -263,6 +263,8 @@
     <string name="error_open_file">Impossibile aprire il file</string>
     <string name="back_to_all_links">← Tutti i link</string>
     <string name="avatar_desc">Avatar</string>
+    <string name="domain_no_stats">Nessuna statistica di dominio disponibile.</string>
+    <string name="selected_count">%d selezionati</string>
 
     <!-- Calls Stats -->
     <string name="total_calls_label">Totale chiamate</string>
@@ -415,4 +417,19 @@
 
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Versione Pro sbloccata! Su gentile concessione di Luigi Scialpi 😉</string>
+
+    <!-- Domain Breakdown Sheet -->
+    <string name="domain_analysis_title">Analisi Link</string>
+    <string name="link_sort_label">Ordina per: </string>
+    <string name="link_sort_more_recent">Più recenti</string>
+    <string name="share_media">Condividi media</string>
+    <string name="share">Condividi</string>
+    <string name="selected">Selezionato</string>
+    <string name="media_label">media</string>
+    <string name="link_label">link</string>
+    <string name="link_sort_less_recent">Meno recenti</string>
+    <string name="image_desc">Immagine</string>
+    <string name="menu_desc">Menu</string>
+    <string name="scroll_to_top">Scorri in alto</string>
+    <string name="info_desc">Info</string>
 </resources>

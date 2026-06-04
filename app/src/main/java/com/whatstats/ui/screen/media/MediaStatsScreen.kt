@@ -10,6 +10,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +42,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Clear
@@ -77,6 +84,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -620,13 +628,13 @@ private fun MediaGallerySheet(
                 IconButton(onClick = { selectedMedia.clear() }) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
-                        contentDescription = "Annulla",
+                        contentDescription = stringResource(R.string.cancel),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
                 Spacer(Modifier.width(12.dp))
                 Text(
-                    text = "${selectedMedia.size} selezionati",
+                    text = stringResource(id = R.string.selected_count, selectedMedia.size),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.weight(1f),
@@ -652,7 +660,7 @@ private fun MediaGallerySheet(
                                             clipData = clip
                                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                         }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Condividi media"))
+                                    context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.share_media)))
                                     selectedMedia.clear()
                                 }
                             }
@@ -661,7 +669,7 @@ private fun MediaGallerySheet(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Share,
-                        contentDescription = "Condividi",
+                        contentDescription = stringResource(R.string.share),
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
@@ -996,7 +1004,7 @@ private fun MediaGallerySheet(
                                         )
                                         Icon(
                                             imageVector = Icons.Outlined.Check,
-                                            contentDescription = "Selezionato",
+                                            contentDescription = stringResource(R.string.selected),
                                             tint = MaterialTheme.colorScheme.onPrimary,
                                             modifier =
                                                 Modifier
@@ -1292,7 +1300,7 @@ private fun LinkStatCardContent(
                         },
                 )
                 Text(
-                    "media",
+                    stringResource(R.string.media_label),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1330,7 +1338,7 @@ private fun LinkStatCardContent(
                         },
                 )
                 Text(
-                    "link",
+                    stringResource(R.string.link_label),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1387,6 +1395,46 @@ private fun DomainBreakdownSheet(
 ) {
     var expandedDomain by remember { mutableIntStateOf(-1) }
     val uriHandler = LocalUriHandler.current
+    
+    val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.ITALIAN) }
+    
+    // Global state
+    var globalSortMode by remember { mutableIntStateOf(0) } // 0 = Più recenti, 1 = Meno recenti
+    
+    val minTimestamp = remember(domains) {
+        domains.flatMap { it.topUrls }.mapNotNull { it.lastTimestamp }.minOrNull() ?: 0L
+    }
+    val maxTimestamp = remember(domains) {
+        domains.flatMap { it.topUrls }.mapNotNull { it.lastTimestamp }.maxOrNull() ?: System.currentTimeMillis()
+    }
+    
+    var dateRange by remember(minTimestamp, maxTimestamp) {
+        mutableStateOf(
+            if (minTimestamp > 0 && maxTimestamp > minTimestamp) minTimestamp.toFloat()..maxTimestamp.toFloat() 
+            else 0f..1f
+        )
+    }
+
+    val filteredDomains = remember(domains, dateRange) {
+        if (minTimestamp == 0L || maxTimestamp <= minTimestamp) return@remember domains
+        domains.mapNotNull { stat ->
+            val filteredUrls = stat.topUrls.filter { urlFreq ->
+                val ts = urlFreq.lastTimestamp ?: 0L
+                ts >= dateRange.start.toLong() && ts <= dateRange.endInclusive.toLong()
+            }
+            if (filteredUrls.isEmpty()) null
+            else stat.copy(
+                topUrls = filteredUrls,
+                count = filteredUrls.sumOf { it.count }
+            )
+        }.sortedByDescending { it.count }
+    }
+
+    val scrollState = rememberScrollState()
+    
+    LaunchedEffect(globalSortMode) {
+        scrollState.animateScrollTo(0)
+    }
 
     Column(
         modifier =
@@ -1394,7 +1442,7 @@ private fun DomainBreakdownSheet(
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(scrollState),
     ) {
         // Header con avatar
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1416,7 +1464,7 @@ private fun DomainBreakdownSheet(
             }
             Column {
                 Text(
-                    "Analisi Link",
+                    stringResource(id = R.string.domain_analysis_title),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -1427,23 +1475,135 @@ private fun DomainBreakdownSheet(
                 )
             }
         }
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(8.dp))
+
         when {
             isLoading && domains.isEmpty() -> {
                 LoadingSection(progress = progress)
             }
-            domains.isEmpty() -> {
+            filteredDomains.isEmpty() -> {
                 Text(
-                    "Nessuna statistica di dominio disponibile.",
+                    stringResource(R.string.domain_no_stats),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             else -> {
-                val maxCount = domains.maxOf { it.count }.coerceAtLeast(1)
+                val maxCount = filteredDomains.maxOfOrNull { it.count }?.coerceAtLeast(1) ?: 1
+                val totalLinksCount = filteredDomains.sumOf { it.count }
+                
+                // Global Controls: slider left, sort button right
+                Spacer(Modifier.height(8.dp))
+                if (minTimestamp > 0 && maxTimestamp > minTimestamp) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    dateFormatter.format(Date(dateRange.start.toLong())),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    dateFormatter.format(Date(dateRange.endInclusive.toLong())),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            androidx.compose.material3.RangeSlider(
+                                value = dateRange,
+                                onValueChange = { dateRange = it },
+                                valueRange = minTimestamp.toFloat()..maxTimestamp.toFloat(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    // Consume pointer events AFTER the slider (child) processes them,
+                                    // so the slider works normally but events don't propagate to
+                                    // the ModalBottomSheet's AnchoredDraggable gesture handler.
+                                    .pointerInput(Unit) {
+                                        awaitEachGesture {
+                                            awaitFirstDown(requireUnconsumed = false)
+                                            do {
+                                                val event = awaitPointerEvent()
+                                                event.changes.forEach { it.consume() }
+                                            } while (event.changes.any { it.pressed })
+                                        }
+                                    }
+                            )
+                        }
+                        
+                        Spacer(Modifier.width(8.dp))
+                        
+                        // Sort toggle button (right) - align it with the slider bar heightwise
+                        val sortRotation by animateFloatAsState(
+                            targetValue = if (globalSortMode == 1) 180f else 0f,
+                            label = "sortRotation"
+                        )
+                        Box(
+                            modifier = Modifier.padding(bottom = 4.dp) // Fine-tune alignment to match the slider bar
+                        ) {
+                            TextButton(onClick = { globalSortMode = if (globalSortMode == 0) 1 else 0 }) {
+                                Icon(
+                                    Icons.Outlined.SwapVert,
+                                    contentDescription = null,
+                                    modifier = Modifier.rotate(sortRotation),
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    if (globalSortMode == 1) {
+                                        stringResource(R.string.sort_oldest)
+                                    } else {
+                                        stringResource(R.string.sort_newest)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Sort toggle button (right)
+                        val sortRotation by animateFloatAsState(
+                            targetValue = if (globalSortMode == 1) 180f else 0f,
+                            label = "sortRotation"
+                        )
+                        TextButton(onClick = { globalSortMode = if (globalSortMode == 0) 1 else 0 }) {
+                            Icon(
+                                Icons.Outlined.SwapVert,
+                                contentDescription = null,
+                                modifier = Modifier.rotate(sortRotation),
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                if (globalSortMode == 1) {
+                                    stringResource(R.string.sort_oldest)
+                                } else {
+                                    stringResource(R.string.sort_newest)
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(Modifier.height(16.dp))
+                
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    domains.take(10).forEachIndexed { index, stat ->
+                    filteredDomains.take(10).forEachIndexed { index, stat ->
                         val isExpanded = expandedDomain == index
+                        val percentage = if (totalLinksCount > 0) (stat.count.toFloat() / totalLinksCount * 100).toInt() else 0
+                        
                         Column(
                             modifier =
                                 Modifier
@@ -1457,15 +1617,15 @@ private fun DomainBreakdownSheet(
                                         },
                                     )
                                     .animateContentSize()
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
                         ) {
-                            // Riga dominio (cliccabile)
+                            // Row for Domain (clickable)
                             Row(
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            expandedDomain = if (isExpanded) -1 else index
+                                            expandedDomain = if (expandedDomain == index) -1 else index
                                         }
                                         .padding(vertical = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1475,55 +1635,143 @@ private fun DomainBreakdownSheet(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f),
                                 ) {
+                                    val rankColor = when (index) {
+                                        0 -> Color(0xFFD4AF37)
+                                        1 -> Color(0xFFC0C0C0)
+                                        2 -> Color(0xFFCD7F32)
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    }
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clip(CircleShape)
+                                            .background(rankColor.copy(alpha = 0.15f)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = "${index + 1}",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = rankColor,
+                                        )
+                                    }
+                                    
+                                    Spacer(Modifier.width(8.dp))
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(LocalContext.current)
+                                                .data("https://www.google.com/s2/favicons?sz=64&domain=${stat.domain}")
+                                                .crossfade(true)
+                                                .build(),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            contentScale = ContentScale.Fit,
+                                            error = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_compass),
+                                        )
+                                    }
+                                    
+                                    Spacer(Modifier.width(8.dp))
+                                    
                                     Text(
                                         stat.domain,
                                         style = MaterialTheme.typography.titleSmall,
                                         color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f, fill = false),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
+                                    
                                     if (stat.topUrls.isNotEmpty()) {
                                         Icon(
-                                            if (isExpanded) {
-                                                Icons.Outlined.KeyboardArrowUp
-                                            } else {
-                                                Icons.Outlined.KeyboardArrowDown
-                                            },
+                                            if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
                                             contentDescription = null,
                                             modifier = Modifier.size(18.dp),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                 }
-                                Text(
-                                    "${stat.count}",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        "${stat.count}",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                    Text(
+                                        "$percentage%",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
 
-                            // Barra progresso
+                            Spacer(Modifier.height(4.dp))
+
                             LinearProgressIndicator(
                                 progress = { stat.count.toFloat() / maxCount },
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
-                                        .height(8.dp),
+                                        .height(6.dp),
                                 color = MaterialTheme.colorScheme.primary,
                                 trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                 strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
                             )
 
-                            // Lista URL espandibile
+                            // Se è espanso, mostriamo i link internamente
                             if (isExpanded && stat.topUrls.isNotEmpty()) {
                                 Spacer(Modifier.height(8.dp))
-                                val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.ITALIAN) }
+
+                                val sortedUrls = when (globalSortMode) {
+                                    1 -> stat.topUrls.sortedBy { it.lastTimestamp ?: 0L }
+                                    else -> stat.topUrls.sortedByDescending { it.lastTimestamp ?: 0L }
+                                }
+
+                                val accordionListState = rememberLazyListState()
+
+                                // Scroll to top when global sort mode changes
+                                LaunchedEffect(globalSortMode) {
+                                    accordionListState.scrollToItem(0)
+                                }
+
                                 LazyColumn(
+                                    state = accordionListState,
                                     modifier =
                                         Modifier
                                             .fillMaxWidth()
-                                            .heightIn(max = 240.dp),
+                                            .heightIn(max = 240.dp)
+                                             .nestedScroll(
+                                                // Consume scroll AND fling so the BottomSheet
+                                                // cannot drag while the user is inside the accordion list
+                                                object : NestedScrollConnection {
+                                                    override fun onPreScroll(
+                                                        available: Offset,
+                                                        source: NestedScrollSource,
+                                                    ): Offset = Offset.Zero
+
+                                                    override fun onPostScroll(
+                                                        consumed: Offset,
+                                                        available: Offset,
+                                                        source: NestedScrollSource,
+                                                    ): Offset = available
+
+                                                    // Consume leftover fling velocity so it does not
+                                                    // propagate to the BottomSheet after list hits boundary
+                                                    override suspend fun onPostFling(
+                                                        consumed: Velocity,
+                                                        available: Velocity,
+                                                    ): Velocity = available
+                                                },
+                                             ),
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
-                                    items(stat.topUrls) { urlFreq ->
+                                    items(sortedUrls, key = { "${it.url}_${it.count}" }) { urlFreq ->
                                         Row(
                                             modifier =
                                                 Modifier
@@ -1539,26 +1787,43 @@ private fun DomainBreakdownSheet(
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
-                                            Text(
-                                                urlFreq.url,
-                                                style =
-                                                    MaterialTheme.typography.bodySmall.copy(
-                                                        textDecoration = TextDecoration.Underline,
-                                                    ),
-                                                color = MaterialTheme.colorScheme.primary,
+                                            Row(
                                                 modifier = Modifier.weight(1f),
-                                                maxLines = 2,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                            Spacer(Modifier.width(8.dp))
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Spacer(Modifier.width(4.dp))
-                                                Text(
-                                                    "(${urlFreq.count})",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                verticalAlignment = Alignment.CenterVertically,
+                                            ) {
+                                                Icon(
+                                                    painter = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_share),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(12.dp),
+                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                                                 )
                                                 Spacer(Modifier.width(4.dp))
+                                                Text(
+                                                    urlFreq.url,
+                                                    style =
+                                                        MaterialTheme.typography.bodySmall.copy(
+                                                            textDecoration = TextDecoration.Underline,
+                                                        ),
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+                                            }
+                                            Spacer(Modifier.width(8.dp))
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(CircleShape)
+                                                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text(
+                                                        "${urlFreq.count}",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                    )
+                                                }
+                                                Spacer(Modifier.width(6.dp))
                                                 Text(
                                                     urlFreq.lastTimestamp?.let { dateFormatter.format(Date(it)) } ?: "",
                                                     style = MaterialTheme.typography.labelSmall,

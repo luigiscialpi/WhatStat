@@ -411,4 +411,24 @@
 
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Pro sürümü açıldı! Luigi Scialpi\'nin nazik katkılarıyla 😉</string>
+    <!-- Domain Breakdown Sheet -->
+    <string name="domain_analysis_title">Alan Adı Analizi</string>
+    <string name="link_sort_label">Sıralama ölçütü: </string>
+    <string name="link_sort_more_recent">En yeni</string>
+    <string name="share_media">Medyayı paylaş</string>
+    <string name="share">Paylaş</string>
+    <string name="selected">Seçili</string>
+    <string name="media_label">medya</string>
+    <string name="link_label">bağlantı</string>
+    <string name="link_sort_less_recent">En eski</string>
+    <string name="image_desc">Resim</string>
+    <string name="menu_desc">Menü</string>
+    <string name="scroll_to_top">Yukarı kaydır</string>
+    <string name="info_desc">Bilgi</string>
+    <string name="domain_no_stats">Alan adı istatistiği yok.</string>
+    <string name="selected_count">%d seçili</string>
+    <string name="tutorial_radar_preview_1">[Önizleme] "... sana dosyayı yarın gönderiyorum ..."</string>
+    <string name="tutorial_radar_preview_2">[Önizleme] "... o kelimeyi nerede gördün?"</string>
+    <string name="tutorial_radar_preview_3">[Önizleme] "... önce önizlemelere bakıyorum ..."</string>
+    <string name="tutorial_radar_previews_badge">Öne çıkarılan mesaj önizlemeleri</string>
 </resources>

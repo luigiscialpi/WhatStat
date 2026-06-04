@@ -63,7 +63,7 @@ fun SimpleScreenHeader(
             IconButton(onClick = { scope.launch { drawerState.open() } }) {
                 Icon(
                     androidx.compose.material.icons.Icons.Default.Menu,
-                    contentDescription = "Menu",
+                    contentDescription = stringResource(R.string.menu_desc),
                     tint = MaterialTheme.colorScheme.onBackground,
                 )
             }

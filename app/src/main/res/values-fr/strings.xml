@@ -410,4 +410,24 @@
 
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Version Pro débloquée&#8239;! Courtoisie de Luigi Scialpi 😉</string>
+    <!-- Domain Breakdown Sheet -->
+    <string name="domain_analysis_title">Analyse de domaine</string>
+    <string name="link_sort_label">Trier par : </string>
+    <string name="link_sort_more_recent">Plus récents</string>
+    <string name="share_media">Partager le média</string>
+    <string name="share">Partager</string>
+    <string name="selected">Sélectionné</string>
+    <string name="media_label">média</string>
+    <string name="link_label">lien</string>
+    <string name="link_sort_less_recent">Moins récents</string>
+    <string name="image_desc">Image</string>
+    <string name="menu_desc">Menu</string>
+    <string name="scroll_to_top">Faire défiler vers le haut</string>
+    <string name="info_desc">Info</string>
+    <string name="domain_no_stats">Aucune statistique de domaine disponible.</string>
+    <string name="selected_count">%d sélectionnés</string>
+    <string name="tutorial_radar_preview_1">[Aperçu] "... je t'envoie le fichier demain ..."</string>
+    <string name="tutorial_radar_preview_2">[Aperçu] "... où as-tu vu ce mot ?"</string>
+    <string name="tutorial_radar_preview_3">[Aperçu] "... je vérifie dans les aperçus avant ..."</string>
+    <string name="tutorial_radar_previews_badge">Aperçus de messages en surbrillance</string>
 </resources>

@@ -411,4 +411,24 @@
 
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Pro version unlocked! Courtesy of Luigi Scialpi 😉</string>
+    <!-- Domain Breakdown Sheet -->
+    <string name="domain_analysis_title">डोमेन विश्लेषण</string>
+    <string name="link_sort_label">इसके अनुसार क्रमबद्ध करें: </string>
+    <string name="link_sort_more_recent">सबसे हाल का</string>
+    <string name="share_media">मीडिया साझा करें</string>
+    <string name="share">साझा करें</string>
+    <string name="selected">चयनित</string>
+    <string name="media_label">मीडिया</string>
+    <string name="link_label">लिंक</string>
+    <string name="link_sort_less_recent">सबसे पुराना</string>
+    <string name="image_desc">छवि</string>
+    <string name="menu_desc">मेनू</string>
+    <string name="scroll_to_top">ऊपर स्क्रॉल करें</string>
+    <string name="info_desc">जानकारी</string>
+    <string name="domain_no_stats">डोमेन आंकड़े उपलब्ध नहीं हैं।</string>
+    <string name="selected_count">%d चुने गए</string>
+    <string name="tutorial_radar_preview_1">[पूर्वावलोकन] "... कल तुम्हें फ़ाइल भेजूंगा ..."</string>
+    <string name="tutorial_radar_preview_2">[पूर्वावलोकन] "... उस शब्द को तुमने कहां देखा?"</string>
+    <string name="tutorial_radar_preview_3">[पूर्वावलोकन] "... पहले पूर्वावलोकनों में देखता हूं ..."</string>
+    <string name="tutorial_radar_previews_badge">संदेश पूर्वावलोकन हाइलाइट किए गए</string>
 </resources>

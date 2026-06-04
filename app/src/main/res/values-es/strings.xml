@@ -263,6 +263,8 @@
     <string name="error_open_file">No se puede abrir el archivo</string>
     <string name="back_to_all_links">← Todos los enlaces</string>
     <string name="avatar_desc">Avatar</string>
+    <string name="domain_no_stats">No hay estadísticas de dominio disponibles.</string>
+    <string name="selected_count">%d seleccionados</string>
 
     <!-- Calls Stats -->
     <string name="total_calls_label">Total de llamadas</string>
@@ -411,4 +413,23 @@
 
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">¡Versión Pro desbloqueada! Cortesía de Luigi Scialpi 😉</string>
+
+    <!-- Domain Breakdown Sheet -->
+    <string name="domain_analysis_title">Análisis de Enlaces</string>
+    <string name="link_sort_label">Ordenar por: </string>
+    <string name="link_sort_more_recent">Más recientes</string>
+    <string name="share_media">Compartir multimedia</string>
+    <string name="share">Compartir</string>
+    <string name="selected">Seleccionado</string>
+    <string name="media_label">multimedia</string>
+    <string name="link_label">enlace</string>
+    <string name="link_sort_less_recent">Menos recientes</string>
+    <string name="image_desc">Imagen</string>
+    <string name="menu_desc">Menú</string>
+    <string name="scroll_to_top">Desplazarse arriba</string>
+    <string name="info_desc">Info</string>
+    <string name="tutorial_radar_preview_1">[Vista previa] "... te mando el archivo mañana ..."</string>
+    <string name="tutorial_radar_preview_2">[Vista previa] "... dónde viste esa palabra?"</string>
+    <string name="tutorial_radar_preview_3">[Vista previa] "... busco en las vistas previas primero ..."</string>
+    <string name="tutorial_radar_previews_badge">Vistas previas destacadas</string>
 </resources>
