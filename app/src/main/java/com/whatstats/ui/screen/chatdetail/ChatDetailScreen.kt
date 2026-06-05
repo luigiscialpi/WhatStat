@@ -58,7 +58,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
@@ -110,15 +109,17 @@ import com.whatstats.data.db.model.SenderStat
 import com.whatstats.data.db.model.TimeRange
 import com.whatstats.ui.MainViewModel
 import com.whatstats.ui.component.ActivityRecapCard
-import com.whatstats.ui.component.AnimatedInfoButton
 import com.whatstats.ui.component.ContactNameWithPhone
 import com.whatstats.ui.component.DateRangeCard
 import com.whatstats.ui.component.EmojiPreviewModal
 import com.whatstats.ui.component.InteractiveEmojiCloud
 import com.whatstats.ui.component.InteractiveStickerCloud
 import com.whatstats.ui.component.InteractiveWordCloud
+import com.whatstats.ui.component.LimitSelector
+import com.whatstats.ui.component.LoadingProgressSlot
 import com.whatstats.ui.component.LoadingSection
 import com.whatstats.ui.component.MilestonePredictionCard
+import com.whatstats.ui.component.SectionCard
 import com.whatstats.ui.component.SenderColorPickerDialog
 import com.whatstats.ui.component.ShimmerBox
 import com.whatstats.ui.component.StatCard
@@ -397,24 +398,7 @@ fun ChatDetailScreen(
                 }
             }
 
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(4.dp),
-            ) {
-                if (isLoading) {
-                    val p = progress
-                    if (p != null) {
-                        LinearProgressIndicator(
-                            progress = { p / 100f },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    } else {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
-                }
-            }
+            LoadingProgressSlot(isLoading = isLoading, progress = progress)
 
             if (!isLoading) {
                 // ── Sticky Filter Chips ───────────────────────────────────
@@ -717,57 +701,23 @@ fun ChatDetailScreen(
                         SectionCard(
                             title = stringResource(R.string.text_analysis_title),
                             trailingContent = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    val limits =
-                                        when (selectedTab) {
-                                            0 -> listOf(10, 20, 30, 50)
-                                            1 -> listOf(10, 20, 30, 50)
-                                            else -> listOf(10, 20, 30, 50)
-                                        }
-                                    val currentLimit =
-                                        when (selectedTab) {
-                                            0 -> topWordsLimit
-                                            1 -> topEmojiLimit
-                                            else -> topStickerLimit
-                                        }
-                                    val onLimitChange: (Int) -> Unit =
-                                        when (selectedTab) {
-                                            0 -> { l -> viewModel.setTopWordsLimit(l) }
-                                            1 -> { l -> viewModel.setTopEmojiLimit(l) }
-                                            else -> { l -> viewModel.setTopStickerLimit(l) }
-                                        }
-                                    limits.forEach { limit ->
-                                        Box(
-                                            modifier =
-                                                Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(
-                                                        if (currentLimit == limit) {
-                                                            MaterialTheme.colorScheme.primary
-                                                        } else {
-                                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                                        },
-                                                    )
-                                                    .clickable { onLimitChange(limit) }
-                                                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Text(
-                                                limit.toString(),
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color =
-                                                    if (currentLimit == limit) {
-                                                        MaterialTheme.colorScheme.onPrimary
-                                                    } else {
-                                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                                    },
-                                            )
-                                        }
+                                val currentLimit =
+                                    when (selectedTab) {
+                                        0 -> topWordsLimit
+                                        1 -> topEmojiLimit
+                                        else -> topStickerLimit
                                     }
-                                }
+                                val onLimitChange: (Int) -> Unit =
+                                    when (selectedTab) {
+                                        0 -> { l -> viewModel.setTopWordsLimit(l) }
+                                        1 -> { l -> viewModel.setTopEmojiLimit(l) }
+                                        else -> { l -> viewModel.setTopStickerLimit(l) }
+                                    }
+                                LimitSelector(
+                                    limits = listOf(10, 20, 30, 50),
+                                    selectedLimit = currentLimit,
+                                    onLimitSelected = onLimitChange,
+                                )
                             },
                         ) {
                             val sharedIndicator: @Composable (List<androidx.compose.material3.TabPosition>) -> Unit = { tabPositions ->
@@ -1265,57 +1215,6 @@ fun ChatDetailScreen(
             )
         }
     } // end Box
-}
-
-@Composable
-@Suppress("FunctionName")
-private fun SectionCard(
-    title: String,
-    trailingContent: (@Composable () -> Unit)? = null,
-    onInfoClick: (() -> Unit)? = null,
-    content: @Composable () -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            ),
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Column(Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-
-                if (trailingContent != null || onInfoClick != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        trailingContent?.invoke()
-                        if (onInfoClick != null) {
-                            AnimatedInfoButton(
-                                onClick = onInfoClick,
-                                contentDescription = stringResource(R.string.info_dialog_title),
-                                tint = MaterialTheme.colorScheme.primary,
-                                glowColor = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-            content()
-        }
-    }
 }
 
 @Composable

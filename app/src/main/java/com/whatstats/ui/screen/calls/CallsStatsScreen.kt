@@ -60,6 +60,7 @@ import coil.request.ImageRequest
 import com.whatstats.R
 import com.whatstats.data.db.model.CallStat
 import com.whatstats.ui.component.ContactNameWithPhone
+import com.whatstats.ui.component.LoadingProgressSlot
 import com.whatstats.ui.component.ScrollToEdgeFab
 import com.whatstats.ui.component.SimpleScreenHeader
 import com.whatstats.ui.component.TimeRangeFilterRow
@@ -116,16 +117,7 @@ fun CallsStatsScreen(
             avatarPath = chatContextAvatarPath,
         )
 
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(4.dp),
-        ) {
-            if (isLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            }
-        }
+        LoadingProgressSlot(isLoading = isLoading)
 
         TimeRangeFilterRow(
             selectedRange = selectedRange,

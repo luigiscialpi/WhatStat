@@ -40,7 +40,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -85,6 +84,7 @@ import com.whatstats.ui.MainViewModel
 import com.whatstats.ui.component.AnimatedInfoButton
 import com.whatstats.ui.component.ContactNameWithPhone
 import com.whatstats.ui.component.DynamicLoadingPill
+import com.whatstats.ui.component.LoadingProgressSlot
 import com.whatstats.ui.component.LoadingSection
 import com.whatstats.ui.component.ScrollToEdgeFab
 import com.whatstats.ui.component.SimpleScreenHeader
@@ -157,16 +157,7 @@ fun WordSearchScreen(
                 avatarPath = chatContextAvatarPath,
             )
 
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(4.dp),
-            ) {
-                if (isLoading || isSearching) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
-            }
+            LoadingProgressSlot(isLoading = isLoading || isSearching)
 
             TimeRangeFilterRow(
                 selectedRange = selectedRange,
