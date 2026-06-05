@@ -320,16 +320,18 @@ internal fun MediaGallerySheet(
                                 .padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            label,
-                            style = MaterialTheme.typography.labelMedium,
-                            color =
-                                if (activeTab == idx) {
-                                    MaterialTheme.colorScheme.onPrimary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                        )
+                        AutoMarquee {
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color =
+                                    if (activeTab == idx) {
+                                        MaterialTheme.colorScheme.onPrimary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                            )
+                        }
                     }
                 }
             }

@@ -680,7 +680,7 @@ private fun liteTabContent(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .heightIn(min = 56.dp),
             shape = RoundedCornerShape(16.dp),
             colors =
                 ButtonDefaults.buttonColors(
@@ -694,7 +694,11 @@ private fun liteTabContent(
                 modifier = Modifier.size(20.dp),
             )
             Spacer(Modifier.width(10.dp))
-            Text(stringResource(R.string.go_to_dashboard), style = MaterialTheme.typography.labelLarge)
+            Text(
+                stringResource(R.string.go_to_dashboard),
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center,
+            )
         }
 
         if (isLoading) {
@@ -721,7 +725,7 @@ private fun liteTabContent(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .heightIn(min = 56.dp),
                 shape = RoundedCornerShape(16.dp),
                 border =
                     BorderStroke(
@@ -742,6 +746,7 @@ private fun liteTabContent(
                 Text(
                     stringResource(R.string.lite_open_whatsapp_button),
                     style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center,
                 )
             }
 
@@ -751,7 +756,7 @@ private fun liteTabContent(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .heightIn(min = 56.dp),
                 shape = RoundedCornerShape(16.dp),
                 border =
                     BorderStroke(
@@ -770,6 +775,7 @@ private fun liteTabContent(
                     stringResource(R.string.import_zip_button),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
                 )
             }
         }
@@ -1001,11 +1007,12 @@ private fun rootTabContent(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Button(
                     onClick = onResumeRoot,
                     enabled = state.isRootReady,
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors =
                         ButtonDefaults.buttonColors(
@@ -1015,7 +1022,11 @@ private fun rootTabContent(
                 ) {
                     Icon(Icons.Filled.Dashboard, null, Modifier.size(20.dp))
                     Spacer(Modifier.width(10.dp))
-                    Text(stringResource(R.string.go_to_dashboard), style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        stringResource(R.string.go_to_dashboard),
+                        style = MaterialTheme.typography.labelLarge,
+                        textAlign = TextAlign.Center,
+                    )
                 }
 
                 if (state.isRootReady) {
@@ -1119,7 +1130,7 @@ private fun rootTabContent(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .heightIn(min = 56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors =
                     ButtonDefaults.outlinedButtonColors(
@@ -1132,7 +1143,11 @@ private fun rootTabContent(
                     modifier = Modifier.size(22.dp),
                 )
                 Spacer(Modifier.width(12.dp))
-                Text(stringResource(R.string.cancel), style = MaterialTheme.typography.labelLarge)
+                Text(
+                    stringResource(R.string.cancel),
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center,
+                )
             }
         } else {
             Button(
@@ -1152,7 +1167,7 @@ private fun rootTabContent(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .heightIn(min = 56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors =
                     ButtonDefaults.buttonColors(
@@ -1163,6 +1178,7 @@ private fun rootTabContent(
                 Text(
                     if (state.isManualModeVisible) "Decifra Database" else "Inizia analisi",
                     style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center,
                 )
             }
         }

@@ -769,6 +769,40 @@ Il back da queste schermate usa sempre `navController.popBackStack()`.
 
 Disponibile solo in Lite Mode dalla ChatList. Naviga a `Screen.LiteSetupAdd` (route `lite_setup_add?zipUri={zipUri}`), che apre `AddChatZipScreen` e lancia automaticamente il file picker (`OpenDocument`). Al completamento dell'import, `navController.popBackStack()` torna alla ChatList. Il completamento è notificato da `LiteSetupViewModel.state.isComplete`.
 
+### Componenti UI condivisi estratti
+
+Durante il refactor delle schermate principali sono stati estratti i seguenti componenti riusabili nel package `ui/component/`:
+
+| Componente | File | Usato in |
+|-----------|------|----------|
+| `LoadingProgressSlot` | `ui/component/LoadingProgressSlot.kt` | Dashboard, MediaStats, ChatDetail, WordSearch, Calls |
+| `SectionCard` | `ui/component/SectionCard.kt` | Dashboard, ChatDetail, DashboardTextAnalysisSection |
+| `LimitSelector` | `ui/component/LimitSelector.kt` | DashboardTextAnalysisSection, ChatDetailScreen |
+
+### Split schermate principali
+
+Le schermate più pesanti sono state suddivise in file dedicati per migliorare leggibilità e manutenibilità, senza modificare comportamento o logica applicativa:
+
+**Dashboard** (`ui/screen/dashboard/`):
+
+| File | Contenuto |
+|------|-----------|
+| `DashboardHeader.kt` | Header con titolo, hamburger/back, indicatore modalità |
+| `DashboardStatsGrid.kt` | Griglia 2×3 delle stat card principali |
+| `DashboardTextAnalysisSection.kt` | Tab parole/emoji/sticker + selettore limite |
+| `DashboardPreviewHost.kt` | Host modali anteprima emoji e sticker |
+
+**MediaStats** (`ui/screen/media/`):
+
+| File | Contenuto |
+|------|-----------|
+| `MediaStatsHeader.kt` | Header con info dialog |
+| `MediaStatsSearchBar.kt` | Barra di ricerca con slot fisso anti-layout-shift |
+| `MediaStatsGallerySheet.kt` | Bottom sheet galleria media con griglia, tab, selezione e condivisione |
+| `MediaStatsLinkDomainComponents.kt` | Card link (`LinkStatCard`), chip dominio (`DomainChip`), sheet analisi domini (`DomainBreakdownSheet`) |
+
+Dopo il refactor `MediaStatsScreen.kt` è sceso da ~2000 a **583 righe** fungendo da puro orchestratore.
+
 ### Componente di Scorrimento Rapido: ScrollToEdgeFab
 
 **File**: `ui/component/ScrollToEdgeFab.kt`

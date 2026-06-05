@@ -70,6 +70,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -477,7 +478,7 @@ fun WordSearchScreen(
                             },
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        textAlign = TextAlign.Center,
                     )
                 }
             } else {
@@ -485,13 +486,15 @@ fun WordSearchScreen(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .height(200.dp),
+                            .height(200.dp)
+                            .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         stringResource(R.string.word_search_hint_min),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
                     )
                 }
             }

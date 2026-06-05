@@ -1,6 +1,7 @@
 {
   "chat.tools.terminal.autoApprove": {
-    "adb": true
+    "adb": true,
+    "mv": true
   },
 
   "files.exclude": {

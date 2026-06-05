@@ -25,7 +25,7 @@
     <string name="add_zip_title">Aggiungi ZIP</string>
     <string name="select_zip_file">SELEZIONA FILE ZIP</string>
     <string name="processing_label">Elaborazione in corso...</string>
-    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_dashboard">Home</string>
     <string name="nav_chats">Chat</string>
     <string name="nav_media">Media</string>
     <string name="nav_radar">Radar</string>
