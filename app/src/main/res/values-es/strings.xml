@@ -261,7 +261,7 @@
     <string name="media_info_text_global">Los contadores incluyen Fotos y Videos intercambiados en el tiempo.\n\nLos botones muestran el total histórico absoluto, mientras que en la galería solo se cargan los archivos aún presentes en el teléfono (los eliminados no se pueden mostrar).\n\n💡 Sugerencia: toca el número de archivos multimedia o enlaces para ver más detalles 😉</string>
     <string name="media_info_text_gallery">La galería muestra solo los archivos actualmente presentes en el teléfono. Los contadores y desgloses pueden ser más altos porque incluyen medios eliminados en el tiempo.\n\n💡 Consejo: mantén presionado sobre los medios para seleccionarlos y compartirlos.</string>
     <string name="error_open_file">No se puede abrir el archivo</string>
-    <string name="back_to_all_links">← Todos los enlaces</string>
+    <string name="back_to_all_links">Todos los enlaces</string>
     <string name="avatar_desc">Avatar</string>
     <string name="domain_no_stats">No hay estadísticas de dominio disponibles.</string>
     <string name="selected_count">%d seleccionados</string>

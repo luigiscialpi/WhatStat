@@ -42,12 +42,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Close
@@ -84,7 +80,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -92,7 +87,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -101,6 +100,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -134,6 +134,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.zip.ZipFile
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -350,6 +352,15 @@ fun mediaStatsScreen(
                                         horizontalArrangement = Arrangement.Center,
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        )
+
+                                        Spacer(modifier = Modifier.width(4.dp))
+
                                         Text(
                                             stringResource(R.string.back_to_all_links),
                                             style = MaterialTheme.typography.titleMedium,
@@ -360,7 +371,7 @@ fun mediaStatsScreen(
                             }
                         }
 
-                        // Top domains
+                        // Domini principali
                         if (topDomains.isNotEmpty() && !isShowingBreakdown) {
                             item {
                                 Text(
@@ -1039,7 +1050,7 @@ private fun MediaGallerySheet(
                                     Text(
                                         "${stringResource(
                                             R.string.load_more,
-                                        )} (${sortedAll.size - displayedCount} ${stringResource(R.string.show_less)})",
+                                        )} (${sortedAll.size - displayedCount})",
                                     )
                                 }
                             }
@@ -1395,43 +1406,68 @@ private fun DomainBreakdownSheet(
 ) {
     var expandedDomain by remember { mutableIntStateOf(-1) }
     val uriHandler = LocalUriHandler.current
-    
+
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.ITALIAN) }
-    
-    // Global state
+
+    // Stato globale
     var globalSortMode by remember { mutableIntStateOf(0) } // 0 = Più recenti, 1 = Meno recenti
-    
-    val minTimestamp = remember(domains) {
-        domains.flatMap { it.topUrls }.mapNotNull { it.lastTimestamp }.minOrNull() ?: 0L
-    }
-    val maxTimestamp = remember(domains) {
-        domains.flatMap { it.topUrls }.mapNotNull { it.lastTimestamp }.maxOrNull() ?: System.currentTimeMillis()
-    }
-    
-    var dateRange by remember(minTimestamp, maxTimestamp) {
-        mutableStateOf(
-            if (minTimestamp > 0 && maxTimestamp > minTimestamp) minTimestamp.toFloat()..maxTimestamp.toFloat() 
-            else 0f..1f
-        )
+
+    val availableTimestamps =
+        remember(domains) {
+            domains
+                .flatMap { it.topUrls }
+                .mapNotNull { it.lastTimestamp }
+                .distinct()
+                .sorted()
+        }
+
+    val maxTimestampIndex = remember(availableTimestamps) { availableTimestamps.lastIndex.coerceAtLeast(0) }
+    val hasRangeSlider = availableTimestamps.size >= 2
+    var dateRangeIndices by remember(availableTimestamps) {
+        mutableStateOf(0f..maxTimestampIndex.toFloat())
     }
 
-    val filteredDomains = remember(domains, dateRange) {
-        if (minTimestamp == 0L || maxTimestamp <= minTimestamp) return@remember domains
-        domains.mapNotNull { stat ->
-            val filteredUrls = stat.topUrls.filter { urlFreq ->
-                val ts = urlFreq.lastTimestamp ?: 0L
-                ts >= dateRange.start.toLong() && ts <= dateRange.endInclusive.toLong()
+    val selectedStartTimestamp =
+        remember(availableTimestamps, dateRangeIndices, maxTimestampIndex) {
+            if (availableTimestamps.isEmpty()) {
+                0L
+            } else {
+                val idx = dateRangeIndices.start.roundToInt().coerceIn(0, maxTimestampIndex)
+                availableTimestamps[idx]
             }
-            if (filteredUrls.isEmpty()) null
-            else stat.copy(
-                topUrls = filteredUrls,
-                count = filteredUrls.sumOf { it.count }
-            )
-        }.sortedByDescending { it.count }
-    }
+        }
+    val selectedEndTimestamp =
+        remember(availableTimestamps, dateRangeIndices, maxTimestampIndex) {
+            if (availableTimestamps.isEmpty()) {
+                0L
+            } else {
+                val idx = dateRangeIndices.endInclusive.roundToInt().coerceIn(0, maxTimestampIndex)
+                availableTimestamps[idx]
+            }
+        }
+
+    val filteredDomains =
+        remember(domains, selectedStartTimestamp, selectedEndTimestamp) {
+            if (availableTimestamps.isEmpty()) return@remember domains
+            domains.mapNotNull { stat ->
+                val filteredUrls =
+                    stat.topUrls.filter { urlFreq ->
+                        val ts = urlFreq.lastTimestamp ?: 0L
+                        ts in selectedStartTimestamp..selectedEndTimestamp
+                    }
+                if (filteredUrls.isEmpty()) {
+                    null
+                } else {
+                    stat.copy(
+                        topUrls = filteredUrls,
+                        count = filteredUrls.sumOf { it.count },
+                    )
+                }
+            }.sortedByDescending { it.count }
+        }
 
     val scrollState = rememberScrollState()
-    
+
     LaunchedEffect(globalSortMode) {
         scrollState.animateScrollTo(0)
     }
@@ -1491,67 +1527,100 @@ private fun DomainBreakdownSheet(
             else -> {
                 val maxCount = filteredDomains.maxOfOrNull { it.count }?.coerceAtLeast(1) ?: 1
                 val totalLinksCount = filteredDomains.sumOf { it.count }
-                
-                // Global Controls: slider left, sort button right
+
+                // Controlli globali: slider a sinistra, pulsante ordinamento a destra
                 Spacer(Modifier.height(8.dp))
-                if (minTimestamp > 0 && maxTimestamp > minTimestamp) {
+                if (hasRangeSlider) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Bottom
+                        verticalAlignment = Alignment.Bottom,
                     ) {
                         Column(
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Text(
-                                    dateFormatter.format(Date(dateRange.start.toLong())),
+                                    dateFormatter.format(Date(selectedStartTimestamp)),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 Text(
-                                    dateFormatter.format(Date(dateRange.endInclusive.toLong())),
+                                    dateFormatter.format(Date(selectedEndTimestamp)),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            
+
                             androidx.compose.material3.RangeSlider(
-                                value = dateRange,
-                                onValueChange = { dateRange = it },
-                                valueRange = minTimestamp.toFloat()..maxTimestamp.toFloat(),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    // Consume pointer events AFTER the slider (child) processes them,
-                                    // so the slider works normally but events don't propagate to
-                                    // the ModalBottomSheet's AnchoredDraggable gesture handler.
-                                    .pointerInput(Unit) {
-                                        awaitEachGesture {
-                                            awaitFirstDown(requireUnconsumed = false)
-                                            do {
-                                                val event = awaitPointerEvent()
-                                                event.changes.forEach { it.consume() }
-                                            } while (event.changes.any { it.pressed })
-                                        }
+                                value = dateRangeIndices,
+                                onValueChange = { newRange ->
+                                    val oldRange = dateRangeIndices
+                                    val startDelta = abs(newRange.start - oldRange.start)
+                                    val endDelta = abs(newRange.endInclusive - oldRange.endInclusive)
+                                    val movingStartThumb = startDelta >= endDelta
+
+                                    if (movingStartThumb) {
+                                        val snappedStart =
+                                            newRange.start
+                                                .coerceIn(0f, oldRange.endInclusive)
+                                                .roundToInt()
+                                                .coerceIn(0, maxTimestampIndex)
+                                                .toFloat()
+                                        dateRangeIndices = snappedStart..oldRange.endInclusive
+                                    } else {
+                                        val snappedEnd =
+                                            newRange.endInclusive
+                                                .coerceIn(oldRange.start, maxTimestampIndex.toFloat())
+                                                .roundToInt()
+                                                .coerceIn(0, maxTimestampIndex)
+                                                .toFloat()
+                                        dateRangeIndices = oldRange.start..snappedEnd
                                     }
+
+                                    if (dateRangeIndices.start > dateRangeIndices.endInclusive) {
+                                        dateRangeIndices = oldRange
+                                    }
+                                },
+                                valueRange = 0f..maxTimestampIndex.toFloat(),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        // Consuma eventi pointer DOPO che il slider (figlio) li elabora,
+                                        // cosi il slider funziona normalmente ma gli eventi non si propagano al
+                                        // gesture handler AnchoredDraggable del ModalBottomSheet.
+                                        .pointerInput(Unit) {
+                                            awaitEachGesture {
+                                                awaitFirstDown(requireUnconsumed = false)
+                                                do {
+                                                    val event = awaitPointerEvent()
+                                                    event.changes.forEach { it.consume() }
+                                                } while (event.changes.any { it.pressed })
+                                            }
+                                        },
                             )
                         }
-                        
+
                         Spacer(Modifier.width(8.dp))
-                        
-                        // Sort toggle button (right) - align it with the slider bar heightwise
+
+                        // Pulsante ordinamento (destra) - allineato con l'altezza della barra slider
                         val sortRotation by animateFloatAsState(
                             targetValue = if (globalSortMode == 1) 180f else 0f,
-                            label = "sortRotation"
+                            label = "sortRotation",
                         )
+                        // Allinea con l'altezza della barra slider
                         Box(
-                            modifier = Modifier.padding(bottom = 4.dp) // Fine-tune alignment to match the slider bar
+                            modifier = Modifier.padding(bottom = 4.dp),
                         ) {
-                            TextButton(onClick = { globalSortMode = if (globalSortMode == 0) 1 else 0 }) {
+                            TextButton(
+                                onClick = { globalSortMode = if (globalSortMode == 0) 1 else 0 },
+                                enabled = expandedDomain != -1,
+                            ) {
                                 Icon(
                                     Icons.Outlined.SwapVert,
                                     contentDescription = null,
@@ -1563,7 +1632,7 @@ private fun DomainBreakdownSheet(
                                         stringResource(R.string.sort_oldest)
                                     } else {
                                         stringResource(R.string.sort_newest)
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -1572,14 +1641,17 @@ private fun DomainBreakdownSheet(
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Sort toggle button (right)
+                        // Pulsante ordinamento (destra)
                         val sortRotation by animateFloatAsState(
                             targetValue = if (globalSortMode == 1) 180f else 0f,
-                            label = "sortRotation"
+                            label = "sortRotation",
                         )
-                        TextButton(onClick = { globalSortMode = if (globalSortMode == 0) 1 else 0 }) {
+                        TextButton(
+                            onClick = { globalSortMode = if (globalSortMode == 0) 1 else 0 },
+                            enabled = expandedDomain != -1,
+                        ) {
                             Icon(
                                 Icons.Outlined.SwapVert,
                                 contentDescription = null,
@@ -1591,19 +1663,19 @@ private fun DomainBreakdownSheet(
                                     stringResource(R.string.sort_oldest)
                                 } else {
                                     stringResource(R.string.sort_newest)
-                                }
+                                },
                             )
                         }
                     }
                 }
-                
+
                 Spacer(Modifier.height(16.dp))
-                
+
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    filteredDomains.take(10).forEachIndexed { index, stat ->
+                    filteredDomains.forEachIndexed { index, stat ->
                         val isExpanded = expandedDomain == index
                         val percentage = if (totalLinksCount > 0) (stat.count.toFloat() / totalLinksCount * 100).toInt() else 0
-                        
+
                         Column(
                             modifier =
                                 Modifier
@@ -1619,7 +1691,7 @@ private fun DomainBreakdownSheet(
                                     .animateContentSize()
                                     .padding(horizontal = 8.dp, vertical = 6.dp),
                         ) {
-                            // Row for Domain (clickable)
+                            // Riga per dominio (cliccabile)
                             Row(
                                 modifier =
                                     Modifier
@@ -1635,59 +1707,38 @@ private fun DomainBreakdownSheet(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f),
                                 ) {
-                                    val rankColor = when (index) {
-                                        0 -> Color(0xFFD4AF37)
-                                        1 -> Color(0xFFC0C0C0)
-                                        2 -> Color(0xFFCD7F32)
-                                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                    }
-                                    
                                     Box(
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .clip(CircleShape)
-                                            .background(rankColor.copy(alpha = 0.15f)),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            text = "${index + 1}",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                            color = rankColor,
-                                        )
-                                    }
-                                    
-                                    Spacer(Modifier.width(8.dp))
-                                    
-                                    Box(
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        modifier =
+                                            Modifier
+                                                .size(20.dp)
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         AsyncImage(
-                                            model = ImageRequest.Builder(LocalContext.current)
-                                                .data("https://www.google.com/s2/favicons?sz=64&domain=${stat.domain}")
-                                                .crossfade(true)
-                                                .build(),
+                                            model =
+                                                ImageRequest.Builder(LocalContext.current)
+                                                    .data("https://www.google.com/s2/favicons?sz=64&domain=${stat.domain}")
+                                                    .crossfade(true)
+                                                    .build(),
                                             contentDescription = null,
                                             modifier = Modifier.size(16.dp),
                                             contentScale = ContentScale.Fit,
                                             error = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_compass),
                                         )
                                     }
-                                    
+
                                     Spacer(Modifier.width(8.dp))
-                                    
+
                                     Text(
                                         stat.domain,
                                         style = MaterialTheme.typography.titleSmall,
                                         color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.weight(1f, fill = false),
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        overflow = TextOverflow.Ellipsis,
                                     )
-                                    
+
                                     if (stat.topUrls.isNotEmpty()) {
                                         Icon(
                                             if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
@@ -1728,14 +1779,15 @@ private fun DomainBreakdownSheet(
                             if (isExpanded && stat.topUrls.isNotEmpty()) {
                                 Spacer(Modifier.height(8.dp))
 
-                                val sortedUrls = when (globalSortMode) {
-                                    1 -> stat.topUrls.sortedBy { it.lastTimestamp ?: 0L }
-                                    else -> stat.topUrls.sortedByDescending { it.lastTimestamp ?: 0L }
-                                }
+                                val sortedUrls =
+                                    when (globalSortMode) {
+                                        1 -> stat.topUrls.sortedBy { it.lastTimestamp ?: 0L }
+                                        else -> stat.topUrls.sortedByDescending { it.lastTimestamp ?: 0L }
+                                    }
 
                                 val accordionListState = rememberLazyListState()
 
-                                // Scroll to top when global sort mode changes
+                                // Scroll in cima quando cambia la modalita di ordinamento globale
                                 LaunchedEffect(globalSortMode) {
                                     accordionListState.scrollToItem(0)
                                 }
@@ -1746,9 +1798,9 @@ private fun DomainBreakdownSheet(
                                         Modifier
                                             .fillMaxWidth()
                                             .heightIn(max = 240.dp)
-                                             .nestedScroll(
-                                                // Consume scroll AND fling so the BottomSheet
-                                                // cannot drag while the user is inside the accordion list
+                                            .nestedScroll(
+                                                // Consuma scroll e fling cosi il BottomSheet
+                                                // non puo trascinare mentre l'utente e dentro la lista accordion
                                                 object : NestedScrollConnection {
                                                     override fun onPreScroll(
                                                         available: Offset,
@@ -1761,14 +1813,14 @@ private fun DomainBreakdownSheet(
                                                         source: NestedScrollSource,
                                                     ): Offset = available
 
-                                                    // Consume leftover fling velocity so it does not
-                                                    // propagate to the BottomSheet after list hits boundary
+                                                    // Consuma la velocita di fling residua cosi non si
+                                                    // propaga al BottomSheet dopo che la lista raggiunge il confine
                                                     override suspend fun onPostFling(
                                                         consumed: Velocity,
                                                         available: Velocity,
                                                     ): Velocity = available
                                                 },
-                                             ),
+                                            ),
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
                                     items(sortedUrls, key = { "${it.url}_${it.count}" }) { urlFreq ->
@@ -1792,7 +1844,10 @@ private fun DomainBreakdownSheet(
                                                 verticalAlignment = Alignment.CenterVertically,
                                             ) {
                                                 Icon(
-                                                    painter = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_share),
+                                                    painter =
+                                                        androidx.compose.ui.res.painterResource(
+                                                            id = android.R.drawable.ic_menu_share,
+                                                        ),
                                                     contentDescription = null,
                                                     modifier = Modifier.size(12.dp),
                                                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
@@ -1812,10 +1867,11 @@ private fun DomainBreakdownSheet(
                                             Spacer(Modifier.width(8.dp))
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Box(
-                                                    modifier = Modifier
-                                                        .clip(CircleShape)
-                                                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    modifier =
+                                                        Modifier
+                                                            .clip(CircleShape)
+                                                            .background(MaterialTheme.colorScheme.secondaryContainer)
+                                                            .padding(horizontal = 6.dp, vertical = 2.dp),
                                                 ) {
                                                     Text(
                                                         "${urlFreq.count}",

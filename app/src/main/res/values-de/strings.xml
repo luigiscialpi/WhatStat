@@ -261,7 +261,7 @@
     <string name="media_info_text_global">Die Zähler umfassen Fotos und Videos, die im Laufe der Zeit ausgetauscht wurden.\n\nDie Schaltflächen zeigen das absolute historische Gesamtergebnis, während in der Galerie nur noch auf dem Telefon vorhandene Dateien geladen werden (gelöschte Dateien können nicht angezeigt werden).\n\n💡 Tipp: Tippe auf die Anzahl der Medien oder Links, um weitere Details zu sehen 😉</string>
     <string name="media_info_text_gallery">Die Galerie zeigt nur Dateien an, die aktuell auf dem Gerät vorhanden sind. Zähler und Aufschlüsselungen können höher sein, da sie auch im Laufe der Zeit gelöschte Medien enthalten.\n\n💡 Tipp: Drücke lange auf Medien, um sie auszuwählen und zu teilen.</string>
     <string name="error_open_file">Datei konnte nicht geöffnet werden</string>
-    <string name="back_to_all_links">← Alle Links</string>
+    <string name="back_to_all_links">Alle Links</string>
     <string name="avatar_desc">Avatar</string>
 
     <!-- Calls Stats -->

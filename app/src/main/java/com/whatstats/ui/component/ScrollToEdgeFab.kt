@@ -25,8 +25,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import kotlinx.coroutines.launch
 import com.whatstats.R
+import kotlinx.coroutines.launch
 
 /**
  * ScrollToEdgeFab - Floating Action Button riusabile per lo scroll rapido.

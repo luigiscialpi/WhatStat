@@ -261,7 +261,7 @@
     <string name="media_info_text_global">Sayaçlar zaman içinde paylaşılan Fotoğraf ve Videoları içerir.\n\nDüğmeler mutlak geçmiş toplamı gösterirken, galeride yalnızca telefonda hâlâ mevcut dosyalar yüklenir (silinen dosyalar gösterilemez).\n\n💡 İpucu: daha fazla ayrıntı görmek için medya veya bağlantı sayısına dokun 😉</string>
     <string name="media_info_text_gallery">Galeri yalnızca telefonda mevcut dosyaları gösterir. Sayaçlar ve dökümler daha yüksek olabilir çünkü zamanla silinmiş medyayı da içerirler.\n\n💡 İpucu: seçmek ve paylaşmak için medyaya uzun basın.</string>
     <string name="error_open_file">Dosya açılamadı</string>
-    <string name="back_to_all_links">← Tüm bağlantılar</string>
+    <string name="back_to_all_links">Tüm bağlantılar</string>
     <string name="avatar_desc">Avatar</string>
 
     <!-- Calls Stats -->
