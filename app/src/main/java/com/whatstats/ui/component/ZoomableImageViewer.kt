@@ -77,6 +77,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * Full-screen image gallery viewer with zoom, swipe-to-dismiss, filmstrip and auto-hiding UI.
@@ -142,11 +143,27 @@ fun ZoomableImageGallery(
     // UI bars visibility: shown for 3 s after last interaction, then auto-hidden.
     var uiVisible by remember { mutableStateOf(true) }
     var uiInteractionTick by remember { mutableIntStateOf(0) }
+    var uiAutoHideDelayMs by remember { mutableStateOf(3_000L) }
+    var isFilmstripInteracting by remember { mutableStateOf(false) }
 
-    LaunchedEffect(uiInteractionTick) {
-        if (uiVisible) {
-            delay(3_000L)
-            uiVisible = false
+    fun restartUiAutoHideWithDefaultDelay() {
+        uiAutoHideDelayMs = 3_000L
+        uiVisible = true
+        uiInteractionTick++
+    }
+
+    fun restartUiAutoHideWithFilmstripDelay() {
+        uiAutoHideDelayMs = 6_000L
+        uiVisible = true
+        uiInteractionTick++
+    }
+
+    LaunchedEffect(uiInteractionTick, uiAutoHideDelayMs, isFilmstripInteracting) {
+        if (uiVisible && !isFilmstripInteracting) {
+            delay(uiAutoHideDelayMs)
+            if (!isFilmstripInteracting) {
+                uiVisible = false
+            }
         }
     }
 
@@ -154,6 +171,7 @@ fun ZoomableImageGallery(
     LaunchedEffect(pagerState.currentPage) {
         currentPageIsZoomed = false
         dragDismissOffset = 0f
+        // Keep whichever delay was selected by the latest interaction source.
         uiVisible = true
         uiInteractionTick++
     }
@@ -203,7 +221,9 @@ fun ZoomableImageGallery(
                     onTap = {
                         // Toggle bar visibility; restart auto-hide countdown if showing.
                         uiVisible = !uiVisible
-                        if (uiVisible) uiInteractionTick++
+                        if (uiVisible) {
+                            restartUiAutoHideWithDefaultDelay()
+                        }
                     },
                     onDismissProgress = { deltaY ->
                         if (!currentPageIsZoomed) {
@@ -261,6 +281,7 @@ fun ZoomableImageGallery(
                     if (onShare != null) {
                         IconButton(
                             onClick = {
+                                restartUiAutoHideWithFilmstripDelay()
                                 val now = System.currentTimeMillis()
                                 if (now - lastShareClickTime > 1500L) {
                                     lastShareClickTime = now
@@ -318,7 +339,22 @@ fun ZoomableImageGallery(
                                         Modifier
                                     },
                                 )
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = 8.dp)
+                                .pointerInput(Unit) {
+                                    awaitEachGesture {
+                                        awaitFirstDown(pass = PointerEventPass.Initial)
+                                        isFilmstripInteracting = true
+                                        restartUiAutoHideWithFilmstripDelay()
+
+                                        do {
+                                            val event = awaitPointerEvent()
+                                        } while (event.changes.any { it.pressed })
+
+                                        isFilmstripInteracting = false
+                                        // Start a fresh extended grace period after user releases.
+                                        restartUiAutoHideWithFilmstripDelay()
+                                    }
+                                },
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp),
                     ) {
@@ -359,6 +395,7 @@ fun ZoomableImageGallery(
                                         )
                                         .pointerInput(index) {
                                             detectTapGestures {
+                                                restartUiAutoHideWithFilmstripDelay()
                                                 scope.launch {
                                                     pagerState.animateScrollToPage(index)
                                                 }
@@ -427,19 +464,6 @@ private fun ZoomableImageItem(
         animationSpec = tween(durationMillis = 250),
         label = "rotation",
     )
-
-    // After a two-finger rotation gesture ends, snap to the nearest 90-degree angle.
-    LaunchedEffect(rotation) {
-        val normalized = ((rotation % 360f) + 360f) % 360f
-        val isNotSnapped =
-            normalized != 0f && normalized != 90f &&
-                normalized != 180f && normalized != 270f
-        if (isNotSnapped) {
-            delay(150)
-            val snapAngle = ((normalized + 45f) / 90f).toInt() * 90f
-            rotation = if (snapAngle >= 360f) 0f else snapAngle
-        }
-    }
 
     LaunchedEffect(scale) {
         onZoomChanged(scale > 1f)
@@ -521,6 +545,10 @@ private fun ZoomableImageItem(
                                 offsetY = (offsetY + panChange.y).coerceIn(-maxOffsetY, maxOffsetY)
                             }
                         } while (event.changes.any { it.pressed })
+
+                        // Snap only when the gesture ends, using the nearest continuous
+                        // quarter-turn to avoid long reverse spins (e.g. 359 -> 0).
+                        rotation = (rotation / 90f).roundToInt() * 90f
 
                         // Gesture ended: if the user pinched back to 1x, snap offset
                         // to center so no black background is visible.
