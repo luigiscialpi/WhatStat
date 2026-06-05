@@ -24,8 +24,8 @@ android {
         applicationId = "com.whatstats"
         minSdk = 26
         targetSdk = 35
-        versionCode = 18
-        versionName = "1.4.1"
+        versionCode = 19
+        versionName = "1.4.2"
         resourceConfigurations += listOf("en", "it", "de", "es", "fr", "hi", "pt-rBR", "tr")
         val admobAppId =
             project
@@ -51,11 +51,22 @@ android {
                 ?.toString()
                 ?: localProps.getProperty("ADMOB_INTERSTITIAL_UNIT_ID")
                 ?: "ca-app-pub-3940256099942544/1033173712"
+        val admobRewardedInterstitialUnitId =
+            project
+                .findProperty("ADMOB_REWARDED_INTERSTITIAL_UNIT_ID")
+                ?.toString()
+                ?: localProps.getProperty("ADMOB_REWARDED_INTERSTITIAL_UNIT_ID")
+                ?: "ca-app-pub-3940256099942544/5354046379"
         buildConfigField("String", "VERSION_NAME", "\"$versionName\"")
         buildConfigField("String", "ADMOB_APP_ID", "\"${admobAppId.replace("\"", "\\\"")}\"")
         buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"${admobBannerUnitId.replace("\"", "\\\"")}\"")
         buildConfigField("String", "ADMOB_NATIVE_UNIT_ID", "\"${admobNativeUnitId.replace("\"", "\\\"")}\"")
         buildConfigField("String", "ADMOB_INTERSTITIAL_UNIT_ID", "\"${admobInterstitialUnitId.replace("\"", "\\\"")}\"")
+        buildConfigField(
+            "String",
+            "ADMOB_REWARDED_INTERSTITIAL_UNIT_ID",
+            "\"${admobRewardedInterstitialUnitId.replace("\"", "\\\"")}\"",
+        )
         manifestPlaceholders["ADMOB_APP_ID"] = admobAppId
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

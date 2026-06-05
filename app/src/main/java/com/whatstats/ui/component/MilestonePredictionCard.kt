@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,6 +67,8 @@ fun MilestonePredictionCard(
     modifier: Modifier = Modifier,
     title: String = stringResource(R.string.prediction_title),
     periodLabel: String? = null,
+    isLocked: Boolean = false,
+    onRequestUnlockInsights: (() -> Unit)? = null,
 ) {
     val mainVm: MainViewModel = hiltViewModel()
     val appLang by mainVm.appLanguage.collectAsState()
@@ -153,6 +156,32 @@ fun MilestonePredictionCard(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            if (isLocked) {
+                Text(
+                    text = stringResource(R.string.rewarded_unlock_prompt_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = stringResource(R.string.rewarded_unlock_prompt_message),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = { onRequestUnlockInsights?.invoke() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(text = stringResource(R.string.rewarded_unlock_button))
+                }
+                return@Column
+            }
 
             // Chip per selezione target
             Row(

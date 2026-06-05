@@ -1319,10 +1319,10 @@ WhatStat usa un modello **Free con pubblicità** all'interno di un'unica app su 
 - flag `isTestBuild` (confronta `BuildConfig.ADMOB_APP_ID` con il demo ID Google)
 
 ```kotlin
-val areAdsEnabled = canRequestAds && isMobileAdsInitialized
+val areAdsEnabled = canRequestAds && isMobileAdsInitialized && !easterEggActive
 ```
 
-`AdsRepository` gestisce lo stato ads senza dipendenze da billing.
+`AdsRepository` gestisce lo stato ads, inclusi interstitial classici e rewarded interstitial.
 
 **`ads/AdsUiState`** — data class esposta come `StateFlow` da `MainViewModel.adsUiState`:
 
@@ -1333,6 +1333,9 @@ val areAdsEnabled = canRequestAds && isMobileAdsInitialized
 | `isPrivacyOptionsRequired` | `Boolean` | UMP richiede il pulsante "Opzioni privacy" nell'AppDrawer |
 | `isMobileAdsInitialized` | `Boolean` | `MobileAds.initialize()` completato |
 | `shouldShowBanner` | `Boolean` | Alias di `areAdsEnabled` (usato da `AppScaffold`) |
+| `easterEggActive` | `Boolean` | Easter egg attivo (disattiva ads e sblocca insight) |
+| `rewardedTabsUnlocked` | `Boolean` | Sblocco rewarded attivo per tab daily/monthly/yearly |
+| `rewardedPredictionUnlocked` | `Boolean` | Sblocco rewarded attivo per card prediction |
 
 ### Flusso consenso UMP
 
@@ -1353,6 +1356,7 @@ ADMOB_APP_ID=<real_app_id>
 ADMOB_BANNER_UNIT_ID=<real_banner_unit_id>
 ADMOB_NATIVE_UNIT_ID=<real_native_unit_id>
 ADMOB_INTERSTITIAL_UNIT_ID=<real_interstitial_unit_id>
+ADMOB_REWARDED_INTERSTITIAL_UNIT_ID=<real_rewarded_interstitial_unit_id>
 ```
 
 `isTestBuild` è calcolato automaticamente: `BuildConfig.ADMOB_APP_ID == "ca-app-pub-3940256099942544~3347511713"`. Nessun toggle manuale — basta inserire gli ID reali in `local.properties` per disabilitare il bypass test.
@@ -1375,7 +1379,7 @@ ADMOB_INTERSTITIAL_UNIT_ID=<real_interstitial_unit_id>
 | `WordSearchScreen` | Dopo i risultati (solo dopo ricerca avvenuta, >= 10 risultati) |
 | `CallsStatsScreen` | Dopo il riepilogo alto livello, prima della lista dettagliata |
 
-**Interstitial** — caricati in anticipo da `AdsRepository.preloadInterstitialIfPossible()`, mostrati da `tryShowInterstitialAfterLongOperation()`. Gate: cooldown 12 minuti, `canRequestAds = true`, `isMobileAdsInitialized = true`. Trigger validi:
+**Interstitial** — caricati in anticipo da `AdsRepository.preloadInterstitialIfPossible()`, mostrati da `tryShowInterstitialAfterLongOperation()`. Gate: cooldown 12 minuti, `canRequestAds = true`, `isMobileAdsInitialized = true`, `easterEggActive = false`. Trigger validi:
 
 | Source | Momento |
 |--------|---------|
@@ -1385,6 +1389,21 @@ ADMOB_INTERSTITIAL_UNIT_ID=<real_interstitial_unit_id>
 | `chat_detail_enter` | Apertura di una chat in `ChatDetailScreen` |
 
 Trigger esplicitamente vietati: back, cambio tab, apertura media, progress in corso, errori. Il cooldown da 12 minuti garantisce che qualsiasi trigger consecutivo venga silenziosamente ignorato.
+
+**Rewarded interstitial (insight avanzati)** — caricati da `AdsRepository.preloadRewardedInterstitialIfPossible()`, mostrati su richiesta utente da Dashboard/ChatDetail per sbloccare sezioni bloccate.
+
+Unlock separati:
+
+| Unlock | Sezioni sbloccate | Durata |
+|--------|-------------------|--------|
+| `tabs` | tab `daily`, `monthly`, `yearly` in `ActivityRecapCard` | 2 ore |
+| `prediction` | card `MilestonePredictionCard` (`prediction_title`) | 2 ore |
+
+Dettagli comportamento:
+- i due unlock sono indipendenti (sbloccare tabs non sblocca prediction)
+- stato persistente su DataStore: resta valido anche dopo chiusura/riavvio app entro TTL
+- easter egg attivo: entrambi gli unlock risultano attivi automaticamente
+- toast localizzati distinti per successo tabs vs successo prediction
 
 ### AppDrawer — voci Privacy
 
@@ -1407,9 +1426,14 @@ Senza queste regole, le classi vengono strippate da `-repackageclasses '' -overl
 
 | File | Ruolo |
 |------|-------|
-| `ads/AdsRepository.kt` | Centralizza consenso UMP, init MobileAds, interstitial, state |
+| `ads/AdsRepository.kt` | Centralizza consenso UMP, init MobileAds, interstitial e rewarded interstitial, state |
+| `ads/RewardedUnlockStore.kt` | Persistenza DataStore TTL unlock rewarded (`tabs`, `prediction`) |
 | `ads/AdsUiState.kt` | Data class stato ads |
 | `ui/MainViewModel.kt` | Espone `adsUiState` come `StateFlow` |
+| `ui/component/ActivityCard.kt` | Lock rewarded per tab daily/monthly/yearly |
+| `ui/component/MilestonePredictionCard.kt` | Lock rewarded per card prediction |
+| `ui/screen/dashboard/DashboardScreen.kt` | CTA unlock rewarded + toast localizzati |
+| `ui/screen/chatdetail/ChatDetailScreen.kt` | CTA unlock rewarded + toast localizzati |
 | `ui/screen/home/AppScaffold.kt` | Inserisce `BottomBannerAd` in `bottomBar` |
 | `ui/component/AppDrawer.kt` | Voce Privacy options nel drawer |
 | `ui/navigation/AppNavigation.kt` | `areAdsEnabled` letto con `collectAsState()` in ogni lambda composable |

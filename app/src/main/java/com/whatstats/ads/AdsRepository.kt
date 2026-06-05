@@ -9,6 +9,8 @@ import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAd
+import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAdLoadCallback
 import com.google.android.ump.ConsentDebugSettings
 import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
@@ -19,10 +21,13 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,6 +36,7 @@ class AdsRepository
     @Inject
     constructor(
         @ApplicationContext private val context: android.content.Context,
+        private val rewardedUnlockStore: RewardedUnlockStore,
     ) {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         private val consentInformation = UserMessagingPlatform.getConsentInformation(context)
@@ -38,14 +44,18 @@ class AdsRepository
         private var isMobileAdsInitialized = false
         private var isConsentRequestInFlight = false
         private var interstitialAd: InterstitialAd? = null
+        private var rewardedInterstitialAd: RewardedInterstitialAd? = null
         private var lastInterstitialShownAtMs: Long = 0L
         private var easterEggActive = false
+        private var rewardedTabsUnlockedUntilMs: Long = 0L
+        private var rewardedPredictionUnlockedUntilMs: Long = 0L
 
         private val _uiState = MutableStateFlow(AdsUiState())
         val uiState: StateFlow<AdsUiState> = _uiState.asStateFlow()
 
         private companion object {
             const val INTERSTITIAL_COOLDOWN_MS = 12 * 60 * 1000L
+            const val REWARDED_UNLOCK_DURATION_MS = 2 * 60 * 60 * 1000L
 
             val isTestBuild: Boolean
                 get() = BuildConfig.ADMOB_APP_ID == "ca-app-pub-3940256099942544~3347511713"
@@ -55,6 +65,22 @@ class AdsRepository
             get() = isTestBuild || consentInformation.canRequestAds()
 
         init {
+            scope.launch {
+                rewardedUnlockStore.unlockState.collect { persistedState ->
+                    rewardedTabsUnlockedUntilMs = persistedState.tabsUnlockUntilMs
+                    rewardedPredictionUnlockedUntilMs = persistedState.predictionUnlockUntilMs
+                    maybeExpireRewardedUnlocks()
+                    publishState()
+                    preloadRewardedInterstitialIfPossible()
+                    if (isRewardedTabsUnlockedNow()) {
+                        scheduleTabsUnlockExpiryUpdate()
+                    }
+                    if (isRewardedPredictionUnlockedNow()) {
+                        schedulePredictionUnlockExpiryUpdate()
+                    }
+                }
+            }
+
             if (isTestBuild || consentInformation.canRequestAds()) {
                 initializeMobileAdsIfPossible()
             }
@@ -132,7 +158,112 @@ class AdsRepository
         fun activateEasterEgg() {
             easterEggActive = true
             interstitialAd = null
+            rewardedInterstitialAd = null
             publishState()
+        }
+
+        fun refreshRewardedInsightsLockState() {
+            publishState()
+        }
+
+        fun requestRewardedTabsUnlock(
+            activity: Activity,
+            source: String,
+            onResult: (Boolean) -> Unit,
+        ) {
+            requestRewardedUnlock(
+                activity = activity,
+                source = source,
+                isAlreadyUnlocked = { isRewardedTabsUnlockedNow() },
+                applyReward = {
+                    rewardedTabsUnlockedUntilMs = System.currentTimeMillis() + REWARDED_UNLOCK_DURATION_MS
+                    scope.launch {
+                        rewardedUnlockStore.setTabsUnlockUntilMs(rewardedTabsUnlockedUntilMs)
+                    }
+                    scheduleTabsUnlockExpiryUpdate()
+                },
+                onResult = onResult,
+            )
+        }
+
+        fun requestRewardedPredictionUnlock(
+            activity: Activity,
+            source: String,
+            onResult: (Boolean) -> Unit,
+        ) {
+            requestRewardedUnlock(
+                activity = activity,
+                source = source,
+                isAlreadyUnlocked = { isRewardedPredictionUnlockedNow() },
+                applyReward = {
+                    rewardedPredictionUnlockedUntilMs = System.currentTimeMillis() + REWARDED_UNLOCK_DURATION_MS
+                    scope.launch {
+                        rewardedUnlockStore.setPredictionUnlockUntilMs(rewardedPredictionUnlockedUntilMs)
+                    }
+                    schedulePredictionUnlockExpiryUpdate()
+                },
+                onResult = onResult,
+            )
+        }
+
+        private fun requestRewardedUnlock(
+            activity: Activity,
+            source: String,
+            isAlreadyUnlocked: () -> Boolean,
+            applyReward: () -> Unit,
+            onResult: (Boolean) -> Unit,
+        ) {
+            if (isAlreadyUnlocked()) {
+                publishState()
+                onResult(true)
+                return
+            }
+
+            if (!isMobileAdsInitialized || !canRequestAds) {
+                onResult(false)
+                return
+            }
+
+            val readyAd =
+                rewardedInterstitialAd ?: run {
+                    preloadRewardedInterstitialIfPossible()
+                    onResult(false)
+                    return
+                }
+
+            rewardedInterstitialAd = null
+            var rewardEarned = false
+            var callbackSent = false
+
+            readyAd.fullScreenContentCallback =
+                object : FullScreenContentCallback() {
+                    override fun onAdDismissedFullScreenContent() {
+                        if (!callbackSent) {
+                            callbackSent = true
+                            onResult(rewardEarned)
+                        }
+                        preloadRewardedInterstitialIfPossible()
+                        publishState()
+                    }
+
+                    override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                        DebugLogManager.log(
+                            "Rewarded interstitial failed to show | code=${adError.code} msg=${adError.message} source=$source",
+                        )
+                        if (!callbackSent) {
+                            callbackSent = true
+                            onResult(false)
+                        }
+                        preloadRewardedInterstitialIfPossible()
+                        publishState()
+                    }
+                }
+
+            readyAd.show(activity) {
+                rewardEarned = true
+                applyReward()
+                publishState()
+            }
         }
 
         fun tryShowInterstitialAfterLongOperation(
@@ -187,11 +318,13 @@ class AdsRepository
                 if (!isMobileAdsInitialized) {
                     isMobileAdsInitialized = true
                     preloadInterstitialIfPossible()
+                    preloadRewardedInterstitialIfPossible()
                     publishState()
                 }
             }
             isMobileAdsInitialized = true
             preloadInterstitialIfPossible()
+            preloadRewardedInterstitialIfPossible()
             publishState()
         }
 
@@ -218,7 +351,100 @@ class AdsRepository
             )
         }
 
+        private fun preloadRewardedInterstitialIfPossible() {
+            maybeExpireRewardedUnlocks()
+            if (!isMobileAdsInitialized || !canRequestAds) return
+            if (easterEggActive || (isRewardedTabsUnlockedNow() && isRewardedPredictionUnlockedNow())) return
+            if (rewardedInterstitialAd != null) return
+
+            RewardedInterstitialAd.load(
+                context,
+                BuildConfig.ADMOB_REWARDED_INTERSTITIAL_UNIT_ID,
+                AdRequest.Builder().build(),
+                object : RewardedInterstitialAdLoadCallback() {
+                    override fun onAdLoaded(ad: RewardedInterstitialAd) {
+                        rewardedInterstitialAd = ad
+                    }
+
+                    override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                        rewardedInterstitialAd = null
+                        DebugLogManager.log(
+                            "Rewarded interstitial load failed | code=${loadAdError.code} msg=${loadAdError.message}",
+                        )
+                    }
+                },
+            )
+        }
+
+        private fun isRewardedTabsUnlockedNow(): Boolean {
+            if (easterEggActive) return true
+            return rewardedTabsUnlockedUntilMs > System.currentTimeMillis()
+        }
+
+        private fun isRewardedPredictionUnlockedNow(): Boolean {
+            if (easterEggActive) return true
+            return rewardedPredictionUnlockedUntilMs > System.currentTimeMillis()
+        }
+
+        private fun maybeExpireRewardedUnlocks() {
+            if (easterEggActive) return
+            val now = System.currentTimeMillis()
+            if (rewardedTabsUnlockedUntilMs > 0L && rewardedTabsUnlockedUntilMs <= now) {
+                rewardedTabsUnlockedUntilMs = 0L
+                scope.launch {
+                    rewardedUnlockStore.setTabsUnlockUntilMs(0L)
+                }
+            }
+            if (rewardedPredictionUnlockedUntilMs > 0L && rewardedPredictionUnlockedUntilMs <= now) {
+                rewardedPredictionUnlockedUntilMs = 0L
+                scope.launch {
+                    rewardedUnlockStore.setPredictionUnlockUntilMs(0L)
+                }
+            }
+        }
+
+        private fun scheduleTabsUnlockExpiryUpdate() {
+            val unlockUntil = rewardedTabsUnlockedUntilMs
+            if (unlockUntil <= 0L) return
+
+            scope.launch {
+                val remainingMs = unlockUntil - System.currentTimeMillis()
+                if (remainingMs > 0L) {
+                    delay(remainingMs)
+                }
+                if (!easterEggActive && rewardedTabsUnlockedUntilMs <= System.currentTimeMillis()) {
+                    rewardedTabsUnlockedUntilMs = 0L
+                    scope.launch {
+                        rewardedUnlockStore.setTabsUnlockUntilMs(0L)
+                    }
+                    publishState()
+                    preloadRewardedInterstitialIfPossible()
+                }
+            }
+        }
+
+        private fun schedulePredictionUnlockExpiryUpdate() {
+            val unlockUntil = rewardedPredictionUnlockedUntilMs
+            if (unlockUntil <= 0L) return
+
+            scope.launch {
+                val remainingMs = unlockUntil - System.currentTimeMillis()
+                if (remainingMs > 0L) {
+                    delay(remainingMs)
+                }
+                if (!easterEggActive && rewardedPredictionUnlockedUntilMs <= System.currentTimeMillis()) {
+                    rewardedPredictionUnlockedUntilMs = 0L
+                    scope.launch {
+                        rewardedUnlockStore.setPredictionUnlockUntilMs(0L)
+                    }
+                    publishState()
+                    preloadRewardedInterstitialIfPossible()
+                }
+            }
+        }
+
         private fun publishState(message: String? = null) {
+            maybeExpireRewardedUnlocks()
             val canRequestAdsValue = canRequestAds
             val isPrivacyOptionsRequired =
                 consentInformation.privacyOptionsRequirementStatus ==
@@ -233,6 +459,9 @@ class AdsRepository
                     isMobileAdsInitialized = isMobileAdsInitialized,
                     shouldShowBanner = areAdsEnabled,
                     message = message ?: current.message,
+                    easterEggActive = easterEggActive,
+                    rewardedTabsUnlocked = isRewardedTabsUnlockedNow(),
+                    rewardedPredictionUnlocked = isRewardedPredictionUnlockedNow(),
                 )
             }
         }

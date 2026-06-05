@@ -411,6 +411,14 @@
 
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Pro version unlocked! Courtesy of Luigi Scialpi 😉</string>
+    <!-- Rewarded Insights -->
+    <string name="rewarded_unlock_prompt_title">उन्नत इनसाइट्स अनलॉक करें</string>
+    <string name="rewarded_unlock_prompt_message">प्रीडिक्शन और दैनिक, मासिक, वार्षिक चार्ट 2 घंटे के लिए अनलॉक करने हेतु एक छोटा विज्ञापन देखें।</string>
+    <string name="rewarded_unlock_button">विज्ञापन देखकर अनलॉक करें</string>
+    <string name="rewarded_unlock_tabs_success_2h_toast">दैनिक, मासिक और वार्षिक चार्ट 2 घंटे के लिए अनलॉक हो गए हैं।</string>
+    <string name="rewarded_unlock_prediction_success_2h_toast">प्रीडिक्शन 2 घंटे के लिए अनलॉक हो गई है।</string>
+    <string name="rewarded_unlock_success_2h_toast">उन्नत इनसाइट्स 2 घंटे के लिए अनलॉक हो गए हैं।</string>
+    <string name="rewarded_unlock_not_available_toast">रिवॉर्डेड विज्ञापन उपलब्ध नहीं है। कृपया थोड़ी देर में फिर कोशिश करें।</string>
     <!-- Domain Breakdown Sheet -->
     <string name="domain_analysis_title">डोमेन विश्लेषण</string>
     <string name="link_sort_label">इसके अनुसार क्रमबद्ध करें: </string>

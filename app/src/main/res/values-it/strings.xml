@@ -418,6 +418,15 @@
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Versione Pro sbloccata! Su gentile concessione di Luigi Scialpi 😉</string>
 
+    <!-- Rewarded Insights -->
+    <string name="rewarded_unlock_prompt_title">Sblocca statistiche avanzate</string>
+    <string name="rewarded_unlock_prompt_message">Guarda una breve pubblicità per sbloccare previsione e grafici giornaliero, mensile e annuale per 2 ore.</string>
+    <string name="rewarded_unlock_button">Sblocca con pubblicità</string>
+    <string name="rewarded_unlock_tabs_success_2h_toast">Grafici giornaliero, mensile e annuale sbloccati per 2 ore.</string>
+    <string name="rewarded_unlock_prediction_success_2h_toast">Previsione sbloccata per 2 ore.</string>
+    <string name="rewarded_unlock_success_2h_toast">Statistiche avanzate sbloccate per 2 ore.</string>
+    <string name="rewarded_unlock_not_available_toast">Annuncio con premio non disponibile. Riprova tra poco.</string>
+
     <!-- Domain Breakdown Sheet -->
     <string name="domain_analysis_title">Analisi Link</string>
     <string name="link_sort_label">Ordina per: </string>

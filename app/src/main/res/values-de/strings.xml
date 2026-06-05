@@ -411,6 +411,14 @@
 
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Pro-Version freigeschaltet! Mit freundlicher Genehmigung von Luigi Scialpi 😉</string>
+    <!-- Rewarded Insights -->
+    <string name="rewarded_unlock_prompt_title">Erweiterte Einblicke freischalten</string>
+    <string name="rewarded_unlock_prompt_message">Sieh dir eine kurze Anzeige an, um Prognose sowie tägliche, monatliche und jährliche Diagramme für 2 Stunden freizuschalten.</string>
+    <string name="rewarded_unlock_button">Mit Anzeige freischalten</string>
+    <string name="rewarded_unlock_tabs_success_2h_toast">Tägliche, monatliche und jährliche Diagramme für 2 Stunden freigeschaltet.</string>
+    <string name="rewarded_unlock_prediction_success_2h_toast">Prognose für 2 Stunden freigeschaltet.</string>
+    <string name="rewarded_unlock_success_2h_toast">Erweiterte Einblicke für 2 Stunden freigeschaltet.</string>
+    <string name="rewarded_unlock_not_available_toast">Belohnungsanzeige nicht verfügbar. Bitte versuche es in Kürze erneut.</string>
     <!-- Domain Breakdown Sheet -->
     <string name="domain_analysis_title">Domain-Analyse</string>
     <string name="link_sort_label">Sortieren nach: </string>

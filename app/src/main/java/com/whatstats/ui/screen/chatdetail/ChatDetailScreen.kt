@@ -1,5 +1,6 @@
 package com.whatstats.ui.screen.chatdetail
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -128,6 +129,7 @@ import com.whatstats.ui.component.ads.NativeAdCard
 import com.whatstats.ui.component.rememberShimmerBrush
 import com.whatstats.ui.theme.getSenderColor
 import com.whatstats.ui.theme.senderColorOverrideKey
+import com.whatstats.util.findActivity
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -157,6 +159,8 @@ fun ChatDetailScreen(
 ) {
     val mainVm: MainViewModel = hiltViewModel()
     val appLang by mainVm.appLanguage.collectAsState()
+    val adsUiState by mainVm.adsUiState.collectAsState()
+    val context = LocalContext.current
     val stats by viewModel.chatStats.collectAsState()
     val headerInfo by viewModel.headerInfo.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -170,6 +174,7 @@ fun ChatDetailScreen(
 
     LifecycleResumeEffect(Unit) {
         viewModel.syncFilterState()
+        mainVm.refreshRewardedInsightsLockState()
         onPauseOrDispose { }
     }
     val isLiteMode by viewModel.isLiteMode.collectAsState()
@@ -189,6 +194,34 @@ fun ChatDetailScreen(
     val senderTopStickers by viewModel.senderTopStickers.collectAsState()
     val isStickerLoading by viewModel.isStickerLoading.collectAsState()
     val topStickers by viewModel.topStickers.collectAsState()
+    val tabsRewardGateLocked = !adsUiState.rewardedTabsUnlocked
+    val predictionRewardGateLocked = !adsUiState.rewardedPredictionUnlocked
+
+    fun requestTabsUnlock(source: String) {
+        val activity = context.findActivity() ?: return
+        mainVm.requestRewardedTabsUnlock(activity = activity, source = source) { unlocked ->
+            val msgRes =
+                if (unlocked) {
+                    R.string.rewarded_unlock_tabs_success_2h_toast
+                } else {
+                    R.string.rewarded_unlock_not_available_toast
+                }
+            Toast.makeText(context, context.getString(msgRes), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun requestPredictionUnlock(source: String) {
+        val activity = context.findActivity() ?: return
+        mainVm.requestRewardedPredictionUnlock(activity = activity, source = source) { unlocked ->
+            val msgRes =
+                if (unlocked) {
+                    R.string.rewarded_unlock_prediction_success_2h_toast
+                } else {
+                    R.string.rewarded_unlock_not_available_toast
+                }
+            Toast.makeText(context, context.getString(msgRes), Toast.LENGTH_LONG).show()
+        }
+    }
 
     var showAvatarZoom by remember { mutableStateOf(false) }
     var zoomAvatarPath by remember { mutableStateOf<String?>(null) }
@@ -541,6 +574,9 @@ fun ChatDetailScreen(
                             scopeChatId = chatId,
                             senderColorArgbOverrides = senderColorArgbOverrides,
                             dismissSignal = chartDismissSignal,
+                            rewardGateEnabled = true,
+                            rewardedInsightsUnlocked = !tabsRewardGateLocked,
+                            onRequestUnlockInsights = { requestTabsUnlock("chat_detail_activity_tabs") },
                         )
                     }
 
@@ -654,6 +690,8 @@ fun ChatDetailScreen(
                                 } else {
                                     null
                                 },
+                            isLocked = predictionRewardGateLocked,
+                            onRequestUnlockInsights = { requestPredictionUnlock("chat_detail_prediction_card") },
                         )
                     }
 

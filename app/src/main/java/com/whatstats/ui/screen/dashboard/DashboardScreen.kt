@@ -1,5 +1,6 @@
 package com.whatstats.ui.screen.dashboard
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -70,6 +71,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstats.R
 import com.whatstats.data.db.model.TimeRange
+import com.whatstats.ui.MainViewModel
 import com.whatstats.ui.component.ActivityRecapCard
 import com.whatstats.ui.component.EmojiPreviewModal
 import com.whatstats.ui.component.InteractiveEmojiCloud
@@ -81,6 +83,7 @@ import com.whatstats.ui.component.StatCard
 import com.whatstats.ui.component.StickerPreviewModal
 import com.whatstats.ui.component.TimeRangeFilterRow
 import com.whatstats.ui.component.ads.NativeAdCard
+import com.whatstats.util.findActivity
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -96,6 +99,9 @@ fun DashboardScreen(
     onNavigateToChatDetail: (Long) -> Unit = {},
     onNavigateBack: () -> Unit,
 ) {
+    val mainVm: MainViewModel = hiltViewModel()
+    val adsUiState by mainVm.adsUiState.collectAsState()
+    val context = LocalContext.current
     val stats by viewModel.globalStats.collectAsState()
 
     // Intercetta il back di sistema per usare la stessa logica del pulsante toolbar
@@ -120,6 +126,7 @@ fun DashboardScreen(
     LifecycleResumeEffect(Unit) {
         viewModel.syncFilterState()
         viewModel.onResume()
+        mainVm.refreshRewardedInsightsLockState()
         onPauseOrDispose {
             viewModel.onPause()
         }
@@ -127,6 +134,34 @@ fun DashboardScreen(
     val selectedLimit by viewModel.selectedLimit.collectAsState()
 
     val slowStatsRequested by viewModel.slowStatsRequested.collectAsState()
+    val tabsRewardGateLocked = !adsUiState.rewardedTabsUnlocked
+    val predictionRewardGateLocked = !adsUiState.rewardedPredictionUnlocked
+
+    fun requestTabsUnlock(source: String) {
+        val activity = context.findActivity() ?: return
+        mainVm.requestRewardedTabsUnlock(activity = activity, source = source) { unlocked ->
+            val msgRes =
+                if (unlocked) {
+                    R.string.rewarded_unlock_tabs_success_2h_toast
+                } else {
+                    R.string.rewarded_unlock_not_available_toast
+                }
+            Toast.makeText(context, context.getString(msgRes), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun requestPredictionUnlock(source: String) {
+        val activity = context.findActivity() ?: return
+        mainVm.requestRewardedPredictionUnlock(activity = activity, source = source) { unlocked ->
+            val msgRes =
+                if (unlocked) {
+                    R.string.rewarded_unlock_prediction_success_2h_toast
+                } else {
+                    R.string.rewarded_unlock_not_available_toast
+                }
+            Toast.makeText(context, context.getString(msgRes), Toast.LENGTH_LONG).show()
+        }
+    }
 
     // ── FIX: estrai 's' fuori dal let, così è accessibile in tutto il LazyColumn ──
     val s = stats
@@ -341,6 +376,9 @@ fun DashboardScreen(
                             monthlyData = monthlyData,
                             yearlyData = yearlyData,
                             dismissSignal = chartDismissSignal,
+                            rewardGateEnabled = true,
+                            rewardedInsightsUnlocked = !tabsRewardGateLocked,
+                            onRequestUnlockInsights = { requestTabsUnlock("dashboard_activity_tabs") },
                         )
                     }
 
@@ -355,6 +393,8 @@ fun DashboardScreen(
                                     } else {
                                         null
                                     },
+                                isLocked = predictionRewardGateLocked,
+                                onRequestUnlockInsights = { requestPredictionUnlock("dashboard_prediction_card") },
                             )
                         }
                     }

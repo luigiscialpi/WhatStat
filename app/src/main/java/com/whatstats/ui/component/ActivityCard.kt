@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +48,9 @@ fun ActivityRecapCard(
     senderColorArgbOverrides: Map<String, Int> = emptyMap(),
     dismissSignal: Int = 0,
     onPointClick: ((String, String) -> Unit)? = null,
+    rewardGateEnabled: Boolean = false,
+    rewardedInsightsUnlocked: Boolean = false,
+    onRequestUnlockInsights: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -90,6 +94,7 @@ fun ActivityRecapCard(
     val handlePointClick: (String, String) -> Unit = { title, value ->
         onPointClick?.invoke(title, value)
     }
+    val isCurrentTabLocked = rewardGateEnabled && !rewardedInsightsUnlocked && selectedTab in 2..4
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -151,140 +156,161 @@ fun ActivityRecapCard(
 
                 Spacer(Modifier.height(16.dp))
 
-                when (selectedTab) {
-                    0 -> {
-                        val context = androidx.compose.ui.platform.LocalContext.current
-                        InteractiveHourlyHeatmap(
-                            hourlyData = hourlyData,
-                            referenceSenders = referenceSenders,
-                            scopeChatId = scopeChatId,
-                            senderColorArgbOverrides = senderColorArgbOverrides,
-                            dismissSignal = dismissSignal,
-                            onHourClick = { data ->
-                                val title = "%02d:00 - %02d:00".format(data.hour, (data.hour + 1) % 24)
-                                val value = context.getString(R.string.messages_count_suffix, data.count)
-                                handlePointClick(title, value)
-                                detailDialogData = Triple(title, data.count, data.senderBreakdown)
-                            },
-                        )
+                if (isCurrentTabLocked) {
+                    Text(
+                        text = stringResource(R.string.rewarded_unlock_prompt_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.rewarded_unlock_prompt_message),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = { onRequestUnlockInsights?.invoke() },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(text = stringResource(R.string.rewarded_unlock_button))
                     }
-                    1 -> {
-                        val points =
-                            (0..6).map { day ->
-                                val data = weeklyData.find { it.dayOfWeek == day }
-                                StatPoint(day, dayNames[day], data?.count ?: 0, data?.senderBreakdown ?: emptyList())
-                            }
-                        val context = androidx.compose.ui.platform.LocalContext.current
-                        val dayFullNames =
-                            listOf(
-                                R.string.day_sunday,
-                                R.string.day_monday,
-                                R.string.day_tuesday,
-                                R.string.day_wednesday,
-                                R.string.day_thursday,
-                                R.string.day_friday,
-                                R.string.day_saturday,
+                } else {
+                    when (selectedTab) {
+                        0 -> {
+                            val context = androidx.compose.ui.platform.LocalContext.current
+                            InteractiveHourlyHeatmap(
+                                hourlyData = hourlyData,
+                                referenceSenders = referenceSenders,
+                                scopeChatId = scopeChatId,
+                                senderColorArgbOverrides = senderColorArgbOverrides,
+                                dismissSignal = dismissSignal,
+                                onHourClick = { data ->
+                                    val title = "%02d:00 - %02d:00".format(data.hour, (data.hour + 1) % 24)
+                                    val value = context.getString(R.string.messages_count_suffix, data.count)
+                                    handlePointClick(title, value)
+                                    detailDialogData = Triple(title, data.count, data.senderBreakdown)
+                                },
                             )
-                        InteractiveBarChart(
-                            data = points,
-                            referenceSenders = referenceSenders,
-                            scopeChatId = scopeChatId,
-                            senderColorArgbOverrides = senderColorArgbOverrides,
-                            barWidth = 32.dp,
-                            spacing = 12.dp,
-                            dismissSignal = dismissSignal,
-                            onPointClick = { point ->
-                                val dayFull = context.getString(dayFullNames[point.id as Int])
-                                val value = context.getString(R.string.messages_count_suffix, point.count)
-                                handlePointClick(dayFull, value)
-                                detailDialogData = Triple(dayFull, point.count, point.senderBreakdown)
-                            },
-                        )
-                    }
-                    2 -> {
-                        val points =
-                            (1..31).map { day ->
-                                val data = dailyData.find { it.day == day }
-                                StatPoint(day, "$day", data?.count ?: 0, data?.senderBreakdown ?: emptyList())
-                            }
-                        val context = androidx.compose.ui.platform.LocalContext.current
-                        InteractiveBarChart(
-                            data = points,
-                            referenceSenders = referenceSenders,
-                            scopeChatId = scopeChatId,
-                            senderColorArgbOverrides = senderColorArgbOverrides,
-                            barWidth = 14.dp,
-                            spacing = 6.dp,
-                            labelFrequency = 5,
-                            dismissSignal = dismissSignal,
-                            onPointClick = { point ->
-                                val title = context.getString(R.string.click_day_prefix, point.label)
-                                val value = context.getString(R.string.messages_count_suffix, point.count)
-                                handlePointClick(title, value)
-                                detailDialogData = Triple(title, point.count, point.senderBreakdown)
-                            },
-                        )
-                    }
-                    3 -> {
-                        val points =
-                            (1..12).map { month ->
-                                val data = monthlyData.find { it.month == month }
-                                StatPoint(month, monthNames[month - 1], data?.count ?: 0, data?.senderBreakdown ?: emptyList())
-                            }
-                        val context = androidx.compose.ui.platform.LocalContext.current
-                        val monthFullNames =
-                            listOf(
-                                R.string.month_january, R.string.month_february, R.string.month_march,
-                                R.string.month_april, R.string.month_may_full, R.string.month_june,
-                                R.string.month_july, R.string.month_august, R.string.month_september,
-                                R.string.month_october, R.string.month_november, R.string.month_december,
+                        }
+                        1 -> {
+                            val points =
+                                (0..6).map { day ->
+                                    val data = weeklyData.find { it.dayOfWeek == day }
+                                    StatPoint(day, dayNames[day], data?.count ?: 0, data?.senderBreakdown ?: emptyList())
+                                }
+                            val context = androidx.compose.ui.platform.LocalContext.current
+                            val dayFullNames =
+                                listOf(
+                                    R.string.day_sunday,
+                                    R.string.day_monday,
+                                    R.string.day_tuesday,
+                                    R.string.day_wednesday,
+                                    R.string.day_thursday,
+                                    R.string.day_friday,
+                                    R.string.day_saturday,
+                                )
+                            InteractiveBarChart(
+                                data = points,
+                                referenceSenders = referenceSenders,
+                                scopeChatId = scopeChatId,
+                                senderColorArgbOverrides = senderColorArgbOverrides,
+                                barWidth = 32.dp,
+                                spacing = 12.dp,
+                                dismissSignal = dismissSignal,
+                                onPointClick = { point ->
+                                    val dayFull = context.getString(dayFullNames[point.id as Int])
+                                    val value = context.getString(R.string.messages_count_suffix, point.count)
+                                    handlePointClick(dayFull, value)
+                                    detailDialogData = Triple(dayFull, point.count, point.senderBreakdown)
+                                },
                             )
-                        InteractiveBarChart(
-                            data = points,
-                            referenceSenders = referenceSenders,
-                            scopeChatId = scopeChatId,
-                            senderColorArgbOverrides = senderColorArgbOverrides,
-                            barWidth = 24.dp,
-                            spacing = 8.dp,
-                            dismissSignal = dismissSignal,
-                            onPointClick = { point ->
-                                val monthFull = context.getString(monthFullNames[point.id as Int - 1])
-                                val value = context.getString(R.string.messages_count_suffix, point.count)
-                                handlePointClick(monthFull, value)
-                                detailDialogData = Triple(monthFull, point.count, point.senderBreakdown)
-                            },
-                        )
-                    }
-                    4 -> {
-                        val sortedYears = yearlyData.sortedBy { it.year }
-                        val points =
-                            sortedYears.map {
-                                StatPoint(it.year, "${it.year}", it.count, it.senderBreakdown)
-                            }
-                        if (points.isEmpty()) {
-                            Text(
-                                stringResource(R.string.no_data_for_period),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = 24.dp),
-                            )
-                        } else {
+                        }
+                        2 -> {
+                            val points =
+                                (1..31).map { day ->
+                                    val data = dailyData.find { it.day == day }
+                                    StatPoint(day, "$day", data?.count ?: 0, data?.senderBreakdown ?: emptyList())
+                                }
                             val context = androidx.compose.ui.platform.LocalContext.current
                             InteractiveBarChart(
                                 data = points,
                                 referenceSenders = referenceSenders,
                                 scopeChatId = scopeChatId,
                                 senderColorArgbOverrides = senderColorArgbOverrides,
-                                barWidth = 48.dp,
-                                spacing = 16.dp,
+                                barWidth = 14.dp,
+                                spacing = 6.dp,
+                                labelFrequency = 5,
                                 dismissSignal = dismissSignal,
                                 onPointClick = { point ->
-                                    val title = context.getString(R.string.click_year_prefix, point.label)
+                                    val title = context.getString(R.string.click_day_prefix, point.label)
                                     val value = context.getString(R.string.messages_count_suffix, point.count)
                                     handlePointClick(title, value)
                                     detailDialogData = Triple(title, point.count, point.senderBreakdown)
                                 },
                             )
+                        }
+                        3 -> {
+                            val points =
+                                (1..12).map { month ->
+                                    val data = monthlyData.find { it.month == month }
+                                    StatPoint(month, monthNames[month - 1], data?.count ?: 0, data?.senderBreakdown ?: emptyList())
+                                }
+                            val context = androidx.compose.ui.platform.LocalContext.current
+                            val monthFullNames =
+                                listOf(
+                                    R.string.month_january, R.string.month_february, R.string.month_march,
+                                    R.string.month_april, R.string.month_may_full, R.string.month_june,
+                                    R.string.month_july, R.string.month_august, R.string.month_september,
+                                    R.string.month_october, R.string.month_november, R.string.month_december,
+                                )
+                            InteractiveBarChart(
+                                data = points,
+                                referenceSenders = referenceSenders,
+                                scopeChatId = scopeChatId,
+                                senderColorArgbOverrides = senderColorArgbOverrides,
+                                barWidth = 24.dp,
+                                spacing = 8.dp,
+                                dismissSignal = dismissSignal,
+                                onPointClick = { point ->
+                                    val monthFull = context.getString(monthFullNames[point.id as Int - 1])
+                                    val value = context.getString(R.string.messages_count_suffix, point.count)
+                                    handlePointClick(monthFull, value)
+                                    detailDialogData = Triple(monthFull, point.count, point.senderBreakdown)
+                                },
+                            )
+                        }
+                        4 -> {
+                            val sortedYears = yearlyData.sortedBy { it.year }
+                            val points =
+                                sortedYears.map {
+                                    StatPoint(it.year, "${it.year}", it.count, it.senderBreakdown)
+                                }
+                            if (points.isEmpty()) {
+                                Text(
+                                    stringResource(R.string.no_data_for_period),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(vertical = 24.dp),
+                                )
+                            } else {
+                                val context = androidx.compose.ui.platform.LocalContext.current
+                                InteractiveBarChart(
+                                    data = points,
+                                    referenceSenders = referenceSenders,
+                                    scopeChatId = scopeChatId,
+                                    senderColorArgbOverrides = senderColorArgbOverrides,
+                                    barWidth = 48.dp,
+                                    spacing = 16.dp,
+                                    dismissSignal = dismissSignal,
+                                    onPointClick = { point ->
+                                        val title = context.getString(R.string.click_year_prefix, point.label)
+                                        val value = context.getString(R.string.messages_count_suffix, point.count)
+                                        handlePointClick(title, value)
+                                        detailDialogData = Triple(title, point.count, point.senderBreakdown)
+                                    },
+                                )
+                            }
                         }
                     }
                 }

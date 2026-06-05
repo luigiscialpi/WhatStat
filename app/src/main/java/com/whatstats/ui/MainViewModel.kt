@@ -113,6 +113,26 @@ class MainViewModel
             return adsRepository.tryShowInterstitialAfterLongOperation(activity, source)
         }
 
+        fun requestRewardedTabsUnlock(
+            activity: Activity,
+            source: String,
+            onResult: (Boolean) -> Unit,
+        ) {
+            adsRepository.requestRewardedTabsUnlock(activity, source, onResult)
+        }
+
+        fun requestRewardedPredictionUnlock(
+            activity: Activity,
+            source: String,
+            onResult: (Boolean) -> Unit,
+        ) {
+            adsRepository.requestRewardedPredictionUnlock(activity, source, onResult)
+        }
+
+        fun refreshRewardedInsightsLockState() {
+            adsRepository.refreshRewardedInsightsLockState()
+        }
+
         fun resetLiteMode() {
             analyticsRepository.resetLiteMode()
         }

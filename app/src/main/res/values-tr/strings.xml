@@ -411,6 +411,14 @@
 
     <!-- Easter Egg -->
     <string name="easter_egg_pro_unlocked">Pro sürümü açıldı! Luigi Scialpi\'nin nazik katkılarıyla 😉</string>
+    <!-- Rewarded Insights -->
+    <string name="rewarded_unlock_prompt_title">Gelişmiş içgörüleri aç</string>
+    <string name="rewarded_unlock_prompt_message">Tahmini ve günlük, aylık, yıllık grafikleri 2 saat açmak için kısa bir reklam izle.</string>
+    <string name="rewarded_unlock_button">Reklamla aç</string>
+    <string name="rewarded_unlock_tabs_success_2h_toast">Günlük, aylık ve yıllık grafikler 2 saatliğine açıldı.</string>
+    <string name="rewarded_unlock_prediction_success_2h_toast">Tahmin 2 saatliğine açıldı.</string>
+    <string name="rewarded_unlock_success_2h_toast">Gelişmiş içgörüler 2 saatliğine açıldı.</string>
+    <string name="rewarded_unlock_not_available_toast">Ödüllü reklam kullanılamıyor. Lütfen kısa süre sonra tekrar dene.</string>
     <!-- Domain Breakdown Sheet -->
     <string name="domain_analysis_title">Alan Adı Analizi</string>
     <string name="link_sort_label">Sıralama ölçütü: </string>

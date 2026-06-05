@@ -8,4 +8,6 @@ data class AdsUiState(
     val shouldShowBanner: Boolean = false,
     val message: String? = null,
     val easterEggActive: Boolean = false,
+    val rewardedTabsUnlocked: Boolean = false,
+    val rewardedPredictionUnlocked: Boolean = false,
 )
