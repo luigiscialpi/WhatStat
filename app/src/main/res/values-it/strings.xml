@@ -64,6 +64,10 @@
     <string name="tab_lite">Lite</string>
     <string name="tab_root">Root</string>
     <string name="permesso_notifiche_toast">Il permesso notifiche è necessario per seguire il progresso in background</string>
+    <string name="lite_import_notification_channel_name">Importazione Chat Lite</string>
+    <string name="lite_import_notification_channel_desc">Mostra l\'avanzamento dell\'importazione chat Lite</string>
+    <string name="lite_import_notification_title">Importazione Chat Lite</string>
+    <string name="lite_import_notification_starting">Avvio...</string>
     <string name="importing_overlay">Importazione chat in corso…</string>
     <string name="checking_data_overlay">Verifica dei dati in corso…</string>
     <string name="who_are_you_title">Chi sei tu?</string>

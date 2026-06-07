@@ -245,7 +245,7 @@ private fun ModesTutorialPage() {
                 ModeCard(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Outlined.AdminPanelSettings,
-                    title = "Root",
+                    title = stringResource(R.string.tab_root),
                     subtitle = stringResource(R.string.tutorial_modes_root_sub),
                     iconTint = colorScheme.primary,
                     containerColor = colorScheme.primaryContainer,
@@ -254,7 +254,7 @@ private fun ModesTutorialPage() {
                 ModeCard(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Outlined.FolderZip,
-                    title = "Lite",
+                    title = stringResource(R.string.tab_lite),
                     subtitle = stringResource(R.string.tutorial_modes_lite_sub),
                     iconTint = colorScheme.secondary,
                     containerColor = colorScheme.secondaryContainer,

@@ -182,7 +182,7 @@ fun setupScreen(
             if (!isGranted) {
                 Toast.makeText(
                     context,
-                    "Il permesso notifiche è necessario per seguire il progresso in background",
+                    context.getString(R.string.permesso_notifiche_toast),
                     Toast.LENGTH_LONG,
                 ).show()
             }
@@ -917,6 +917,8 @@ private fun rootTabContent(
     onClearRoot: () -> Unit,
     onManualFileSelected: (Uri, String) -> Unit,
 ) {
+    val context = LocalContext.current
+    val resolvedError = state.appError?.resolveMessage(context) ?: state.error
     Column(
         modifier =
             Modifier
@@ -933,26 +935,26 @@ private fun rootTabContent(
                 label = stringResource(R.string.root_step_access),
                 status = state.rootStatus,
                 icon = Icons.Outlined.AdminPanelSettings,
-                errorMessage = if (state.rootStatus == StepStatus.ERROR) state.error else null,
+                errorMessage = if (state.rootStatus == StepStatus.ERROR) resolvedError else null,
             )
             SetupStep(
                 label = stringResource(R.string.root_step_extraction),
                 status = state.extractionStatus,
                 icon = Icons.Outlined.FolderOpen,
-                errorMessage = if (state.extractionStatus == StepStatus.ERROR) state.error else null,
+                errorMessage = if (state.extractionStatus == StepStatus.ERROR) resolvedError else null,
             )
             SetupStep(
                 label = stringResource(R.string.root_step_decryption),
                 status = state.decryptionStatus,
                 icon = Icons.Outlined.Key,
                 progress = if (state.decryptionStatus == StepStatus.LOADING) state.decryptionProgress else null,
-                errorMessage = if (state.decryptionStatus == StepStatus.ERROR) state.error else null,
+                errorMessage = if (state.decryptionStatus == StepStatus.ERROR) resolvedError else null,
             )
             SetupStep(
                 label = stringResource(R.string.root_step_contacts),
                 status = state.contactsStatus,
                 icon = Icons.Outlined.Contacts,
-                errorMessage = if (state.contactsStatus == StepStatus.ERROR) state.error else null,
+                errorMessage = if (state.contactsStatus == StepStatus.ERROR) resolvedError else null,
             )
         }
 
@@ -1051,7 +1053,7 @@ private fun rootTabContent(
         // Il testo dell'errore è ora mostrato inline sotto lo step che ha fallito.
         // Qui restano solo le azioni contestuali (es. selezione file manuale).
         AnimatedVisibility(
-            visible = state.error != null && !state.isManualModeVisible,
+            visible = resolvedError != null && !state.isManualModeVisible,
             enter = fadeIn() + slideInVertically(),
         ) {
             Button(
@@ -1176,7 +1178,7 @@ private fun rootTabContent(
                     ),
             ) {
                 Text(
-                    if (state.isManualModeVisible) "Decifra Database" else "Inizia analisi",
+                    if (state.isManualModeVisible) stringResource(R.string.decrypt_db_button) else stringResource(R.string.start_analysis),
                     style = MaterialTheme.typography.labelLarge,
                     textAlign = TextAlign.Center,
                 )

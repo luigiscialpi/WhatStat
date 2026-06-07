@@ -64,6 +64,10 @@
     <string name="tab_lite">Lite</string>
     <string name="tab_root">Root</string>
     <string name="permesso_notifiche_toast">Arka planda ilerlemeyi takip etmek için bildirim izni gereklidir</string>
+    <string name="lite_import_notification_channel_name">Lite Sohbet Ice Aktarma</string>
+    <string name="lite_import_notification_channel_desc">Lite sohbet ice aktarma ilerlemesini gosterir</string>
+    <string name="lite_import_notification_title">Lite Sohbet Ice Aktarma</string>
+    <string name="lite_import_notification_starting">Baslatiliyor...</string>
     <string name="importing_overlay">Sohbet içe aktarılıyor…</string>
     <string name="checking_data_overlay">Veriler kontrol ediliyor…</string>
     <string name="who_are_you_title">Sen kimsin?</string>

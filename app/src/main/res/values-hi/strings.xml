@@ -64,6 +64,10 @@
     <string name="tab_lite">Lite</string>
     <string name="tab_root">Root</string>
     <string name="permesso_notifiche_toast">बैकग्राउंड में प्रगति देखने के लिए नोटिफिकेशन की अनुमति आवश्यक है</string>
+    <string name="lite_import_notification_channel_name">Lite चैट आयात</string>
+    <string name="lite_import_notification_channel_desc">Lite चैट आयात की प्रगति दिखाता है</string>
+    <string name="lite_import_notification_title">Lite चैट आयात</string>
+    <string name="lite_import_notification_starting">शुरू हो रहा है...</string>
     <string name="importing_overlay">चैट आयात हो रही है…</string>
     <string name="checking_data_overlay">डेटा जाँचा जा रहा है…</string>
     <string name="who_are_you_title">आप कौन हैं?</string>

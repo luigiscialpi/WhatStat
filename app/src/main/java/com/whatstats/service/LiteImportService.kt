@@ -53,7 +53,15 @@ class LiteImportService : Service() {
     ): Int {
         when (intent?.action) {
             ACTION_START -> {
-                startForeground(NOTIFICATION_ID, buildNotification(LiteImportProgress(0f, "Avvio importazione...")))
+                startForeground(
+                    NOTIFICATION_ID,
+                    buildNotification(
+                        LiteImportProgress(
+                            0f,
+                            getString(R.string.lite_import_notification_starting),
+                        ),
+                    ),
+                )
                 if (progressJob == null) {
                     observeProgress()
                 }
@@ -89,10 +97,10 @@ class LiteImportService : Service() {
             val channel =
                 NotificationChannel(
                     CHANNEL_ID,
-                    "Setup WhatsApp",
+                    getString(R.string.lite_import_notification_channel_name),
                     NotificationManager.IMPORTANCE_LOW,
                 ).apply {
-                    description = "Mostra l'avanzamento dell'importazione Lite"
+                    description = getString(R.string.lite_import_notification_channel_desc)
                 }
             notificationManager.createNotificationChannel(channel)
         }
@@ -112,8 +120,14 @@ class LiteImportService : Service() {
         val isIndeterminate = progressInt == 0
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Importazione Chat Lite")
-            .setContentText(if (progress.label.isNotEmpty()) "${progress.label} ($progressInt%)" else "Avvio...")
+            .setContentTitle(getString(R.string.lite_import_notification_title))
+            .setContentText(
+                if (progress.label.isNotEmpty()) {
+                    "${progress.label} ($progressInt%)"
+                } else {
+                    getString(R.string.lite_import_notification_starting)
+                },
+            )
             .setSmallIcon(R.drawable.ic_launcher)
             .setOngoing(true)
             .setProgress(100, progressInt, isIndeterminate)

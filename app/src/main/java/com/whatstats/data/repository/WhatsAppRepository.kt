@@ -133,7 +133,7 @@ class WhatsAppRepository
                                     else ->
                                         throw AppErrorException(
                                             AppError.ExtractionError(
-                                                throwable.message ?: context.getString(R.string.error_unknown_simple),
+                                                context.getString(R.string.error_unknown_simple),
                                             ),
                                         )
                                 }
@@ -156,7 +156,7 @@ class WhatsAppRepository
                         decryptResult.getOrElse { throwable ->
                             _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
                             throw AppErrorException(
-                                AppError.DecryptionFailed(throwable.message ?: context.getString(R.string.error_unknown_simple)),
+                                AppError.DecryptionFailed(context.getString(R.string.error_unknown_simple)),
                             )
                         }
                         _setupState.update {
@@ -189,7 +189,7 @@ class WhatsAppRepository
                     } catch (e: Exception) {
                         _setupState.update { it.copy(contactsStatus = GlobalStepStatus.ERROR) }
                         throw AppErrorException(
-                            AppError.DatabaseError(e.message ?: context.getString(R.string.error_db_unavailable)),
+                            AppError.DatabaseError(context.getString(R.string.error_db_unavailable)),
                         )
                     }
                     _setupState.update {
@@ -206,12 +206,12 @@ class WhatsAppRepository
                     if (isOperationCancelled()) {
                         return@onFailure
                     }
-                    val errorMessage =
-                        when (throwable) {
-                            is AppErrorException -> throwable.appError.resolveMessage(context)
-                            else -> throwable.message ?: context.getString(R.string.error_unknown_simple)
-                        }
-                    _setupState.update { it.copy(isLoading = false, error = errorMessage) }
+                    if (throwable is AppErrorException) {
+                        _setupState.update { it.copy(isLoading = false, error = null, appError = throwable.appError) }
+                    } else {
+                        val errorMessage = context.getString(R.string.error_unknown_simple)
+                        _setupState.update { it.copy(isLoading = false, error = errorMessage, appError = null) }
+                    }
                 }
             }
 
@@ -243,12 +243,12 @@ class WhatsAppRepository
 
                     if (!keyFile.exists()) {
                         _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
-                        throw AppErrorException(AppError.ExtractionError("Il file chiave non è stato copiato."))
+                        throw AppErrorException(AppError.KeyFileNotFound)
                     }
 
                     if (!hasDecryptedDb && !crypt14File.exists()) {
                         _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
-                        throw AppErrorException(AppError.ExtractionError("Il file database non è stato copiato."))
+                        throw AppErrorException(AppError.Crypt14NotFound)
                     }
 
                     // Step 3: Decifra il database OPZIONE: usa db già decifrato
@@ -262,7 +262,7 @@ class WhatsAppRepository
                             outputDb.inputStream().use { it.read(header) }
                             val magic = String(header, 0, 15)
                             if (!magic.startsWith("SQLite format 3")) {
-                                throw AppErrorException(AppError.DecryptionError("Il file non sembra un database SQLite valido."))
+                                throw AppErrorException(AppError.DecryptionError(context.getString(R.string.error_db_unavailable)))
                             }
                         } catch (e: AppErrorException) {
                             throw e
@@ -284,7 +284,7 @@ class WhatsAppRepository
                         decryptResult.getOrElse { throwable ->
                             _setupState.update { it.copy(decryptionStatus = GlobalStepStatus.ERROR) }
                             throw AppErrorException(
-                                AppError.DecryptionFailed(throwable.message ?: context.getString(R.string.error_unknown_simple)),
+                                AppError.DecryptionFailed(context.getString(R.string.error_unknown_simple)),
                             )
                         }
                     }
@@ -308,7 +308,7 @@ class WhatsAppRepository
                     } catch (e: Exception) {
                         _setupState.update { it.copy(contactsStatus = GlobalStepStatus.ERROR) }
                         throw AppErrorException(
-                            AppError.DatabaseError(e.message ?: context.getString(R.string.error_db_unavailable)),
+                            AppError.DatabaseError(context.getString(R.string.error_db_unavailable)),
                         )
                     }
                     _setupState.update { it.copy(contactsStatus = GlobalStepStatus.SUCCESS, isLoading = false, isComplete = true) }
@@ -319,12 +319,12 @@ class WhatsAppRepository
                     if (isOperationCancelled()) {
                         return@onFailure
                     }
-                    val errorMessage =
-                        when (throwable) {
-                            is AppErrorException -> throwable.appError.resolveMessage(context)
-                            else -> throwable.message ?: context.getString(R.string.error_unknown_simple)
-                        }
-                    _setupState.update { it.copy(isLoading = false, error = errorMessage) }
+                    if (throwable is AppErrorException) {
+                        _setupState.update { it.copy(isLoading = false, error = null, appError = throwable.appError) }
+                    } else {
+                        val errorMessage = context.getString(R.string.error_unknown_simple)
+                        _setupState.update { it.copy(isLoading = false, error = errorMessage, appError = null) }
+                    }
                 }
             }
 
@@ -416,6 +416,7 @@ data class RepositorySetupState(
     val isLoading: Boolean = false,
     val isComplete: Boolean = false,
     val error: String? = null,
+    val appError: AppError? = null,
     val rootStatus: GlobalStepStatus = GlobalStepStatus.IDLE,
     val extractionStatus: GlobalStepStatus = GlobalStepStatus.IDLE,
     val decryptionStatus: GlobalStepStatus = GlobalStepStatus.IDLE,

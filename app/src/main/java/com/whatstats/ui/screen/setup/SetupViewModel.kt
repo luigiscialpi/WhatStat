@@ -10,6 +10,7 @@ import com.whatstats.ads.AdsRepository
 import com.whatstats.data.lite.LiteDatabase
 import com.whatstats.data.repository.GlobalStepStatus
 import com.whatstats.data.repository.WhatsAppRepository
+import com.whatstats.domain.model.AppError
 import com.whatstats.data.root.FileExtractor
 import com.whatstats.service.SetupService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -109,6 +110,7 @@ class SetupViewModel
                             isRootReady = isRootReady,
                             isComplete = if (autoNavigate || !repoState.isComplete) repoState.isComplete else it.isComplete,
                             error = repoState.error,
+                            appError = repoState.appError,
                             rootStatus = mapGlobalStatus(repoState.rootStatus),
                             extractionStatus = mapGlobalStatus(repoState.extractionStatus),
                             decryptionStatus = mapGlobalStatus(repoState.decryptionStatus),
@@ -158,15 +160,21 @@ class SetupViewModel
                     repository.copyFileFromUri(uri, fileDestName)
                     _state.update { current ->
                         when (fileDestName) {
-                            FileExtractor.KEY_DEST -> current.copy(hasManualKey = true)
-                            FileExtractor.CRYPT14_DEST -> current.copy(hasManualCrypt14 = true)
-                            FileExtractor.WA_DB_DEST -> current.copy(hasManualWaDb = true)
-                            FileExtractor.DB_DECRYPTED_DEST -> current.copy(hasManualDbDecrypted = true)
+                            FileExtractor.KEY_DEST -> current.copy(hasManualKey = true, error = null, appError = null)
+                            FileExtractor.CRYPT14_DEST -> current.copy(hasManualCrypt14 = true, error = null, appError = null)
+                            FileExtractor.WA_DB_DEST -> current.copy(hasManualWaDb = true, error = null, appError = null)
+                            FileExtractor.DB_DECRYPTED_DEST ->
+                                current.copy(hasManualDbDecrypted = true, error = null, appError = null)
                             else -> current
                         }
                     }
                 } catch (e: Exception) {
-                    _state.update { it.copy(error = "Errore lettura file: ${e.message}") }
+                    _state.update {
+                        it.copy(
+                            error = null,
+                            appError = AppError.ExtractionError(context.getString(R.string.error_unknown_simple)),
+                        )
+                    }
                 }
             }
         }
@@ -224,6 +232,7 @@ data class SetupState(
     val isLoading: Boolean = false,
     val isComplete: Boolean = false,
     val error: String? = null,
+    val appError: AppError? = null,
     val rootStatus: StepStatus = StepStatus.IDLE,
     val extractionStatus: StepStatus = StepStatus.IDLE,
     val decryptionStatus: StepStatus = StepStatus.IDLE,

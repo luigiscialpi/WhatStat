@@ -27,6 +27,7 @@ object IntegrityChecker {
      * NON blocca l'esecuzione ma imposta il flag [isTampered].
      */
     @SuppressLint("PackageManagerGetSignatures")
+    @Suppress("DEPRECATION")
     fun verifySignature(context: Context) {
         if (BuildConfig.DEBUG) {
             _isTampered = false

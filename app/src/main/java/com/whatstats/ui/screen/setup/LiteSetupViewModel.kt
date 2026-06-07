@@ -110,7 +110,7 @@ class LiteSetupViewModel
                     .onFailure { e ->
                         progressJob?.cancel()
                         stopForegroundService()
-                        _state.update { it.copy(isLoading = false, error = e.message) }
+                        _state.update { it.copy(isLoading = false, error = context.getString(R.string.error_unknown_simple)) }
                     }
             }
         }
@@ -142,9 +142,8 @@ class LiteSetupViewModel
                     stopForegroundService()
                     _state.update { it.copy(isLoading = false, isComplete = true) }
                 } else {
-                    val error = finalizeResult.exceptionOrNull()
                     stopForegroundService()
-                    _state.update { it.copy(isLoading = false, error = error?.message) }
+                    _state.update { it.copy(isLoading = false, error = context.getString(R.string.error_unknown_simple)) }
                 }
             }
         }
