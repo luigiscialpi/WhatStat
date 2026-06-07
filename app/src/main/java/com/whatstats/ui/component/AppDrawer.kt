@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.BrightnessMedium
 import androidx.compose.material.icons.outlined.Cached
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.HorizontalDivider
@@ -66,6 +67,7 @@ fun AppDrawerContent(
     val themeMode by mainViewModel.themeMode.collectAsState()
     val appLanguage by mainViewModel.appLanguage.collectAsState()
     val isLiteMode by mainViewModel.isLiteMode.collectAsState()
+    val proBillingState by mainViewModel.proBillingUiState.collectAsState()
     val adsUiState by mainViewModel.adsUiState.collectAsState()
     val context = LocalContext.current
 
@@ -73,6 +75,7 @@ fun AppDrawerContent(
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showCacheDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showProDialog by remember { mutableStateOf(false) }
 
     val drawerState = LocalDrawerState.current
     val coroutineScope = rememberCoroutineScope()
@@ -131,6 +134,20 @@ fun AppDrawerContent(
             }
 
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                DrawerItem(
+                    icon = Icons.Outlined.Star,
+                    label =
+                        if (proBillingState.isPro) {
+                            stringResource(R.string.pro_active)
+                        } else {
+                            stringResource(R.string.drawer_upgrade_pro)
+                        },
+                    onClick = {
+                        showProDialog = true
+                        closeDrawer()
+                    },
+                )
+
                 if (adsUiState.isPrivacyOptionsRequired) {
                     DrawerItem(
                         icon = Icons.Outlined.Info,
@@ -233,6 +250,28 @@ fun AppDrawerContent(
                         Text(stringResource(R.string.dialog_cancel))
                     }
                 },
+            )
+        }
+    }
+
+    if (showProDialog) {
+        key(appLangSafeKey(appLanguage, proBillingState.isPro, proBillingState.productPrice, proBillingState.message)) {
+            ProUpgradeDialog(
+                isPro = proBillingState.isPro,
+                isProcessing = proBillingState.isProcessing,
+                productPrice = proBillingState.productPrice,
+                message = proBillingState.message,
+                onDismiss = {
+                    mainViewModel.dismissProBillingMessage()
+                    showProDialog = false
+                },
+                onPurchase = {
+                    val activity = context.findActivity()
+                    if (activity != null) {
+                        mainViewModel.purchasePro(activity)
+                    }
+                },
+                onRestore = { mainViewModel.restoreProPurchases() },
             )
         }
     }
@@ -401,4 +440,108 @@ private fun Context.findActivity(): Activity? {
         ctx = ctx.baseContext
     }
     return null
+}
+
+@Composable
+@Suppress("FunctionName")
+private fun ProUpgradeDialog(
+    isPro: Boolean,
+    isProcessing: Boolean,
+    productPrice: String?,
+    message: String?,
+    onDismiss: () -> Unit,
+    onPurchase: () -> Unit,
+    onRestore: () -> Unit,
+) {
+    val context = LocalContext.current
+    val activityAvailable = context.findActivity() != null
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                if (isPro) {
+                    stringResource(R.string.pro_active)
+                } else {
+                    stringResource(R.string.drawer_upgrade_pro)
+                },
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text =
+                        if (isPro) {
+                            stringResource(R.string.pro_active_description)
+                        } else {
+                            stringResource(R.string.pro_upgrade_description)
+                        },
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+
+                if (!isPro) {
+                    Text(
+                        text =
+                            if (productPrice != null) {
+                                stringResource(R.string.pro_price_label, productPrice)
+                            } else {
+                                stringResource(R.string.pro_price_loading)
+                            },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+
+                if (message != null) {
+                    Text(
+                        text = message,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (!isPro) {
+                TextButton(
+                    enabled = !isProcessing && activityAvailable,
+                    onClick = onPurchase,
+                ) {
+                    Text(
+                        if (isProcessing) {
+                            stringResource(R.string.processing_label)
+                        } else {
+                            stringResource(R.string.pro_buy_button)
+                        },
+                    )
+                }
+            } else {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.dialog_close))
+                }
+            }
+        },
+        dismissButton = {
+            Row {
+                TextButton(
+                    enabled = !isProcessing,
+                    onClick = onRestore,
+                ) {
+                    Text(stringResource(R.string.pro_restore_button))
+                }
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
+            }
+        },
+    )
+}
+
+private fun appLangSafeKey(
+    appLanguage: String,
+    isPro: Boolean,
+    productPrice: String?,
+    message: String?,
+): String {
+    return "$appLanguage|$isPro|${productPrice ?: "-"}|${message ?: "-"}"
 }

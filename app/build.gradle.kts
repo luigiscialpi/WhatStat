@@ -27,6 +27,7 @@ android {
         versionCode = 20
         versionName = "1.4.3"
         resourceConfigurations += listOf("en", "it", "de", "es", "fr", "hi", "pt-rBR", "tr")
+        val proProductId = (project.findProperty("PRO_PRODUCT_ID") ?: localProps.getProperty("PRO_PRODUCT_ID") ?: "whatstat_pro").toString()
         val admobAppId =
             project
                 .findProperty("ADMOB_APP_ID")
@@ -58,6 +59,7 @@ android {
                 ?: localProps.getProperty("ADMOB_REWARDED_INTERSTITIAL_UNIT_ID")
                 ?: "ca-app-pub-3940256099942544/5354046379"
         buildConfigField("String", "VERSION_NAME", "\"$versionName\"")
+        buildConfigField("String", "PRO_PRODUCT_ID", "\"${proProductId.replace("\"", "\\\"")}\"")
         buildConfigField("String", "ADMOB_APP_ID", "\"${admobAppId.replace("\"", "\\\"")}\"")
         buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"${admobBannerUnitId.replace("\"", "\\\"")}\"")
         buildConfigField("String", "ADMOB_NATIVE_UNIT_ID", "\"${admobNativeUnitId.replace("\"", "\\\"")}\"")
@@ -174,7 +176,7 @@ dependencies {
     implementation("com.google.accompanist:accompanist-permissions:0.36.0")
 
     // ── Play Billing (Pro unlock) ────────────────────────────────
-    // Rimosso: app gratuita senza acquisti in-app
+    implementation("com.android.billingclient:billing:9.0.0")
 
     // ── AdMob + UMP ───────────────────────────────────────────────
     implementation("com.google.android.gms:play-services-ads:23.6.0")

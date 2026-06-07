@@ -16,6 +16,7 @@ import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
 import com.whatstats.BuildConfig
+import com.whatstats.billing.ProEntitlementStore
 import com.whatstats.util.DebugLogManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +37,7 @@ class AdsRepository
     @Inject
     constructor(
         @ApplicationContext private val context: android.content.Context,
+        private val proEntitlementStore: ProEntitlementStore,
         private val rewardedUnlockStore: RewardedUnlockStore,
     ) {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -47,6 +49,7 @@ class AdsRepository
         private var rewardedInterstitialAd: RewardedInterstitialAd? = null
         private var lastInterstitialShownAtMs: Long = 0L
         private var easterEggActive = false
+        private var isProActive = false
         private var rewardedTabsUnlockedUntilMs: Long = 0L
         private var rewardedPredictionUnlockedUntilMs: Long = 0L
 
@@ -64,7 +67,29 @@ class AdsRepository
         private val canRequestAds: Boolean
             get() = isTestBuild || consentInformation.canRequestAds()
 
+        private val areAdsBlocked: Boolean
+            get() = easterEggActive || isProActive
+
         init {
+            scope.launch {
+                proEntitlementStore.isPro.collect { cachedIsPro ->
+                    val wasProActive = isProActive
+                    isProActive = cachedIsPro
+                    if (cachedIsPro) {
+                        interstitialAd = null
+                        rewardedInterstitialAd = null
+                    }
+                    if (!wasProActive && cachedIsPro) {
+                        publishState()
+                    } else if (wasProActive != cachedIsPro) {
+                        publishState()
+                    }
+                    if (!cachedIsPro && (isTestBuild || consentInformation.canRequestAds())) {
+                        initializeMobileAdsIfPossible()
+                    }
+                }
+            }
+
             scope.launch {
                 rewardedUnlockStore.unlockState.collect { persistedState ->
                     rewardedTabsUnlockedUntilMs = persistedState.tabsUnlockUntilMs
@@ -219,7 +244,7 @@ class AdsRepository
                 return
             }
 
-            if (!isMobileAdsInitialized || !canRequestAds) {
+            if (areAdsBlocked || !isMobileAdsInitialized || !canRequestAds) {
                 onResult(false)
                 return
             }
@@ -270,7 +295,7 @@ class AdsRepository
             activity: Activity,
             source: String,
         ): Boolean {
-            if (easterEggActive || !isMobileAdsInitialized || !canRequestAds) return false
+            if (areAdsBlocked || !isMobileAdsInitialized || !canRequestAds) return false
             val now = System.currentTimeMillis()
             if ((now - lastInterstitialShownAtMs) < INTERSTITIAL_COOLDOWN_MS) {
                 preloadInterstitialIfPossible()
@@ -329,7 +354,7 @@ class AdsRepository
         }
 
         private fun preloadInterstitialIfPossible() {
-            if (!isMobileAdsInitialized || !canRequestAds) return
+            if (areAdsBlocked || !isMobileAdsInitialized || !canRequestAds) return
             if (interstitialAd != null) return
 
             InterstitialAd.load(
@@ -353,8 +378,8 @@ class AdsRepository
 
         private fun preloadRewardedInterstitialIfPossible() {
             maybeExpireRewardedUnlocks()
-            if (!isMobileAdsInitialized || !canRequestAds) return
-            if (easterEggActive || (isRewardedTabsUnlockedNow() && isRewardedPredictionUnlockedNow())) return
+            if (areAdsBlocked || !isMobileAdsInitialized || !canRequestAds) return
+            if (isRewardedTabsUnlockedNow() && isRewardedPredictionUnlockedNow()) return
             if (rewardedInterstitialAd != null) return
 
             RewardedInterstitialAd.load(
@@ -447,9 +472,10 @@ class AdsRepository
             maybeExpireRewardedUnlocks()
             val canRequestAdsValue = canRequestAds
             val isPrivacyOptionsRequired =
-                consentInformation.privacyOptionsRequirementStatus ==
+                !isProActive &&
+                    consentInformation.privacyOptionsRequirementStatus ==
                     ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
-            val areAdsEnabled = canRequestAdsValue && isMobileAdsInitialized && !easterEggActive
+            val areAdsEnabled = canRequestAdsValue && isMobileAdsInitialized && !areAdsBlocked
 
             _uiState.update { current ->
                 current.copy(

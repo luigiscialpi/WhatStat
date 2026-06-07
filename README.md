@@ -1,6 +1,6 @@
 # WhatStat — Documentazione funzionale
 
-> App Android nativa che legge, decifra e analizza il database di WhatsApp direttamente sul dispositivo. I contenuti delle chat non vengono mai inviati a server esterni. La versione Free utilizza Google AdMob per gli annunci; la versione Pro rimuove completamente la pubblicità.
+> App Android nativa che legge, decifra e analizza il database di WhatsApp direttamente sul dispositivo. I contenuti delle chat non vengono mai inviati a server esterni. La versione Free utilizza Google AdMob per gli annunci; la versione Pro si sblocca con Google Play Billing, rimuove completamente la pubblicità e può essere ripristinata sullo stesso account Google dopo reinstallazione o cambio dispositivo.
 
 ---
 
@@ -519,7 +519,7 @@ Funzione di ricerca che conta le occorrenze di una parola o frase in una chat sp
 
 ## 10. Privacy, Sicurezza e Build Automation
 
-- **Dati WhatsApp locali**: i contenuti delle chat (messaggi, nomi, numeri di telefono, media) non lasciano mai il dispositivo. Il traffico cleartext è bloccato (`network_security_config.xml`, `cleartextTrafficPermitted="false"`). La connessione HTTPS è consentita esclusivamente per Google AdMob (annunci versione Free), Google UMP (consenso privacy) e Google Play Billing (acquisto Pro).
+- **Dati WhatsApp locali**: i contenuti delle chat (messaggi, nomi, numeri di telefono, media) non lasciano mai il dispositivo. Il traffico cleartext è bloccato (`network_security_config.xml`, `cleartextTrafficPermitted="false"`). La connessione HTTPS è consentita esclusivamente per Google AdMob (annunci versione Free), Google UMP (consenso privacy) e Google Play Billing (acquisto Pro e restore entitlement).
 - Tutti i file estratti (chiave, database cifrato, database decifrato, avatar) sono salvati in `context.filesDir`, la directory privata dell'app non accessibile ad altre app senza root.
 - La chiave di cifratura AES-256 non viene mai inclusa nei log di sistema e viene sottoposta a "wiping" (azzeramento in memoria) post-utilizzo.
 - I contenuti dei messaggi, i nomi e i numeri di telefono non vengono loggati in produzione. Tutti i log standard (`Log.d`) vengono estirpati dal bytecode in fase di release tramite ProGuard/R8.
@@ -1332,15 +1332,16 @@ Quel file è la fonte di verità — questa sezione è deprecata.
 
 ---
 
-## 20. Monetizzazione: Ads
+## 20. Monetizzazione: Ads e Pro
 
-WhatStat usa un modello **Free con pubblicità** all'interno di un'unica app su Google Play. Non esistono versioni Pro separate: tutte le funzionalità sono disponibili gratuitamente con annunci AdMob.
+WhatStat usa un unico binario su Google Play con due stati di monetizzazione: **Free con pubblicità** e **Pro acquistabile**. La Pro non esiste come app separata: è un entitlement Play Billing che viene restaurato sullo stesso account Google dopo reinstallazione o cambio dispositivo supportato da Google Play.
 
 ### Modello di monetizzazione
 
-| Versione | Accesso | Pubblicità | Layout |
-|----------|---------|-----------|--------|
-| Free | Tutte le funzionalità | Banner, native ads, interstitial occasionali | Come oggi, con spazi pub |
+| Stato | Accesso | Pubblicità | Layout |
+|------|---------|-----------|--------|
+| Free | Tutte le funzionalità | Banner, native ads, interstitial occasionali e rewarded interstitial | Con spazi pubblicitari attivi |
+| Pro | Tutte le funzionalità | Nessuna pubblicità | Layout pulito, senza spazi ads |
 
 ### Architettura: package `ads`
 
@@ -1348,21 +1349,22 @@ WhatStat usa un modello **Free con pubblicità** all'interno di un'unica app su 
 - gestione consenso UMP (`UserMessagingPlatform`)
 - inizializzazione `MobileAds`
 - precaricamento e mostraggio interstitial
+- precaricamento e mostraggio rewarded interstitial
 - pubblicazione di `AdsUiState` come `StateFlow`
 - cooldown interstitial (fisso: 12 minuti)
 - flag `isTestBuild` (confronta `BuildConfig.ADMOB_APP_ID` con il demo ID Google)
 
 ```kotlin
-val areAdsEnabled = canRequestAds && isMobileAdsInitialized && !easterEggActive
+val areAdsEnabled = canRequestAds && isMobileAdsInitialized && !easterEggActive && !isProActive
 ```
 
-`AdsRepository` gestisce lo stato ads, inclusi interstitial classici e rewarded interstitial.
+`AdsRepository` gestisce lo stato ads, inclusi interstitial classici e rewarded interstitial. Quando Pro è attivo, il repository blocca caricamento e mostraggio di tutte le ads. L'easter egg resta un flusso separato: non dipende dal Pro e continua a sbloccare temporaneamente gli insight rewarded.
 
 **`ads/AdsUiState`** — data class esposta come `StateFlow` da `MainViewModel.adsUiState`:
 
 | Campo | Tipo | Significato |
 |-------|------|-------------|
-| `areAdsEnabled` | `Boolean` | Condizione master: `canRequestAds && isMobileAdsInitialized` |
+| `areAdsEnabled` | `Boolean` | Condizione master: `canRequestAds && isMobileAdsInitialized && !isProActive && !easterEggActive` |
 | `canRequestAds` | `Boolean` | Consenso UMP valido (bypass automatico in test build) |
 | `isPrivacyOptionsRequired` | `Boolean` | UMP richiede il pulsante "Opzioni privacy" nell'AppDrawer |
 | `isMobileAdsInitialized` | `Boolean` | `MobileAds.initialize()` completato |
@@ -1438,6 +1440,7 @@ Dettagli comportamento:
 - stato persistente su DataStore: resta valido anche dopo chiusura/riavvio app entro TTL
 - easter egg attivo: entrambi gli unlock risultano attivi automaticamente
 - toast localizzati distinti per successo tabs vs successo prediction
+- se Pro è attivo, le ads non vengono mostrate e gli unlock rewarded non sono necessari
 
 ### AppDrawer — voci Privacy
 
@@ -1463,7 +1466,7 @@ Senza queste regole, le classi vengono strippate da `-repackageclasses '' -overl
 | `ads/AdsRepository.kt` | Centralizza consenso UMP, init MobileAds, interstitial e rewarded interstitial, state |
 | `ads/RewardedUnlockStore.kt` | Persistenza DataStore TTL unlock rewarded (`tabs`, `prediction`) |
 | `ads/AdsUiState.kt` | Data class stato ads |
-| `ui/MainViewModel.kt` | Espone `adsUiState` come `StateFlow` |
+| `ui/MainViewModel.kt` | Espone `adsUiState` e `proBillingUiState` come `StateFlow` |
 | `ui/component/ActivityCard.kt` | Lock rewarded per tab daily/monthly/yearly |
 | `ui/component/MilestonePredictionCard.kt` | Lock rewarded per card prediction |
 | `ui/screen/dashboard/DashboardScreen.kt` | CTA unlock rewarded + toast localizzati |
@@ -1471,6 +1474,9 @@ Senza queste regole, le classi vengono strippate da `-repackageclasses '' -overl
 | `ui/screen/home/AppScaffold.kt` | Inserisce `BottomBannerAd` in `bottomBar` |
 | `ui/component/AppDrawer.kt` | Voce Privacy options nel drawer |
 | `ui/navigation/AppNavigation.kt` | `areAdsEnabled` letto con `collectAsState()` in ogni lambda composable |
+| `billing/BillingRepository.kt` | Gestisce acquisto, restore e stato Pro locale |
+| `billing/ProEntitlementStore.kt` | Persistenza DataStore dell'entitlement Pro |
+| `billing/ProBillingUiState.kt` | Stato UI del flusso Pro |
 | `app/proguard-rules.pro` | Regole `-keep` per AdMob e UMP |
 | `AndroidManifest.xml` | `meta-data` App ID AdMob, permesso `INTERNET` |
 | `res/xml/network_security_config.xml` | HTTPS consentito, cleartext bloccato |
