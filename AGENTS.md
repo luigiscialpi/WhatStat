@@ -16,8 +16,10 @@ Android nativo, Kotlin, Jetpack Compose, SQLite (Room + query raw), Hilt, DataSt
 - No emoji. ASCII only.
 - Niente query pesanti sul main thread. Usa `StateFlow` e `CacheManager`.
 - Rispetta sempre `ktlint` (`./gradlew ktlintCheck`).
+- Prima di chiudere un task che tocca Kotlin/Compose, esegui almeno `./gradlew :app:compileDebugKotlin :app:compileReleaseKotlin` (ktlint non intercetta errori di compilazione).
 - Import in ordine lessicografico. Niente import wildcard.
 - Niente riferimenti fully-qualified inline nel codice (es. `androidx.compose.ui.platform.LocalConfiguration.current`). Fai sempre l'import esplicito in cima al file.
+- Tutte le stringhe user-facing devono passare da `res/values-*/strings.xml` (no hardcoded in Kotlin/Compose, salvo simboli tecnici come `-` o `?` quando intenzionali).
 
 ## Quirk Critici del DB
 - `sender_jid_row_id = 0` nelle chat 1-a-1. Niente JOIN dirette. Usa `from_me` + JOIN su `chat` → `jid`.
