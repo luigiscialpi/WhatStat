@@ -177,7 +177,7 @@ dependencies {
     // Rimosso: app gratuita senza acquisti in-app
 
     // ── AdMob + UMP ───────────────────────────────────────────────
-    implementation("com.google.android.gms:play-services-ads:23.6.0")
+    implementation("com.google.android.gms:play-services-ads:24.7.0")
     implementation("com.google.android.ump:user-messaging-platform:4.0.0")
 
     // ── Test ─────────────────────────────────────────────────────
