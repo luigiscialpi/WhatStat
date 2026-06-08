@@ -124,6 +124,7 @@ import com.whatstats.ui.component.StatCard
 import com.whatstats.ui.component.StickerPreviewModal
 import com.whatstats.ui.component.TimeRangeFilterRow
 import com.whatstats.ui.component.ZoomableImageGallery
+import com.whatstats.ui.component.ads.BottomBannerAd
 import com.whatstats.ui.component.ads.NativeAdCard
 import com.whatstats.ui.component.rememberShimmerBrush
 import com.whatstats.ui.theme.getSenderColor
@@ -499,10 +500,9 @@ fun ChatDetailScreen(
                         }
                     }
 
-                    // ── Native Ad (Free only) ─────────────────────────────────
                     if (showNativeAds) {
                         item {
-                            NativeAdCard()
+                            BottomBannerAd()
                         }
                     }
 
@@ -560,6 +560,13 @@ fun ChatDetailScreen(
                             rewardedInsightsUnlocked = !tabsRewardGateLocked,
                             onRequestUnlockInsights = { requestTabsUnlock("chat_detail_activity_tabs") },
                         )
+                    }
+
+                    // ── Native Ad (Free only) ─────────────────────────────────
+                    if (showNativeAds) {
+                        item {
+                            NativeAdCard()
+                        }
                     }
 
                     // ── 7. Info Cards (Periodo / Risposta e Media / Lunghezza) ─
