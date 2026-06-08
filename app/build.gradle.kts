@@ -18,15 +18,14 @@ val localProps =
 
 android {
     namespace = "com.whatstats"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.whatstats"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 21
         versionName = "1.4.4"
-        resourceConfigurations += listOf("en", "it", "de", "es", "fr", "hi", "pt-rBR", "tr")
         val admobAppId =
             project
                 .findProperty("ADMOB_APP_ID")
@@ -111,6 +110,10 @@ android {
         buildConfig = true
     }
 
+    androidResources {
+        localeFilters += listOf("en", "it", "de", "es", "fr", "hi", "pt-rBR", "tr")
+    }
+
     bundle {
         language {
             enableSplit = false
@@ -120,7 +123,7 @@ android {
 
 dependencies {
     // ── Compose BOM ──────────────────────────────────────────────
-    val composeBom = platform("androidx.compose:compose-bom:2025.05.00")
+    val composeBom = platform("androidx.compose:compose-bom:2025.10.01")
     implementation(composeBom)
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -131,12 +134,12 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     // ── Core Android ─────────────────────────────────────────────
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("androidx.navigation:navigation-compose:2.8.5")
+    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
+    implementation("androidx.navigation:navigation-compose:2.9.8")
 
     // ── Root Access (libsu) ──────────────────────────────────────
     val libsuVersion = "5.3.0"
@@ -155,16 +158,16 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     // ── Room (lettura db decifrato) ──────────────────────────────
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    implementation("androidx.room:room-runtime:2.8.4")
+    implementation("androidx.room:room-ktx:2.8.4")
+    ksp("androidx.room:room-compiler:2.8.4")
 
     // ── Grafici (Vico — Compose-native) ──────────────────────────
     implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
     implementation("com.patrykandpatrick.vico:core:1.13.1")
 
     // ── DataStore (preferenze) ───────────────────────────────────
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
 
     // ── Coil (image loading) ───────────────────────────────────────
     implementation("io.coil-kt:coil-compose:2.7.0")

@@ -9,12 +9,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.SecondaryScrollableTabRow
+import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabPosition
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableIntStateOf
@@ -104,22 +101,13 @@ private fun DashboardTextAnalysisTabs(
     isLiteMode: Boolean,
     onTabSelected: (Int) -> Unit,
 ) {
-    val sharedIndicator: @Composable (List<TabPosition>) -> Unit = { tabPositions ->
-        if (selectedTab < tabPositions.size) {
-            TabRowDefaults.SecondaryIndicator(
-                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-    }
     if (isLiteMode) {
-        TabRow(
+        SecondaryTabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.primary,
             divider = {},
             modifier = Modifier.padding(bottom = 12.dp),
-            indicator = sharedIndicator,
         ) {
             tabs.forEachIndexed { index, title ->
                 Tab(
@@ -130,14 +118,13 @@ private fun DashboardTextAnalysisTabs(
             }
         }
     } else {
-        ScrollableTabRow(
+        SecondaryScrollableTabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.primary,
             edgePadding = 0.dp,
             divider = {},
             modifier = Modifier.padding(bottom = 12.dp),
-            indicator = sharedIndicator,
         ) {
             tabs.forEachIndexed { index, title ->
                 Tab(

@@ -34,7 +34,7 @@
 Il funzionamento dell'app richiede:
 
 - Dispositivo Android rootato, tipicamente con Magisk. I test su emulatore con root sono sconsigliati per dati reali.
-- Android 8.0 (API 26) o superiore. La versione target è Android 14 (API 34).
+- Android 8.0 (API 26) o superiore. La versione target è Android 16 (API 36).
 - WhatsApp installato. Il flusso primario (Live DB) legge direttamente il database da `/data/user/*/com.whatsapp/databases/` e non dipende dal formato di backup. Il flusso fallback richiede che il backup locale sia attivo e in formato `crypt14` (backup E2E disattivato). Il formato `crypt15` (backup E2E attivo) non è ancora supportato nel fallback, ma è in roadmap con inserimento manuale della chiave a 64 caratteri esadecimali.
 
 ---

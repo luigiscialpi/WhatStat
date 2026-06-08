@@ -12,10 +12,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -105,20 +103,12 @@ fun ActivityRecapCard(
         shape = RoundedCornerShape(16.dp),
     ) {
         Column(modifier = Modifier.padding(bottom = 16.dp)) {
-            ScrollableTabRow(
+            SecondaryScrollableTabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.primary,
                 edgePadding = 16.dp,
                 divider = {},
-                indicator = { tabPositions ->
-                    if (selectedTab < tabPositions.size) {
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                },
             ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(

@@ -59,12 +59,10 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.SecondaryScrollableTabRow
+import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -720,22 +718,13 @@ fun ChatDetailScreen(
                                 )
                             },
                         ) {
-                            val sharedIndicator: @Composable (List<androidx.compose.material3.TabPosition>) -> Unit = { tabPositions ->
-                                if (selectedTab < tabPositions.size) {
-                                    TabRowDefaults.SecondaryIndicator(
-                                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
-                            }
                             if (isLiteMode) {
-                                TabRow(
+                                SecondaryTabRow(
                                     selectedTabIndex = selectedTab,
                                     containerColor = Color.Transparent,
                                     contentColor = MaterialTheme.colorScheme.primary,
                                     divider = {},
                                     modifier = Modifier.padding(bottom = 12.dp),
-                                    indicator = sharedIndicator,
                                 ) {
                                     tabs.forEachIndexed { index, title ->
                                         Tab(
@@ -746,14 +735,13 @@ fun ChatDetailScreen(
                                     }
                                 }
                             } else {
-                                ScrollableTabRow(
+                                SecondaryScrollableTabRow(
                                     selectedTabIndex = selectedTab,
                                     containerColor = Color.Transparent,
                                     contentColor = MaterialTheme.colorScheme.primary,
                                     edgePadding = 0.dp,
                                     divider = {},
                                     modifier = Modifier.padding(bottom = 12.dp),
-                                    indicator = sharedIndicator,
                                 ) {
                                     tabs.forEachIndexed { index, title ->
                                         Tab(

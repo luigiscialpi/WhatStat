@@ -59,11 +59,11 @@ class MainActivity : ComponentActivity() {
                         @Suppress("DEPRECATION")
                         android.content.res.Resources.getSystem().configuration.locale
                     }
-                lang.contains("_") -> {
-                    val parts = lang.split("_")
-                    Locale(parts[0], parts[1])
+                else -> {
+                    val normalizedTag = lang.replace('_', '-')
+                    Locale.forLanguageTag(normalizedTag).takeIf { it.language.isNotBlank() }
+                        ?: Locale.getDefault()
                 }
-                else -> Locale(lang)
             }
         Locale.setDefault(locale)
         val config = Configuration(newBase.resources.configuration)
