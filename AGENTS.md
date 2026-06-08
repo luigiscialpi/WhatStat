@@ -17,6 +17,7 @@ Android nativo, Kotlin, Jetpack Compose, SQLite (Room + query raw), Hilt, DataSt
 - Niente query pesanti sul main thread. Usa `StateFlow` e `CacheManager`.
 - Rispetta sempre `ktlint` (`./gradlew ktlintCheck`).
 - Prima di chiudere un task che tocca Kotlin/Compose, esegui almeno `./gradlew :app:compileDebugKotlin :app:compileReleaseKotlin` (ktlint non intercetta errori di compilazione).
+- Per test rapidi su device/emulatore usa `./bootstrap_project.sh` (default Debug). Usa `--release` solo per verifica release. Usa `--watch` per ciclo edit/install/run continuo senza Android Studio.
 - Import in ordine lessicografico. Niente import wildcard.
 - Niente riferimenti fully-qualified inline nel codice (es. `androidx.compose.ui.platform.LocalConfiguration.current`). Fai sempre l'import esplicito in cima al file.
 - Tutte le stringhe user-facing devono passare da `res/values-*/strings.xml` (no hardcoded in Kotlin/Compose, salvo simboli tecnici come `-` o `?` quando intenzionali).

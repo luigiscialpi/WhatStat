@@ -41,6 +41,27 @@ Il funzionamento dell'app richiede:
 
 ## 2. Setup e primo avvio
 
+### Script rapido installazione Android (`bootstrap_project.sh`)
+
+Per installare rapidamente l'app su device fisico o emulatore:
+
+```bash
+./bootstrap_project.sh
+```
+
+Comportamento:
+
+- Variante di build di default: **Debug** (`:app:installDebug`).
+- Override manuale: `./bootstrap_project.sh --release` per installare la Release.
+- Modalita watch (senza Android Studio): `./bootstrap_project.sh --watch`.
+- In watch mode, a ogni modifica in `app/src` o `app/build.gradle.kts` lo script reinstalla e riapre automaticamente l'app.
+- Requisito watch mode: `fswatch` installato (macOS: `brew install fswatch`).
+- Selezione target automatica in questo ordine:
+    1. device fisico collegato via ADB
+    2. emulatore gia avviato
+    3. avvio di un nuovo AVD (con scelta interattiva)
+- Dopo l'installazione, lo script tenta l'avvio automatico dell'app sul target.
+
 ### Schermata di setup (`SetupScreen` / `SetupViewModel`)
 
 Al primo avvio l'app esegue in sequenza quattro operazioni, ognuna con un proprio indicatore di stato visibile nella schermata di setup:
