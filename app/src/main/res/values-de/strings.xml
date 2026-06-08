@@ -432,6 +432,11 @@
     <string name="selected">Ausgewählt</string>
     <string name="media_label">Medien</string>
     <string name="link_label">Link</string>
+    <string name="link_preview_toggle">Link-Vorschau anzeigen</string>
+    <string name="link_preview_loading">Vorschau wird geladen…</string>
+    <string name="link_preview_unavailable">Vorschau für diesen Link nicht verfügbar.</string>
+    <string name="link_info_title">Link-Informationen</string>
+    <string name="link_info_text">Hier kannst du alle in diesem Chat geteilten Links erkunden, gruppiert nach Website.\n\nTippe auf eine Domain, um sie aufzuklappen und die einzelnen URLs zu sehen. Jeder Link zeigt das Datum des letzten Versands.\n\nNutze den Schieberegler oben, um die Ergebnisse auf einen bestimmten Zeitraum einzugrenzen.\n\n💡 Tipp: Tippe auf den Pfeil neben einem Link, um eine schnelle Vorschau mit Titel, Bild und Seitenname zu laden — ohne den Browser zu öffnen.</string>
     <string name="link_sort_less_recent">Älteste</string>
     <string name="image_desc">Bild</string>
     <string name="menu_desc">Menü</string>

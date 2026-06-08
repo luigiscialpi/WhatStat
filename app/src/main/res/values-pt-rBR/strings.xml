@@ -432,6 +432,11 @@
     <string name="selected">Selecionado</string>
     <string name="media_label">mídia</string>
     <string name="link_label">link</string>
+    <string name="link_preview_toggle">Mostrar prévia do link</string>
+    <string name="link_preview_loading">Carregando prévia…</string>
+    <string name="link_preview_unavailable">Prévia indisponível para este link.</string>
+    <string name="link_info_title">Informações sobre os links</string>
+    <string name="link_info_text">Aqui você pode explorar todos os links compartilhados nesta conversa, agrupados por site.\n\nToque em um domínio para expandi-lo e ver as URLs individuais. Cada link mostra a data do último envio.\n\nUse o controle deslizante no topo para filtrar os resultados em um período específico.\n\n💡 Dica: toque na seta ao lado de qualquer link para carregar uma prévia rápida com título, imagem e nome do site — sem abrir o navegador.</string>
     <string name="link_sort_less_recent">Mais antigos</string>
     <string name="image_desc">Imagem</string>
     <string name="menu_desc">Menu</string>

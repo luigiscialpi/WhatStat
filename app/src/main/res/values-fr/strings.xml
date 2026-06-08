@@ -431,6 +431,11 @@
     <string name="selected">Sélectionné</string>
     <string name="media_label">média</string>
     <string name="link_label">lien</string>
+    <string name="link_preview_toggle">Afficher l\'aperçu du lien</string>
+    <string name="link_preview_loading">Chargement de l\'aperçu…</string>
+    <string name="link_preview_unavailable">Aperçu indisponible pour ce lien.</string>
+    <string name="link_info_title">Informations sur les liens</string>
+    <string name="link_info_text">Ici, tu peux explorer tous les liens partagés dans cette conversation, regroupés par site web.\n\nAppuie sur un domaine pour le développer et voir les URL individuelles. Chaque lien affiche la date du dernier envoi.\n\nUtilise le curseur en haut pour filtrer les résultats sur une période précise.\n\n💡 Astuce : appuie sur la flèche à côté d\'un lien pour charger un aperçu rapide avec titre, image et nom du site — sans ouvrir le navigateur.</string>
     <string name="link_sort_less_recent">Moins récents</string>
     <string name="image_desc">Image</string>
     <string name="menu_desc">Menu</string>

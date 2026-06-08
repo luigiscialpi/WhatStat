@@ -440,6 +440,11 @@
     <string name="selected">Selezionato</string>
     <string name="media_label">media</string>
     <string name="link_label">link</string>
+    <string name="link_preview_toggle">Mostra anteprima link</string>
+    <string name="link_preview_loading">Caricamento anteprima…</string>
+    <string name="link_preview_unavailable">Anteprima non disponibile per questo link.</string>
+    <string name="link_info_title">Informazioni sui link</string>
+    <string name="link_info_text">Qui puoi esplorare tutti i link condivisi in questa chat, raggruppati per sito web.\n\nTocca un dominio per espanderlo e vedere i singoli URL. Ogni link mostra la data dell\'ultimo invio.\n\nUsa lo slider in alto per filtrare i risultati in un intervallo di date.\n\n💡 Suggerimento: tocca la freccia accanto a un link per caricare un\'anteprima rapida con titolo, immagine e nome del sito — senza aprire il browser.</string>
     <string name="link_sort_less_recent">Meno recenti</string>
     <string name="image_desc">Immagine</string>
     <string name="menu_desc">Menu</string>

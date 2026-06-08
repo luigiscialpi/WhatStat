@@ -432,6 +432,11 @@
     <string name="selected">चयनित</string>
     <string name="media_label">मीडिया</string>
     <string name="link_label">लिंक</string>
+    <string name="link_preview_toggle">लिंक पूर्वावलोकन दिखाएँ</string>
+    <string name="link_preview_loading">पूर्वावलोकन लोड हो रहा है…</string>
+    <string name="link_preview_unavailable">इस लिंक के लिए पूर्वावलोकन उपलब्ध नहीं है।</string>
+    <string name="link_info_title">लिंक की जानकारी</string>
+    <string name="link_info_text">यहाँ आप इस चैट में साझा किए गए सभी लिंक देख सकते हैं, वेबसाइट के अनुसार समूहीकृत।\n\nकिसी डोमेन को टैप करें और अलग-अलग URL देखें। हर लिंक पर आखिरी भेजने की तारीख दिखती है।\n\nऊपर दिए गए स्लाइडर का उपयोग करके किसी खास समय अवधि के लिए परिणाम फ़िल्टर करें।\n\n💡 सुझाव: किसी भी लिंक के बगल में तीर को टैप करें और बिना ब्राउज़र खोले शीर्षक, छवि और साइट नाम के साथ त्वरित पूर्वावलोकन लोड करें।</string>
     <string name="link_sort_less_recent">सबसे पुराना</string>
     <string name="image_desc">छवि</string>
     <string name="menu_desc">मेनू</string>

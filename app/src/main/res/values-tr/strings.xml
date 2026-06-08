@@ -432,6 +432,11 @@
     <string name="selected">Seçili</string>
     <string name="media_label">medya</string>
     <string name="link_label">bağlantı</string>
+    <string name="link_preview_toggle">Bağlantı önizlemesini göster</string>
+    <string name="link_preview_loading">Önizleme yükleniyor…</string>
+    <string name="link_preview_unavailable">Bu bağlantı için önizleme mevcut değil.</string>
+    <string name="link_info_title">Bağlantı bilgileri</string>
+    <string name="link_info_text">Burada bu sohbette paylaşılan tüm bağlantıları, web sitesine göre gruplanmış şekilde keşfedebilirsin.\n\nBir alan adına dokun, genişlet ve tek tek URL\'leri gör. Her bağlantı en son gönderildiği tarihi gösterir.\n\nSonuçları belirli bir zaman dilimiyle filtrelemek için üstteki kaydırıcıyı kullan.\n\n💡 İpucu: herhangi bir bağlantının yanındaki oka dokunarak tarayıcıyı açmadan başlık, resim ve site adıyla hızlı önizleme yükleyebilirsin.</string>
     <string name="link_sort_less_recent">En eski</string>
     <string name="image_desc">Resim</string>
     <string name="menu_desc">Menü</string>

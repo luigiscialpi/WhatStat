@@ -438,6 +438,11 @@
     <string name="selected">Selected</string>
     <string name="media_label">media</string>
     <string name="link_label">link</string>
+    <string name="link_preview_toggle">Toggle link preview</string>
+    <string name="link_preview_loading">Loading link preview…</string>
+    <string name="link_preview_unavailable">Preview unavailable for this link.</string>
+    <string name="link_info_title">Link Information</string>
+    <string name="link_info_text">Here you can explore all the links shared in this chat, grouped by website.\n\nTap a domain to expand it and see the individual URLs. Each link shows the date it was last sent.\n\nUse the date range slider at the top to narrow results to a specific time window.\n\n💡 Tip: tap the arrow next to any link to load a quick preview with title, image and site name — without opening the browser.</string>
     <string name="link_sort_less_recent">Least recent</string>
     <string name="image_desc">Image</string>
     <string name="menu_desc">Menu</string>

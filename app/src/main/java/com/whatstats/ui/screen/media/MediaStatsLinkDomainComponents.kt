@@ -33,18 +33,19 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -63,7 +64,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
@@ -73,6 +73,7 @@ import coil.request.ImageRequest
 import com.whatstats.R
 import com.whatstats.data.db.model.DomainStat
 import com.whatstats.data.db.model.LinkStat
+import com.whatstats.ui.component.AnimatedInfoButton
 import com.whatstats.ui.component.ContactNameWithPhone
 import com.whatstats.ui.component.LoadingSection
 import java.text.SimpleDateFormat
@@ -325,6 +326,8 @@ internal fun DomainBreakdownSheet(
     progress: Int? = null,
 ) {
     var expandedDomain by remember { mutableIntStateOf(-1) }
+    var expandedPreviewUrl by remember { mutableStateOf<String?>(null) }
+    val previewCache = remember { mutableStateMapOf<String, LinkPreviewCacheEntry>() }
     val uriHandler = LocalUriHandler.current
 
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.ITALIAN) }
@@ -392,6 +395,10 @@ internal fun DomainBreakdownSheet(
         scrollState.animateScrollTo(0)
     }
 
+    LaunchedEffect(expandedDomain) {
+        expandedPreviewUrl = null
+    }
+
     Column(
         modifier =
             Modifier
@@ -400,8 +407,13 @@ internal fun DomainBreakdownSheet(
                 .padding(bottom = 32.dp)
                 .verticalScroll(scrollState),
     ) {
+        var showInfoDialog by remember { mutableStateOf(false) }
+
         // Header con avatar
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             if (avatarPath != null) {
                 AsyncImage(
                     model =
@@ -418,7 +430,7 @@ internal fun DomainBreakdownSheet(
                 )
                 Spacer(Modifier.width(12.dp))
             }
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     stringResource(id = R.string.domain_analysis_title),
                     style = MaterialTheme.typography.labelMedium,
@@ -428,6 +440,31 @@ internal fun DomainBreakdownSheet(
                     contactName,
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+
+            AnimatedInfoButton(
+                onClick = { showInfoDialog = true },
+                modifier = Modifier.size(32.dp),
+                contentDescription = stringResource(R.string.link_info_title),
+                iconSize = 18.dp,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                glowColor = MaterialTheme.colorScheme.primary,
+            )
+
+            if (showInfoDialog) {
+                AlertDialog(
+                    onDismissRequest = { showInfoDialog = false },
+                    title = { Text(stringResource(R.string.link_info_title)) },
+                    text = { Text(stringResource(R.string.link_info_text)) },
+                    confirmButton = {
+                        TextButton(onClick = { showInfoDialog = false }) {
+                            Text(stringResource(R.string.ho_capito))
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -744,66 +781,100 @@ internal fun DomainBreakdownSheet(
                                     verticalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
                                     items(sortedUrls, key = { "${it.url}_${it.count}" }) { urlFreq ->
-                                        Row(
+                                        val isPreviewExpanded = expandedPreviewUrl == urlFreq.url
+                                        Column(
                                             modifier =
                                                 Modifier
                                                     .fillMaxWidth()
                                                     .clip(RoundedCornerShape(8.dp))
-                                                    .clickable {
-                                                        try {
-                                                            uriHandler.openUri(urlFreq.url)
-                                                        } catch (_: Exception) {
-                                                        }
-                                                    }
+                                                    .background(
+                                                        if (isPreviewExpanded) {
+                                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                                                        } else {
+                                                            Color.Transparent
+                                                        },
+                                                    )
+                                                    .animateContentSize()
                                                     .padding(horizontal = 8.dp, vertical = 6.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically,
                                         ) {
                                             Row(
-                                                modifier = Modifier.weight(1f),
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically,
                                             ) {
-                                                Icon(
-                                                    painter =
-                                                        androidx.compose.ui.res.painterResource(
-                                                            id = android.R.drawable.ic_menu_share,
-                                                        ),
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(12.dp),
-                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                                )
-                                                Spacer(Modifier.width(4.dp))
-                                                Text(
-                                                    urlFreq.url,
-                                                    style =
-                                                        MaterialTheme.typography.bodySmall.copy(
-                                                            textDecoration = TextDecoration.Underline,
-                                                        ),
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                )
-                                            }
-                                            Spacer(Modifier.width(8.dp))
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Box(
+                                                Row(
                                                     modifier =
                                                         Modifier
-                                                            .clip(CircleShape)
-                                                            .background(MaterialTheme.colorScheme.secondaryContainer)
-                                                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                                                            .weight(1f)
+                                                            .clip(RoundedCornerShape(6.dp))
+                                                            .clickable {
+                                                                try {
+                                                                    uriHandler.openUri(urlFreq.url)
+                                                                } catch (_: Exception) {
+                                                                }
+                                                            }
+                                                            .padding(vertical = 2.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
                                                 ) {
+                                                    Icon(
+                                                        painter =
+                                                            androidx.compose.ui.res.painterResource(
+                                                                id = android.R.drawable.ic_menu_share,
+                                                            ),
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(12.dp),
+                                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                                    )
+                                                    Spacer(Modifier.width(4.dp))
                                                     Text(
-                                                        "${urlFreq.count}",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                        urlFreq.url,
+                                                        style =
+                                                            MaterialTheme.typography.bodySmall.copy(
+                                                                textDecoration = TextDecoration.Underline,
+                                                            ),
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
                                                     )
                                                 }
-                                                Spacer(Modifier.width(6.dp))
-                                                Text(
-                                                    urlFreq.lastTimestamp?.let { dateFormatter.format(Date(it)) } ?: "",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                Spacer(Modifier.width(8.dp))
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        urlFreq.lastTimestamp?.let { dateFormatter.format(Date(it)) } ?: "",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    )
+                                                    Spacer(Modifier.width(4.dp))
+                                                    Icon(
+                                                        if (isPreviewExpanded) {
+                                                            Icons.Outlined.KeyboardArrowUp
+                                                        } else {
+                                                            Icons.Outlined.KeyboardArrowDown
+                                                        },
+                                                        contentDescription = stringResource(R.string.link_preview_toggle),
+                                                        modifier =
+                                                            Modifier
+                                                                .size(18.dp)
+                                                                .clip(CircleShape)
+                                                                .clickable {
+                                                                    expandedPreviewUrl =
+                                                                        if (isPreviewExpanded) {
+                                                                            null
+                                                                        } else {
+                                                                            urlFreq.url
+                                                                        }
+                                                                }
+                                                                .padding(1.dp),
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    )
+                                                }
+                                            }
+
+                                            if (isPreviewExpanded) {
+                                                Spacer(Modifier.height(6.dp))
+                                                LinkPreviewSection(
+                                                    url = urlFreq.url,
+                                                    cache = previewCache,
                                                 )
                                             }
                                         }

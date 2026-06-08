@@ -457,7 +457,9 @@ Statistiche sui contenuti multimediali e sui link condivisi nella chat. Dati let
 - Conteggio media per tipo MIME (immagini, video, audio, documenti), con dimensione totale.
 - Link condivisi raggruppati per dominio, con conteggio e data dell'ultima condivisione per ogni URL. Il tracking della data di ultima condivisione è implementato in `getSharedUrlsWithTimestamps` che ritorna coppie `(testo, timestamp)`.
 - Per ogni dominio: breakdown per mittente con avatar e nome.
-- Bottom sheet espandibile con dettaglio domini per singolo contatto, con avatar nell'intestazione.
+- Bottom sheet espandibile con dettaglio domini per singolo contatto, con avatar nell'intestazione e pulsante info (`AnimatedInfoButton`) che spiega la schermata.
+- Slider di intervallo date in cima al bottom sheet per filtrare i link nel periodo desiderato; compare solo quando i link hanno almeno 2 timestamp distinti.
+- Anteprima link on-demand: icona chevron accanto a ogni URL espande una card compatta con titolo, immagine og e nome del sito, senza uscire dall'app. Il fetch avviene su `Dispatchers.IO` con cache in memoria (TTL 7 gg successo / 10 min fallimento). Implementata in `MediaStatsLinkPreview.kt`; logica di rete, parsing HTML/OG/Twitter card e decodifica entità HTML in `MediaStatsLinkPreviewResolver.kt`. Supporto nativo YouTube via oEmbed.
 - Barra di ricerca lato client. La barra viene nascosta se non ci sono risultati.
 
 ### Cronologia gruppi (Group History Timeline)
@@ -820,7 +822,9 @@ Le schermate più pesanti sono state suddivise in file dedicati per migliorare l
 | `MediaStatsHeader.kt` | Header con info dialog |
 | `MediaStatsSearchBar.kt` | Barra di ricerca con slot fisso anti-layout-shift |
 | `MediaStatsGallerySheet.kt` | Bottom sheet galleria media con griglia, tab, selezione e condivisione |
-| `MediaStatsLinkDomainComponents.kt` | Card link (`LinkStatCard`), chip dominio (`DomainChip`), sheet analisi domini (`DomainBreakdownSheet`) |
+| `MediaStatsLinkDomainComponents.kt` | Card link (`LinkStatCard`), chip dominio (`DomainChip`), sheet analisi domini (`DomainBreakdownSheet`) con slider date e info button |
+| `MediaStatsLinkPreview.kt` | Composable `LinkPreviewSection` e `LinkPreviewFallback`: rendering stato loading/loaded/unavailable della card anteprima |
+| `MediaStatsLinkPreviewResolver.kt` | Fetch rete, parsing HTML/OG/Twitter/oEmbed, decodifica entità HTML, cache in-memory con TTL differenziato successo/fallimento, metriche per dominio |
 
 Dopo il refactor `MediaStatsScreen.kt` è sceso da ~2000 a **583 righe** fungendo da puro orchestratore.
 
