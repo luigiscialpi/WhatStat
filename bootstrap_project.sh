@@ -166,6 +166,45 @@ deploy_once() {
     launch_app_on_target "$target_serial"
 }
 
+watch_loop() {
+    local build_variant="$1"
+
+    # Porta il terminale in raw mode per leggere un singolo tasto senza Enter
+    # e ripristina lo stato originale all'uscita
+    local old_stty
+    old_stty=$(stty -g)
+    trap 'stty "$old_stty"; echo' EXIT INT TERM
+
+    stty raw -echo
+
+    echo -e "\r[INFO] Premi  r  per reinstallare e riavviare l'app.  Premi  q  per uscire.\r" >&2
+
+    while true; do
+        # Legge un singolo byte senza timeout
+        local key
+        key=$(dd bs=1 count=1 2>/dev/null)
+
+        case "$key" in
+            r|R)
+                # Ripristina echo per l'output di gradlew/adb
+                stty "$old_stty"
+                echo -e "\r" >&2
+                log_info "Reinstall richiesto dall'utente..."
+                deploy_once "$build_variant"
+                # Torna in raw mode e ricorda all'utente i comandi
+                stty raw -echo
+                echo -e "\r[INFO] Premi  r  per reinstallare e riavviare l'app.  Premi  q  per uscire.\r" >&2
+                ;;
+            q|Q)
+                stty "$old_stty"
+                echo >&2
+                log_info "Uscita richiesta dall'utente."
+                exit 0
+                ;;
+        esac
+    done
+}
+
 main() {
     local build_variant="debug"
     local watch_mode="false"
@@ -195,14 +234,9 @@ main() {
     require_command emulator
 
     if [ "$watch_mode" = "true" ]; then
-        require_command fswatch
-        log_info "Watch mode attivo. Stop con Ctrl+C"
+        # fswatch non più necessario: il loop usa input da tastiera
         deploy_once "$build_variant"
-
-        while fswatch -1 app/src app/build.gradle.kts; do
-            log_info "Modifica rilevata. Reinstallo..."
-            deploy_once "$build_variant"
-        done
+        watch_loop "$build_variant"
     else
         deploy_once "$build_variant"
     fi
