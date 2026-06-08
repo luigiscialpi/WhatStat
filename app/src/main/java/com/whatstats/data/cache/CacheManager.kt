@@ -245,6 +245,7 @@ private fun GlobalStats.toCached() =
         totalMediaFiles = totalMediaFiles,
         oldestMessageDate = oldestMessageDate,
         mostActiveChat = mostActiveChat,
+        mostActiveChatId = mostActiveChatId,
         mostActiveHour = mostActiveHour,
         mostActiveDayOfWeek = mostActiveDayOfWeek,
         averageMessagesPerDay = averageMessagesPerDay,
@@ -553,8 +554,8 @@ class CacheManager
             private val KEY_DB_HASH = stringPreferencesKey("db_file_hash")
             private val KEY_LAST_UPDATE = longPreferencesKey("last_cache_update")
 
-            // v4: bump per includere il senderBreakdown nelle distribuzioni temporali
-            private val KEY_GLOBAL_STATS = stringPreferencesKey("global_stats_v4")
+            // v5: bump per includere anche mostActiveChatId nella cache globale
+            private val KEY_GLOBAL_STATS = stringPreferencesKey("global_stats_v5")
 
             // v3: bump per rigenerare la cache con pool da 50 words/emoji
             private val KEY_GLOBAL_SLOW = stringPreferencesKey("global_slow_v4")
@@ -1139,8 +1140,8 @@ class CacheManager
                 val chatKey = stringPreferencesKey("chat_quick_${chatId}_v4")
                 prefs.remove(chatKey)
 
-                // 2. Patch Global Stats (v4, se la chat rinominata e' la piu' attiva)
-                val globalKey = stringPreferencesKey("global_stats_v4")
+                // 2. Patch Global Stats (v5, se la chat rinominata e' la piu' attiva)
+                val globalKey = stringPreferencesKey("global_stats_v5")
                 prefs[globalKey]?.let { json ->
                     try {
                         val cached = cacheJson.decodeFromString<CachedGlobalStats>(json)
