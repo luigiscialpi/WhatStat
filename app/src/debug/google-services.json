@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "879843077360",
+    "project_id": "whatstat-c1a23",
+    "storage_bucket": "whatstat-c1a23.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:879843077360:android:2fe7e2f63e2732adc5e635",
+        "android_client_info": {
+          "package_name": "com.whatstats"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgr3AjEDqZ9ZNQUhm1FYpT8ZV-nsprkv0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:879843077360:android:6d76e307c6720eabc5e635",
+        "android_client_info": {
+          "package_name": "com.whatstats.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgr3AjEDqZ9ZNQUhm1FYpT8ZV-nsprkv0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

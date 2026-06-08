@@ -375,6 +375,9 @@
     <string name="dialog_about_title">जानकारी</string>
     <string name="dialog_about_message">WhatStat\nसंस्करण: %s\n\nWhatStat आपके WhatsApp चैट को पूरी तरह स्थानीय रूप से प्रोसेस करता है। कोई भी डेटा बाहरी सर्वर पर नहीं भेजा जाता है।</string>
     <string name="dialog_close">बंद करें</string>
+    <string name="force_update_dialog_title">अपडेट आवश्यक</string>
+    <string name="force_update_dialog_message_default">WhatStat का नया संस्करण उपलब्ध है। जारी रखने के लिए अपडेट करें।</string>
+    <string name="force_update_dialog_button">अपडेट करें</string>
     <string name="loading_calculating">गणना हो रही है...</string>
 
     <!-- Milestone Prediction -->

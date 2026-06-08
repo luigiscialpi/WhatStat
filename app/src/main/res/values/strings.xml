@@ -387,6 +387,9 @@
     <string name="dialog_about_title">Information</string>
     <string name="dialog_about_message">WhatStat\nVersion: %s\n\nWhatStat processes your WhatsApp chats entirely offline. No data is sent to external servers.</string>
     <string name="dialog_close">Close</string>
+    <string name="force_update_dialog_title">Update required</string>
+    <string name="force_update_dialog_message_default">A new version of WhatStat is available. Please update to continue.</string>
+    <string name="force_update_dialog_button">Update</string>
     <string name="loading_calculating">Calculating...</string>
 
     <!-- Milestone Prediction -->

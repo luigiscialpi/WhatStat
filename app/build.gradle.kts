@@ -8,6 +8,7 @@ plugins {
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jlleitschuh.gradle.ktlint")
+    id("com.google.gms.google-services")
 }
 
 val localProps =
@@ -148,6 +149,15 @@ dependencies {
 
     // ── Serialization ────────────────────────────────────────────
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+
+    // ── Firebase ────────────────────────────────────────────────
+    implementation(platform("com.google.firebase:firebase-bom:33.8.0"))
+    implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("com.google.firebase:firebase-config-ktx")
+
+    // ── In-app updates ──────────────────────────────────────────
+    implementation("com.google.android.play:app-update:2.1.0")
+    implementation("com.google.android.play:app-update-ktx:2.1.0")
 
     // ── Coroutines ───────────────────────────────────────────────
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")

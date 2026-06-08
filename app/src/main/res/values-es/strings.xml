@@ -377,6 +377,9 @@
     <string name="dialog_about_title">Información</string>
     <string name="dialog_about_message">WhatStat\nVersión: %s\n\nWhatStat procesa tus chats de WhatsApp completamente localmente. No se envían datos a servidores externos.</string>
     <string name="dialog_close">Cerrar</string>
+    <string name="force_update_dialog_title">Actualizaci\u00f3n requerida</string>
+    <string name="force_update_dialog_message_default">Hay una nueva versi\u00f3n de WhatStat disponible. Actualiza para continuar.</string>
+    <string name="force_update_dialog_button">Actualizar</string>
     <string name="loading_calculating">Calculando...</string>
 
     <!-- Milestone Prediction -->

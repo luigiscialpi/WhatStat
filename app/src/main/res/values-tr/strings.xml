@@ -375,6 +375,9 @@
     <string name="dialog_about_title">Bilgiler</string>
     <string name="dialog_about_message">WhatStat\nSürüm: %s\n\nWhatStat, WhatsApp sohbetlerinizi tamamen yerel olarak işler. Veriler dış sunuculara gönderilmez.</string>
     <string name="dialog_close">Kapat</string>
+    <string name="force_update_dialog_title">G\u00fcncelleme gerekli</string>
+    <string name="force_update_dialog_message_default">WhatStat\u2019\u0131n yeni bir s\u00fcr\u00fcm\u00fc mevcut. Devam etmek i\u00e7in g\u00fcncelleyin.</string>
+    <string name="force_update_dialog_button">G\u00fcncelle</string>
     <string name="loading_calculating">Hesaplanıyor...</string>
 
     <!-- Milestone Prediction -->

@@ -1,0 +1,60 @@
+{
+  "conditions": [],
+  "parameters": {},
+  "parameterGroups": {
+    "Telemetria": {
+      "description": "Controllo remoto del tracking Firebase Analytics",
+      "parameters": {
+        "tracking_enabled_global": {
+          "defaultValue": { "value": "true" },
+          "description": "Kill switch globale. false = nessun evento inviato a Firebase Analytics."
+        },
+        "tracking_mode": {
+          "defaultValue": { "value": "full" },
+          "description": "Modalita di tracking. Valori: full | minimal | off."
+        },
+        "tracking_allowed_events_csv": {
+          "defaultValue": { "value": "" },
+          "description": "CSV whitelist eventi (es. app_opened,screen_view_custom)."
+        },
+        "tracking_blocked_events_csv": {
+          "defaultValue": { "value": "" },
+          "description": "CSV blacklist eventi (es. cta_click,screen_time)."
+        },
+        "tracking_sampling_percent": {
+          "defaultValue": { "value": "100" },
+          "description": "Percentuale campionamento 0-100."
+        },
+        "tracking_daily_event_cap_per_user": {
+          "defaultValue": { "value": "200" },
+          "description": "Massimo eventi per utente/giorno."
+        },
+        "tracking_config_ttl_minutes": {
+          "defaultValue": { "value": "240" },
+          "description": "TTL fetch in minuti per release. In debug il codice usa sempre 0."
+        }
+      }
+    },
+    "Forced Update": {
+      "description": "Obbliga gli utenti ad aggiornare l'app",
+      "parameters": {
+        "force_update_enabled": {
+          "defaultValue": { "value": "false" },
+          "description": "Abilita il blocco aggiornamento."
+        },
+        "min_supported_version_code": {
+          "defaultValue": { "value": "1" },
+          "description": "Version code minimo supportato."
+        },
+        "force_update_message_it": {
+          "defaultValue": { "value": "" },
+          "description": "Messaggio custom in italiano."
+        },
+        "force_update_message_en": {
+          "defaultValue": { "value": "" },
+          "description": "Messaggio custom in inglese."
+        }
+      }
+    }
+  }
+}

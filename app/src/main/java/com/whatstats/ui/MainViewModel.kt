@@ -9,6 +9,9 @@ import com.whatstats.data.repository.AnalyticsRepository
 import com.whatstats.data.repository.WhatsAppRepository
 import com.whatstats.data.store.AppPreferencesStore
 import com.whatstats.data.store.ThemeMode
+import com.whatstats.telemetry.TelemetryRepository
+import com.whatstats.update.ForceUpdateState
+import com.whatstats.update.UpdateGate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -31,6 +34,8 @@ class MainViewModel
         private val whatsAppRepository: WhatsAppRepository,
         private val appPreferencesStore: AppPreferencesStore,
         private val adsRepository: AdsRepository,
+        private val telemetryRepository: TelemetryRepository,
+        private val updateGate: UpdateGate,
         @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     ) : ViewModel() {
         val isLiteMode: StateFlow<Boolean> = analyticsRepository.isLiteMode
@@ -59,6 +64,54 @@ class MainViewModel
 
         private val _showTutorial = MutableStateFlow(false)
         val showTutorial: StateFlow<Boolean> = _showTutorial.asStateFlow()
+
+        private val _forceUpdateState = MutableStateFlow<ForceUpdateState>(ForceUpdateState.Idle)
+        val forceUpdateState: StateFlow<ForceUpdateState> = _forceUpdateState.asStateFlow()
+
+        fun initializeTelemetry() {
+            telemetryRepository.initialize()
+        }
+
+        fun checkForUpdate(activity: Activity) {
+            if (_forceUpdateState.value is ForceUpdateState.Required) return
+            updateGate.check(activity) { customMessage ->
+                _forceUpdateState.value = ForceUpdateState.Required(customMessage)
+            }
+        }
+
+        fun trackAppOpen() {
+            telemetryRepository.trackAppOpen()
+        }
+
+        fun trackScreenView(
+            screenName: String,
+            graphName: String,
+        ) {
+            telemetryRepository.trackScreenView(screenName, graphName)
+        }
+
+        fun trackClick(
+            screenName: String,
+            ctaName: String,
+            section: String,
+        ) {
+            telemetryRepository.trackClick(screenName, ctaName, section)
+        }
+
+        fun trackAnalysisEvent(
+            eventName: String,
+            flowType: String,
+            source: String,
+        ) {
+            telemetryRepository.trackAnalysisEvent(eventName, flowType, source)
+        }
+
+        fun trackScreenTime(
+            screenName: String,
+            stayMs: Long,
+        ) {
+            telemetryRepository.trackScreenTime(screenName, stayMs)
+        }
 
         fun setThemeMode(mode: ThemeMode) {
             viewModelScope.launch {

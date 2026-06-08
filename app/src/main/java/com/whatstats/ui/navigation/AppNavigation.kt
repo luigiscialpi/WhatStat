@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -122,6 +123,26 @@ fun appNavigation(
     val adsUiState by mainViewModel.adsUiState.collectAsState()
     val hasSeenTutorial by mainViewModel.hasSeenTutorial.collectAsState()
     val showTutorial by mainViewModel.showTutorial.collectAsState()
+
+    LaunchedEffect(currentDestination?.route, isLiteMode) {
+        val rawRoute = currentDestination?.route ?: return@LaunchedEffect
+        val screenName = rawRoute.substringBefore("?").substringBefore("/")
+        val isLiteGraph =
+            currentDestination?.hierarchy?.any { destination ->
+                destination.route == NavGraphRoute.LITE
+            } == true
+        val isRootGraph =
+            currentDestination?.hierarchy?.any { destination ->
+                destination.route == NavGraphRoute.ROOT
+            } == true
+        val graphName =
+            when {
+                isLiteGraph -> "lite"
+                isRootGraph -> "root"
+                else -> "setup"
+            }
+        mainViewModel.trackScreenView(screenName, graphName)
+    }
 
     // Quando arriva un URI da share intent e NON siamo su Setup,
     // naviga a Setup per consumare l'URI.

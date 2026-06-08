@@ -106,6 +106,7 @@ fun AppDrawerContent(
                     icon = Icons.Outlined.BrightnessMedium,
                     label = stringResource(R.string.whatstat_drawer_theme),
                     onClick = {
+                        mainViewModel.trackClick("drawer", "theme", "preferences")
                         showThemeDialog = true
                         closeDrawer()
                     },
@@ -115,6 +116,7 @@ fun AppDrawerContent(
                     icon = Icons.Outlined.Language,
                     label = stringResource(R.string.whatstat_drawer_language),
                     onClick = {
+                        mainViewModel.trackClick("drawer", "language", "preferences")
                         showLanguageDialog = true
                         closeDrawer()
                     },
@@ -124,6 +126,7 @@ fun AppDrawerContent(
                     icon = Icons.AutoMirrored.Outlined.HelpOutline,
                     label = stringResource(R.string.drawer_tutorial),
                     onClick = {
+                        mainViewModel.trackClick("drawer", "tutorial", "help")
                         mainViewModel.requestTutorial()
                         closeDrawer()
                     },
@@ -136,6 +139,7 @@ fun AppDrawerContent(
                         icon = Icons.Outlined.Info,
                         label = stringResource(R.string.drawer_ads_privacy_options),
                         onClick = {
+                            mainViewModel.trackClick("drawer", "ads_privacy_options", "privacy")
                             val activity = context.findActivity()
                             if (activity != null) {
                                 mainViewModel.showAdsPrivacyOptions(activity)
@@ -149,6 +153,7 @@ fun AppDrawerContent(
                     icon = Icons.Outlined.Cached,
                     label = stringResource(R.string.whatstat_drawer_cache),
                     onClick = {
+                        mainViewModel.trackClick("drawer", "clear_cache", "maintenance")
                         showCacheDialog = true
                         closeDrawer()
                     },
@@ -160,6 +165,7 @@ fun AppDrawerContent(
                     icon = Icons.Outlined.Info,
                     label = stringResource(R.string.whatstat_drawer_about),
                     onClick = {
+                        mainViewModel.trackClick("drawer", "about", "info")
                         showAboutDialog = true
                         closeDrawer()
                     },

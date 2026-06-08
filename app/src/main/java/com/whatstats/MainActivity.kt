@@ -14,10 +14,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.rememberNavController
@@ -26,6 +30,7 @@ import com.whatstats.data.store.ThemeMode
 import com.whatstats.ui.MainViewModel
 import com.whatstats.ui.navigation.appNavigation
 import com.whatstats.ui.theme.WhatStatTheme
+import com.whatstats.update.ForceUpdateState
 import com.whatstats.util.DebugLogManager
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
@@ -88,6 +93,8 @@ class MainActivity : ComponentActivity() {
         // (pattern standard Google: requestConsentInfoUpdate deve essere la prima
         // chiamata significativa nell'Activity, prima del layout).
         mainViewModel.requestAdsConsent(this)
+        mainViewModel.initializeTelemetry()
+        mainViewModel.trackAppOpen()
 
         setContent {
             val themeMode by mainViewModel.themeMode.collectAsState()
@@ -101,6 +108,24 @@ class MainActivity : ComponentActivity() {
             // Il locale e' gestito esclusivamente da attachBaseContext (SharedPreferences, sincrono).
             // Nessun override in setContent: evita race condition con DataStore asincrono.
             WhatStatTheme(darkTheme = darkTheme) {
+                val forceUpdateState by mainViewModel.forceUpdateState.collectAsState()
+                if (forceUpdateState is ForceUpdateState.Required) {
+                    val msg = (forceUpdateState as ForceUpdateState.Required).customMessage
+                    AlertDialog(
+                        onDismissRequest = {},
+                        title = { Text(stringResource(R.string.force_update_dialog_title)) },
+                        text = {
+                            Text(
+                                msg.ifBlank { stringResource(R.string.force_update_dialog_message_default) },
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { openPlayStore() }) {
+                                Text(stringResource(R.string.force_update_dialog_button))
+                            }
+                        },
+                    )
+                }
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     appNavigation(
@@ -120,6 +145,13 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         DebugLogManager.log("MainActivity.onNewIntent | action=${intent.action ?: "-"} type=${intent.type ?: "-"}")
         handleIncomingIntent(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::mainViewModel.isInitialized) {
+            mainViewModel.checkForUpdate(this)
+        }
     }
 
     private fun handleIncomingIntent(intent: Intent) {
@@ -186,5 +218,19 @@ class MainActivity : ComponentActivity() {
 
         val path = uri.toString().lowercase()
         return path.endsWith(".zip") || path.contains(".zip?")
+    }
+
+    private fun openPlayStore() {
+        val packageName = "com.whatstats"
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName")))
+        } catch (_: Exception) {
+            startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://play.google.com/store/apps/details?id=$packageName"),
+                ),
+            )
+        }
     }
 }

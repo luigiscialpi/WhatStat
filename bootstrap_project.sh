@@ -140,8 +140,28 @@ launch_app_on_target() {
     return 1
 }
 
+set_firebase_analytics_debug() {
+    local target_serial="$1"
+    local build_variant="$2"
+    local mode="$3"
+
+    local app_id="com.whatstats.debug"
+    if [ "$build_variant" = "release" ]; then
+        app_id="com.whatstats"
+    fi
+
+    if [ "$mode" = "on" ]; then
+        adb -s "$target_serial" shell setprop debug.firebase.analytics.app "$app_id"
+        log_success "Firebase DebugView ON per $app_id su $target_serial"
+    elif [ "$mode" = "off" ]; then
+        adb -s "$target_serial" shell setprop debug.firebase.analytics.app .none.
+        log_success "Firebase DebugView OFF su $target_serial"
+    fi
+}
+
 deploy_once() {
     local build_variant="$1"
+    local firebase_debug_mode="$2"
     local target_serial=""
 
     target_serial=$(get_physical_device)
@@ -164,10 +184,12 @@ deploy_once() {
     fi
 
     launch_app_on_target "$target_serial"
+    set_firebase_analytics_debug "$target_serial" "$build_variant" "$firebase_debug_mode"
 }
 
 watch_loop() {
     local build_variant="$1"
+    local firebase_debug_mode="$2"
 
     # Porta il terminale in raw mode per leggere un singolo tasto senza Enter
     # e ripristina lo stato originale all'uscita
@@ -190,7 +212,7 @@ watch_loop() {
                 stty "$old_stty"
                 echo -e "\r" >&2
                 log_info "Reinstall richiesto dall'utente..."
-                deploy_once "$build_variant"
+                deploy_once "$build_variant" "$firebase_debug_mode"
                 # Torna in raw mode e ricorda all'utente i comandi
                 stty raw -echo
                 echo -e "\r[INFO] Premi  r  per reinstallare e riavviare l'app.  Premi  q  per uscire.\r" >&2
@@ -205,12 +227,116 @@ watch_loop() {
     done
 }
 
+interactive_menu() {
+    echo "" >&2
+    echo "===== WhatStat Bootstrap Menu =====" >&2
+
+    local choice=""
+    local default_build_choice="1"
+    local default_watch_choice="2"
+    local default_firebase_choice="1"
+
+    if [ "$build_variant" = "release" ]; then
+        default_build_choice="2"
+    fi
+    if [ "$watch_mode" = "true" ]; then
+        default_watch_choice="1"
+    fi
+    if [ "$firebase_debug_mode" = "on" ]; then
+        default_firebase_choice="2"
+    elif [ "$firebase_debug_mode" = "off" ]; then
+        default_firebase_choice="3"
+    fi
+
+    while true; do
+        echo "" >&2
+        echo "Build variant:" >&2
+        echo "  1) Debug" >&2
+        echo "  2) Release" >&2
+        read -r -p "Scelta [1-2, default $default_build_choice]: " choice
+        case "${choice:-$default_build_choice}" in
+            1)
+                build_variant="debug"
+                break
+                ;;
+            2)
+                build_variant="release"
+                break
+                ;;
+            *)
+                log_error "Scelta non valida."
+                ;;
+        esac
+    done
+
+    while true; do
+        echo "" >&2
+        echo "Watch mode (premi r per reinstallare, q per uscire):" >&2
+        echo "  1) Si" >&2
+        echo "  2) No" >&2
+        read -r -p "Scelta [1-2, default $default_watch_choice]: " choice
+        case "${choice:-$default_watch_choice}" in
+            1)
+                watch_mode="true"
+                break
+                ;;
+            2)
+                watch_mode="false"
+                break
+                ;;
+            *)
+                log_error "Scelta non valida."
+                ;;
+        esac
+    done
+
+    while true; do
+        echo "" >&2
+        echo "Firebase Analytics DebugView:" >&2
+        echo "  1) Nessuna modifica" >&2
+        echo "  2) ON" >&2
+        echo "  3) OFF" >&2
+        read -r -p "Scelta [1-3, default $default_firebase_choice]: " choice
+        case "${choice:-$default_firebase_choice}" in
+            1)
+                firebase_debug_mode="none"
+                break
+                ;;
+            2)
+                firebase_debug_mode="on"
+                break
+                ;;
+            3)
+                firebase_debug_mode="off"
+                break
+                ;;
+            *)
+                log_error "Scelta non valida."
+                ;;
+        esac
+    done
+
+    echo "" >&2
+    echo "Configurazione selezionata:" >&2
+    echo "  build_variant=$build_variant" >&2
+    echo "  watch_mode=$watch_mode" >&2
+    echo "  firebase_debug_mode=$firebase_debug_mode" >&2
+}
+
 main() {
     local build_variant="debug"
     local watch_mode="false"
+    local firebase_debug_mode="none"
+    local use_menu="true"
 
     while [ $# -gt 0 ]; do
         case "$1" in
+            --menu)
+                use_menu="true"
+                ;;
+            --no-menu)
+                use_menu="false"
+                ;;
             --debug)
                 build_variant="debug"
                 ;;
@@ -220,14 +346,24 @@ main() {
             --watch)
                 watch_mode="true"
                 ;;
+            --firebase-debug-on)
+                firebase_debug_mode="on"
+                ;;
+            --firebase-debug-off)
+                firebase_debug_mode="off"
+                ;;
             *)
                 log_error "Argomento non riconosciuto: $1"
-                log_error "Uso: ./bootstrap_project.sh [--debug|--release] [--watch]"
+                log_error "Uso: ./bootstrap_project.sh [--menu|--no-menu] [--debug|--release] [--watch] [--firebase-debug-on|--firebase-debug-off]"
                 exit 1
                 ;;
         esac
         shift
     done
+
+    if [ "$use_menu" = "true" ]; then
+        interactive_menu
+    fi
 
     ensure_android_sdk_env
     require_command adb
@@ -235,10 +371,10 @@ main() {
 
     if [ "$watch_mode" = "true" ]; then
         # fswatch non più necessario: il loop usa input da tastiera
-        deploy_once "$build_variant"
-        watch_loop "$build_variant"
+        deploy_once "$build_variant" "$firebase_debug_mode"
+        watch_loop "$build_variant" "$firebase_debug_mode"
     else
-        deploy_once "$build_variant"
+        deploy_once "$build_variant" "$firebase_debug_mode"
     fi
 }
 
