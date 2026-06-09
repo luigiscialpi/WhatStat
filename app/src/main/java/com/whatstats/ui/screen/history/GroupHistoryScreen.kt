@@ -120,15 +120,15 @@ fun GroupHistoryScreen(
                             itemsIndexed(state.events) { index, uiModel ->
                                 val isLeftAligned = uiModel.isLeftAligned
 
-                                // L'evento precedente cronologicamente (più vecchio) è all'indice index + 1
-                                // Poiché usiamo reverseLayout=true, l'indice index+1 è quello che sta SOPRA visivamente
-                                val olderIndex = index + 1
-                                val olderUiModel = state.events.getOrNull(olderIndex)
+                                // Con reverseLayout=true vogliamo il header/avatar sul più recente del blocco.
+                                // Per questo confrontiamo con l'evento più nuovo (index - 1), non con quello più vecchio.
+                                val newerIndex = index - 1
+                                val newerUiModel = state.events.getOrNull(newerIndex)
 
                                 val showHeader =
-                                    olderUiModel == null ||
-                                        olderUiModel.userJid != uiModel.userJid ||
-                                        olderUiModel.isLeftAligned != uiModel.isLeftAligned
+                                    newerUiModel == null ||
+                                        newerUiModel.userJid != uiModel.userJid ||
+                                        newerUiModel.isLeftAligned != uiModel.isLeftAligned
 
                                 ChatBubbleItem(
                                     uiModel = uiModel,

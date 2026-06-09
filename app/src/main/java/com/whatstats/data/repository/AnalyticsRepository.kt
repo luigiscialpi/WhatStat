@@ -1527,12 +1527,20 @@ class AnalyticsRepository
         }
 
         private var cachedMyJid: String? = null
+        private var cachedMyLid: String? = null
 
         fun getMyJid(): String? {
             if (cachedMyJid == null) {
                 cachedMyJid = messageDao.guessUserJid()
             }
             return cachedMyJid
+        }
+
+        fun getMyLid(): String? {
+            if (cachedMyLid == null) {
+                cachedMyLid = messageDao.guessUserLid()
+            }
+            return cachedMyLid
         }
 
         /**

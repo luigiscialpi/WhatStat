@@ -999,17 +999,49 @@ class MessageDao
             }
         }
 
+        /**
+         * Stima il LID (@lid) dell'utente corrente cercando il LID piu' frequente
+         * nei messaggi regolari inviati da me (from_me = 1, non messaggi di sistema).
+         * Necessario perche' in alcuni account WhatsApp il jid_map non mappa
+         * tutti i LID dell'utente verso il JID reale @s.whatsapp.net.
+         */
+        fun guessUserLid(): String? {
+            val query =
+                """
+                SELECT j.raw_string
+                FROM message m
+                JOIN jid j ON m.sender_jid_row_id = j._id
+                WHERE m.from_me = 1
+                  AND m.message_type NOT IN (7, 15)
+                  AND j.raw_string LIKE '%@lid'
+                GROUP BY j.raw_string
+                ORDER BY COUNT(*) DESC
+                LIMIT 1
+                """.trimIndent()
+
+            val cursor = database.getMsgDb().rawQuery(query, null)
+            return cursor.use {
+                if (it.moveToFirst()) it.getString(0) else null
+            }
+        }
+
         fun getGroupParticipantHistory(chatId: Long): List<GroupParticipantHistoryEntity> {
             val query =
                 """
                 SELECT 
                     m.timestamp, 
                     c.jid_row_id,
-                    COALESCE(j_part.raw_string, j_sender.raw_string, 'unknown') AS user_jid, 
+                    CASE
+                        WHEN real_part.raw_string IS NOT NULL THEN real_part.raw_string
+                        WHEN j_part.raw_string IS NOT NULL THEN j_part.raw_string
+                        WHEN real_sender.raw_string IS NOT NULL THEN real_sender.raw_string
+                        WHEN j_sender.raw_string IS NOT NULL THEN j_sender.raw_string
+                        ELSE 'unknown'
+                    END AS user_jid,
                     sys.action_type,
-                    CASE 
+                    CASE
+                        WHEN real_sender.raw_string IS NOT NULL THEN real_sender.raw_string
                         WHEN m.sender_jid_row_id > 0 THEN j_sender.raw_string
-                        WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
                         ELSE 'unknown'
                     END AS admin_jid,
                     m.text_data
@@ -1018,7 +1050,11 @@ class MessageDao
                 JOIN message_system sys ON m._id = sys.message_row_id
                 LEFT JOIN message_system_chat_participant mscp ON m._id = mscp.message_row_id
                 LEFT JOIN jid j_part ON mscp.user_jid_row_id = j_part._id
+                LEFT JOIN jid_map jm_part ON jm_part.lid_row_id = j_part._id
+                LEFT JOIN jid real_part ON real_part._id = jm_part.jid_row_id
                 LEFT JOIN jid j_sender ON m.sender_jid_row_id = j_sender._id
+                LEFT JOIN jid_map jm_sender ON jm_sender.lid_row_id = j_sender._id
+                LEFT JOIN jid real_sender ON real_sender._id = jm_sender.jid_row_id
                 WHERE m.chat_row_id = ? AND sys.action_type IN (4, 5, 6, 7, 12, 13, 14, 15, 20, 27)
                 ORDER BY m.timestamp DESC
                 """.trimIndent()
@@ -1060,9 +1096,9 @@ class MessageDao
                 SELECT 
                     m.timestamp, 
                     svc.old_data, 
-                    CASE 
+                    CASE
+                        WHEN real_j.raw_string IS NOT NULL THEN real_j.raw_string
                         WHEN m.sender_jid_row_id > 0 THEN j.raw_string
-                        WHEN m.from_me = 1 THEN 'me@s.whatsapp.net'
                         ELSE 'unknown'
                     END AS sender_jid,
                     m.text_data
@@ -1070,6 +1106,8 @@ class MessageDao
                 JOIN message_system sys ON m._id = sys.message_row_id
                 LEFT JOIN message_system_value_change svc ON m._id = svc.message_row_id
                 LEFT JOIN jid j ON m.sender_jid_row_id = j._id
+                LEFT JOIN jid_map jm ON jm.lid_row_id = j._id
+                LEFT JOIN jid real_j ON real_j._id = jm.jid_row_id
                 WHERE m.chat_row_id = ? AND sys.action_type = 1
                 ORDER BY m.timestamp DESC
                 """.trimIndent()

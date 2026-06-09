@@ -52,8 +52,9 @@ class GroupHistoryViewModel
 
                     val events = analyticsRepository.getGroupHistory(chatId)
 
-                    // Ricava il JID dell'utente corrente (auto-discovery)
+                    // Ricava il JID e il LID dell'utente corrente (auto-discovery)
                     val myJid = analyticsRepository.getMyJid()
+                    val myLid = analyticsRepository.getMyLid()
 
                     // Raccogli tutti i JID unici per risolverli in batch
                     val jidsToResolve = mutableSetOf<String>()
@@ -82,7 +83,7 @@ class GroupHistoryViewModel
 
                             when (event) {
                                 is GroupEvent.ParticipantAction -> {
-                                    val isMe = event.userJid == "me@s.whatsapp.net" || event.userJid == myJid
+                                    val isMe = event.userJid == "me@s.whatsapp.net" || event.userJid == myJid || (myLid != null && event.userJid == myLid)
                                     val rawName = resolvedNames[event.userJid]
                                     val userName =
                                         when {
@@ -116,7 +117,7 @@ class GroupHistoryViewModel
                                     )
                                 }
                                 is GroupEvent.NameChange -> {
-                                    val isMe = event.userJid == "me@s.whatsapp.net" || event.userJid == myJid
+                                    val isMe = event.userJid == "me@s.whatsapp.net" || event.userJid == myJid || (myLid != null && event.userJid == myLid)
                                     val rawName = resolvedNames[event.userJid]
                                     val userName =
                                         when {
@@ -140,7 +141,7 @@ class GroupHistoryViewModel
                                     )
                                 }
                                 is GroupEvent.DescriptionChange -> {
-                                    val isMe = event.userJid == "me@s.whatsapp.net" || event.userJid == myJid
+                                    val isMe = event.userJid == "me@s.whatsapp.net" || event.userJid == myJid || (myLid != null && event.userJid == myLid)
                                     val rawName = resolvedNames[event.userJid]
                                     val userName =
                                         when {
