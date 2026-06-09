@@ -31,6 +31,7 @@ import com.whatstats.ui.MainViewModel
 import com.whatstats.ui.navigation.appNavigation
 import com.whatstats.ui.theme.WhatStatTheme
 import com.whatstats.update.ForceUpdateState
+import com.whatstats.update.RemoteWarningState
 import com.whatstats.util.DebugLogManager
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Locale
@@ -109,6 +110,7 @@ class MainActivity : ComponentActivity() {
             // Nessun override in setContent: evita race condition con DataStore asincrono.
             WhatStatTheme(darkTheme = darkTheme) {
                 val forceUpdateState by mainViewModel.forceUpdateState.collectAsState()
+                val remoteWarningState by mainViewModel.remoteWarningState.collectAsState()
                 if (forceUpdateState is ForceUpdateState.Required) {
                     val msg = (forceUpdateState as ForceUpdateState.Required).customMessage
                     AlertDialog(
@@ -122,6 +124,37 @@ class MainActivity : ComponentActivity() {
                         confirmButton = {
                             TextButton(onClick = { openPlayStore() }) {
                                 Text(stringResource(R.string.force_update_dialog_button))
+                            }
+                        },
+                    )
+                } else if (remoteWarningState is RemoteWarningState.Visible) {
+                    val payload = (remoteWarningState as RemoteWarningState.Visible).payload
+                    AlertDialog(
+                        onDismissRequest = { mainViewModel.dismissRemoteWarning() },
+                        title = {
+                            val title = payload.title.ifBlank { stringResource(R.string.info_dialog_title) }
+                            Text(title)
+                        },
+                        text = { Text(payload.message) },
+                        confirmButton = {
+                            val label = payload.primaryButtonLabel.ifBlank { stringResource(R.string.ok) }
+                            TextButton(
+                                onClick = {
+                                    mainViewModel.executeRemoteWarningAction(this, payload.primaryAction)
+                                },
+                            ) {
+                                Text(label)
+                            }
+                        },
+                        dismissButton = {
+                            if (payload.secondaryButtonLabel.isNotBlank()) {
+                                TextButton(
+                                    onClick = {
+                                        mainViewModel.executeRemoteWarningAction(this, payload.secondaryAction)
+                                    },
+                                ) {
+                                    Text(payload.secondaryButtonLabel)
+                                }
                             }
                         },
                     )
@@ -151,6 +184,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         if (::mainViewModel.isInitialized) {
             mainViewModel.checkForUpdate(this)
+            mainViewModel.checkRemoteWarning()
         }
     }
 

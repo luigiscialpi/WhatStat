@@ -11,6 +11,8 @@ import com.whatstats.data.store.AppPreferencesStore
 import com.whatstats.data.store.ThemeMode
 import com.whatstats.telemetry.TelemetryRepository
 import com.whatstats.update.ForceUpdateState
+import com.whatstats.update.RemoteWarningAction
+import com.whatstats.update.RemoteWarningState
 import com.whatstats.update.UpdateGate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +70,9 @@ class MainViewModel
         private val _forceUpdateState = MutableStateFlow<ForceUpdateState>(ForceUpdateState.Idle)
         val forceUpdateState: StateFlow<ForceUpdateState> = _forceUpdateState.asStateFlow()
 
+        private val _remoteWarningState = MutableStateFlow<RemoteWarningState>(RemoteWarningState.Hidden)
+        val remoteWarningState: StateFlow<RemoteWarningState> = _remoteWarningState.asStateFlow()
+
         fun initializeTelemetry() {
             telemetryRepository.initialize()
         }
@@ -77,6 +82,27 @@ class MainViewModel
             updateGate.check(activity) { customMessage ->
                 _forceUpdateState.value = ForceUpdateState.Required(customMessage)
             }
+        }
+
+        fun checkRemoteWarning() {
+            if (_forceUpdateState.value is ForceUpdateState.Required) return
+            if (_remoteWarningState.value is RemoteWarningState.Visible) return
+            val payload = updateGate.getRemoteWarning() ?: return
+            _remoteWarningState.value = RemoteWarningState.Visible(payload)
+        }
+
+        fun dismissRemoteWarning() {
+            _remoteWarningState.value = RemoteWarningState.Hidden
+        }
+
+        fun executeRemoteWarningAction(
+            activity: Activity,
+            action: RemoteWarningAction,
+        ) {
+            val current = _remoteWarningState.value
+            if (current !is RemoteWarningState.Visible) return
+            updateGate.executeWarningAction(activity, current.payload, action)
+            _remoteWarningState.value = RemoteWarningState.Hidden
         }
 
         fun trackAppOpen() {

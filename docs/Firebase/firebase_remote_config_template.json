@@ -1,0 +1,77 @@
+{
+  "conditions": [],
+  "parameters": {},
+  "parameterGroups": {
+    "Telemetria": {
+      "description": "Controllo remoto del tracking Firebase Analytics",
+      "parameters": {
+        "tracking_enabled_global": {
+          "defaultValue": {
+            "value": "true"
+          },
+          "description": "Kill switch globale. false = nessun evento inviato a Firebase Analytics. Blocca tutto prima che escano."
+        },
+        "tracking_mode": {
+          "defaultValue": {
+            "value": "full"
+          },
+          "description": "Modalità tracking. Valori: full (traccia tutto) | minimal (solo app_opened + screen_view) | off (niente)."
+        },
+        "tracking_allowed_events_csv": {
+          "defaultValue": {
+            "value": "screen_view_custom,screen_time,app_opened"
+          },
+          "description": "Whitelist CSV eventi. Se non vuoto, SOLO questi passano. Eventi app: app_opened, screen_view_custom, cta_click, screen_time. Eventi supportati dal flow analysis/minimal: analysis_started, analysis_completed."
+        },
+        "tracking_blocked_events_csv": {
+          "defaultValue": {
+            "value": "cta_click,analysis_started,analysis_completed,content_inspected"
+          },
+          "description": "Blacklist CSV eventi da bloccare. Eventi app: app_opened, screen_view_custom, cta_click, screen_time. Eventi supportati dal flow analysis/minimal: analysis_started, analysis_completed."
+        },
+        "tracking_sampling_percent": {
+          "defaultValue": {
+            "value": "100"
+          },
+          "description": "Percentuale campionamento 0-100. 50 = campiona 50% degli utenti. 0 = niente tracciato."
+        },
+        "tracking_daily_event_cap_per_user": {
+          "defaultValue": {
+            "value": "200"
+          },
+          "description": "Massimo eventi per utente/giorno. Raggiunto il limite, stop tracciamento per quel giorno."
+        },
+        "tracking_config_ttl_minutes": {
+          "defaultValue": {
+            "value": "10080"
+          },
+          "description": "TTL fetch Remote Config in minuti (release). 10080=7 giorni, 1440=24h, 60=1h, 15=15m. Debug ignora e usa sempre 0."
+        }
+      }
+    },
+    "Forced Update": {
+      "description": "Obbliga gli utenti ad aggiornare l'app",
+      "parameters": {
+        "force_update_config": {
+          "defaultValue": {
+            "value": "{\"enabled\":false,\"min_supported_version_code\":1,\"message\":{\"it\":\"Aggiornamento obbligatorio richiesto\",\"en\":\"Mandatory update required\",\"es\":\"Actualización obligatoria requerida\",\"fr\":\"Mise à jour obligatoire requise\",\"de\":\"Erforderliches Update erforderlich\",\"tr\":\"Zorunlu güncelleme gerekli\",\"pt_br\":\"Atualização obrigatória necessária\",\"hi\":\"अनिवार्य अपडेट आवश्यक है\"}}"
+          },
+          "valueType": "JSON",
+          "description": "Config forced update (JSON). Struttura: {enabled, min_supported_version_code, message{it,en,es,fr,de,tr,pt_br,hi}}. false=disattivato."
+        }
+      }
+    },
+    "Remote Warning": {
+      "description": "Mostra un avviso remoto localizzato con due bottoni configurabili",
+      "parameters": {
+        "remote_warning_config": {
+          "defaultValue": {
+            "value": "{\"enabled\":false,\"show_once_per_version\":true,\"title\":{\"it\":\"\",\"en\":\"\",\"es\":\"\",\"fr\":\"\",\"de\":\"\",\"tr\":\"\",\"pt_br\":\"\",\"hi\":\"\"},\"message\":{\"it\":\"\",\"en\":\"\",\"es\":\"\",\"fr\":\"\",\"de\":\"\",\"tr\":\"\",\"pt_br\":\"\",\"hi\":\"\"},\"primary_button\":{\"it\":\"\",\"en\":\"\",\"es\":\"\",\"fr\":\"\",\"de\":\"\",\"tr\":\"\",\"pt_br\":\"\",\"hi\":\"\"},\"secondary_button\":{\"it\":\"\",\"en\":\"\",\"es\":\"\",\"fr\":\"\",\"de\":\"\",\"tr\":\"\",\"pt_br\":\"\",\"hi\":\"\"},\"primary_action\":\"dismiss\",\"secondary_action\":\"dismiss\",\"action_url\":\"\"}"
+          },
+          "valueType": "JSON",
+          "description": "Config popup remoto (JSON). Testi localizzati in 8 lingue. Azioni: dismiss|open_url|open_play_store. Bottone secondario vuoto=nascosto."
+        }
+      }
+    }
+  }
+}

@@ -15,7 +15,7 @@ data class TelemetryRemoteConfig(
     val blockedEvents: Set<String> = emptySet(),
     val samplingPercent: Int = 100,
     val dailyEventCapPerUser: Int = 200,
-    val configTtlMinutes: Long = 240,
+    val configTtlMinutes: Long = 10_080,
 ) {
     companion object {
         fun defaults() = TelemetryRemoteConfig()
@@ -31,8 +31,11 @@ data class TelemetryRemoteConfig(
                     },
                 allowedEvents = remoteConfig.getString("tracking_allowed_events_csv").splitCsv(),
                 blockedEvents = remoteConfig.getString("tracking_blocked_events_csv").splitCsv(),
-                samplingPercent = remoteConfig.getLong("tracking_sampling_percent").toInt().coerceIn(0, 100),
-                dailyEventCapPerUser = remoteConfig.getLong("tracking_daily_event_cap_per_user").toInt().coerceAtLeast(0),
+                samplingPercent =
+                    remoteConfig.getLong("tracking_sampling_percent").toInt().coerceIn(0, 100),
+                dailyEventCapPerUser =
+                    remoteConfig.getLong("tracking_daily_event_cap_per_user").toInt()
+                        .coerceAtLeast(0),
                 configTtlMinutes = remoteConfig.getLong("tracking_config_ttl_minutes").coerceAtLeast(0L),
             )
 

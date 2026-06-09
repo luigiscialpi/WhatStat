@@ -26,6 +26,7 @@
 18. [Modalità Lite (non-root)](#18-modalità-lite-non-root)
 19. [Linee Guida per Assistenti AI](#19-linee-guida-per-assistenti-ai)
 20. [Monetizzazione: Ads e Pro](#20-monetizzazione-ads-e-pro)
+21. [Telemetria Firebase, Remote Config e Forced Update](#21-telemetria-firebase-remote-config-e-forced-update)
 
 ---
 
@@ -1419,6 +1420,34 @@ ADMOB_REWARDED_INTERSTITIAL_UNIT_ID=<real_rewarded_interstitial_unit_id>
 ```
 
 `isTestBuild` è calcolato automaticamente: `BuildConfig.ADMOB_APP_ID == "ca-app-pub-3940256099942544~3347511713"`. Nessun toggle manuale — basta inserire gli ID reali in `local.properties` per disabilitare il bypass test.
+
+---
+
+## 21. Telemetria Firebase, Remote Config e Forced Update
+
+In questo README manteniamo una vista sintetica. I dettagli operativi (runbook, rollout, checklist, fallback, procedure di emergenza) sono nella documentazione dedicata:
+
+- [Runbook completo Firebase](docs/Firebase/Firebase_Analytics_Forced_Update_Plan.md)
+- [Template Remote Config importabile](docs/Firebase/firebase_remote_config_template.json)
+
+### Stato attuale (high level)
+
+- Telemetria GA4 centralizzata in `TelemetryRepository` con regole di gating da Remote Config.
+- Kill switch globale (`tracking_enabled_global`) e controllo selettivo con mode, allow/block list, sampling e cap giornaliero.
+- Forced update gestito da `UpdateGate` con fallback Play Store.
+- Remote warning configurabile via JSON (`remote_warning_config`) con azioni `dismiss`, `open_url`, `open_play_store`.
+- Localizzazione messaggi remoto su 8 lingue (`it`, `en`, `es`, `fr`, `de`, `tr`, `pt_br`, `hi`).
+- TTL fetch Remote Config separato per ambiente:
+    - debug: `0`
+    - release: da `tracking_config_ttl_minutes` (default consigliato: `10080`, 7 giorni)
+
+### Dove intervenire velocemente
+
+- Firebase Console -> Remote Config per cambiare policy runtime senza release app.
+- Chiavi telemetria singole per interventi immediati su volume/costo eventi.
+- Config JSON (`force_update_config`, `remote_warning_config`) per contenuti multi-lingua e comportamenti UI.
+
+Nota: per evitare drift tra documenti, ogni modifica operativa Firebase va aggiornata prima nel runbook dedicato e solo poi riflessa in questa sezione riassuntiva.
 
 ### Placement pubblicitari
 
