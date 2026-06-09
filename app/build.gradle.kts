@@ -9,6 +9,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jlleitschuh.gradle.ktlint")
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 val localProps =
@@ -68,6 +69,7 @@ android {
             "\"${admobRewardedInterstitialUnitId.replace("\"", "\\\"")}\"",
         )
         manifestPlaceholders["ADMOB_APP_ID"] = admobAppId
+        manifestPlaceholders["CRASHLYTICS_COLLECTION_ENABLED"] = "true"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -94,6 +96,7 @@ android {
         debug {
             isMinifyEnabled = false
             applicationIdSuffix = ".debug"
+            manifestPlaceholders["CRASHLYTICS_COLLECTION_ENABLED"] = "false"
         }
     }
 
@@ -154,6 +157,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.8.0"))
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-config-ktx")
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
 
     // ── In-app updates ──────────────────────────────────────────
     implementation("com.google.android.play:app-update:2.1.0")
