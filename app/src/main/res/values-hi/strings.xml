@@ -41,7 +41,7 @@
     <string name="group_history_title">ग्रुप इतिहास</string>
     <string name="group_history_no_events">इस ग्रुप के लिए कोई ऐतिहासिक घटना नहीं मिली।</string>
     <string name="group_history_info_title">ग्रुप इतिहास</string>
-    <string name="group_history_info_text">यह स्क्रीन ग्रुप का पूरा कालानुक्रमिक इतिहास दिखाती है।\n\nबाईं ओर: नाम और विवरण में बदलाव, पुराने और नए टेक्स्ट के साथ।\n\nदाईं ओर: प्रतिभागियों की कार्रवाइयाँ - जोड़ना, हटाना, एडमिन प्रमोशन और समूह छोड़ना।\n\nहर इवेंट में संबंधित सदस्य, उसका अवतार, और सटीक तारीख व समय दिखता है।</string>
+    <string name="group_history_info_text">यह स्क्रीन ग्रुप का पूरा कालानुक्रमिक इतिहास दिखाती है।&#10;&#10;बाईं ओर: नाम और विवरण में बदलाव, पुराने और नए टेक्स्ट के साथ।&#10;&#10;दाईं ओर: प्रतिभागियों की कार्रवाइयाँ - जोड़ना, हटाना, एडमिन प्रमोशन और समूह छोड़ना।&#10;&#10;हर इवेंट में संबंधित सदस्य, उसका अवतार, और सटीक तारीख व समय दिखता है।</string>
     <string name="history_legend_names">नाम</string>
     <string name="history_legend_descriptions">विवरण</string>
     <string name="history_legend_io">प्रवेश/निकास</string>

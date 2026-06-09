@@ -41,7 +41,7 @@
     <string name="group_history_title">Histórico do Grupo</string>
     <string name="group_history_no_events">Nenhum evento histórico encontrado para este grupo.</string>
     <string name="group_history_info_title">Histórico do Grupo</string>
-    <string name="group_history_info_text">Esta tela mostra o histórico cronológico completo do grupo.\n\nÀ esquerda: mudanças de nome e descrição, com o texto antigo e o novo.\n\nÀ direita: ações dos participantes - entradas, remoções, promoções a administrador e saídas.\n\nCada evento mostra o membro envolvido, o avatar e a data e hora exatas.</string>
+    <string name="group_history_info_text">Esta tela mostra o histórico cronológico completo do grupo.&#10;&#10;À esquerda: mudanças de nome e descrição, com o texto antigo e o novo.&#10;&#10;À direita: ações dos participantes - entradas, remoções, promoções a administrador e saídas.&#10;&#10;Cada evento mostra o membro envolvido, o avatar e a data e hora exatas.</string>
     <string name="history_legend_names">Nomes</string>
     <string name="history_legend_descriptions">Descrições</string>
     <string name="history_legend_io">Entradas/Saídas</string>
