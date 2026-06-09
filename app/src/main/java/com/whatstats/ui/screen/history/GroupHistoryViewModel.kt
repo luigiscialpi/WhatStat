@@ -83,7 +83,10 @@ class GroupHistoryViewModel
 
                             when (event) {
                                 is GroupEvent.ParticipantAction -> {
-                                    val isMe = event.userJid == "me@s.whatsapp.net" || event.userJid == myJid || (myLid != null && event.userJid == myLid)
+                                    val isMe =
+                                        event.userJid == "me@s.whatsapp.net" ||
+                                            event.userJid == myJid ||
+                                            (myLid != null && event.userJid == myLid)
                                     val rawName = resolvedNames[event.userJid]
                                     val userName =
                                         when {
@@ -117,7 +120,10 @@ class GroupHistoryViewModel
                                     )
                                 }
                                 is GroupEvent.NameChange -> {
-                                    val isMe = event.userJid == "me@s.whatsapp.net" || event.userJid == myJid || (myLid != null && event.userJid == myLid)
+                                    val isMe =
+                                        event.userJid == "me@s.whatsapp.net" ||
+                                            event.userJid == myJid ||
+                                            (myLid != null && event.userJid == myLid)
                                     val rawName = resolvedNames[event.userJid]
                                     val userName =
                                         when {
@@ -141,7 +147,10 @@ class GroupHistoryViewModel
                                     )
                                 }
                                 is GroupEvent.DescriptionChange -> {
-                                    val isMe = event.userJid == "me@s.whatsapp.net" || event.userJid == myJid || (myLid != null && event.userJid == myLid)
+                                    val isMe =
+                                        event.userJid == "me@s.whatsapp.net" ||
+                                            event.userJid == myJid ||
+                                            (myLid != null && event.userJid == myLid)
                                     val rawName = resolvedNames[event.userJid]
                                     val userName =
                                         when {

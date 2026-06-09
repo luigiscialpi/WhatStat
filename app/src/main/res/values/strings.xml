@@ -73,6 +73,8 @@
 
     <string name="group_history_title">Group History</string>
     <string name="group_history_no_events">No history events found for this group.</string>
+    <string name="group_history_info_title">Group History</string>
+    <string name="group_history_info_text">This screen shows the full chronological history of the group.\n\nOn the left: name and description changes, with the old and new text.\n\nOn the right: participant actions - joins, removals, admin promotions and departures.\n\nEach event shows the member involved, their avatar, and the exact date and time.</string>
     <string name="history_legend_names">Names</string>
     <string name="history_legend_descriptions">Descriptions</string>
     <string name="history_legend_io">In/Out</string>

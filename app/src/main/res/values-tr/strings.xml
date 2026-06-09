@@ -40,6 +40,8 @@
 
     <string name="group_history_title">Grup Geçmişi</string>
     <string name="group_history_no_events">Bu grup için geçmiş etkinlik bulunamadı.</string>
+    <string name="group_history_info_title">Grup Geçmişi</string>
+    <string name="group_history_info_text">Bu ekran grubun tam kronolojik geçmişini gösterir.\n\nSolda: eski ve yeni metinle ad ve açıklama değişiklikleri.\n\nSağda: katılımcı işlemleri - katılmalar, çıkarılmalar, yönetici terfileri ve ayrılmalar.\n\nHer olayda ilgili üye, avatarı ve tam tarih-saat bilgisi gösterilir.</string>
     <string name="history_legend_names">İsimler</string>
     <string name="history_legend_descriptions">Açıklamalar</string>
     <string name="history_legend_io">Girişler/Çıkışlar</string>

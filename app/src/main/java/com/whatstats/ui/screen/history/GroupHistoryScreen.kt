@@ -26,14 +26,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +55,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.whatstats.R
 import com.whatstats.domain.model.GroupEventUiModel
+import com.whatstats.ui.component.AnimatedInfoButton
 import com.whatstats.ui.component.LoadingSection
 import com.whatstats.ui.component.ScrollToEdgeFab
 import com.whatstats.ui.component.SimpleScreenHeader
@@ -64,6 +70,7 @@ fun GroupHistoryScreen(
     val uiState by viewModel.uiState.collectAsState()
     val chatName by viewModel.chatContextName.collectAsState()
     val chatAvatar by viewModel.chatContextAvatarPath.collectAsState()
+    var showInfoDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(chatId) {
         if (chatId != null) {
@@ -83,7 +90,29 @@ fun GroupHistoryScreen(
             subtitle = chatName ?: stringResource(R.string.loading),
             avatarPath = chatAvatar,
             onBack = onNavigateBack,
-        )
+        ) {
+            AnimatedInfoButton(
+                onClick = { showInfoDialog = true },
+                contentDescription = stringResource(R.string.group_history_info_title),
+                tint = MaterialTheme.colorScheme.onBackground,
+                glowColor = MaterialTheme.colorScheme.primary,
+            )
+            if (showInfoDialog) {
+                AlertDialog(
+                    onDismissRequest = { showInfoDialog = false },
+                    title = { Text(stringResource(R.string.group_history_info_title)) },
+                    text = { Text(stringResource(R.string.group_history_info_text)) },
+                    confirmButton = {
+                        TextButton(onClick = { showInfoDialog = false }) {
+                            Text(stringResource(R.string.ho_capito))
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
 
         // Legenda timeline
         TimelineLegendBar()
