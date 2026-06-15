@@ -24,10 +24,10 @@ android {
 
     defaultConfig {
         applicationId = "com.whatstats"
-        minSdk = 26
+        minSdk = 27
         targetSdk = 36
         versionCode = 24
-        versionName = "1.5.2"
+        versionName = "1.5.3"
         val admobAppId =
             project
                 .findProperty("ADMOB_APP_ID")
