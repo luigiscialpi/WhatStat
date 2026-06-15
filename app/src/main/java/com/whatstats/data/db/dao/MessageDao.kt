@@ -2851,9 +2851,9 @@ class MessageDao
                 StringBuilder(
                     """
                     WITH all_media AS (
-                        SELECT message_row_id, file_path, mime_type FROM message_media
+                        SELECT message_row_id, file_path, mime_type, media_duration FROM message_media
                         UNION ALL
-                        SELECT message_row_id, file_path, mime_type FROM addon_message_media
+                        SELECT message_row_id, file_path, mime_type, NULL FROM addon_message_media
                     )
                     SELECT
                         mm.file_path AS file_path,
@@ -2865,7 +2865,9 @@ class MessageDao
                             WHEN m.message_type = 13 THEN 'video/mp4'
                             ELSE 'application/octet-stream'
                         END AS mime_type,
-                        m.timestamp AS timestamp
+                        m.timestamp AS timestamp,
+                        mm.message_row_id AS message_row_id,
+                        mm.media_duration AS media_duration
                     FROM message m
                     JOIN all_media mm ON m._id = mm.message_row_id
                     """.trimIndent(),
@@ -2940,10 +2942,34 @@ class MessageDao
                                 filePath = cursor.getString(0) ?: "",
                                 mimeType = cursor.getString(1) ?: "",
                                 timestamp = cursor.getLong(2),
+                                messageRowId = cursor.getLong(3),
+                                mediaDuration = if (cursor.isNull(4)) 0L else cursor.getLong(4),
                             ),
                         )
                     }
                 }
+            }
+        }
+
+        /**
+         * Restituisce la thumbnail JPEG (BLOB) salvata da WhatsApp nella tabella
+         * message_thumbnail per il messaggio dato. Usata per mostrare l'anteprima
+         * dei video in galleria senza copiare l'intero file video.
+         * Ritorna null se assente, vuota o se la tabella non esiste (es. Lite mode).
+         */
+        fun getMessageThumbnail(messageRowId: Long): ByteArray? {
+            if (messageRowId <= 0L) return null
+            return try {
+                database
+                    .getMsgDb()
+                    .rawQuery(
+                        "SELECT thumbnail FROM message_thumbnail WHERE message_row_id = ? AND LENGTH(thumbnail) > 0 LIMIT 1",
+                        arrayOf(messageRowId.toString()),
+                    ).use { cursor ->
+                        if (cursor.moveToFirst()) cursor.getBlob(0) else null
+                    }
+            } catch (e: Exception) {
+                null
             }
         }
     }

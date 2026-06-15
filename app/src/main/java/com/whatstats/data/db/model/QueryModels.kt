@@ -193,6 +193,12 @@ data class MediaStat(
     val mimeType: String,
     // timestamp del messaggio in ms
     val timestamp: Long,
+    // message_row_id, usato per caricare la thumbnail JPEG da message_thumbnail
+    // (evita di copiare l'intero video solo per l'anteprima in griglia). 0 = assente.
+    val messageRowId: Long = 0L,
+    // durata media in secondi (da message_media.media_duration). 0 = assente.
+    // Evita MediaMetadataRetriever (e la copia root del file) per video/audio.
+    val mediaDuration: Long = 0L,
 )
 
 /** Singolo messaggio trovato dalla ricerca Radar */

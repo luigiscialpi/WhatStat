@@ -73,7 +73,10 @@ import com.whatstats.data.db.model.MediaStat
 import com.whatstats.ui.MainViewModel
 import com.whatstats.ui.component.AnimatedInfoButton
 import com.whatstats.ui.component.AutoMarquee
+import com.whatstats.ui.component.DbThumbnailFetcher
+import com.whatstats.ui.component.DbVideoThumbnail
 import com.whatstats.ui.component.LoadingSection
+import com.whatstats.ui.component.RootFileFetcher
 import com.whatstats.ui.component.ScrollToEdgeFab
 import com.whatstats.ui.component.ZoomableImageGallery
 import kotlinx.coroutines.Dispatchers
@@ -133,6 +136,7 @@ internal fun MediaGallerySheet(
             ImageLoader.Builder(context)
                 .components {
                     add(VideoFrameDecoder.Factory())
+                    add(DbThumbnailFetcher.Factory())
                     add(com.whatstats.ui.component.RootFileFetcher.Factory())
                     add(com.whatstats.ui.component.ZipFileFetcher.Factory())
                 }
@@ -488,6 +492,7 @@ internal fun MediaGallerySheet(
                                             )
                                             MediaDurationBadge(
                                                 media.filePath,
+                                                media.mediaDuration,
                                                 Modifier.align(
                                                     Alignment.BottomEnd,
                                                 ).padding(
@@ -500,6 +505,58 @@ internal fun MediaGallerySheet(
                                                 color = MaterialTheme.colorScheme.surface,
                                             )
                                         }
+                                    } else if (media.mimeType.startsWith("video/")) {
+                                        // Anteprima video dalla thumbnail nel DB (message_thumbnail):
+                                        // nessuna copia del file video per la griglia. Se la thumbnail
+                                        // manca, resta lo sfondo scuro con il pulsante play.
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .matchParentSize()
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        )
+                                        if (media.messageRowId > 0L) {
+                                            AsyncImage(
+                                                model =
+                                                    ImageRequest.Builder(LocalContext.current)
+                                                        .data(DbVideoThumbnail(media.messageRowId))
+                                                        .crossfade(true)
+                                                        .build(),
+                                                imageLoader = imageLoader,
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.matchParentSize(),
+                                            )
+                                        }
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .align(Alignment.Center)
+                                                    .size(40.dp)
+                                                    .background(Color.Black.copy(alpha = 0.6f), CircleShape),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                Icons.Outlined.PlayArrow,
+                                                contentDescription = stringResource(R.string.type_videos),
+                                                tint = Color.White,
+                                                modifier = Modifier.size(24.dp),
+                                            )
+                                        }
+                                        MediaDurationBadge(
+                                            media.filePath,
+                                            media.mediaDuration,
+                                            Modifier.align(
+                                                Alignment.BottomEnd,
+                                            ).padding(
+                                                end = 4.dp,
+                                                bottom = 4.dp,
+                                            ).background(
+                                                Color.Black.copy(alpha = 0.6f),
+                                                RoundedCornerShape(4.dp),
+                                            ).padding(horizontal = 4.dp, vertical = 2.dp),
+                                            color = Color.White,
+                                        )
                                     } else {
                                         val imgData = if (media.filePath.startsWith("zip://")) media.filePath else File(media.filePath)
                                         AsyncImage(
@@ -513,36 +570,6 @@ internal fun MediaGallerySheet(
                                             contentScale = ContentScale.Crop,
                                             modifier = Modifier.matchParentSize(),
                                         )
-                                        if (media.mimeType.startsWith("video/")) {
-                                            Box(
-                                                modifier =
-                                                    Modifier
-                                                        .align(Alignment.Center)
-                                                        .size(40.dp)
-                                                        .background(Color.Black.copy(alpha = 0.6f), CircleShape),
-                                                contentAlignment = Alignment.Center,
-                                            ) {
-                                                Icon(
-                                                    Icons.Outlined.PlayArrow,
-                                                    contentDescription = stringResource(R.string.type_videos),
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size(24.dp),
-                                                )
-                                            }
-                                            MediaDurationBadge(
-                                                media.filePath,
-                                                Modifier.align(
-                                                    Alignment.BottomEnd,
-                                                ).padding(
-                                                    end = 4.dp,
-                                                    bottom = 4.dp,
-                                                ).background(
-                                                    Color.Black.copy(alpha = 0.6f),
-                                                    RoundedCornerShape(4.dp),
-                                                ).padding(horizontal = 4.dp, vertical = 2.dp),
-                                                color = Color.White,
-                                            )
-                                        }
                                     }
 
                                     val isSelected = selectedMedia.contains(media)
@@ -666,27 +693,63 @@ private fun MediaStat.isLiteSticker(): Boolean {
 @Suppress("FunctionName")
 private fun MediaDurationBadge(
     filePath: String,
+    durationSec: Long,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
-    var duration by remember(filePath) { mutableStateOf<String?>(null) }
-    LaunchedEffect(filePath) {
+    val context = LocalContext.current
+    // Durata gia nota dal DB (message_media.media_duration, in secondi): formatta
+    // subito senza toccare il file. Evita la copia root di video/audio.
+    val precomputed =
+        remember(durationSec) {
+            if (durationSec > 0) {
+                val sec = durationSec % 60
+                val min = durationSec / 60
+                String.format(Locale.getDefault(), "%d:%02d", min, sec)
+            } else {
+                null
+            }
+        }
+    var duration by remember(filePath, precomputed) { mutableStateOf(precomputed) }
+    LaunchedEffect(filePath, precomputed) {
+        // Fallback solo se il DB non ha la durata (raro): legge dal file via
+        // MediaMetadataRetriever, con copia root se il path non e accessibile.
+        if (precomputed != null) return@LaunchedEffect
         duration =
             withContext(Dispatchers.IO) {
-                try {
+                // Estrae la durata da un path locale leggibile.
+                fun extractFrom(path: String): String? {
                     val mmr = android.media.MediaMetadataRetriever()
-                    mmr.setDataSource(filePath)
-                    val durationMs = mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
-                    mmr.release()
-                    if (durationMs != null && durationMs > 0) {
-                        val sec = (durationMs / 1000) % 60
-                        val min = (durationMs / 1000) / 60
-                        String.format(Locale.getDefault(), "%d:%02d", min, sec)
+                    return try {
+                        mmr.setDataSource(path)
+                        val durationMs =
+                            mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+                        if (durationMs != null && durationMs > 0) {
+                            val sec = (durationMs / 1000) % 60
+                            val min = (durationMs / 1000) / 60
+                            String.format(Locale.getDefault(), "%d:%02d", min, sec)
+                        } else {
+                            null
+                        }
+                    } finally {
+                        mmr.release()
+                    }
+                }
+                // Prova lettura diretta; se fallisce (Scoped Storage WhatsApp senza
+                // MANAGE_EXTERNAL_STORAGE) copia via root in cacheDir e riprova.
+                try {
+                    extractFrom(filePath)
+                } catch (e: Exception) {
+                    val local = RootFileFetcher.copyToCache(context, filePath)
+                    if (local != null) {
+                        try {
+                            extractFrom(local.absolutePath)
+                        } catch (e2: Exception) {
+                            null
+                        }
                     } else {
                         null
                     }
-                } catch (e: Exception) {
-                    null
                 }
             }
     }

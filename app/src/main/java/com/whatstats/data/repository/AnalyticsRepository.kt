@@ -1467,6 +1467,16 @@ class AnalyticsRepository
             }
 
         /**
+         * Thumbnail JPEG (BLOB) del video dal DB di WhatsApp (message_thumbnail).
+         * Evita di copiare l'intero file video per mostrare l'anteprima in galleria.
+         * Ritorna null se assente.
+         */
+        suspend fun getVideoThumbnailBlob(messageRowId: Long): ByteArray? =
+            withContext(Dispatchers.IO) {
+                messageDao.getMessageThumbnail(messageRowId)
+            }
+
+        /**
          * Restituisce l'indice dei file presenti nella cartella Media di WhatsApp.
          * Priorità: 1) in-memory, 2) file gzippato su cacheDir, 3) find via root (lento).
          * Il risultato viene salvato sia in memoria che su disco per le sessioni successive.
@@ -1476,16 +1486,25 @@ class AnalyticsRepository
         private fun getOrBuildMediaIndex(base: String): Set<String> {
             // 1) In-memory (stessa sessione)
             cacheManager.mediaFileIndex?.let { return it }
-            // 2) Disco (sessioni precedenti)
+            // 2) Disco (sessioni precedenti) — ignorato se l'indice e vuoto (potrebbe
+            //    essere un residuo di un fallimento root precedente).
             cacheManager.loadMediaIndexFromDisk()?.let { index ->
-                cacheManager.mediaFileIndex = index
-                return index
+                if (index.isNotEmpty()) {
+                    cacheManager.mediaFileIndex = index
+                    return index
+                }
             }
             // 3) Scansione root — lenta, una tantum
             val result = Shell.cmd("find \"$base/Media\" -maxdepth 3 -type f 2>/dev/null").exec()
-            val index: Set<String> = result.out.toHashSet()
+            // Filtra solo righe che iniziano con '/' per escludere eventuali messaggi stderr
+            // che FLAG_REDIRECT_STDERR potrebbe far confluire in result.out.
+            val index: Set<String> = result.out.filter { it.startsWith("/") }.toHashSet()
             cacheManager.mediaFileIndex = index
-            cacheManager.saveMediaIndexToDisk(index)
+            // Non salvare un indice vuoto su disco: potrebbe indicare un fallimento
+            // temporaneo della shell root. Cosi la prossima sessione ritenta il rebuild.
+            if (index.isNotEmpty()) {
+                cacheManager.saveMediaIndexToDisk(index)
+            }
             return index
         }
 

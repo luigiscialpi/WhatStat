@@ -481,18 +481,48 @@ Questi eventi sono estratti tramite query dedicate in `MessageDao` e consolidati
 
 **Schermata:** `MediaStatsScreen` / `MediaStatsViewModel`
 
-Galleria multimediale per esplorare foto e video scambiati nelle chat, con accesso root per file protetti e supporto Scoped Storage.
+Galleria multimediale per esplorare foto, video e audio scambiati nelle chat, con accesso root per file protetti in Scoped Storage.
 
 ### Funzionalità principali
 
-- **Lista media** — Mostra tutti i file foto e video dalle tabelle `message_media` e `addon_message_media`, filtrando per MIME types image/* e video/* ed escludendo tipi di messaggio di sistema (20, 7).
-- **Accesso root** — Quando il percorso normale del file non è accessibile (Scoped Storage), utilizza `RootFileFetcher` con `SuFileInputStream` per leggere i file protetti da directory root come `/data/user/*/com.whatsapp/files/Avatars/`.
-- **Risoluzione percorsi** — Tenta prima il percorso standard, poi fallback a percorsi root comuni: `/sdcard/Android/media/com.whatsapp/WhatsApp` e `/sdcard/WhatsApp`.
+- **Lista media** — Mostra tutti i file foto, video e audio dalle tabelle `message_media` e `addon_message_media`, filtrando per MIME types image/*, video/* e audio/* ed escludendo tipi di messaggio di sistema (20, 7).
+- **Caricamento immagini** — Per path esterni (Scoped Storage WhatsApp), `RootFileFetcher` copia il file in `cacheDir` via `root cp` e lo carica tramite Coil. Cache permanente: successive aperture riutilizzano la copia senza nuova root call. Il fallback `/Sent/` tenta la variante per media inviati.
+- **Anteprime video (senza copia file)** — In griglia l'anteprima del video viene letta dalla thumbnail JPEG che WhatsApp salva nel DB (`message_thumbnail`, ~3 KB), tramite `DbThumbnailFetcher`. Nessuna copia del file video per la sola griglia. Se la thumbnail manca nel DB (vedi nota copertura), il video mostra uno sfondo scuro con il pulsante play. Il file video viene copiato solo al tap per la riproduzione.
+- **Durata media (dal DB)** — La durata di video e audio viene letta da `message_media.media_duration` (in secondi) e formattata subito, senza toccare il file. Fallback a `MediaMetadataRetriever` (con copia root) solo nel raro caso in cui il DB non abbia la durata.
+- **Riproduzione al tap** — Per video/audio, copia il file in `cacheDir` (root fallback) e passa l'URI al player esterno via `FileProvider`. Funziona anche per Scoped Storage.
 - **Ordinamento** — Toggle tra ordine crescente e decrescente per data del media.
 - **Lazy loading** — Caricamento a blocchi di 100 elementi alla volta con `LazyVerticalGrid`.
-- **Anteprime video** — Supporto anteprime video tramite dipendenza `coil-video`.
 - **Tracking** — Barra di progresso e stato di caricamento visibili durante il fetch.
 - **Zoom immagini** — Anteprima a schermo intero con `ZoomableImageViewer` che supporta pinch-to-zoom, rotazione a 90°, doppio tap per zoom toggle e swipe-to-dismiss.
+
+### Implementazione root-copy (`RootFileFetcher.copyToCache`)
+
+Quando un file in Scoped Storage non è leggibile direttamente (es. `/sdcard/Android/media/com.whatsapp/WhatsApp/Media/...` senza `MANAGE_EXTERNAL_STORAGE`):
+
+1. Copia via `root cp` in `cacheDir` con nome hash (senza spazi, senza estensione).
+2. Cache persistente: se la copia esiste e ha bytes > 0, la riusa immediata. Singola root call per dispositivo per path unico.
+3. MimeType estratto dall'estensione originale e passato a Coil (necessario per `VideoFrameDecoder`).
+4. Usato da: riproduzione video/audio al tap (`getShareableUri`), zoom immagini, e fallback durata. Le anteprime video in griglia NON passano da qui: usano la thumbnail dal DB. Unico entry point `RootFileFetcher.copyToCache(context, absolutePath)`.
+
+### Anteprime video dal DB (`DbThumbnailFetcher`)
+
+WhatsApp salva una thumbnail JPEG dei media nella tabella `message_thumbnail` (chiave `message_row_id`). La galleria la sfrutta per evitare di copiare interi video (decine di MB) solo per la griglia:
+
+- `MediaStat` porta `messageRowId` (dalla query media) e `mediaDuration` (da `message_media.media_duration`).
+- `DbThumbnailFetcher` è un Coil `Fetcher<DbVideoThumbnail>` che legge il BLOB dal DB via Hilt `EntryPoint` (accede ad `AnalyticsRepository`). Il blob è già JPEG: nessuna decodifica video, nessuna copia file.
+- Se la thumbnail non esiste, lancia `FileNotFoundException` e Coil lascia lo sfondo scuro con play.
+
+**Copertura** — WhatsApp non salva la thumbnail per tutti i video (tipicamente assente per video inviati dall'utente, video datati o già scaricati per intero). Sui dati di test la copertura è ~32%. I video scoperti restano col placeholder play: scelta voluta per non riempire la cache con copie di file interi. Il video resta comunque riproducibile al tap.
+
+### Gestione dimensione cache (cap LRU)
+
+I file copiati restano in `cacheDir`. Le anteprime video non copiano più il file (usano la thumbnail dal DB), ma riproduzione al tap e zoom immagini copiano comunque file interi. Senza pulizia la cache crescerebbe, quindi `RootFileFetcher` applica un **cap LRU**:
+
+- Tetto massimo `MAX_CACHE_BYTES = 250 MB` sul totale dei file `media_*.tmp`.
+- Dopo ogni nuova copia, `trimCacheIfNeeded` elimina i file meno usati di recente finché il totale rientra sotto soglia.
+- LRU basato su `lastModified`, aggiornato (touch) a ogni riuso: i file aperti spesso sopravvivono, i vecchi vengono sfoltiti per primi.
+- Il file appena copiato è il più recente: eliminato per ultimo, mai prima di essere letto.
+- Trim serializzato (`synchronized`) per evitare race tra copie concorrenti su dispatcher IO di Coil.
 
 ### Cache
 
@@ -502,7 +532,7 @@ Le statistiche media hanno cache dedicata con chiavi `media_global_v3` e `media_
 
 **Indice gzipped** — Un indice persistente e gzippato dei file multimediali viene salvato su disco. All'apertura della galleria, l'indice viene caricato in parallelo con la query SQL, eliminando completamente la scansione sequenziale del filesystem. Se l'indice non esiste o è obsoleto (mismatch SHA-256 del DB), viene eseguita una scansione one-time del filesystem per ricostruirlo.
 
-**Supporto Sent** — `RootFileFetcher` tenta il lookup nella directory `/Sent/` per i media inviati, risolvendo correttamente i percorsi per i file multimediali inviati dall'utente.
+**Cache root-copy** — I file copiati via root restano in `cacheDir` tra le sessioni. Successive aperture non pagano la latenza root per lo stesso path. Un cap LRU (250 MB) sfoltisce automaticamente i file meno usati. Le anteprime video in griglia non generano copie: usano la thumbnail dal DB, quindi la cache si riempie solo all'apertura/zoom effettivo dei media.
 
 **Risultato** — Tempo di caricamento passato da secondi a millisecondi nelle riaperture consecutive.
 

@@ -55,6 +55,7 @@ import com.whatstats.data.db.model.MediaStat
 import com.whatstats.ui.MainViewModel
 import com.whatstats.ui.component.DynamicLoadingPill
 import com.whatstats.ui.component.LoadingProgressSlot
+import com.whatstats.ui.component.RootFileFetcher
 import com.whatstats.ui.component.ScrollToEdgeFab
 import com.whatstats.ui.component.TimeRangeFilterRow
 import com.whatstats.ui.component.ads.BottomBannerAd
@@ -560,14 +561,20 @@ internal suspend fun getShareableUri(
                     tempFile
                 } else {
                     val srcFile = File(filePath)
-                    if (!srcFile.exists()) return@withContext null
                     val tempFile = File(context.cacheDir, srcFile.name)
-                    srcFile.inputStream().use { input ->
-                        tempFile.outputStream().use { output ->
-                            input.copyTo(output)
+                    // Prova lettura diretta (dir private app). Se fallisce — path
+                    // Scoped Storage WhatsApp senza MANAGE_EXTERNAL_STORAGE — copia
+                    // via root in cacheDir e usa quella per FileProvider.
+                    try {
+                        srcFile.inputStream().use { input ->
+                            tempFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
                         }
+                        tempFile
+                    } catch (e: Exception) {
+                        RootFileFetcher.copyToCache(context, filePath) ?: return@withContext null
                     }
-                    tempFile
                 }
 
             FileProvider.getUriForFile(
