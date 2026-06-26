@@ -332,6 +332,7 @@
     <string name="tutorial_skip">Gec</string>
     <string name="tutorial_next">Ileri</string>
     <string name="tutorial_start">Basla</string>
+    <string name="tutorial_next_wait">Bekle %ds</string>
     <string name="tutorial_title_welcome">WhatStat\'e hos geldiniz</string>
     <string name="tutorial_desc_welcome">WhatsApp sohbetlerinizi guvenle analiz edin. Verileriniz cihazdan cikmaz.</string>
     <string name="tutorial_title_modes">Iki mod</string>

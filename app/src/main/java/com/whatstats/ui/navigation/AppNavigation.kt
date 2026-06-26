@@ -199,6 +199,7 @@ fun appNavigation(
 
         if (showTutorial) {
             TutorialOverlay(
+                isFirstView = !hasSeenTutorial,
                 onComplete = { mainViewModel.completeTutorial() },
             )
         }

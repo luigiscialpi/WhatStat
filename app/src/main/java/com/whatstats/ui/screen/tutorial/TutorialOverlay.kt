@@ -1,11 +1,14 @@
 package com.whatstats.ui.screen.tutorial
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,7 +47,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,11 +74,33 @@ import kotlinx.coroutines.launch
 
 private const val PAGE_COUNT = 7
 
+private const val IMPORT_PAGE = 2
+private const val COUNTDOWN_SECS = 15
+
 @Composable
-fun TutorialOverlay(onComplete: () -> Unit) {
+fun TutorialOverlay(
+    isFirstView: Boolean,
+    onComplete: () -> Unit,
+) {
     val colorScheme = MaterialTheme.colorScheme
     val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
     val scope = rememberCoroutineScope()
+
+    var importCountdownSecs by remember { mutableIntStateOf(COUNTDOWN_SECS) }
+    var importCountdownDone by remember { mutableStateOf(false) }
+
+    // Countdown runs only once per tutorial session.
+    // If the user already completed it and goes back, skip entirely.
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage == IMPORT_PAGE && !importCountdownDone) {
+            importCountdownSecs = COUNTDOWN_SECS
+            while (importCountdownSecs > 0) {
+                kotlinx.coroutines.delay(1_000L)
+                importCountdownSecs--
+            }
+            importCountdownDone = true
+        }
+    }
 
     Dialog(
         onDismissRequest = {},
@@ -77,20 +108,32 @@ fun TutorialOverlay(onComplete: () -> Unit) {
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = colorScheme.surface) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.End,
+                // Skip button: hidden on first-ever view, visible on re-open from drawer.
+                AnimatedVisibility(
+                    visible = !isFirstView,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
                 ) {
-                    TextButton(onClick = onComplete) {
-                        Text(stringResource(R.string.tutorial_skip))
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        TextButton(onClick = onComplete) {
+                            Text(stringResource(R.string.tutorial_skip))
+                        }
                     }
                 }
 
+                // Swipe locked while countdown is running on the import page.
+                val isOnImportPage = pagerState.currentPage == IMPORT_PAGE
+                val isNextLocked = isOnImportPage && !importCountdownDone
+
                 HorizontalPager(
                     state = pagerState,
+                    userScrollEnabled = !isNextLocked,
                     modifier = Modifier.weight(1f),
                 ) { page ->
                     when (page) {
@@ -133,6 +176,7 @@ fun TutorialOverlay(onComplete: () -> Unit) {
                     }
 
                     Button(
+                        enabled = !isNextLocked,
                         onClick = {
                             if (pagerState.currentPage == PAGE_COUNT - 1) {
                                 onComplete()
@@ -145,10 +189,13 @@ fun TutorialOverlay(onComplete: () -> Unit) {
                     ) {
                         Text(
                             text =
-                                if (pagerState.currentPage == PAGE_COUNT - 1) {
-                                    stringResource(R.string.tutorial_start)
-                                } else {
-                                    stringResource(R.string.tutorial_next)
+                                when {
+                                    isNextLocked ->
+                                        stringResource(R.string.tutorial_next_wait, importCountdownSecs)
+                                    pagerState.currentPage == PAGE_COUNT - 1 ->
+                                        stringResource(R.string.tutorial_start)
+                                    else ->
+                                        stringResource(R.string.tutorial_next)
                                 },
                         )
                     }

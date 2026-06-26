@@ -334,6 +334,7 @@
     <string name="tutorial_skip">Saltar</string>
     <string name="tutorial_next">Siguiente</string>
     <string name="tutorial_start">Comenzar</string>
+    <string name="tutorial_next_wait">Espera %ds</string>
     <string name="tutorial_title_welcome">Bienvenido a WhatStat</string>
     <string name="tutorial_desc_welcome">Analiza tus chats de WhatsApp de forma segura. Tus datos nunca salen del dispositivo.</string>
     <string name="tutorial_title_modes">Dos modos</string>

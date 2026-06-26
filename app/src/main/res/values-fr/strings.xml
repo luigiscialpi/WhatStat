@@ -332,6 +332,7 @@
     <string name="tutorial_skip">Passer</string>
     <string name="tutorial_next">Suivant</string>
     <string name="tutorial_start">Commencer</string>
+    <string name="tutorial_next_wait">Attendre %ds</string>
     <string name="tutorial_title_welcome">Bienvenue sur WhatStat</string>
     <string name="tutorial_desc_welcome">Analysez vos discussions WhatsApp en toute securite. Vos donnees ne quittent jamais l\'appareil.</string>
     <string name="tutorial_title_modes">Deux modes</string>

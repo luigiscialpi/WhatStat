@@ -332,6 +332,7 @@
     <string name="tutorial_skip">छोड़ें</string>
     <string name="tutorial_next">आगे</string>
     <string name="tutorial_start">शुरू करें</string>
+    <string name="tutorial_next_wait">%ds प्रतीक्षा करें</string>
     <string name="tutorial_title_welcome">WhatStat में आपका स्वागत है</string>
     <string name="tutorial_desc_welcome">अपनी WhatsApp चैट सुरक्षित तरीके से विश्लेषित करें। आपका डेटा कभी डिवाइस से बाहर नहीं जाता।</string>
     <string name="tutorial_title_modes">दो मोड</string>
