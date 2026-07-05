@@ -36,6 +36,8 @@ class TelemetryRepository
         private val random = SecureRandom()
         private var appOpenTracked = false
         private var lastScreenViewKey: String? = null
+        private var lastScreenName: String? = null
+        private var lastGraphName: String? = null
         private var installationBootstrapStarted = false
 
         private val isFirebaseAvailable: Boolean
@@ -92,6 +94,8 @@ class TelemetryRepository
             graphName: String,
         ) {
             val screenKey = "$graphName|$screenName"
+            lastScreenName = screenName
+            lastGraphName = graphName
             if (screenKey == lastScreenViewKey) return
             lastScreenViewKey = screenKey
             setMode(graphName)
@@ -105,6 +109,23 @@ class TelemetryRepository
                         "screen_name" to screenName,
                         "graph_name" to graphName,
                         "mode_root_or_lite" to graphName,
+                    ),
+            )
+        }
+
+        fun trackOverlayView(overlayName: String) {
+            val underlyingScreen = lastScreenName ?: "unknown"
+            val mode = lastGraphName ?: "unknown"
+            logIfAllowed(
+                eventName = "overlay_view",
+                extra =
+                    bundleOf(
+                        "ws_overlay_name" to overlayName,
+                        "overlay_name" to overlayName,
+                        "ws_screen_name" to underlyingScreen,
+                        "screen_name" to underlyingScreen,
+                        "ws_mode" to mode,
+                        "mode_root_or_lite" to mode,
                     ),
             )
         }

@@ -108,6 +108,7 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstats.R
 import com.whatstats.data.root.FileExtractor
+import com.whatstats.telemetry.TrackOverlayView
 import com.whatstats.ui.component.AnimatedInfoButton
 import com.whatstats.ui.component.DoubleBackToExitHandler
 import com.whatstats.ui.component.LocalDrawerState
@@ -577,6 +578,7 @@ fun senderSelectionDialog(
     senders: List<String>,
     onSenderSelected: (String) -> Unit,
 ) {
+    TrackOverlayView("sender_selection")
     Dialog(onDismissRequest = { /* Obbligatorio selezionare */ }) {
         Card(
             modifier =
@@ -796,6 +798,7 @@ private fun liteTabContent(
  */
 @Composable
 private fun liteGuideDialog(onDismiss: () -> Unit) {
+    TrackOverlayView("lite_guide")
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {

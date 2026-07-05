@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.whatstats.R
+import com.whatstats.telemetry.TrackOverlayView
 import com.whatstats.ui.MainViewModel
 import com.whatstats.ui.theme.senderPieColors
 
@@ -45,6 +46,7 @@ fun SenderColorPickerDialog(
     onColorChosen: (Int) -> Unit,
     onReset: () -> Unit,
 ) {
+    TrackOverlayView("sender_color_picker")
     val mainVm: MainViewModel = hiltViewModel()
     val appLang by mainVm.appLanguage.collectAsState()
     val palette =

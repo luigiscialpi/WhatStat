@@ -15,19 +15,19 @@
           "defaultValue": {
             "value": "full"
           },
-          "description": "Modalità tracking. Valori: full (traccia tutto) | minimal (solo app_opened + screen_view) | off (niente)."
+          "description": "Modalità tracking. Valori: full (traccia tutto) | minimal (solo app_opened, screen_view_custom, analysis_started, analysis_completed; overlay_view escluso) | off (niente)."
         },
         "tracking_allowed_events_csv": {
           "defaultValue": {
-            "value": "screen_view_custom,screen_time,app_opened"
+            "value": ""
           },
-          "description": "Whitelist CSV eventi. Se non vuoto, SOLO questi passano. Eventi app: app_opened, screen_view_custom, cta_click, screen_time. Eventi supportati dal flow analysis/minimal: analysis_started, analysis_completed."
+          "description": "Whitelist CSV eventi. Se non vuoto, SOLO questi passano. Eventi app: app_opened, screen_view_custom, overlay_view, cta_click, screen_time. Eventi supportati dal flow analysis/minimal: analysis_started, analysis_completed."
         },
         "tracking_blocked_events_csv": {
           "defaultValue": {
-            "value": "cta_click,analysis_started,analysis_completed,content_inspected"
+            "value": ""
           },
-          "description": "Blacklist CSV eventi da bloccare. Eventi app: app_opened, screen_view_custom, cta_click, screen_time. Eventi supportati dal flow analysis/minimal: analysis_started, analysis_completed."
+          "description": "Blacklist CSV eventi da bloccare. Eventi app: app_opened, screen_view_custom, overlay_view, cta_click, screen_time. Eventi supportati dal flow analysis/minimal: analysis_started, analysis_completed."
         },
         "tracking_sampling_percent": {
           "defaultValue": {

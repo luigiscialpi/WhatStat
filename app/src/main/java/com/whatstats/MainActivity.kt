@@ -27,6 +27,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.rememberNavController
 import com.whatstats.data.repository.WhatsAppRepository
 import com.whatstats.data.store.ThemeMode
+import com.whatstats.telemetry.TrackOverlayView
 import com.whatstats.ui.MainViewModel
 import com.whatstats.ui.navigation.appNavigation
 import com.whatstats.ui.theme.WhatStatTheme
@@ -113,6 +114,7 @@ class MainActivity : ComponentActivity() {
                 val remoteWarningState by mainViewModel.remoteWarningState.collectAsState()
                 if (forceUpdateState is ForceUpdateState.Required) {
                     val msg = (forceUpdateState as ForceUpdateState.Required).customMessage
+                    TrackOverlayView("force_update")
                     AlertDialog(
                         onDismissRequest = {},
                         title = { Text(stringResource(R.string.force_update_dialog_title)) },
@@ -129,6 +131,7 @@ class MainActivity : ComponentActivity() {
                     )
                 } else if (remoteWarningState is RemoteWarningState.Visible) {
                     val payload = (remoteWarningState as RemoteWarningState.Visible).payload
+                    TrackOverlayView("remote_warning")
                     AlertDialog(
                         onDismissRequest = { mainViewModel.dismissRemoteWarning() },
                         title = {

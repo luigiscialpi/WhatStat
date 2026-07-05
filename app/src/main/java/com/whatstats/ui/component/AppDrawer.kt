@@ -51,6 +51,7 @@ import com.whatstats.BuildConfig
 import com.whatstats.MainActivity
 import com.whatstats.R
 import com.whatstats.data.store.ThemeMode
+import com.whatstats.telemetry.TrackOverlayView
 import com.whatstats.ui.MainViewModel
 import kotlinx.coroutines.launch
 
@@ -299,6 +300,7 @@ private fun ThemeSelectionDialog(
     onModeSelected: (ThemeMode) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    TrackOverlayView("theme_selection")
     val mainVm: MainViewModel = hiltViewModel()
     val appLang by mainVm.appLanguage.collectAsState()
     key(appLang) {
@@ -348,6 +350,7 @@ private fun LanguageSelectionDialog(
     onLangSelected: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    TrackOverlayView("language_selection")
     val mainVm: MainViewModel = hiltViewModel()
     val appLang by mainVm.appLanguage.collectAsState()
     key(appLang) {

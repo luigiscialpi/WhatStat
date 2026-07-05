@@ -40,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.whatstats.R
 import com.whatstats.data.db.model.DateRange
+import com.whatstats.telemetry.TrackOverlayView
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -215,6 +216,7 @@ fun DateRangePicker(
                     },
             )
 
+        TrackOverlayView("date_picker_start")
         DatePickerDialog(
             onDismissRequest = { showStartPicker = false },
             confirmButton = {
@@ -274,6 +276,7 @@ fun DateRangePicker(
                     },
             )
 
+        TrackOverlayView("date_picker_end")
         DatePickerDialog(
             onDismissRequest = { showEndPicker = false },
             confirmButton = {

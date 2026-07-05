@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.whatstats.R
+import com.whatstats.telemetry.TrackOverlayView
 import kotlinx.coroutines.launch
 
 private const val PAGE_COUNT = 7
@@ -82,6 +83,7 @@ fun TutorialOverlay(
     isFirstView: Boolean,
     onComplete: () -> Unit,
 ) {
+    TrackOverlayView("tutorial")
     val colorScheme = MaterialTheme.colorScheme
     val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
     val scope = rememberCoroutineScope()

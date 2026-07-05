@@ -70,6 +70,7 @@ import coil.decode.VideoFrameDecoder
 import coil.request.ImageRequest
 import com.whatstats.R
 import com.whatstats.data.db.model.MediaStat
+import com.whatstats.telemetry.TrackOverlayView
 import com.whatstats.ui.MainViewModel
 import com.whatstats.ui.component.AnimatedInfoButton
 import com.whatstats.ui.component.AutoMarquee
@@ -98,6 +99,7 @@ internal fun MediaGallerySheet(
     isLiteMode: Boolean = false,
     showNativeAds: Boolean = false,
 ) {
+    TrackOverlayView("media_gallery")
     val mainVm: MainViewModel = hiltViewModel()
     val appLang by mainVm.appLanguage.collectAsState()
     val scope = androidx.compose.runtime.rememberCoroutineScope()

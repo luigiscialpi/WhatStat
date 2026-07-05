@@ -33,6 +33,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.whatstats.R
 import com.whatstats.data.db.model.SenderStat
+import com.whatstats.telemetry.TrackOverlayView
 import com.whatstats.ui.theme.getSenderColor
 import com.whatstats.ui.theme.senderColorOverrideKey
 
@@ -47,6 +48,7 @@ fun ActivityDetailDialog(
     senderColorArgbOverrides: Map<String, Int> = emptyMap(),
     onDismiss: () -> Unit,
 ) {
+    TrackOverlayView("activity_detail")
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),

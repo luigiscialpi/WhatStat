@@ -72,6 +72,7 @@ import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstats.R
+import com.whatstats.telemetry.TrackOverlayView
 import com.whatstats.ui.component.ads.BottomBannerAd
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -102,6 +103,7 @@ fun ZoomableImageGallery(
     showNativeAds: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    TrackOverlayView("image_viewer")
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()

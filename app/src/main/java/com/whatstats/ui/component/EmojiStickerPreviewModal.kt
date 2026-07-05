@@ -30,6 +30,7 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstats.R
+import com.whatstats.telemetry.TrackOverlayView
 import java.io.File
 
 @Composable
@@ -39,6 +40,7 @@ fun EmojiPreviewModal(
     count: Int,
     onDismiss: () -> Unit,
 ) {
+    TrackOverlayView("emoji_preview")
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier =
@@ -87,6 +89,7 @@ fun StickerPreviewModal(
     isLiteMode: Boolean = false,
     litePath: String? = null,
 ) {
+    TrackOverlayView("sticker_preview")
     val context = LocalContext.current
     val stickerPaths =
         listOf(

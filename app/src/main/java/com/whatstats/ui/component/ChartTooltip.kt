@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.whatstats.telemetry.TrackOverlayView
 
 @Composable
 @Suppress("FunctionName")
@@ -23,6 +24,7 @@ fun ChartTooltip(
     value: String,
     onDismiss: () -> Unit,
 ) {
+    TrackOverlayView("chart_tooltip")
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier =

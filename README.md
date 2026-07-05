@@ -1464,6 +1464,8 @@ In questo README manteniamo una vista sintetica. I dettagli operativi (runbook, 
 
 - Telemetria GA4 centralizzata in `TelemetryRepository` con regole di gating da Remote Config.
 - Kill switch globale (`tracking_enabled_global`) e controllo selettivo con mode, allow/block list, sampling e cap giornaliero.
+- Identificazione anonima e persistente dell'installazione via `installation_id` (Firebase Installations), impostato come User Property.
+- Tracking schermate (`screen_view_custom`) e overlay/dialog (`overlay_view`).
 - Forced update gestito da `UpdateGate` con fallback Play Store.
 - Remote warning configurabile via JSON (`remote_warning_config`) con azioni `dismiss`, `open_url`, `open_play_store`.
 - Localizzazione messaggi remoto su 8 lingue (`it`, `en`, `es`, `fr`, `de`, `tr`, `pt_br`, `hi`).
@@ -1478,6 +1480,32 @@ In questo README manteniamo una vista sintetica. I dettagli operativi (runbook, 
 - Config JSON (`force_update_config`, `remote_warning_config`) per contenuti multi-lingua e comportamenti UI.
 
 Nota: per evitare drift tra documenti, ogni modifica operativa Firebase va aggiornata prima nel runbook dedicato e solo poi riflessa in questa sezione riassuntiva.
+
+### Identificazione installazione (`installation_id`)
+
+Identificatore anonimo e persistente dell'installazione, usato per correlare eventi dello stesso device senza dati personali.
+
+- Sorgente: Firebase Installations (`FirebaseInstallations.getInstance().id`).
+- Punto unico: `InstallationIdRepository` (nessuna chiamata diretta a `FirebaseInstallations` sparsa nel codice).
+- Cache locale su DataStore (`telemetry_installation_id` in `TelemetryPrefsStore`) per evitare fetch ripetuti.
+- Impostato come User Property `installation_id` in `TelemetryRepository.initialize()`, prima dei primi eventi.
+- Bootstrap asincrono su `Dispatchers.IO`: non blocca l'avvio. Gli eventi attendono al massimo 1500 ms tramite un gate leggero, poi partono comunque.
+- Se Firebase genera un nuovo ID (cambio device/reinstallazione), la User Property viene aggiornata al successivo avvio.
+
+### Tracking schermate e overlay
+
+Due eventi distinti, entrambi soggetti a gating Remote Config (sampling, cap, allow/block):
+
+| Evento | Sorgente | Nome in report |
+|--------|----------|----------------|
+| `screen_view_custom` | Cambio destinazione di navigazione (`AppNavigation`) | `ws_screen_name` |
+| `overlay_view` | Apertura di dialog/modal/bottom sheet non-navigazionali | `ws_overlay_name` |
+
+- Il reporting schermate automatico Firebase è disattivato (`google_analytics_automatic_screen_reporting_enabled = false`): le dimensioni integrate GA4 "Screen name"/"Screen class" restano `not_set`. Il nome reale della schermata sta nel parametro custom `ws_screen_name` (e `ws_overlay_name` per gli overlay). Per i report GA4 registrare queste come Custom Dimension event-scoped.
+- Gli overlay non sono destinazioni di navigazione: vengono tracciati con l'helper Composable `TrackOverlayView(name)`, che recupera `TelemetryRepository` via Hilt EntryPoint (stesso pattern di `DbThumbnailFetcher`) ed emette una sola volta per apertura (`LaunchedEffect`). Overlay coperti: tutorial, media gallery, image viewer, emoji/sticker preview, activity detail, sender color picker, chart tooltip, sender selection, guida Lite, selezione tema/lingua, date picker inizio/fine, force update, remote warning.
+- `overlay_view` non è incluso nei `minimalEvents`: in modalità tracking MINIMAL non viene inviato.
+
+File coinvolti: `telemetry/TelemetryRepository.kt` (eventi + User Property), `telemetry/InstallationIdRepository.kt` (Installation ID), `telemetry/TelemetryPrefsStore.kt` (cache locale), `telemetry/OverlayTracking.kt` (helper `TrackOverlayView` + EntryPoint), `ui/navigation/AppNavigation.kt` (trigger `screen_view_custom`).
 
 ### Placement pubblicitari
 
