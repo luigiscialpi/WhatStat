@@ -7,7 +7,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
@@ -83,15 +82,13 @@ fun WhatStatTheme(
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
-    // Imposta le system bars (status bar + navigation bar) trasparenti
+    // Le system bars restano trasparenti (edge-to-edge gestito da enableEdgeToEdge()).
+    // Su Android 15 (API 35) statusBarColor/navigationBarColor sono deprecati e ignorati:
+    // controlliamo solo l'aspetto chiaro/scuro delle icone tramite WindowInsetsController.
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            @Suppress("DEPRECATION")
-            window.statusBarColor = colorScheme.background.toArgb()
-            @Suppress("DEPRECATION")
-            window.navigationBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = !darkTheme
                 isAppearanceLightNavigationBars = !darkTheme
