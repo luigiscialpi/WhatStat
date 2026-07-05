@@ -36,6 +36,9 @@ class MessageDao
     constructor(
         private val database: DatabaseProvider,
     ) {
+        @Volatile
+        private var hasMessageMediaDurationColumn: Boolean? = null
+
         companion object {
             val STOP_WORDS: Set<String> =
                 setOf(
@@ -2847,11 +2850,24 @@ class MessageDao
             endTime: Long? = null,
             includeStickers: Boolean = false,
         ): List<MediaStat> {
+            val hasMediaDurationColumn =
+                hasMessageMediaDurationColumn ?: run {
+                    val hasColumn = hasColumn(tableName = "message_media", columnName = "media_duration")
+                    hasMessageMediaDurationColumn = hasColumn
+                    hasColumn
+                }
+            val messageMediaDurationExpr =
+                if (hasMediaDurationColumn) {
+                    "media_duration"
+                } else {
+                    "NULL AS media_duration"
+                }
+
             val queryBuilder =
                 StringBuilder(
                     """
                     WITH all_media AS (
-                        SELECT message_row_id, file_path, mime_type, media_duration FROM message_media
+                        SELECT message_row_id, file_path, mime_type, $messageMediaDurationExpr FROM message_media
                         UNION ALL
                         SELECT message_row_id, file_path, mime_type, NULL FROM addon_message_media
                     )
@@ -2948,6 +2964,26 @@ class MessageDao
                         )
                     }
                 }
+            }
+        }
+
+        private fun hasColumn(
+            tableName: String,
+            columnName: String,
+        ): Boolean {
+            val db = database.getMsgDb()
+            val cursor = db.rawQuery("PRAGMA table_info($tableName)", null)
+            return cursor.use {
+                val nameIndex = it.getColumnIndex("name")
+                while (it.moveToNext()) {
+                    if (nameIndex >= 0) {
+                        val value = it.getString(nameIndex)
+                        if (value.equals(columnName, ignoreCase = true)) {
+                            return true
+                        }
+                    }
+                }
+                false
             }
         }
 
