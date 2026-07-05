@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -25,6 +26,7 @@ class TelemetryPrefsStore
         companion object {
             private val DAILY_DATE_KEY = stringPreferencesKey("telemetry_daily_date")
             private val DAILY_COUNT_KEY = intPreferencesKey("telemetry_daily_count")
+            private val INSTALLATION_ID_KEY = stringPreferencesKey("telemetry_installation_id")
         }
 
         suspend fun canTrackEvent(dailyCap: Int): Boolean {
@@ -42,5 +44,13 @@ class TelemetryPrefsStore
                 preferences[DAILY_COUNT_KEY] = currentCount + 1
             }
             return canTrack
+        }
+
+        suspend fun getInstallationId(): String? = dataStore.data.first()[INSTALLATION_ID_KEY]
+
+        suspend fun setInstallationId(installationId: String) {
+            dataStore.edit { preferences ->
+                preferences[INSTALLATION_ID_KEY] = installationId
+            }
         }
     }

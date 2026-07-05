@@ -26,8 +26,8 @@ android {
         applicationId = "com.whatstats"
         minSdk = 26
         targetSdk = 36
-        versionCode = 27
-        versionName = "1.5.5"
+        versionCode = 28
+        versionName = "1.5.6"
         val admobAppId =
             project
                 .findProperty("ADMOB_APP_ID")
@@ -158,6 +158,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-config-ktx")
     implementation("com.google.firebase:firebase-crashlytics-ktx")
+    implementation("com.google.firebase:firebase-installations-ktx")
 
     // ── In-app updates ──────────────────────────────────────────
     implementation("com.google.android.play:app-update:2.1.0")
@@ -165,6 +166,7 @@ dependencies {
 
     // ── Coroutines ───────────────────────────────────────────────
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 
     // ── Hilt DI ──────────────────────────────────────────────────
     implementation("com.google.dagger:hilt-android:2.53.1")

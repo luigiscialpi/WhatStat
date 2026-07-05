@@ -16,7 +16,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.security.SecureRandom
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,11 +30,13 @@ class TelemetryRepository
     constructor(
         @ApplicationContext private val context: Context,
         private val prefsStore: TelemetryPrefsStore,
+        private val installationIdRepository: InstallationIdRepository,
     ) {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         private val random = SecureRandom()
         private var appOpenTracked = false
         private var lastScreenViewKey: String? = null
+        private var installationBootstrapStarted = false
 
         private val isFirebaseAvailable: Boolean
             get() = FirebaseApp.getApps(context).isNotEmpty()
@@ -42,18 +47,22 @@ class TelemetryRepository
         private val _isReady = MutableStateFlow(false)
         val isReady: StateFlow<Boolean> = _isReady.asStateFlow()
 
+        private val installationBootstrapReady = MutableStateFlow(false)
+
         private val firebaseAnalytics: FirebaseAnalytics?
             get() = if (isFirebaseAvailable) FirebaseAnalytics.getInstance(context) else null
 
         fun initialize() {
             if (!isFirebaseAvailable) {
                 debugTelemetry("init skip: firebase unavailable")
+                installationBootstrapReady.value = true
                 return
             }
             firebaseAnalytics?.setAnalyticsCollectionEnabled(true)
             firebaseAnalytics?.setUserProperty("app_version", BuildConfig.VERSION_NAME)
             firebaseAnalytics?.setUserProperty("app_version_code", BuildConfig.VERSION_CODE.toString())
             firebaseAnalytics?.setUserProperty("build_type", if (BuildConfig.DEBUG) "debug" else "release")
+            ensureInstallationIdBootstrap()
             debugTelemetry("init ok: analytics enabled")
             refreshRemoteConfig()
         }
@@ -246,27 +255,57 @@ class TelemetryRepository
             eventName: String,
             extra: Bundle = Bundle(),
         ) {
-            val config = _remoteConfig.value
-            if (!isFirebaseAvailable) {
-                debugTelemetry("drop $eventName: firebase unavailable")
-                return
-            }
-            if (!isEventAllowed(eventName, config)) {
-                debugTelemetry("drop $eventName: blocked by config")
-                return
-            }
-            if (!passesSampling(config.samplingPercent)) {
-                debugTelemetry("drop $eventName: sampling=${config.samplingPercent}")
-                return
-            }
-
             scope.launch {
+                waitInstallationBootstrapIfNeeded()
+                val config = _remoteConfig.value
+                if (!isFirebaseAvailable) {
+                    debugTelemetry("drop $eventName: firebase unavailable")
+                    return@launch
+                }
+                if (!isEventAllowed(eventName, config)) {
+                    debugTelemetry("drop $eventName: blocked by config")
+                    return@launch
+                }
+                if (!passesSampling(config.samplingPercent)) {
+                    debugTelemetry("drop $eventName: sampling=${config.samplingPercent}")
+                    return@launch
+                }
                 if (!prefsStore.canTrackEvent(config.dailyEventCapPerUser)) {
                     debugTelemetry("drop $eventName: cap=${config.dailyEventCapPerUser}")
                     return@launch
                 }
                 firebaseAnalytics?.logEvent(eventName, extra)
                 debugTelemetry("sent $eventName")
+            }
+        }
+
+        private fun ensureInstallationIdBootstrap() {
+            if (installationBootstrapStarted) return
+            installationBootstrapStarted = true
+            scope.launch {
+                try {
+                    val cachedId = installationIdRepository.getCachedInstallationId()
+                    if (!cachedId.isNullOrBlank()) {
+                        firebaseAnalytics?.setUserProperty("installation_id", cachedId)
+                    }
+
+                    val refreshedId = installationIdRepository.syncInstallationId()
+                    if (!refreshedId.isNullOrBlank() && refreshedId != cachedId) {
+                        firebaseAnalytics?.setUserProperty("installation_id", refreshedId)
+                    }
+                } finally {
+                    installationBootstrapReady.value = true
+                }
+            }
+        }
+
+        private suspend fun waitInstallationBootstrapIfNeeded() {
+            // Gate leggero: prova a far completare il sync dell'installation_id
+            // prima dei primi eventi, senza bloccare l'avvio dell'app.
+            withTimeoutOrNull(1_500L) {
+                installationBootstrapReady
+                    .filter { it }
+                    .first()
             }
         }
 
