@@ -18,6 +18,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -112,6 +113,16 @@ class MainActivity : ComponentActivity() {
             WhatStatTheme(darkTheme = darkTheme) {
                 val forceUpdateState by mainViewModel.forceUpdateState.collectAsState()
                 val remoteWarningState by mainViewModel.remoteWarningState.collectAsState()
+                val telemetryReady by mainViewModel.telemetryReady.collectAsState()
+
+                // Il Remote Config arriva in modo asincrono dopo il cold start.
+                // Rivaluta force update e warning appena la config e' pronta.
+                LaunchedEffect(telemetryReady) {
+                    if (telemetryReady) {
+                        mainViewModel.checkForUpdate()
+                        mainViewModel.checkRemoteWarning()
+                    }
+                }
                 if (forceUpdateState is ForceUpdateState.Required) {
                     val msg = (forceUpdateState as ForceUpdateState.Required).customMessage
                     TrackOverlayView("force_update")
@@ -124,7 +135,7 @@ class MainActivity : ComponentActivity() {
                             )
                         },
                         confirmButton = {
-                            TextButton(onClick = { openPlayStore() }) {
+                            TextButton(onClick = { mainViewModel.startForceUpdate(this@MainActivity) }) {
                                 Text(stringResource(R.string.force_update_dialog_button))
                             }
                         },
@@ -186,7 +197,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (::mainViewModel.isInitialized) {
-            mainViewModel.checkForUpdate(this)
+            mainViewModel.checkForUpdate()
             mainViewModel.checkRemoteWarning()
         }
     }
@@ -255,19 +266,5 @@ class MainActivity : ComponentActivity() {
 
         val path = uri.toString().lowercase()
         return path.endsWith(".zip") || path.contains(".zip?")
-    }
-
-    private fun openPlayStore() {
-        val packageName = "com.whatstats"
-        try {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName")))
-        } catch (_: Exception) {
-            startActivity(
-                Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("https://play.google.com/store/apps/details?id=$packageName"),
-                ),
-            )
-        }
     }
 }

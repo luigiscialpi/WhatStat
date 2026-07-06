@@ -34,10 +34,7 @@ class UpdateGate
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         }
 
-        fun check(
-            activity: Activity,
-            onPlayNotAvailable: (customMessage: String) -> Unit,
-        ) {
+        fun check(onForceUpdateRequired: (customMessage: String) -> Unit) {
             val remoteConfig =
                 try {
                     FirebaseRemoteConfig.getInstance()
@@ -50,8 +47,10 @@ class UpdateGate
                 return
             }
 
-            val customMessage = getLocalizedMessage(forceConfig.message)
+            onForceUpdateRequired(getLocalizedMessage(forceConfig.message))
+        }
 
+        fun startForceUpdate(activity: Activity) {
             val appUpdateManager = AppUpdateManagerFactory.create(context)
             appUpdateManager.appUpdateInfo
                 .addOnSuccessListener { info ->
@@ -68,13 +67,13 @@ class UpdateGate
                                 REQUEST_CODE,
                             )
                         } catch (_: Exception) {
-                            onPlayNotAvailable(customMessage)
+                            openPlayStore(activity)
                         }
                     } else {
-                        onPlayNotAvailable(customMessage)
+                        openPlayStore(activity)
                     }
                 }
-                .addOnFailureListener { onPlayNotAvailable(customMessage) }
+                .addOnFailureListener { openPlayStore(activity) }
         }
 
         fun getRemoteWarning(): RemoteWarningPayload? {

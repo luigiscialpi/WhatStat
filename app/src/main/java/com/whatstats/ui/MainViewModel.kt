@@ -73,15 +73,21 @@ class MainViewModel
         private val _remoteWarningState = MutableStateFlow<RemoteWarningState>(RemoteWarningState.Hidden)
         val remoteWarningState: StateFlow<RemoteWarningState> = _remoteWarningState.asStateFlow()
 
+        val telemetryReady: StateFlow<Boolean> = telemetryRepository.isReady
+
         fun initializeTelemetry() {
             telemetryRepository.initialize()
         }
 
-        fun checkForUpdate(activity: Activity) {
+        fun checkForUpdate() {
             if (_forceUpdateState.value is ForceUpdateState.Required) return
-            updateGate.check(activity) { customMessage ->
+            updateGate.check { customMessage ->
                 _forceUpdateState.value = ForceUpdateState.Required(customMessage)
             }
+        }
+
+        fun startForceUpdate(activity: Activity) {
+            updateGate.startForceUpdate(activity)
         }
 
         fun checkRemoteWarning() {
