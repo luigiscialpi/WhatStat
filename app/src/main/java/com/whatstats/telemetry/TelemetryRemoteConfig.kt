@@ -14,8 +14,8 @@ data class TelemetryRemoteConfig(
     val allowedEvents: Set<String> = emptySet(),
     val blockedEvents: Set<String> = emptySet(),
     val samplingPercent: Int = 100,
-    val dailyEventCapPerUser: Int = 200,
-    val configTtlMinutes: Long = 10_080,
+    val dailyEventCapPerUser: Int = 400,
+    val configTtlMinutes: Long = 1,
 ) {
     companion object {
         fun defaults() = TelemetryRemoteConfig()
