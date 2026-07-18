@@ -26,7 +26,7 @@ android {
         applicationId = "com.whatstats"
         minSdk = 26
         targetSdk = 36
-        versionCode = 30
+        versionCode = 31
         versionName = "1.5.8"
         val admobAppId =
             project
