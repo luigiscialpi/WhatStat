@@ -368,6 +368,10 @@ private fun LanguageSelectionDialog(
                     LanguageEntry("pt_BR", "Português (BR)", currentLang, onLangSelected)
                     LanguageEntry("tr", "Türkçe", currentLang, onLangSelected)
                     LanguageEntry("hi", "हिन्दी", currentLang, onLangSelected)
+                    LanguageEntry("in", "Bahasa Indonesia", currentLang, onLangSelected)
+                    LanguageEntry("kk", "Қазақша", currentLang, onLangSelected)
+                    LanguageEntry("ro", "Română", currentLang, onLangSelected)
+                    LanguageEntry("ru", "Русский", currentLang, onLangSelected)
                 }
             },
             confirmButton = {

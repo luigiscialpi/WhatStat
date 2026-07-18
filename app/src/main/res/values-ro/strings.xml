@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WhatStat</string>
+
+    <!-- Navigation & Common -->
+    <string name="back_desc">Înapoi</string>
+    <string name="back_button_desc">Înapoi la pagina anterioară</string>
+    <string name="cancel">Anulează</string>
+    <string name="save">Salvează</string>
+    <string name="delete">Șterge</string>
+    <string name="retry">Reîncearcă</string>
+    <string name="error_title">EROARE</string>
+    <string name="exit_toast">Apasă încă o dată pentru a ieși</string>
+    <string name="processing">Se procesează…</string>
+    <string name="loading">Se încarcă…</string>
+    <string name="loading_domains">Se calculează domeniile…</string>
+    <string name="loading_media_gallery">Se încarcă galeria…</string>
+    <string name="loading_messages_preview">Se încarcă previzualizarea…</string>
+    <string name="show_more">Afișează tot</string>
+    <string name="show_more_with_count">Afișează tot (%d)</string>
+    <string name="show_less">Afișează mai puțin</string>
+    <string name="info_dialog_title">Informații</string>
+    <string name="ho_capito">Am înțeles</string>
+    <string name="ok">OK</string>
+    <string name="add_zip_title">Adaugă ZIP</string>
+    <string name="select_zip_file">SELECTEAZĂ FIȘIERUL ZIP</string>
+    <string name="processing_label">Se procesează...</string>
+    <string name="nav_dashboard">Tablou de bord</string>
+    <string name="nav_chats">Chaturi</string>
+    <string name="nav_media">Media</string>
+    <string name="nav_radar">Radar</string>
+    <string name="nav_calls">Apeluri</string>
+    <string name="close">Închide</string>
+    <string name="activity_breakdown_title">Detalierea activității</string>
+    <string name="activity_breakdown_subtitle">Total %d mesaje</string>
+    <string name="sender_color_picker_title">Culoare pentru %1$s</string>
+    <string name="sender_color_picker_subtitle">Alege o culoare: aceasta se va aplica diagramei circulare și graficelor de activitate din acest chat.</string>
+    <string name="sender_color_reset">Revino la setările implicite</string>
+    <string name="sender_color_change_cd">Schimbă culoarea acestui participant</string>
+
+    <string name="group_history_title">Istoric grup</string>
+    <string name="group_history_no_events">Nu a fost găsit niciun istoric al evenimentelor pentru acest grup.</string>
+    <string name="group_history_info_title">Istoric grup</string>
+    <string name="group_history_info_text">Acest ecran afișează istoricul complet al grupului în ordine cronologică.\n\nÎn partea stângă apar schimbările de nume și descriere, cu textul vechi și cel nou.\n\nÎn partea dreaptă apar acțiunile privind participanții: adăugați, eliminați, promovați ca admin și părăsirea grupului.\n\nFiecare eveniment arată membrul implicat, avatarul, precum și data și ora exactă.</string>
+    <string name="history_legend_names">Nume</string>
+    <string name="history_legend_descriptions">Descrieri</string>
+    <string name="history_legend_io">Intrări/Ieșiri</string>
+
+    <string name="tab_hourly">Orar</string>
+    <string name="tab_weekly">Săptămânal</string>
+    <string name="tab_daily">Zilnic</string>
+    <string name="tab_monthly">Lunar</string>
+    <string name="tab_yearly">Anual</string>
+    <string name="activity_hourly_title">Distribuție pe ore</string>
+    <string name="activity_weekly_title">Activitate săptămânală</string>
+    <string name="activity_daily_title">Zilele lunii (1-31)</string>
+    <string name="activity_monthly_title">Sezonier (Ian-Dec)</string>
+    <string name="activity_yearly_title">Tendință de-a lungul anilor</string>
+    <string name="click_hour_format">Ora %d:00</string>
+    <string name="click_day_prefix">Ziua %s</string>
+    <string name="click_year_prefix">Anul %s</string>
+
+    <!-- Setup Screen -->
+    <string name="setup_title">WhatStat</string>
+    <string name="setup_subtitle">Analiză completă a chaturilor tale WhatsApp.\nToate datele rămân pe dispozitiv.</string>
+    <string name="tab_lite">Lite</string>
+    <string name="tab_root">Root</string>
+    <string name="permesso_notifiche_toast">Permisiunea de notificare este necesară pentru a monitoriza procesul în fundal</string>
+    <string name="lite_import_notification_channel_name">Import Chat Lite</string>
+    <string name="lite_import_notification_channel_desc">Afișează progresul importului chatului Lite</string>
+    <string name="lite_import_notification_title">Import Chat Lite</string>
+    <string name="lite_import_notification_starting">Se pornește...</string>
+    <string name="importing_overlay">Se importă chatul…</string>
+    <string name="checking_data_overlay">Se verifică datele…</string>
+    <string name="who_are_you_title">Cine ești tu?</string>
+    <string name="who_are_you_desc">Selectează-ți numele din listă pentru a diferenția mesajele trimise de cele primite.</string>
+    <string name="lite_import_extract_zip">Se extrage ZIP-ul…</string>
+    <string name="lite_import_error_no_txt">Nu a fost găsit niciun fișier .txt în interiorul ZIP-ului</string>
+    <string name="lite_import_read_messages">Se citesc mesajele…</string>
+    <string name="lite_import_analyze_media">Se analizează fișierele media…</string>
+    <string name="lite_import_save_db">Se salvează baza de date…</string>
+    <string name="lite_import_write_db_progress">Se scrie în DB: %d%%</string>
+    <string name="lite_import_select_owner">Selectează numele tău…</string>
+    <string name="lite_import_error_no_chat_to_finalize">Nu există niciun chat importat de finalizat</string>
+    <string name="lite_import_finalize_owner">Se finalizează expeditorul…</string>
+    <string name="lite_import_completed">Finalizat</string>
+    <string name="lite_hint_import_found">Au fost găsite date importate anterior. Poți accesa tabloul de bord sau poți importa un alt chat dintr-un fișier ZIP.</string>
+    <string name="lite_hint_no_import">Nu au fost încă importate date. Te rugăm să încarci un chat WhatsApp exportat ca fișier ZIP.</string>
+    <string name="go_to_dashboard">Mergi la Tabloul de bord</string>
+    <string name="import_zip_button">Importă chat dintr-un fișier ZIP</string>
+    <string name="root_step_access">Acces root</string>
+    <string name="root_step_extraction">Extragere fișiere</string>
+    <string name="root_step_decryption">Decriptare bază de date</string>
+    <string name="root_step_contacts">Citire contacte</string>
+    <string name="root_hint_session_found">A fost găsită o sesiune Root salvată. Poți accesa tabloul de bord sau poți începe o nouă analiză.</string>
+    <string name="root_hint_no_session">Nu există nicio sesiune Root activă. Pornește o analiză pentru a extrage cele mai recente date.</string>
+    <string name="manual_mode_button">Selectează manual fișierele</string>
+    <string name="manual_mode_title">Opțiune manuală (Fără Root)</string>
+    <string name="manual_file_key">Fișier cheie (key)</string>
+    <string name="manual_file_crypt14">Bază de date (msgstore.db.crypt14)</string>
+    <string name="manual_file_decrypted">Bază de date deja decriptată (msgstore.db)</string>
+    <string name="manual_file_wadb">Contacte (wa.db) - Opțional</string>
+    <string name="lite_open_whatsapp_button">Trimite din WhatsApp</string>
+    <string name="lite_whatsapp_not_installed">WhatsApp nu este instalat</string>
+    <string name="lite_guide_cd">Cum se exportă chatul</string>
+    <string name="lite_guide_title">Cum se exportă chatul</string>
+    <string name="lite_guide_step1">Deschide WhatsApp pe dispozitivul tău.</string>
+    <string name="lite_guide_step2">Deschide un chat, apasă pe cele trei puncte (...) din dreapta sus și selectează Mai multe &gt; Exportați chatul.</string>
+    <string name="lite_guide_step3">Alege Fără fișiere media sau Includeți fișierele media &lt;b&gt;(recomandat!)&lt;/b&gt;, apoi apasă pe Trimite.</string>
+    <string name="lite_guide_step4">Din meniul de trimitere, selectează WhatStat: chatul va fi importat automat. Alternativ, salvează fișierul ZIP (sau roagă un prieten să ți-l trimită!) și importă-l manual folosind butonul de mai jos.</string>
+    <string name="start_analysis">Pornește analiza</string>
+    <string name="decrypt_db_button">Decriptează baza de date</string>
+    <string name="button_replace">Înlocuiește</string>
+    <string name="button_select">Selectează</string>
+    <string name="setup_cancelled">Operațiune anulată</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Tablou de bord</string>
+    <string name="lite_mode_badge">MOD LITE (ZIP)</string>
+    <string name="stat_total_messages">Total mesaje</string>
+    <string name="stat_avg_per_day">Medie/zi</string>
+    <string name="stat_active_chats">Chaturi active</string>
+    <string name="stat_longest_streak">Cea mai lungă serie</string>
+    <string name="stat_streak_days">%d zile</string>
+    <string name="stat_contacts">Contacte</string>
+    <string name="stat_total_media">Fișiere media</string>
+    <string name="stat_most_active_chat">Cel mai activ chat</string>
+    <string name="lexical_analysis_title">Analiză lexicală</string>
+    <string name="lexical_analysis_subtitle">Cele mai folosite cuvinte și emoji-uri</string>
+    <string name="lexical_analysis_info">Această analiză ar putea dura câteva secunde - sau chiar câteva minute!</string>
+    <string name="run_analysis_button">Pornește analiza</string>
+    <string name="text_analysis_title">Analiză text</string>
+    <string name="text_analysis_subtitle">Cele mai folosite cuvinte, emoji-uri și stickere</string>
+    <string name="tab_words">Cuvinte</string>
+    <string name="tab_emojis">Emoji-uri</string>
+    <string name="tab_stickers">Stickere</string>
+    <string name="no_words_found">Nu s-au găsit cuvinte</string>
+    <string name="no_emojis_found">Nu s-au găsit emoji-uri</string>
+    <string name="sticker_info_hint">Stickerele similare pot apărea de mai multe ori deoarece WhatsApp le salvează ca fișiere separate.</string>
+    <string name="no_stickers_found">Nu s-au găsit stickere</string>
+    <string name="no_data_for_period">Nu există date pentru această perioadă</string>
+
+    <!-- Errors (Service) -->
+    <string name="error_root_not_available">Root-ul nu este disponibil. Asigură-te că Magisk este instalat și că aplicația are permisiuni de root.</string>
+    <string name="error_root_not_granted">Permisiunea de root a fost refuzată. Deschide Magisk și acordă permisiunea pentru WhatStat.</string>
+    <string name="error_key_not_found">Fișierul cheie nu a fost găsit. Este WhatsApp instalat?</string>
+    <string name="error_crypt14_not_found">Baza de date criptată nu a fost găsită. Asigură-te că backup-ul local este activ în WhatsApp.</string>
+    <string name="error_crypt15_detected">A fost detectat un backup crypt15 (E2E). Dezactivează backup-ul criptat capăt-la-capăt din setările WhatsApp.</string>
+    <string name="error_decryption_failed">Decriptarea a eșuat: %s</string>
+    <string name="error_database_open">Nu s-a putut deschide baza de date: %s</string>
+    <string name="error_unknown">Eroare neașteptată: %s</string>
+
+    <!-- Chat List -->
+    <string name="chatlist_title">Chaturile tale</string>
+    <string name="chatlist_search_hint">Caută un chat…</string>
+    <string name="chatlist_count_suffix">%d chaturi</string>
+    <string name="add_zip_fab">Adaugă ZIP</string>
+    <string name="delete_chat_title">Șterge chatul</string>
+    <string name="delete_chat_confirm">Vrei să ștergi \"%s\" și toate mesajele sale?</string>
+    <string name="rename_chat_title">Redenumește chatul</string>
+    <string name="chat_name_label">Numele chatului</string>
+    <string name="exported_on_prefix">Exportat la: %s</string>
+    <string name="messages_count_suffix">%,d mesaje</string>
+    <string name="messages_label">mesaje</string>
+
+    <!-- Chat Detail -->
+    <string name="chatdetail_sent">Trimise</string>
+    <string name="chatdetail_received">Primite</string>
+    <string name="chatdetail_top_sender_title">Cine scrie cel mai mult</string>
+    <string name="top_senders_info_title">Informații despre acest grafic</string>
+    <string name="top_senders_info_desc">Această diagramă circulară arată cum sunt distribuite mesajele între participanții la acest chat.\n\n💡 Sugestie: apasă pe caseta de culoare de lângă nume pentru a alege o culoare personalizată pentru acel participant.</string>
+    <string name="fallback_them">Ei</string>
+    <string name="fallback_me">Tu</string>
+    <string name="activity_period_label">Perioada de activitate</string>
+    <string name="avg_response_time">Timp mediu de răspuns</string>
+    <string name="media_length_label">Lungimea medie a mesajelor</string>
+    <string name="chatdetail_words_per_msg">Cuvinte / mesaj</string>
+    <string name="chatdetail_emoji_per_msg">Emoji-uri / mesaj</string>
+    <string name="stat_split_format">%1$s: %2$s • %3$s: %4$s</string>
+    <string name="chars_abbr">car.</string>
+    <string name="conv_starters_title">Cine începe conversațiile</string>
+    <string name="conv_starters_center">conversații</string>
+    <string name="view_mode_all">Toți</string>
+    <string name="view_mode_person">Per persoană</string>
+    <string name="conv_starters_info">O nouă conversație este contorizată atunci când un mesaj este trimis după cel puțin 3 ore de liniște de la mesajul anterior.\n\n💡 Sugestie: apasă pe caseta de culoare de lângă nume pentru a personaliza culoarea acelui participant.</string>
+    
+    <!-- Action Cards -->
+    <string name="radar_parole_title">Radar Cuvinte</string>
+    <string name="radar_parole_sub">Caută cuvinte frecvente</string>
+    <string name="log_chiamate_title">Jurnal Apeluri</string>
+    <string name="log_chiamate_sub">Audio, video, ratate</string>
+    <string name="media_link_title">Media &amp; Linkuri</string>
+    <string name="media_link_sub">Documente și URL-uri</string>
+    <string name="group_history_sub">Evenimente grup</string>
+
+    <!-- Units & Time -->
+    <string name="unit_hours">h</string>
+    <string name="unit_minutes">m</string>
+    <string name="unit_min_full">minute</string>
+    <string name="less_than_one_min">&lt;1 minut</string>
+
+    <!-- Radar Parole -->
+    <string name="word_search_placeholder">Caută un cuvânt sau o frază…</string>
+    <string name="suggested_words_label">Cuvinte sugerate</string>
+    <string name="search_button">Caută</string>
+    <string name="no_results_word">Nu s-au găsit mesaje pentru acest cuvânt.</string>
+    <string name="results_for">Rezultate pentru</string>
+    <string name="occurrences_by_sender">Apariții per expeditor</string>
+    <string name="message_preview_title">Previzualizare mesaj</string>
+    <string name="sort_newest">Cele mai noi</string>
+    <string name="sort_oldest">Cele mai vechi</string>
+    <string name="load_more">Încarcă mai multe</string>
+    <string name="word_search_hint_min">Introdu cel puțin 2 caractere pentru a căuta</string>
+    <string name="word_search_invite">Pornește căutarea apăsând pe pictograma lupă</string>
+    <string name="filter_multi">Multi</string>
+    <string name="and_label">ȘI</string>
+    <string name="or_label">SAU</string>
+    <string name="month_jan">Ian</string>
+    <string name="month_feb">Feb</string>
+    <string name="month_mar">Mar</string>
+    <string name="month_apr">Apr</string>
+    <string name="month_may">Mai</string>
+    <string name="month_jun">Iun</string>
+    <string name="month_jul">Iul</string>
+    <string name="month_aug">Aug</string>
+    <string name="month_sep">Sep</string>
+    <string name="month_oct">Oct</string>
+    <string name="month_nov">Noi</string>
+    <string name="month_dec">Dec</string>
+
+    <string name="day_sunday">Duminică</string>
+    <string name="day_monday">Luni</string>
+    <string name="day_tuesday">Marți</string>
+    <string name="day_wednesday">Miercuri</string>
+    <string name="day_thursday">Joi</string>
+    <string name="day_friday">Vineri</string>
+    <string name="day_saturday">Sâmbătă</string>
+
+    <string name="month_january">Ianuarie</string>
+    <string name="month_february">Februarie</string>
+    <string name="month_march">Martie</string>
+    <string name="month_april">Aprilie</string>
+    <string name="month_may_full">Mai</string>
+    <string name="month_june">Iunie</string>
+    <string name="month_july">Iulie</string>
+    <string name="month_august">August</string>
+    <string name="month_september">Septembrie</string>
+    <string name="month_october">Octombrie</string>
+    <string name="month_november">Noiembrie</string>
+    <string name="month_december">Decembrie</string>
+    <string name="radar_info_text">Radarul analizează frecvența cuvintelor în mesaje.\n\nComportament standard:\n• Căutarea găsește toate aparițiile cuvântului, chiar dacă este inclus în alte cuvinte (de exemplu, „casă” va găsi și „căsătorie”).\n• Sugestiile apar după 3 caractere și arată cele mai folosite cuvinte.\n\nOpțiuni de căutare:\n• Aa: Activează sensibilitatea la majuscule (case-sensitive).\n• ab: Caută doar cuvântul exact, ignorând potrivirile parțiale.\n• ?: Afișează doar mesajele care conțin un semn de întrebare.\n• Multi: Apasă pentru a schimba modul:\n   - Multi: Caută fraza exactă.\n   - Multi: ȘI: Caută mesajele care conțin TOATE cuvintele (AND).\n   - Multi: SAU: Caută mesajele care conțin CEL PUȚIN UN cuvânt (OR).</string>
+
+    <!-- Media & Link -->
+    <string name="tab_media">Galerie media</string>
+    <string name="tab_links">Linkuri trimise</string>
+    <string name="search_links_placeholder">Caută un link sau domeniu…</string>
+    <string name="type_images">Foto</string>
+    <string name="type_videos">Video</string>
+    <string name="type_audio">Audio</string>
+    <string name="type_docs">Documente</string>
+    <string name="unit_mb">MB</string>
+    <string name="unit_gb">GB</string>
+    <string name="links_grouped_domain">Linkuri trimise grupate pe domeniu</string>
+    <string name="last_link_prefix">Ultimul link: %s</string>
+    <string name="sent_by_prefix">Trimis de: %s</string>
+    <string name="media_info_title">Informații despre Media</string>
+    <string name="media_info_text_global">Contoarele includ Fotografiile și Videoclipurile schimbate de-a lungul timpului.\n\nButoanele arată istoricul total absolut, în timp ce în galerie sunt încărcate doar fișierele care mai există în telefon (cele șterse nu pot fi afișate).\n\n💡 Sugestie: apasă pe numărul de fișiere media sau linkuri pentru a vedea mai multe detalii 😉</string>
+    <string name="media_info_text_gallery">Galeria afișează doar fișierele prezente în prezent pe telefon. Contoarele și detaliile pot fi mai mari deoarece includ și fișierele media șterse în timp.\n\n💡 Sugestie: apasă lung pe un fișier media pentru a-l selecta și trimite.</string>
+    <string name="error_open_file">Nu s-a putut deschide fișierul</string>
+    <string name="back_to_all_links">Toate linkurile</string>
+    <string name="avatar_desc">Avatar</string>
+    <string name="domain_no_stats">Nu sunt disponibile statistici pentru domeniu.</string>
+    <string name="selected_count">%d selectate</string>
+
+    <!-- Calls Stats -->
+    <string name="total_calls_label">Total apeluri</string>
+    <string name="call_type_audio">Audio</string>
+    <string name="call_type_video">Video</string>
+    <string name="call_type_missed">Ratate</string>
+    <string name="total_duration_label">Durată totală</string>
+    <string name="search_calls_placeholder">Caută contact sau dată…</string>
+    <string name="no_calls_found">Nu s-au găsit apeluri</string>
+    <string name="call_audio_label">Apel audio</string>
+    <string name="call_video_label">Apel video</string>
+    <string name="call_missed_label">Apel ratat</string>
+    <string name="call_outgoing">Efectuat</string>
+    <string name="call_incoming">Primit</string>
+    <string name="calls_summary_title">Rezumat</string>
+    <string name="calls_total_label">Total</string>
+    <string name="calls_grouped_stats">Statistici apeluri</string>
+    <string name="calls_grouped_person">Detaliere per persoană</string>
+    <string name="calls_log_title">Jurnal Apeluri</string>
+
+    <!-- Days of week -->
+    <string name="day_sun">Dum</string>
+    <string name="day_mon">Lun</string>
+    <string name="day_tue">Mar</string>
+    <string name="day_wed">Mie</string>
+    <string name="day_thu">Joi</string>
+    <string name="day_fri">Vin</string>
+    <string name="day_sat">Sâm</string>
+    <string name="total_duration">Durată totală: %s</string>
+    <string name="date_from">De la</string>
+    <string name="date_to">Până la</string>
+    <string name="clear">Șterge</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_title">Predicție Target</string>
+    <string name="prediction_info_title">Informații despre predicții</string>
+    <string name="prediction_info_desc">Predicția estimează când vei atinge un anumit target în viitor, pe baza ritmului mesajelor tale recente.\n\nRitmul este calculat folosind mesajele trimise în perioada selectată. Dacă modifici filtrul de timp, predicția se va actualiza în consecință.</string>
+    <string name="prediction_custom">Personalizat</string>
+    <string name="prediction_target_label">Target personalizat</string>
+    <string name="prediction_target_placeholder">ex: 50000</string>
+    <string name="prediction_error_already_reached">Targetul a fost deja atins!</string>
+    <string name="prediction_unavailable">Predicția nu este disponibilă</string>
+    <string name="prediction_estimated_date">Dată estimată</string>
+    <string name="prediction_date_unavailable">Dată indisponibilă</string>
+    <string name="prediction_uncalculable">Nu se poate calcula</string>
+    <string name="prediction_reached">Atins</string>
+    <string name="prediction_low_confidence">Estimare mai puțin stabilă</string>
+    <string name="prediction_period_filtered_label">Pe baza ritmului din perioada selectată</string>
+
+    <!-- Time Range Filters -->
+    <string name="time_range_label">Perioada analizată</string>
+    <string name="time_range_all">Toată</string>
+    <string name="time_range_30_days">30 zile</string>
+    <string name="time_range_6_months">6 luni</string>
+    <string name="time_range_year">An</string>
+    <string name="time_range_custom">Personalizată</string>
+    <string name="time_range_custom_button">Personalizată</string>
+
+    <!-- Tutorial -->
+    <string name="drawer_tutorial">Ghid introductiv</string>
+    <string name="tutorial_skip">Omite</string>
+    <string name="tutorial_next">Înainte</string>
+    <string name="tutorial_start">Pornește</string>
+    <string name="tutorial_next_wait">Așteaptă %ds</string>
+    <string name="tutorial_title_welcome">Bun venit la WhatStat</string>
+    <string name="tutorial_desc_welcome">Analizează chaturile WhatsApp în siguranță. Datele tale nu părăsesc niciodată dispozitivul.</string>
+    <string name="tutorial_title_modes">Două moduri</string>
+    <string name="tutorial_desc_modes">Root: analiză completă din baza de date directă. Lite: importă fișiere ZIP create din WhatsApp prin Exportați chatul, fără root.</string>
+    <string name="tutorial_title_import">Cum se importă un chat</string>
+    <string name="tutorial_import_step_1">Deschide WhatsApp pe dispozitivul tău.</string>
+    <string name="tutorial_import_step_2">Deschide chatul, apasă pe cele trei puncte (...) din dreapta sus, apoi pe Mai multe &gt; Exportați chatul.</string>
+    <string name="tutorial_import_step_3">Selectează Includeți fișierele media (recomandat), apoi apasă pe Trimite.</string>
+    <string name="tutorial_import_step_4">Alege WhatStat din meniul de trimitere, sau salvează ZIP-ul și importă-l manual.</string>
+    <string name="tutorial_title_dashboard">Tablou de bord și statistici</string>
+    <string name="tutorial_desc_dashboard">Vezi dintr-o privire totalurile, graficele de activitate, detalierea pe expeditori și tendințele.</string>
+    <string name="tutorial_title_radar">Radar cuvinte</string>
+    <string name="tutorial_desc_radar">Caută cuvinte în chat cu detaliere pe expeditori și previzualizare completă a mesajelor, plus filtre avansate.</string>
+    <string name="tutorial_radar_previews_badge">Previzualizări mesaje evidențiate</string>
+    <string name="tutorial_radar_search_example">Caută un cuvânt sau o frază…</string>
+    <string name="tutorial_radar_keyword">casă</string>
+    <string name="tutorial_radar_preview_before">„… am văzut</string>
+    <string name="tutorial_radar_preview_after">ieri, căutai același lucru? …”</string>
+    <string name="tutorial_radar_preview_1">[Previzualizare] „... îți trimit fișierul mâine ...”</string>
+    <string name="tutorial_radar_preview_2">[Previzualizare] „... unde ai văzut acel cuvânt?”</string>
+    <string name="tutorial_radar_preview_3">[Previzualizare] „... verific mai întâi în previzualizare ...”</string>
+    <string name="tutorial_modes_root_sub">Analiză completă din DB-ul direct, necesită root.</string>
+    <string name="tutorial_modes_lite_sub">Import ZIP din WhatsApp, fără root.</string>
+    <string name="tutorial_title_media">Galerie media</string>
+    <string name="tutorial_desc_media">Explorează fotografii, videoclipuri, fișiere audio și linkuri cu statistici bogate și previzualizări rapide.</string>
+    <string name="tutorial_title_ready">Pregătit</string>
+    <string name="tutorial_desc_ready">Apasă pe Pornește pentru a rula prima ta analiză. Poți redeschide acest ghid din meniu oricând dorești.</string>
+
+    <!-- Drawer -->
+    <string name="drawer_app_name">WhatStat</string>
+    <string name="whatstat_drawer_theme">Tema aplicației</string>
+    <string name="whatstat_drawer_language">Schimbă limba</string>
+    <string name="whatstat_drawer_cache">Șterge datele</string>
+    <string name="drawer_ads_privacy_options">Opțiuni confidențialitate reclame</string>
+    <string name="whatstat_drawer_about">Despre</string>
+    <string name="dialog_choose_theme">Alege tema</string>
+    <string name="theme_system_default">Setarea implicită a sistemului</string>
+    <string name="theme_light">Luminoasă</string>
+    <string name="theme_dark">Întunecată</string>
+    <string name="dialog_choose_language">Alege limba</string>
+    <string name="dialog_cancel">Anulează</string>
+    <string name="dialog_clear_cache_title">Șterge datele</string>
+    <string name="dialog_clear_data_message_root">Baza de date extrasă, avatarele și memoria cache Root vor fi șterse definitiv. Va trebui să configurezi din nou modul Root.</string>
+    <string name="dialog_clear_data_message_lite">Toate chaturile importate, fișierele media și memoria cache Lite vor fi șterse definitiv. Va trebui să imporți din nou chaturile.</string>
+    <string name="dialog_clear_data_message_both">Toate datele vor fi șterse definitiv: baza de date Root, toate chaturile Lite importate, fișierele media și memoria cache. Va trebui să configurezi totul de la început.</string>
+    <string name="dialog_clear">Șterge</string>
+    <string name="dialog_about_title">Despre</string>
+    <string name="dialog_about_message">WhatStat\nVersiune: %s\n\nWhatStat procesează chaturile WhatsApp complet local. Nicio dată nu este trimisă către servere externe.</string>
+    <string name="dialog_close">Închide</string>
+    <string name="force_update_dialog_title">Actualizare obligatorie</string>
+    <string name="force_update_dialog_message_default">O nouă versiune WhatStat este disponibilă. Te rugăm să o actualizezi pentru a continua.</string>
+    <string name="force_update_dialog_button">Actualizează</string>
+    <string name="loading_calculating">Se calculează...</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_messages_format">%s mesaje</string>
+    <string name="prediction_daily_rate_format">Ritm: %.1f mesaje/zi</string>
+    <string name="days_remaining_format">%d zile</string>
+    <string name="month_remaining_format">1 lună</string>
+    <string name="months_remaining_format">%d luni</string>
+    <string name="year_remaining_format">1 an</string>
+    <string name="years_remaining_format">%d ani</string>
+
+    <!-- New DB Update -->
+    <string name="new_db_available_title">Backup nou detectat</string>
+    <string name="new_db_available_desc">Un nou backup WhatsApp este disponibil. Vrei să actualizezi datele WhatStat?</string>
+    <string name="new_db_update_button">Actualizează acum</string>
+
+    <!-- Lite fallback chat names -->
+    <string name="lite_fallback_chat_name">Chat importat</string>
+    <string name="lite_fallback_group_name">Grup importat</string>
+
+    <!-- Emoji / Sticker preview -->
+    <string name="used_n_times">Folosit de %1$s ori</string>
+
+    <!-- SetupService notification -->
+    <string name="setup_service_channel_name">Configurare WhatStat</string>
+    <string name="setup_service_channel_desc">Afișează progresul decriptării</string>
+    <string name="setup_service_notif_title">Decriptare bază de date</string>
+    <string name="setup_service_progress">Progres: %d%%</string>
+    <string name="setup_service_starting">Se pornește…</string>
+
+    <!-- Errors -->
+    <string name="error_decryption_error">Eroare de decriptare: %s</string>
+    <string name="error_extraction">Eroare la extragerea fișierelor: %s</string>
+    <string name="error_unknown_simple">Eroare necunoscută</string>
+    <string name="error_db_unavailable">Bază de date indisponibilă</string>
+    <string name="error_file_read_detail">Eroare la citirea fișierului: %s</string>
+    <string name="error_with_detail">Eroare: %s</string>
+
+    <!-- Easter Egg -->
+    <string name="easter_egg_pro_unlocked">Versiunea Pro a fost deblocată! Un cadou de la Luigi Scialpi 😉</string>
+
+    <!-- Rewarded Insights -->
+    <string name="rewarded_unlock_prompt_title">Deblochează statistici avansate</string>
+    <string name="rewarded_unlock_prompt_message">Urmărește o scurtă reclamă pentru a deblocat predicțiile și graficele zilnice, lunare și anuale timp de 2 ore.</string>
+    <string name="rewarded_unlock_button">Deblochează cu o reclamă</string>
+    <string name="rewarded_unlock_tabs_success_2h_toast">Graficele zilnice, lunare și anuale au fost deblocate timp de 2 ore.</string>
+    <string name="rewarded_unlock_prediction_success_2h_toast">Predicțiile au fost deblocate timp de 2 ore.</string>
+    <string name="rewarded_unlock_success_2h_toast">Statisticile avansate au fost deblocate timp de 2 ore.</string>
+    <string name="rewarded_unlock_not_available_toast">Reclama nu este disponibilă în acest moment. Reîncearcă în curând.</string>
+
+    <!-- Domain Breakdown Sheet -->
+    <string name="domain_analysis_title">Analiză linkuri</string>
+    <string name="link_sort_label">Ordonează după: </string>
+    <string name="link_sort_more_recent">Cele mai noi</string>
+    <string name="share_media">Trimite fișierul media</string>
+    <string name="share">Trimite</string>
+    <string name="selected">Selectat</string>
+    <string name="media_label">media</string>
+    <string name="link_label">link</string>
+    <string name="link_preview_toggle">Afișează previzualizarea linkului</string>
+    <string name="link_preview_loading">Se încarcă previzualizarea…</string>
+    <string name="link_preview_unavailable">Previzualizarea nu este disponibilă pentru acest link.</string>
+    <string name="link_info_title">Informații despre linkuri</string>
+    <string name="link_info_text">Aici poți explora toate linkurile trimise în acest chat, grupate după site-ul web.\n\nApasă pe un domeniu pentru a-l extinde și a vedea URL-urile individuale. Fiecare link arată data ultimei trimiteri.\n\nFolosește glisorul de sus pentru a filtra rezultatele într-un interval de date.\n\n💡 Sugestie: apasă pe săgeata de lângă un link pentru a încărca o previzualizare rapidă cu titlul, imaginea și numele site-ului — fără a deschide browserul.</string>
+    <string name="link_sort_less_recent">Cele mai vechi</string>
+    <string name="image_desc">Imagine</string>
+    <string name="menu_desc">Meniu</string>
+    <string name="scroll_to_top">Mergi sus</string>
+    <string name="info_desc">Info</string>
+</resources>

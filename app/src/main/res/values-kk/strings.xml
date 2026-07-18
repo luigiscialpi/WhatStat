@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WhatStat</string>
+
+    <!-- Navigation & Common -->
+    <string name="back_desc">Артқа</string>
+    <string name="back_button_desc">Артқа қайту</string>
+    <string name="cancel">Бас тарту</string>
+    <string name="save">Сақтау</string>
+    <string name="delete">Жою</string>
+    <string name="retry">Қайталау</string>
+    <string name="error_title">ҚАТЕ</string>
+    <string name="exit_toast">Шығу үшін тағы бір рет басыңыз</string>
+    <string name="processing">Өңделуде…</string>
+    <string name="loading">Жүктелуде…</string>
+    <string name="loading_domains">Домендерді есептеу…</string>
+    <string name="loading_media_gallery">Галереяны жүктеу…</string>
+    <string name="loading_messages_preview">Алдын ала қарауды жүктеу…</string>
+    <string name="show_more">Барлығын көрсету</string>
+    <string name="show_more_with_count">Барлығын көрсету (%d)</string>
+    <string name="show_less">Азырақ көрсету</string>
+    <string name="info_dialog_title">Ақпарат</string>
+    <string name="ho_capito">Түсінікті</string>
+    <string name="ok">OK</string>
+    <string name="add_zip_title">ZIP қосу</string>
+    <string name="select_zip_file">ZIP ФАЙЛЫН ТАҢДАУ</string>
+    <string name="processing_label">Өңделуде...</string>
+    <string name="nav_dashboard">Басты бет</string>
+    <string name="nav_chats">Чаттар</string>
+    <string name="nav_media">Медиа</string>
+    <string name="nav_radar">Радар</string>
+    <string name="nav_calls">Қоңыраулар</string>
+    <string name="close">Жабу</string>
+    <string name="activity_breakdown_title">Белсенділік мәліметтері</string>
+    <string name="activity_breakdown_subtitle">Жалпы %d хабарлама</string>
+    <string name="sender_color_picker_title">%1$s үшін түс таңдау</string>
+    <string name="sender_color_picker_subtitle">Түсті таңдаңыз: бұл түс осы чаттағы дөңгелек диаграммалар мен белсенділік графиктерінде қолданылады.</string>
+    <string name="sender_color_reset">Әдепкі түсті қайтару</string>
+    <string name="sender_color_change_cd">Осы қатысушының түсін өзгерту</string>
+
+    <string name="group_history_title">Топ тарихы</string>
+    <string name="group_history_no_events">Бұл топ үшін ешқандай тарихи оқиға табылмады.</string>
+    <string name="group_history_info_title">Топ тарихы</string>
+    <string name="group_history_info_text">Бұл экран топтың толық тарихын хронологиялық тәртіппен көрсетеді.\n\nСол жақта атаулар мен сипаттамалардың бұрынғы және жаңа мәтіндерімен өзгертілуі көрсетіледі.\n\nОң жақта қатысушыларға қатысты әрекеттер көрсетіледі: қосылғандар, жойылғандар, әкімші мәртебесін алғандар және топтан шыққандар.\n\nӘрбір оқиғада оған қатысты мүше, аватар, нақты күні мен уақыты көрсетіледі.</string>
+    <string name="history_legend_names">Атаулар</string>
+    <string name="history_legend_descriptions">Сипаттамалар</string>
+    <string name="history_legend_io">Кіру/Шығу</string>
+
+    <string name="tab_hourly">Сағаттық</string>
+    <string name="tab_weekly">Апталық</string>
+    <string name="tab_daily">Күндік</string>
+    <string name="tab_monthly">Айлық</string>
+    <string name="tab_yearly">Жылдық</string>
+    <string name="activity_hourly_title">Сағат бойынша үлестірім</string>
+    <string name="activity_weekly_title">Апталық белсенділік</string>
+    <string name="activity_daily_title">Айдың күндері (1-31)</string>
+    <string name="activity_monthly_title">Маусымдылық (Қаң-Жел)</string>
+    <string name="activity_yearly_title">Жылдар бойынша тренд</string>
+    <string name="click_hour_format">Сағат %d:00</string>
+    <string name="click_day_prefix">%s күні</string>
+    <string name="click_year_prefix">%s жыл</string>
+
+    <!-- Setup Screen -->
+    <string name="setup_title">WhatStat</string>
+    <string name="setup_subtitle">WhatsApp чаттарыңыздың толық талдауы.\nБарлық деректер құрылғыңызда қалады.</string>
+    <string name="tab_lite">Lite</string>
+    <string name="tab_root">Root</string>
+    <string name="permesso_notifiche_toast">Фондық режимдегі процесті қадағалау үшін хабарландыру рұқсаты қажет</string>
+    <string name="lite_import_notification_channel_name">Lite чаттарын импорттау</string>
+    <string name="lite_import_notification_channel_desc">Lite чаттарын импорттау барысын көрсетеді</string>
+    <string name="lite_import_notification_title">Lite chat импорты</string>
+    <string name="lite_import_notification_starting">Іске қосылуда...</string>
+    <string name="importing_overlay">Чат импортталуда…</string>
+    <string name="checking_data_overlay">Деректер тексерілуде…</string>
+    <string name="who_are_you_title">Сіз кімсіз?</string>
+    <string name="who_are_you_desc">Жіберілген және қабылданған хабарламаларды ажырату үшін тізімнен өз атыңызды таңдаңыз.</string>
+    <string name="lite_import_extract_zip">ZIP мұрағатын ашу…</string>
+    <string name="lite_import_error_no_txt">ZIP ішінен ешқандай .txt файлы табылмады</string>
+    <string name="lite_import_read_messages">Хабарламаларды оқу…</string>
+    <string name="lite_import_analyze_media">Медианы талдау…</string>
+    <string name="lite_import_save_db">Деректер базасын сақтау…</string>
+    <string name="lite_import_write_db_progress">Деректер базасына жазу: %d%%</string>
+    <string name="lite_import_select_owner">Өз атыңызды таңдаңыз…</string>
+    <string name="lite_import_error_no_chat_to_finalize">Аяқтау үшін импортталған чат табылған жоқ</string>
+    <string name="lite_import_finalize_owner">Жіберушіні нақтылау…</string>
+    <string name="lite_import_completed">Аяқталды</string>
+    <string name="lite_hint_import_found">Бұрын импортталған деректер табылды. Бақылау тақтасына өтуге немесе басқа ZIP чатын импорттауға болады.</string>
+    <string name="lite_hint_no_import">Ешқандай дерек импортталмаған. Экспортталған WhatsApp чатын ZIP файлы ретінде жүктеңіз.</string>
+    <string name="go_to_dashboard">Шолуға өту</string>
+    <string name="import_zip_button">Чатты ZIP файлынан импорттау</string>
+    <string name="root_step_access">Root рұқсаты</string>
+    <string name="root_step_extraction">Файлды шығару</string>
+    <string name="root_step_decryption">Деректер базасының шифрын шешу</string>
+    <string name="root_step_contacts">Контактілерді оқу</string>
+    <string name="root_hint_session_found">Сақталған Root сессиясы табылды. Бақылау тақтасына өтуге немесе жаңа талдауды бастауға болады.</string>
+    <string name="root_hint_no_session">Белсенді Root сессиясы жоқ. Жаңартылған деректерді шығару үшін талдауды бастаңыз.</string>
+    <string name="manual_mode_button">Файлды қолмен таңдау</string>
+    <string name="manual_mode_title">Қолмен реттеу параметрлері (Root-сыз)</string>
+    <string name="manual_file_key">Кілт файлы (key)</string>
+    <string name="manual_file_crypt14">Деректер базасы (msgstore.db.crypt14)</string>
+    <string name="manual_file_decrypted">Шифры шешілген деректер базасы (msgstore.db)</string>
+    <string name="manual_file_wadb">Контактілер (wa.db) - Қосымша</string>
+    <string name="lite_open_whatsapp_button">WhatsApp-тан бөлісу</string>
+    <string name="lite_whatsapp_not_installed">WhatsApp орнатылмаған</string>
+    <string name="lite_guide_cd">Чатты қалай экспорттау керек</string>
+    <string name="lite_guide_title">Чатты қалай экспорттау керек</string>
+    <string name="lite_guide_step1">Құрылғыңызда WhatsApp қолданбасын ашыңыз.</string>
+    <string name="lite_guide_step2">Чатты ашып, жоғарғы оң жақ бұрыштағы үш нүктені (...) басыңыз, содан кейін "Чатты экспорттау" түймесін түртіңіз.</string>
+    <string name="lite_guide_step3">"Медиасыз" немесе "Медианы қосу" &lt;b&gt;(ұсынылады!)&lt;/b&gt; опциясын таңдап, "Бөлісу" түймесін басыңыз.</string>
+    <string name="lite_guide_step4">Бөлісу мәзірінен WhatStat қолданбасын таңдаңыз: чат автоматты түрде импортталады. Сонымен қатар, ZIP файлын сақтап (немесе досыңыздан жіберуді сұрап!), төмендегі түйме арқылы қолмен импорттай аласыз.</string>
+    <string name="start_analysis">Талдауды бастау</string>
+    <string name="decrypt_db_button">Деректер базасының шифрын шешу</string>
+    <string name="button_replace">Ауыстыру</string>
+    <string name="button_select">Таңдау</string>
+    <string name="setup_cancelled">Операциядан бас тартылды</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Шолу</string>
+    <string name="lite_mode_badge">LITE РЕЖИМІ (ZIP)</string>
+    <string name="stat_total_messages">Жалпы хабарламалар</string>
+    <string name="stat_avg_per_day">Орташа/күн сайын</string>
+    <string name="stat_active_chats">Белсенді чаттар</string>
+    <string name="stat_longest_streak">Ең ұзақ серия</string>
+    <string name="stat_streak_days">%d күн</string>
+    <string name="stat_contacts">Контактілер</string>
+    <string name="stat_total_media">Медиа файлдар</string>
+    <string name="stat_most_active_chat">Ең белсенді чат</string>
+    <string name="lexical_analysis_title">Лексикалық талдау</string>
+    <string name="lexical_analysis_subtitle">Ең жиі қолданылатын сөздер мен эмодзилер</string>
+    <string name="lexical_analysis_info">Талдау бірнеше секунд немесе тіпті бірнеше минут алуы мүмкін!</string>
+    <string name="run_analysis_button">Талдауды іске қосу</string>
+    <string name="text_analysis_title">Мәтінді талдау</string>
+    <string name="text_analysis_subtitle">Жиі кездесетін сөздер, эмодзилер мен стикерлер</string>
+    <string name="tab_words">Сөздер</string>
+    <string name="tab_emojis">Эмодзилер</string>
+    <string name="tab_stickers">Стикерлер</string>
+    <string name="no_words_found">Ешқандай сөз табылмады</string>
+    <string name="no_emojis_found">Ешқандай эмодзи табылмады</string>
+    <string name="sticker_info_hint">Ұқсас стикерлер бірнеше рет пайда болуы мүмкін, өйткені WhatsApp оларды бөлек файлдар ретінде сақтайды.</string>
+    <string name="no_stickers_found">Ешқандай стикер табылмады</string>
+    <string name="no_data_for_period">Бұл кезең үшін деректер жоқ</string>
+
+    <!-- Errors (Service) -->
+    <string name="error_root_not_available">Root рұқсаты қолжетімді емес. Magisk орнатылғанына және қолданбаның root рұқсаты бар екеніне көз жеткізіңіз.</string>
+    <string name="error_root_not_granted">Root рұқсаты берілмеді. Magisk қолданбасын ашып, WhatStat-қа рұқсат беріңіз.</string>
+    <string name="error_key_not_found">Кілт файлы табылмады. WhatsApp орнатылған ба?</string>
+    <string name="error_crypt14_not_found">Шифрланған деректер базасы табылмады. WhatsApp-та жергілікті резервтік көшірме жасау белсенді екеніне көз жеткізіңіз.</string>
+    <string name="error_crypt15_detected">Crypt15 (E2E) резервтік көшірмесі анықталды. WhatsApp параметрлерінде ұшынан-ұшына шифрланған резервтік көшірмені өшіріңіз.</string>
+    <string name="error_decryption_failed">Шифрды шешу сәтсіз аяқталды: %s</string>
+    <string name="error_database_open">Деректер базасын ашу мүмкін емес: %s</string>
+    <string name="error_unknown">Күтпеген қате: %s</string>
+
+    <!-- Chat List -->
+    <string name="chatlist_title">Чаттарыңыз</string>
+    <string name="chatlist_search_hint">Чатты іздеу…</string>
+    <string name="chatlist_count_suffix">%d чат</string>
+    <string name="add_zip_fab">ZIP қосу</string>
+    <string name="delete_chat_title">Чатты жою</string>
+    <string name="delete_chat_confirm">\"%s\" чатын және оның барлық хабарламаларын жойғыңыз келе ме?</string>
+    <string name="rename_chat_title">Чат атауын өзгерту</string>
+    <string name="chat_name_label">Чат атауы</string>
+    <string name="exported_on_prefix">Экспортталған күні: %s</string>
+    <string name="messages_count_suffix">%,d хабарлама</string>
+    <string name="messages_label">хабарламалар</string>
+
+    <!-- Chat Detail -->
+    <string name="chatdetail_sent">Жіберілген</string>
+    <string name="chatdetail_received">Қабылданған</string>
+    <string name="chatdetail_top_sender_title">Кім көп жазады</string>
+    <string name="top_senders_info_title">Бұл график туралы ақпарат</string>
+    <string name="top_senders_info_desc">Бұл дөңгелек диаграмма хабарламалардың осы чат қатысушылары арасында қалай үлестірілгенін көрсетеді.\n\n💡 Кеңес: қатысушы үшін теңшелген түсті таңдау үшін есімнің жанындағы түсті шаршыны түртіңіз.</string>
+    <string name="fallback_them">Олар</string>
+    <string name="fallback_me">Сіз</string>
+    <string name="activity_period_label">Белсенділік кезеңі</string>
+    <string name="avg_response_time">Жауап берудің орташа уақыты</string>
+    <string name="media_length_label">Хабарламаның орташа ұзындығы</string>
+    <string name="chatdetail_words_per_msg">Сөз / хабарлама</string>
+    <string name="chatdetail_emoji_per_msg">Эмодзи / хабарлама</string>
+    <string name="stat_split_format">%1$s: %2$s • %3$s: %4$s</string>
+    <string name="chars_abbr">таңба</string>
+    <string name="conv_starters_title">Әңгімені кім бастайды</string>
+    <string name="conv_starters_center">әңгімелер</string>
+    <string name="view_mode_all">Барлығы</string>
+    <string name="view_mode_person">Адам бойынша</string>
+    <string name="conv_starters_info">Жаңа әңгіме алдыңғы хабарламадан кейін кем дегенде 3 сағаттық үнсіздіктен соң хабарлама жіберілгенде есептеледі.\n\n💡 Кеңес: сол қатысушының түсін өзгерту үшін есімнің жанындағы түсті шаршыны түртіңіз.</string>
+    
+    <!-- Action Cards -->
+    <string name="radar_parole_title">Сөздер радары</string>
+    <string name="radar_parole_sub">Жиі кездесетін сөздерді іздеу</string>
+    <string name="log_chiamate_title">Қоңыраулар журналы</string>
+    <string name="log_chiamate_sub">Аудио, видео, жауапсыз</string>
+    <string name="media_link_title">Медиа және сілтемелер</string>
+    <string name="media_link_sub">Құжаттар мен URL мекенжайлары</string>
+    <string name="group_history_sub">Топ оқиғалары</string>
+
+    <!-- Units & Time -->
+    <string name="unit_hours">сағ</string>
+    <string name="unit_minutes">мин</string>
+    <string name="unit_min_full">мин</string>
+    <string name="less_than_one_min">&lt;1 мин</string>
+
+    <!-- Radar Parole -->
+    <string name="word_search_placeholder">Сөзді немесе сөз тіркесін іздеу…</string>
+    <string name="suggested_words_label">Ұсынылатын сөздер</string>
+    <string name="search_button">Іздеу</string>
+    <string name="no_results_word">Бұл сөз бойынша ешқандай хабарлама табылмады.</string>
+    <string name="results_for">Нәтижелер:</string>
+    <string name="occurrences_by_sender">Жіберуші бойынша кездесу саны</string>
+    <string name="message_preview_title">Хабарламаларды алдын ала қарау</string>
+    <string name="sort_newest">Ең жаңа</string>
+    <string name="sort_oldest">Ең ескі</string>
+    <string name="load_more">Тағы жүктеу</string>
+    <string name="word_search_hint_min">Іздеу үшін кем дегенде 2 таңба енгізіңіз</string>
+    <string name="word_search_invite">Іздеуді бастау үшін үлкейткіш әйнек белгішесін басыңыз</string>
+    <string name="filter_multi">Мульти</string>
+    <string name="and_label">ЖӘНЕ</string>
+    <string name="or_label">НЕМЕСЕ</string>
+    <string name="month_jan">Қаң</string>
+    <string name="month_feb">Ақп</string>
+    <string name="month_mar">Нау</string>
+    <string name="month_apr">Сәу</string>
+    <string name="month_may">Мам</string>
+    <string name="month_jun">Мау</string>
+    <string name="month_jul">Шіл</string>
+    <string name="month_aug">Там</string>
+    <string name="month_sep">Қыр</string>
+    <string name="month_oct">Қаз</string>
+    <string name="month_nov">Қар</string>
+    <string name="month_dec">Жел</string>
+
+    <string name="day_sunday">Жексенбі</string>
+    <string name="day_monday">Дүйсенбі</string>
+    <string name="day_tuesday">Сейсенбі</string>
+    <string name="day_wednesday">Сәрсенбі</string>
+    <string name="day_thursday">Бейсенбі</string>
+    <string name="day_friday">Жұма</string>
+    <string name="day_saturday">Сенбі</string>
+
+    <string name="month_january">Қаңтар</string>
+    <string name="month_february">Ақпан</string>
+    <string name="month_march">Наурыз</string>
+    <string name="month_april">Сәуір</string>
+    <string name="month_may_full">Мамыр</string>
+    <string name="month_june">Маусым</string>
+    <string name="month_july">Шілде</string>
+    <string name="month_august">Тамыз</string>
+    <string name="month_september">Қыркүйек</string>
+    <string name="month_october">Қазан</string>
+    <string name="month_november">Қараша</string>
+    <string name="month_december">Желтоқсан</string>
+    <string name="radar_info_text">Радар хабарламалардағы сөздердің жиілігін талдайды.\n\nСтандартты мінез-құлық:\n• Іздеу сөздің барлық кездесетін тұстарын табады, тіпті ол басқа сөздің ішінде болса да (мысалы, \'үй\' сөзі \'үйшік\' сөзін де табады).\n• Ұсыныстар 3 таңбадан кейін пайда болады және ең көп қолданылатын сөздерді көрсетеді.\n\nІздеу параметрлері:\n• Aa: Бас және кіші әріптерді ажыратуды белсендіру.\n• ab: Тек нақты сөзді іздеу, ішінара сәйкестіктерді елемеу.\n• ?: Тек сұрақ белгісі бар хабарламаларды көрсету.\n• Мульти: Режимді өзгерту үшін басыңыз:\n   - Мульти: Нақты сөз тіркесін іздеу.\n   - Мульти: ЖӘНЕ: БАРЛЫҚ сөздерді қамтитын хабарламаларды іздеу (AND).\n   - Мульти: НЕМЕСЕ: КЕМ ДЕГЕНДЕ БІР сөзді қамтитын хабарламаларды іздеу (OR).</string>
+
+    <!-- Media & Link -->
+    <string name="tab_media">Медиа галереясы</string>
+    <string name="tab_links">Бөлісілген сілтемелер</string>
+    <string name="search_links_placeholder">Сілтемелерді немесе домендерді іздеу…</string>
+    <string name="type_images">Суреттер</string>
+    <string name="type_videos">Видеолар</string>
+    <string name="type_audio">Аудио</string>
+    <string name="type_docs">Құжаттар</string>
+    <string name="unit_mb">МБ</string>
+    <string name="unit_gb">ГБ</string>
+    <string name="links_grouped_domain">Домен бойынша топтастырылған сілтемелер</string>
+    <string name="last_link_prefix">Соңғы сілтеме: %s</string>
+    <string name="sent_by_prefix">Жіберуші: %s</string>
+    <string name="media_info_title">Медиа туралы ақпарат</string>
+    <string name="media_info_text_global">Есептегіштерге уақыт өте келе алмасылған фотосуреттер мен видеолар кіреді.\n\nТүймелер жалпы тарихи қорытындыны көрсетеді, ал галереяға тек телефонда әлі де бар файлдар жүктеледі (жойылғандары көрсетілмейді).\n\n💡 Кеңес: қосымша мәліметтерді көру үшін медиа немесе сілтемелер санын түртіңіз 😉</string>
+    <string name="media_info_text_gallery">Галереяда тек қазіргі уақытта телефонда бар файлдар көрсетіледі. Есептегіштер мен мәліметтер жоғарырақ болуы мүмкін, өйткені олар уақыт өте жойылған медианы да қамтиды.\n\n💡 Кеңес: медиа файлдарды таңдау және бөлісу үшін оларды басып тұрыңыз.</string>
+    <string name="error_open_file">Файлды ашу мүмкін емес</string>
+    <string name="back_to_all_links">Барлық сілтемелер</string>
+    <string name="avatar_desc">Аватар</string>
+    <string name="domain_no_stats">Қолжетімді домен статистикасы жоқ.</string>
+    <string name="selected_count">%d таңдалды</string>
+
+    <!-- Calls Stats -->
+    <string name="total_calls_label">Жалпы қоңыраулар</string>
+    <string name="call_type_audio">Аудио</string>
+    <string name="call_type_video">Видео</string>
+    <string name="call_type_missed">Жауапсыз</string>
+    <string name="total_duration_label">Жалпы ұзақтығы</string>
+    <string name="search_calls_placeholder">Контактілерді немесе күндерді іздеу…</string>
+    <string name="no_calls_found">Ешқандай қоңырау табылмады</string>
+    <string name="call_audio_label">Аудиоқоңырау</string>
+    <string name="call_video_label">Видеоқоңырау</string>
+    <string name="call_missed_label">Жауапсыз қоңырау</string>
+    <string name="call_outgoing">Шығыс</string>
+    <string name="call_incoming">Кіріс</string>
+    <string name="calls_summary_title">Қорытынды</string>
+    <string name="calls_total_label">Жалпы</string>
+    <string name="calls_grouped_stats">Қоңыраулар статистикасы</string>
+    <string name="calls_grouped_person">Адам бойынша мәліметтер</string>
+    <string name="calls_log_title">Қоңыраулар журналы</string>
+
+    <!-- Days of week -->
+    <string name="day_sun">Жек</string>
+    <string name="day_mon">Дүй</string>
+    <string name="day_tue">Сей</string>
+    <string name="day_wed">Сәр</string>
+    <string name="day_thu">Бей</string>
+    <string name="day_fri">Жұм</string>
+    <string name="day_sat">Сен</string>
+    <string name="total_duration">Жалпы ұзақтығы: %s</string>
+    <string name="date_from">Бастап</string>
+    <string name="date_to">Дейін</string>
+    <string name="clear">Тазалау</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_title">Мақсаттарды болжау</string>
+    <string name="prediction_info_title">Болжамдар туралы ақпарат</string>
+    <string name="prediction_info_desc">Болжамдар соңғы хабарлама жіберу қарқыныңызға сүйене отырып, болашақта белгілі бір межеге қашан жететіндігіңізді бағалайды.\n\nҚарқын таңдалған кезеңде жіберілген хабарламалар арқылы есептеледі. Егер уақыт сүзгісін өзгертсеңіз, болжам да сәйкесінше жаңартылады.</string>
+    <string name="prediction_custom">Теңшелген</string>
+    <string name="prediction_target_label">Теңшелген меже</string>
+    <string name="prediction_target_placeholder">мысалы, 50000</string>
+    <string name="prediction_error_already_reached">Межеге жеттіңіз!</string>
+    <string name="prediction_unavailable">Болжам қолжетімді емес</string>
+    <string name="prediction_estimated_date">Болжамды күн</string>
+    <string name="prediction_date_unavailable">Күн қолжетімді емес</string>
+    <string name="prediction_uncalculable">Есептеу мүмкін емес</string>
+    <string name="prediction_reached">Жетті</string>
+    <string name="prediction_low_confidence">Тұрақсыз бағалау</string>
+    <string name="prediction_period_filtered_label">Таңдалған кезеңнің қарқынына негізделген</string>
+
+    <!-- Time Range Filters -->
+    <string name="time_range_label">Талданған кезең</string>
+    <string name="time_range_all">Барлығы</string>
+    <string name="time_range_30_days">30 күн</string>
+    <string name="time_range_6_months">6 ай</string>
+    <string name="time_range_year">Жыл</string>
+    <string name="time_range_custom">Теңшелген</string>
+    <string name="time_range_custom_button">Теңшелген</string>
+
+    <!-- Tutorial -->
+    <string name="drawer_tutorial">Нұсқаулық</string>
+    <string name="tutorial_skip">Өткізіп жіберу</string>
+    <string name="tutorial_next">Келесі</string>
+    <string name="tutorial_start">Бастау</string>
+    <string name="tutorial_next_wait">%dс күтіңіз</string>
+    <string name="tutorial_title_welcome">WhatStat қолданбасына қош келдіңіз</string>
+    <string name="tutorial_desc_welcome">WhatsApp чаттарыңызды қауіпсіз талдаңыз. Деректеріңіз құрылғыңыздан ешқашан шықпайды.</string>
+    <string name="tutorial_title_modes">Екі режим</string>
+    <string name="tutorial_desc_modes">Root: тікелей деректер базасынан толық талдау. Lite: WhatsApp қолданбасынан "Чатты экспорттау" арқылы жасалған ZIP файлын root-сыз импорттау.</string>
+    <string name="tutorial_title_import">Чатты қалай импорттау керек</string>
+    <string name="tutorial_import_step_1">Құрылғыңызда WhatsApp қолданбасын ашыңыз.</string>
+    <string name="tutorial_import_step_2">Чатты ашып, жоғарғы оң жақтағы үш нүктені (...) басып, "Чатты экспорттау" таңдаңыз.</string>
+    <string name="tutorial_import_step_3">"Медианы қосу" (ұсынылады) таңдап, "Бөлісу" түймесін басыңыз.</string>
+    <string name="tutorial_import_step_4">Бөлісу мәзірінен WhatStat қолданбасын таңдаңыз немесе ZIP файлын сақтап, қолмен импорттаңыз.</string>
+    <string name="tutorial_title_dashboard">Бақылау тақтасы және статистика</string>
+    <string name="tutorial_desc_dashboard">Қорытындыларды, белсенділік графиктерін, жіберушілер бойынша мәліметтерді және трендтерді бір қарағанда көріңіз.</string>
+    <string name="tutorial_title_radar">Сөздер радары</string>
+    <string name="tutorial_desc_radar">Жіберушілер бойынша мәліметтермен және хабарламаларды толық алдын ала қараумен, сондай-ақ кеңейтілген сүзгілермен чаттардан сөздерді іздеңіз.</string>
+    <string name="tutorial_radar_previews_badge">Маңызды хабарламаларды алдын ала қарау</string>
+    <string name="tutorial_radar_search_example">Сөзді немесе сөз тіркесін іздеу…</string>
+    <string name="tutorial_radar_keyword">үй</string>
+    <string name="tutorial_radar_preview_before">“… мен көрдім</string>
+    <string name="tutorial_radar_preview_after">кеше, сен де соны іздеп жүр ме едің? …”</string>
+    <string name="tutorial_radar_preview_1">[Алдын ала қарау] "... файлды ертең жіберемін ..."</string>
+    <string name="tutorial_radar_preview_2">[Алдын ала қарау] "... ол сөзді қайдан көрдің?"</string>
+    <string name="tutorial_radar_preview_3">[Anteprima] "... алдымен алдын ала қараудан тексеремін ..."</string>
+    <string name="tutorial_modes_root_sub">Тікелей деректер базасынан толық талдау, root рұқсатын талап етеді.</string>
+    <string name="tutorial_modes_lite_sub">WhatsApp-тан ZIP импорттау, root рұқсатынсыз.</string>
+    <string name="tutorial_title_media">Медиа галереясы</string>
+    <string name="tutorial_desc_media">Бай статистикамен және жылдам алдын ала қараумен фотосуреттерді, видеоларды, аудиоларды және сілтемелерді зерттеңіз.</string>
+    <string name="tutorial_title_ready">Дайын</string>
+    <string name="tutorial_desc_ready">Алғашқы талдауды бастау үшін "Бастау" түймесін түртіңіз. Бұл нұсқаулықты мәзірден кез келген уақытта қайта аша аласыз.</string>
+
+    <!-- Drawer -->
+    <string name="drawer_app_name">WhatStat</string>
+    <string name="whatstat_drawer_theme">Қолданба тақырыбы</string>
+    <string name="whatstat_drawer_language">Тілді өзгерту</string>
+    <string name="whatstat_drawer_cache">Деректерді жою</string>
+    <string name="drawer_ads_privacy_options">Жарнама құпиялылығының параметрлері</string>
+    <string name="whatstat_drawer_about">Ақпарат</string>
+    <string name="dialog_choose_theme">Тақырыпты таңдау</string>
+    <string name="theme_system_default">Жүйелік әдепкі</string>
+    <string name="theme_light">Жарық</string>
+    <string name="theme_dark">Қараңғы</string>
+    <string name="dialog_choose_language">Тілді таңдау</string>
+    <string name="dialog_cancel">Бас тарту</string>
+    <string name="dialog_clear_cache_title">Деректерді жою</string>
+    <string name="dialog_clear_data_message_root">Шығарылған деректер базасы, аватарлар және Root кэші біржола жойылады. Root реттеуін қайта орындау қажет болады.</string>
+    <string name="dialog_clear_data_message_lite">Барлық импортталған чаттар, медиа файлдар және Lite кэші біржола жойылады. Чаттарды қайта импорттау қажет болады.</string>
+    <string name="dialog_clear_data_message_both">Барлық деректер біржола жойылады: Root деректер базасы, барлық импортталған Lite чаттары, медиа файлдар және кэш. Реттеуді қайта орындау қажет болады.</string>
+    <string name="dialog_clear">Жою</string>
+    <string name="dialog_about_title">Ақпарат</string>
+    <string name="dialog_about_message">WhatStat\nНұсқасы: %s\n\nWhatStat сіздің WhatsApp чаттарыңызды толығымен жергілікті түрде өңдейді. Ешқандай дерек сыртқы серверлерге жіберілмейді.</string>
+    <string name="dialog_close">Жабу</string>
+    <string name="force_update_dialog_title">Жаңарту қажет</string>
+    <string name="force_update_dialog_message_default">WhatStat қолданбасының жаңа нұсқасы қолжетімді. Жалғастыру үшін жаңартыңыз.</string>
+    <string name="force_update_dialog_button">Жаңарту</string>
+    <string name="loading_calculating">Есептеуде...</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_messages_format">%s хабарлама</string>
+    <string name="prediction_daily_rate_format">Қарқын: %.1f хабарлама/күн</string>
+    <string name="days_remaining_format">%d күн</string>
+    <string name="month_remaining_format">1 ай</string>
+    <string name="months_remaining_format">%d ай</string>
+    <string name="year_remaining_format">1 жыл</string>
+    <string name="years_remaining_format">%d жыл</string>
+
+    <!-- New DB Update -->
+    <string name="new_db_available_title">Жаңа резервтік көшірме анықталды</string>
+    <string name="new_db_available_desc">Жаңа WhatsApp резервтік көшірмесі қолжетімді. WhatStat деректерін жаңартқыңыз келе ме?</string>
+    <string name="new_db_update_button">Қазір жаңарту</string>
+
+    <!-- Lite fallback chat names -->
+    <string name="lite_fallback_chat_name">Импортталған чат</string>
+    <string name="lite_fallback_group_name">Импортталған топ</string>
+
+    <!-- Emoji / Sticker preview -->
+    <string name="used_n_times">%1$s рет қолданылды</string>
+
+    <!-- SetupService notification -->
+    <string name="setup_service_channel_name">WhatStat реттеуі</string>
+    <string name="setup_service_channel_desc">Шифрды шешу барысын көрсетеді</string>
+    <string name="setup_service_notif_title">Деректер базасының шифрын шешу</string>
+    <string name="setup_service_progress">Барысы: %d%%</string>
+    <string name="setup_service_starting">Іске қосылуда…</string>
+
+    <!-- Errors -->
+    <string name="error_decryption_error">Шифрды шешу қатесі: %s</string>
+    <string name="error_extraction">Файлды шығару қатесі: %s</string>
+    <string name="error_unknown_simple">Белгісіз қате</string>
+    <string name="error_db_unavailable">Деректер базасы қолжетімді емес</string>
+    <string name="error_file_read_detail">Файлды оқу қатесі: %s</string>
+    <string name="error_with_detail">Қате: %s</string>
+
+    <!-- Easter Egg -->
+    <string name="easter_egg_pro_unlocked">Pro нұсқасы бұғаттаудан босатылды! Luigi Scialpi-дің ізгі ниетімен 😉</string>
+
+    <!-- Rewarded Insights -->
+    <string name="rewarded_unlock_prompt_title">Кеңейтілген статистиканы ашу</string>
+    <string name="rewarded_unlock_prompt_message">Болжамдарды және күндік, айлық, жылдық графиктерді 2 сағатқа ашу үшін қысқаша жарнама көріңіз.</string>
+    <string name="rewarded_unlock_button">Жарнамамен ашу</string>
+    <string name="rewarded_unlock_tabs_success_2h_toast">Күндік, айлық және жылдық графиктер 2 сағатқа ашылды.</string>
+    <string name="rewarded_unlock_prediction_success_2h_toast">Болжам 2 сағатқа ашылды.</string>
+    <string name="rewarded_unlock_success_2h_toast">Кеңейтілген статистика 2 сағатқа ашылды.</string>
+    <string name="rewarded_unlock_not_available_toast">Марапатты жарнама қолжетімді емес. Сәлден кейін қайталап көріңіз.</string>
+
+    <!-- Domain Breakdown Sheet -->
+    <string name="domain_analysis_title">Сілтемелерді талдау</string>
+    <string name="link_sort_label">Сұрыптау: </string>
+    <string name="link_sort_more_recent">Ең жаңа</string>
+    <string name="share_media">Медианы бөлісу</string>
+    <string name="share">Бөлісу</string>
+    <string name="selected">Таңдалды</string>
+    <string name="media_label">медиа</string>
+    <string name="link_label">сілтеме</string>
+    <string name="link_preview_toggle">Сілтемені алдын ала қарауды көрсету</string>
+    <string name="link_preview_loading">Алдын ала қарау жүктелуде…</string>
+    <string name="link_preview_unavailable">Бұл сілтеме үшін алдын ала қарау қолжетімді емес.</string>
+    <string name="link_info_title">Сілтемелер туралы ақпарат</string>
+    <string name="link_info_text">Мұнда сіз осы чатта бөлісілген барлық сілтемелерді веб-сайттар бойынша топтастырып зерттей аласыз.\n\nЖеке URL мекенжайларын көру үшін доменді түртіңіз. Әрбір сілтеме соңғы рет жіберілген күнді көрсетеді.\n\nНәтижелерді белгілі бір күн ауқымында сүзгілеу үшін жоғарыдағы жүгірткіні қолданыңыз.\n\n💡 Кеңес: браузерді ашпай-ақ, атауы, суреті және сайт атауы бар жылдам алдын ала қарауды жүктеу үшін сілтеме жанындағы көрсеткіні түртіңіз.</string>
+    <string name="link_sort_less_recent">Ең ескі</string>
+    <string name="image_desc">Сурет</string>
+    <string name="menu_desc">Мәзір</string>
+    <string name="scroll_to_top">Жоғарыға айналдыру</string>
+    <string name="info_desc">Ақпарат</string>
+</resources>

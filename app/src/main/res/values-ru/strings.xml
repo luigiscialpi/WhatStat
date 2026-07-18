@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WhatStat</string>
+
+    <!-- Navigation & Common -->
+    <string name="back_desc">Назад</string>
+    <string name="back_button_desc">Назад на предыдущую страницу</string>
+    <string name="cancel">Отмена</string>
+    <string name="save">Сохранить</string>
+    <string name="delete">Удалить</string>
+    <string name="retry">Повторить</string>
+    <string name="error_title">ОШИБКА</string>
+    <string name="exit_toast">Нажмите ещё раз для выхода</string>
+    <string name="processing">Обработка…</string>
+    <string name="loading">Загрузка…</string>
+    <string name="loading_domains">Подсчет доменов…</string>
+    <string name="loading_media_gallery">Загрузка галереи…</string>
+    <string name="loading_messages_preview">Загрузка предварительного просмотра…</string>
+    <string name="show_more">Показать все</string>
+    <string name="show_more_with_count">Показать все (%d)</string>
+    <string name="show_less">Свернуть</string>
+    <string name="info_dialog_title">Информация</string>
+    <string name="ho_capito">Понятно</string>
+    <string name="ok">OK</string>
+    <string name="add_zip_title">Добавить ZIP</string>
+    <string name="select_zip_file">ВЫБРАТЬ ZIP-ФАЙЛ</string>
+    <string name="processing_label">Обработка...</string>
+    <string name="nav_dashboard">Обзор</string>
+    <string name="nav_chats">Чаты</string>
+    <string name="nav_media">Медиа</string>
+    <string name="nav_radar">Радар</string>
+    <string name="nav_calls">Звонки</string>
+    <string name="close">Закрыть</string>
+    <string name="activity_breakdown_title">Статистика активности</string>
+    <string name="activity_breakdown_subtitle">Всего %d сообщений</string>
+    <string name="sender_color_picker_title">Цвет для %1$s</string>
+    <string name="sender_color_picker_subtitle">Выберите цвет: он будет использоваться для круговой диаграммы и графиков активности в этом чате.</string>
+    <string name="sender_color_reset">Сбросить по умолчанию</string>
+    <string name="sender_color_change_cd">Изменить цвет этого участника</string>
+
+    <string name="group_history_title">История группы</string>
+    <string name="group_history_no_events">История событий для этой группы не найдена.</string>
+    <string name="group_history_info_title">История группы</string>
+    <string name="group_history_info_text">На этом экране отображается полная история группы в хронологическом порядке.\n\nСлева отображаются изменения названия и описания с указанием старого и нового текста.\n\nСправа отображаются действия с участниками: добавление, удаление, назначение админом и выход из группы.\n\nДля каждого события указан участник, его аватар, а также точная дата и время.</string>
+    <string name="history_legend_names">Имена</string>
+    <string name="history_legend_descriptions">Описания</string>
+    <string name="history_legend_io">Вход/Выход</string>
+
+    <string name="tab_hourly">По часам</string>
+    <string name="tab_weekly">По неделям</string>
+    <string name="tab_daily">По дням</string>
+    <string name="tab_monthly">По месяцам</string>
+    <string name="tab_yearly">По годам</string>
+    <string name="activity_hourly_title">Распределение по часам</string>
+    <string name="activity_weekly_title">Активность по дням недели</string>
+    <string name="activity_daily_title">Дни месяца (1-31)</string>
+    <string name="activity_monthly_title">Сезонность (Янв-Дек)</string>
+    <string name="activity_yearly_title">Тренды по годам</string>
+    <string name="click_hour_format">%d:00</string>
+    <string name="click_day_prefix">День %s</string>
+    <string name="click_year_prefix">%s год</string>
+
+    <!-- Setup Screen -->
+    <string name="setup_title">WhatStat</string>
+    <string name="setup_subtitle">Полный анализ ваших чатов WhatsApp.\nВсе данные остаются на устройстве.</string>
+    <string name="tab_lite">Lite</string>
+    <string name="tab_root">Root</string>
+    <string name="permesso_notifiche_toast">Разрешение на уведомления необходимо для отслеживания процесса в фоновом режиме</string>
+    <string name="lite_import_notification_channel_name">Импорт чата Lite</string>
+    <string name="lite_import_notification_channel_desc">Показывает прогресс импорта чата в режиме Lite</string>
+    <string name="lite_import_notification_title">Импорт чата Lite</string>
+    <string name="lite_import_notification_starting">Запуск...</string>
+    <string name="importing_overlay">Импорт чата…</string>
+    <string name="checking_data_overlay">Проверка данных…</string>
+    <string name="who_are_you_title">Кто вы?</string>
+    <string name="who_are_you_desc">Выберите свое имя из списка, чтобы отделить отправленные сообщения от полученных.</string>
+    <string name="lite_import_extract_zip">Извлечение ZIP…</string>
+    <string name="lite_import_error_no_txt">Внутри ZIP-архива не найден файл .txt</string>
+    <string name="lite_import_read_messages">Чтение сообщений…</string>
+    <string name="lite_import_analyze_media">Анализ медиафайлов…</string>
+    <string name="lite_import_save_db">Сохранение базы данных…</string>
+    <string name="lite_import_write_db_progress">Запись в БД: %d%%</string>
+    <string name="lite_import_select_owner">Выберите свое имя…</string>
+    <string name="lite_import_error_no_chat_to_finalize">Нет импортированных чатов для завершения настройки</string>
+    <string name="lite_import_finalize_owner">Привязка отправителя…</string>
+    <string name="lite_import_completed">Готово</string>
+    <string name="lite_hint_import_found">Найдены ранее импортированные данные. Вы можете перейти к обзору или импортировать другой ZIP-архив чата.</string>
+    <string name="lite_hint_no_import">Данные еще не импортированы. Пожалуйста, загрузите чат WhatsApp, экспортированный в формате ZIP.</string>
+    <string name="go_to_dashboard">Перейти к обзору</string>
+    <string name="import_zip_button">Импортировать чат из ZIP</string>
+    <string name="root_step_access">Root-доступ</string>
+    <string name="root_step_extraction">Извлечение файлов</string>
+    <string name="root_step_decryption">Расшифровка базы данных</string>
+    <string name="root_step_contacts">Чтение контактов</string>
+    <string name="root_hint_session_found">Найдена сохраненная Root-сессия. Вы можете перейти к обзору или начать новый анализ.</string>
+    <string name="root_hint_no_session">Нет активной Root-сессии. Запустите анализ, чтобы извлечь самые свежие данные.</string>
+    <string name="manual_mode_button">Выбрать файлы вручную</string>
+    <string name="manual_mode_title">Ручной режим (Без Root)</string>
+    <string name="manual_file_key">Файл ключа (key)</string>
+    <string name="manual_file_crypt14">База данных (msgstore.db.crypt14)</string>
+    <string name="manual_file_decrypted">Уже расшифрованная БД (msgstore.db)</string>
+    <string name="manual_file_wadb">Контакты (wa.db) - Опционально</string>
+    <string name="lite_open_whatsapp_button">Поделиться из WhatsApp</string>
+    <string name="lite_whatsapp_not_installed">WhatsApp не установлен</string>
+    <string name="lite_guide_cd">Как экспортировать чат</string>
+    <string name="lite_guide_title">Как экспортировать чат</string>
+    <string name="lite_guide_step1">Откройте WhatsApp на своем устройстве.</string>
+    <string name="lite_guide_step2">Откройте чат, нажмите на три точки (...) в правом верхнем углу и выберите Еще &gt; Экспорт чата.</string>
+    <string name="lite_guide_step3">Выберите Без файлов или Добавить файлы &lt;b&gt;(рекомендуется!)&lt;/b&gt;, затем нажмите «Поделиться».</string>
+    <string name="lite_guide_step4">В меню «Поделиться» выберите WhatStat: чат будет импортирован автоматически. Также вы можете просто сохранить ZIP-файл (или попросить друга прислать его!) и импортировать его вручную с помощью кнопки ниже.</string>
+    <string name="start_analysis">Начать анализ</string>
+    <string name="decrypt_db_button">Расшифровать базу данных</string>
+    <string name="button_replace">Заменить</string>
+    <string name="button_select">Выбрать</string>
+    <string name="setup_cancelled">Операция отменена</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Обзор</string>
+    <string name="lite_mode_badge">РЕЖИМ LITE (ZIP)</string>
+    <string name="stat_total_messages">Всего сообщений</string>
+    <string name="stat_avg_per_day">Среднее в день</string>
+    <string name="stat_active_chats">Активные чаты</string>
+    <string name="stat_longest_streak">Самая длинная серия</string>
+    <string name="stat_streak_days">%d дней</string>
+    <string name="stat_contacts">Контакты</string>
+    <string name="stat_total_media">Медиафайлы</string>
+    <string name="stat_most_active_chat">Самый активный чат</string>
+    <string name="lexical_analysis_title">Лексический анализ</string>
+    <string name="lexical_analysis_subtitle">Самые часто используемые слова и эмодзи</string>
+    <string name="lexical_analysis_info">Этот анализ может занять несколько секунд или даже минут!</string>
+    <string name="run_analysis_button">Начать анализ</string>
+    <string name="text_analysis_title">Анализ текста</string>
+    <string name="text_analysis_subtitle">Самые популярные слова, эмодзи и стикеры</string>
+    <string name="tab_words">Слова</string>
+    <string name="tab_emojis">Эмодзи</string>
+    <string name="tab_stickers">Стикеры</string>
+    <string name="no_words_found">Слова не найдены</string>
+    <string name="no_emojis_found">Эмодзи не найдены</string>
+    <string name="sticker_info_hint">Похожие стикеры могут отображаться несколько раз, так как WhatsApp сохраняет их как отдельные файлы.</string>
+    <string name="no_stickers_found">Стикеры не найдены</string>
+    <string name="no_data_for_period">Нет данных за этот период</string>
+
+    <!-- Errors (Service) -->
+    <string name="error_root_not_available">Root-доступ недоступен. Убедитесь, что Magisk установлен и приложению предоставлены root-права.</string>
+    <string name="error_root_not_granted">В доступе root отказано. Откройте Magisk и предоставьте разрешение приложению WhatStat.</string>
+    <string name="error_key_not_found">Файл ключа не найден. Установлен ли WhatsApp?</string>
+    <string name="error_crypt14_not_found">Зашифрованная база данных не найдена. Убедитесь, что в WhatsApp включено локальное резервное копирование.</string>
+    <string name="error_crypt15_detected">Обнаружена резервная копия crypt15 (E2E). Отключите сквозное шифрование резервных копий в настройках WhatsApp.</string>
+    <string name="error_decryption_failed">Ошибка расшифровки: %s</string>
+    <string name="error_database_open">Не удалось открыть базу данных: %s</string>
+    <string name="error_unknown">Непредвиденная ошибка: %s</string>
+
+    <!-- Chat List -->
+    <string name="chatlist_title">Ваши чаты</string>
+    <string name="chatlist_search_hint">Поиск чата…</string>
+    <string name="chatlist_count_suffix">%d чатов</string>
+    <string name="add_zip_fab">Добавить ZIP</string>
+    <string name="delete_chat_title">Удалить чат</string>
+    <string name="delete_chat_confirm">Вы уверены, что хотите удалить «%s» и все сообщения из него?</string>
+    <string name="rename_chat_title">Переименовать чат</string>
+    <string name="chat_name_label">Название чата</string>
+    <string name="exported_on_prefix">Экспортировано: %s</string>
+    <string name="messages_count_suffix">%,d сообщений</string>
+    <string name="messages_label">сообщений</string>
+
+    <!-- Chat Detail -->
+    <string name="chatdetail_sent">Отправлено</string>
+    <string name="chatdetail_received">Получено</string>
+    <string name="chatdetail_top_sender_title">Кто пишет больше всех</string>
+    <string name="top_senders_info_title">Информация о графике</string>
+    <string name="top_senders_info_desc">Эта круговая диаграмма показывает распределение сообщений между участниками чата.\n\n💡 Совет: нажмите на цветной квадрат рядом с именем, чтобы выбрать индивидуальный цвет для этого участника.</string>
+    <string name="fallback_them">Они</string>
+    <string name="fallback_me">Вы</string>
+    <string name="activity_period_label">Период активности</string>
+    <string name="avg_response_time">Ср. время ответа</string>
+    <string name="media_length_label">Средняя длина сообщения</string>
+    <string name="chatdetail_words_per_msg">Слов в сообщении</string>
+    <string name="chatdetail_emoji_per_msg">Эмодзи в сообщении</string>
+    <string name="stat_split_format">%1$s: %2$s • %3$s: %4$s</string>
+    <string name="chars_abbr">симв.</string>
+    <string name="conv_starters_title">Кто начинает диалоги</string>
+    <string name="conv_starters_center">диалогов</string>
+    <string name="view_mode_all">Все</string>
+    <string name="view_mode_person">По участникам</string>
+    <string name="conv_starters_info">Новый диалог засчитывается, если сообщение отправлено после как минимум 3 часов молчания с момента предыдущего сообщения.\n\n💡 Совет: нажмите на цветной квадрат рядом с именем, чтобы настроить цвет этого участника.</string>
+    
+    <!-- Action Cards -->
+    <string name="radar_parole_title">Радар слов</string>
+    <string name="radar_parole_sub">Поиск часто используемых слов</string>
+    <string name="log_chiamate_title">Журнал звонков</string>
+    <string name="log_chiamate_sub">Аудио, видео, пропущенные</string>
+    <string name="media_link_title">Медиа и ссылки</string>
+    <string name="media_link_sub">Документы и ссылки</string>
+    <string name="group_history_sub">События группы</string>
+
+    <!-- Units & Time -->
+    <string name="unit_hours">ч</string>
+    <string name="unit_minutes">м</string>
+    <string name="unit_min_full">мин</string>
+    <string name="less_than_one_min">&lt;1 мин</string>
+
+    <!-- Radar Parole -->
+    <string name="word_search_placeholder">Поиск слова или фразы…</string>
+    <string name="suggested_words_label">Предлагаемые слова</string>
+    <string name="search_button">Поиск</string>
+    <string name="no_results_word">Сообщений с этим словом не найдено.</string>
+    <string name="results_for">Результаты для</string>
+    <string name="occurrences_by_sender">Вхождений по отправителям</string>
+    <string name="message_preview_title">Просмотр сообщения</string>
+    <string name="sort_newest">Сначала новые</string>
+    <string name="sort_oldest">Сначала старые</string>
+    <string name="load_more">Загрузить еще</string>
+    <string name="word_search_hint_min">Введите минимум 2 символа для поиска</string>
+    <string name="word_search_invite">Начните поиск, нажав на иконку лупы</string>
+    <string name="filter_multi">Мульти</string>
+    <string name="and_label">И</string>
+    <string name="or_label">ИЛИ</string>
+    <string name="month_jan">Янв</string>
+    <string name="month_feb">Фев</string>
+    <string name="month_mar">Мар</string>
+    <string name="month_apr">Апр</string>
+    <string name="month_may">Май</string>
+    <string name="month_jun">Июн</string>
+    <string name="month_jul">Июл</string>
+    <string name="month_aug">Авг</string>
+    <string name="month_sep">Сен</string>
+    <string name="month_oct">Окт</string>
+    <string name="month_nov">Ноя</string>
+    <string name="month_dec">Дек</string>
+
+    <string name="day_sunday">Воскресенье</string>
+    <string name="day_monday">Понедельник</string>
+    <string name="day_tuesday">Вторник</string>
+    <string name="day_wednesday">Среда</string>
+    <string name="day_thursday">Четверг</string>
+    <string name="day_friday">Пятница</string>
+    <string name="day_saturday">Суббота</string>
+
+    <string name="month_january">Январь</string>
+    <string name="month_february">Февраль</string>
+    <string name="month_march">Март</string>
+    <string name="month_april">Апрель</string>
+    <string name="month_may_full">Май</string>
+    <string name="month_june">Июнь</string>
+    <string name="month_july">Июль</string>
+    <string name="month_august">Август</string>
+    <string name="month_september">Сентябрь</string>
+    <string name="month_october">Октябрь</string>
+    <string name="month_november">Ноябрь</string>
+    <string name="month_december">Декабрь</string>
+    <string name="radar_info_text">Радар анализирует частоту слов в сообщениях.\n\nСтандартное поведение:\n• Поиск находит все вхождения слова, даже если оно является частью другого слова (например, поиск по запросу «дом» также найдет «домашний»).\n• Подсказки появляются после ввода 3 символов и показывают самые популярные слова.\n\nПараметры поиска:\n• Aa: Учитывать регистр букв (case-sensitive).\n• ab: Искать только точное совпадение слова, игнорируя частичные.\n• ?: Показывать только сообщения, содержащие знак вопроса.\n• Мульти: Нажмите, чтобы изменить режим:\n   - Мульти: Поиск точной фразы.\n   - Мульти: И: Найти сообщения, содержащие ВСЕ слова (AND).\n   - Мульти: ИЛИ: Найти сообщения, содержащие ХОТЯ БЫ ОДНО слово (OR).</string>
+
+    <!-- Media & Link -->
+    <string name="tab_media">Медиагалерея</string>
+    <string name="tab_links">Отправленные ссылки</string>
+    <string name="search_links_placeholder">Поиск ссылки или домена…</string>
+    <string name="type_images">Фотографии</string>
+    <string name="type_videos">Видео</string>
+    <string name="type_audio">Аудио</string>
+    <string name="type_docs">Документы</string>
+    <string name="unit_mb">МБ</string>
+    <string name="unit_gb">ГБ</string>
+    <string name="links_grouped_domain">Ссылки, сгруппированные по доменам</string>
+    <string name="last_link_prefix">Последняя ссылка: %s</string>
+    <string name="sent_by_prefix">Отправитель: %s</string>
+    <string name="media_info_title">Информация о медиа</string>
+    <string name="media_info_text_global">Счетчики включают все Фото и Видео, которыми вы обменивались за все время.\n\nКнопки показывают абсолютную историю, тогда как в галерее загружаются только те файлы, которые физически остались на телефоне (удаленные показать невозможно).\n\n💡 Совет: нажмите на количество медиафайлов или ссылок, чтобы увидеть подробную информацию 😉</string>
+    <string name="media_info_text_gallery">В галерее отображаются только те файлы, которые сейчас есть на телефоне. Счетчики могут быть выше, так как они учитывают и удаленные со временем файлы.\n\n💡 Совет: нажмите и удерживайте медиафайл, чтобы выбрать его и поделиться.</string>
+    <string name="error_open_file">Не удалось открыть файл</string>
+    <string name="back_to_all_links">Все ссылки</string>
+    <string name="avatar_desc">Аватар</string>
+    <string name="domain_no_stats">Статистика по домену отсутствует.</string>
+    <string name="selected_count">Выбрано: %d</string>
+
+    <!-- Calls Stats -->
+    <string name="total_calls_label">Всего звонков</string>
+    <string name="call_type_audio">Аудио</string>
+    <string name="call_type_video">Видео</string>
+    <string name="call_type_missed">Пропущенные</string>
+    <string name="total_duration_label">Общая длительность</string>
+    <string name="search_calls_placeholder">Поиск контакта или даты…</string>
+    <string name="no_calls_found">Звонки не найдены</string>
+    <string name="call_audio_label">Аудиозвонок</string>
+    <string name="call_video_label">Видеозвонок</string>
+    <string name="call_missed_label">Пропущенный звонок</string>
+    <string name="call_outgoing">Исходящий</string>
+    <string name="call_incoming">Входящий</string>
+    <string name="calls_summary_title">Сводка</string>
+    <string name="calls_total_label">Всего</string>
+    <string name="calls_grouped_stats">Статистика звонков</string>
+    <string name="calls_grouped_person">По участникам</string>
+    <string name="calls_log_title">Журнал звонков</string>
+
+    <!-- Days of week -->
+    <string name="day_sun">Вс</string>
+    <string name="day_mon">Пн</string>
+    <string name="day_tue">Вт</string>
+    <string name="day_wed">Ср</string>
+    <string name="day_thu">Чт</string>
+    <string name="day_fri">Пт</string>
+    <string name="day_sat">Сб</string>
+    <string name="total_duration">Общая длительность: %s</string>
+    <string name="date_from">С</string>
+    <string name="date_to">По</string>
+    <string name="clear">Очистить</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_title">Прогноз целей</string>
+    <string name="prediction_info_title">Информация о прогнозах</string>
+    <string name="prediction_info_desc">Прогноз рассчитывает, когда вы достигнете определенной цели в будущем, основываясь на темпе вашей переписки за последнее время.\n\nТемп вычисляется по сообщениям, отправленным за выбранный период. Если изменить фильтр времени, прогноз обновится.</string>
+    <string name="prediction_custom">Своя цель</string>
+    <string name="prediction_target_label">Заданная цель</string>
+    <string name="prediction_target_placeholder">например: 50000</string>
+    <string name="prediction_error_already_reached">Цель уже достигнута!</string>
+    <string name="prediction_unavailable">Прогноз недоступен</string>
+    <string name="prediction_estimated_date">Ожидаемая дата</string>
+    <string name="prediction_date_unavailable">Дата недоступна</string>
+    <string name="prediction_uncalculable">Невозможно рассчитать</string>
+    <string name="prediction_reached">Достигнуто</string>
+    <string name="prediction_low_confidence">Низкая точность прогноза</string>
+    <string name="prediction_period_filtered_label">На основе темпа за выбранный период</string>
+
+    <!-- Time Range Filters -->
+    <string name="time_range_label">Анализируемый период</string>
+    <string name="time_range_all">За все время</string>
+    <string name="time_range_30_days">30 дней</string>
+    <string name="time_range_6_months">6 месяцев</string>
+    <string name="time_range_year">Год</string>
+    <string name="time_range_custom">Свой период</string>
+    <string name="time_range_custom_button">Выбрать</string>
+
+    <!-- Tutorial -->
+    <string name="drawer_tutorial">Обучение</string>
+    <string name="tutorial_skip">Пропустить</string>
+    <string name="tutorial_next">Далее</string>
+    <string name="tutorial_start">Начать</string>
+    <string name="tutorial_next_wait">Подождите %dс</string>
+    <string name="tutorial_title_welcome">Добро пожаловать в WhatStat</string>
+    <string name="tutorial_desc_welcome">Безопасный анализ ваших чатов WhatsApp. Ваши данные никогда не покидают устройство.</string>
+    <string name="tutorial_title_modes">Два режима</string>
+    <string name="tutorial_desc_modes">Root: полный анализ напрямую из базы данных приложения. Lite: импорт ZIP-архивов, созданных встроенным экспортом WhatsApp без root-прав.</string>
+    <string name="tutorial_title_import">Как импортировать чат</string>
+    <string name="tutorial_import_step_1">Откройте WhatsApp на своем устройстве.</string>
+    <string name="tutorial_import_step_2">Откройте чат, нажмите три точки (...) сверху справа, далее Еще &gt; Экспорт чата.</string>
+    <string name="tutorial_import_step_3">Выберите «Добавить файлы медиа» (рекомендуется) и нажмите «Поделиться».</string>
+    <string name="tutorial_import_step_4">Выберите WhatStat в меню или сохраните ZIP и импортируйте его вручную через приложение.</string>
+    <string name="tutorial_title_dashboard">Панель статистики</string>
+    <string name="tutorial_desc_dashboard">Просматривайте общие итоги, графики активности, статистику по отправителям и тренды с первого взгляда.</string>
+    <string name="tutorial_title_radar">Радар слов</string>
+    <string name="tutorial_desc_radar">Ищите любые слова в чатах с разбивкой по авторам, предпросмотром сообщений и умными фильтрами.</string>
+    <string name="tutorial_radar_previews_badge">Предпросмотр найденных сообщений</string>
+    <string name="tutorial_radar_search_example">Поиск слова или фразы…</string>
+    <string name="tutorial_radar_keyword">дом</string>
+    <string name="tutorial_radar_preview_before">«… я видел</string>
+    <string name="tutorial_radar_preview_after">вчера, ты тоже это искал? …»</string>
+    <string name="tutorial_radar_preview_1">[Превью] «... я отправлю файл завтра ...»</string>
+    <string name="tutorial_radar_preview_2">[Превью] «... где ты видел это слово?»</string>
+    <string name="tutorial_radar_preview_3">[Превью] «... я сначала проверю в просмотре ...»</string>
+    <string name="tutorial_modes_root_sub">Полный анализ из активной БД, требуются root-права.</string>
+    <string name="tutorial_modes_lite_sub">Импорт ZIP-файла из WhatsApp, без root-прав.</string>
+    <string name="tutorial_title_media">Медиагалерея</string>
+    <string name="tutorial_desc_media">Изучайте фото, видео, голосовые сообщения и ссылки с наглядной аналитикой и быстрым просмотром.</string>
+    <string name="tutorial_title_ready">Всё готово</string>
+    <string name="tutorial_desc_ready">Нажмите «Начать», чтобы запустить первый анализ. Вы всегда можете пересмотреть это обучение из главного меню.</string>
+
+    <!-- Drawer -->
+    <string name="drawer_app_name">WhatStat</string>
+    <string name="whatstat_drawer_theme">Тема приложения</string>
+    <string name="whatstat_drawer_language">Сменить язык</string>
+    <string name="whatstat_drawer_cache">Удалить данные</string>
+    <string name="drawer_ads_privacy_options">Конфиденциальность рекламы</string>
+    <string name="whatstat_drawer_about">О приложении</string>
+    <string name="dialog_choose_theme">Выберите тему</string>
+    <string name="theme_system_default">Системная тема</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="dialog_choose_language">Выберите язык</string>
+    <string name="dialog_cancel">Отмена</string>
+    <string name="dialog_clear_cache_title">Удалить данные</string>
+    <string name="dialog_clear_data_message_root">Извлеченная база данных, аватары и кэш режима Root будут безвозвратно удалены. Вам придется заново пройти настройку Root.</string>
+    <string name="dialog_clear_data_message_lite">Все импортированные чаты, медиафайлы и кэш режима Lite будут безвозвратно удалены. Вам нужно будет импортировать чаты заново.</string>
+    <string name="dialog_clear_data_message_both">Все данные будут безвозвратно удалены: база данных Root, все импортированные чаты Lite, медиафайлы и кэш. Потребуется первоначальная настройка.</string>
+    <string name="dialog_clear">Удалить</string>
+    <string name="dialog_about_title">О приложении</string>
+    <string name="dialog_about_message">WhatStat\nВерсия: %s\n\nWhatStat обрабатывает историю чатов WhatsApp исключительно локально на вашем устройстве. Никакие данные не передаются на внешние серверы.</string>
+    <string name="dialog_close">Закрыть</string>
+    <string name="force_update_dialog_title">Требуется обновление</string>
+    <string name="force_update_dialog_message_default">Доступна новая версия WhatStat. Пожалуйста, обновите приложение, чтобы продолжить работу.</string>
+    <string name="force_update_dialog_button">Обновить</string>
+    <string name="loading_calculating">Вычисление...</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_messages_format">%s сообщений</string>
+    <string name="prediction_daily_rate_format">Темп: %.1f сообщений/день</string>
+    <string name="days_remaining_format">%d дней</string>
+    <string name="month_remaining_format">1 месяц</string>
+    <string name="months_remaining_format">%d месяцев</string>
+    <string name="year_remaining_format">1 год</string>
+    <string name="years_remaining_format">%d лет</string>
+
+    <!-- New DB Update -->
+    <string name="new_db_available_title">Обнаружен новый бэкап</string>
+    <string name="new_db_available_desc">Доступна новая резервная копия WhatsApp. Обновить данные в WhatStat?</string>
+    <string name="new_db_update_button">Обновить сейчас</string>
+
+    <!-- Lite fallback chat names -->
+    <string name="lite_fallback_chat_name">Импортированный чат</string>
+    <string name="lite_fallback_group_name">Импортированная группа</string>
+
+    <!-- Emoji / Sticker preview -->
+    <string name="used_n_times">Использовано %1$s раз(а)</string>
+
+    <!-- SetupService notification -->
+    <string name="setup_service_channel_name">Настройка WhatStat</string>
+    <string name="setup_service_channel_desc">Отображает прогресс расшифровки</string>
+    <string name="setup_service_notif_title">Расшифровка базы данных</string>
+    <string name="setup_service_progress">Прогресс: %d%%</string>
+    <string name="setup_service_starting">Запуск…</string>
+
+    <!-- Errors -->
+    <string name="error_decryption_error">Ошибка расшифровки: %s</string>
+    <string name="error_extraction">Ошибка извлечения файлов: %s</string>
+    <string name="error_unknown_simple">Неизвестная ошибка</string>
+    <string name="error_db_unavailable">База данных недоступна</string>
+    <string name="error_file_read_detail">Ошибка чтения файла: %s</string>
+    <string name="error_with_detail">Ошибка: %s</string>
+
+    <!-- Easter Egg -->
+    <string name="easter_egg_pro_unlocked">Pro-версия разблокирована! Привет от Luigi Scialpi 😉</string>
+
+    <!-- Rewarded Insights -->
+    <string name="rewarded_unlock_prompt_title">Открыть расширенную статистику</string>
+    <string name="rewarded_unlock_prompt_message">Посмотрите короткий рекламный ролик, чтобы на 2 часа разблокировать прогнозы, а также графики по дням, месяцам и годам.</string>
+    <string name="rewarded_unlock_button">Разблокировать за рекламу</string>
+    <string name="rewarded_unlock_tabs_success_2h_toast">Графики по дням, месяцам и годам разблокированы на 2 часа.</string>
+    <string name="rewarded_unlock_prediction_success_2h_toast">Прогнозы разблокированы на 2 часа.</string>
+    <string name="rewarded_unlock_success_2h_toast">Расширенная статистика разблокирована на 2 часа.</string>
+    <string name="rewarded_unlock_not_available_toast">Видео пока недоступно. Пожалуйста, попробуйте чуть позже.</string>
+
+    <!-- Domain Breakdown Sheet -->
+    <string name="domain_analysis_title">Анализ ссылок</string>
+    <string name="link_sort_label">Сортировка: </string>
+    <string name="link_sort_more_recent">Сначала новые</string>
+    <string name="share_media">Поделиться медиафайлом</string>
+    <string name="share">Поделиться</string>
+    <string name="selected">Выбрано</string>
+    <string name="media_label">медиа</string>
+    <string name="link_label">ссылок</string>
+    <string name="link_preview_toggle">Показывать превью ссылок</string>
+    <string name="link_preview_loading">Загрузка превью…</string>
+    <string name="link_preview_unavailable">Превью для этой ссылки недоступно.</string>
+    <string name="link_info_title">Информация о ссылках</string>
+    <string name="link_info_text">Здесь вы можете изучить все ссылки, отправленные в этом чате, сгруппированные по сайтам.\n\nНажмите на домен, чтобы развернуть список и увидеть конкретные URL. Для каждой ссылки отображается дата последнего упоминания.\n\nИспользуйте ползунок сверху, чтобы отфильтровать результаты по диапазону дат.\n\n💡 Совет: нажмите на стрелочку рядом со ссылкой, чтобы загрузить быстрый предпросмотр с заголовком, картинкой и названием сайта без перехода в браузер.</string>
+    <string name="link_sort_less_recent">Сначала старые</string>
+    <string name="image_desc">Изображение</string>
+    <string name="menu_desc">Меню</string>
+    <string name="scroll_to_top">Наверх</string>
+    <string name="info_desc">Инфо</string>
+</resources>
