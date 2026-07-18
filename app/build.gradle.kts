@@ -26,8 +26,8 @@ android {
         applicationId = "com.whatstats"
         minSdk = 26
         targetSdk = 36
-        versionCode = 29
-        versionName = "1.5.7"
+        versionCode = 30
+        versionName = "1.5.8"
         val admobAppId =
             project
                 .findProperty("ADMOB_APP_ID")
@@ -163,6 +163,9 @@ dependencies {
     // ── In-app updates ──────────────────────────────────────────
     implementation("com.google.android.play:app-update:2.1.0")
     implementation("com.google.android.play:app-update-ktx:2.1.0")
+
+    // ── In-app reviews ──────────────────────────────────────────
+    implementation("com.google.android.play:review-ktx:2.0.2")
 
     // ── Coroutines ───────────────────────────────────────────────
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")

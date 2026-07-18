@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -73,6 +74,17 @@ fun DashboardScreen(
 
     // Intercetta il back di sistema per usare la stessa logica del pulsante toolbar
     BackHandler { onNavigateBack() }
+
+    val reviewPrompted = remember { mutableStateOf(false) }
+    LaunchedEffect(stats) {
+        if (stats != null && !reviewPrompted.value) {
+            val activity = context.findActivity()
+            if (activity != null) {
+                reviewPrompted.value = true
+                viewModel.launchReviewIfEligible(activity)
+            }
+        }
+    }
 
     val hourlyData by viewModel.hourlyData.collectAsState()
     val weeklyData by viewModel.weeklyData.collectAsState()

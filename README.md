@@ -27,6 +27,7 @@
 19. [Linee Guida per Assistenti AI](#19-linee-guida-per-assistenti-ai)
 20. [Monetizzazione: Ads e Pro](#20-monetizzazione-ads-e-pro)
 21. [Telemetria Firebase, Remote Config e Forced Update](#21-telemetria-firebase-remote-config-e-forced-update)
+22. [In-App Review](#22-in-app-review)
 
 ---
 
@@ -1586,3 +1587,81 @@ Senza queste regole, le classi vengono strippate da `-repackageclasses '' -overl
 | `app/proguard-rules.pro` | Regole `-keep` per AdMob e UMP |
 | `AndroidManifest.xml` | `meta-data` App ID AdMob, permesso `INTERNET` |
 | `res/xml/network_security_config.xml` | HTTPS consentito, cleartext bloccato |
+
+---
+
+## 22. In-App Review
+
+Integrazione con la Google Play In-App Review API per sollecitare recensioni in modo non intrusivo, rispettando le linee guida ufficiali Google.
+
+### Quando compare il prompt
+
+Il prompt viene proposto nella **Dashboard**, dopo il completamento del caricamento delle statistiche (momento positivo per l'utente). Non compare mai all'avvio dell'app, durante il caricamento, o in schermate secondarie.
+
+### Aspetto
+
+Il dialog e' un **bottom sheet nativo di Google Play** (stelle + campo commento opzionale). L'aspetto e' gestito interamente dal sistema operativo e non e' personalizzabile dall'app. Google non garantisce che il dialog venga effettivamente mostrato (quota interna lato server).
+
+### Regole di eleggibilita' (`InAppReviewRules`)
+
+Logica pura estratta in un oggetto testabile senza dipendenze Android:
+
+| Criterio | Valore |
+|----------|--------|
+| Avvii app minimi | >= 3 |
+| Analisi completata con successo | richiesta |
+| Review flow gia' completato | blocca |
+| Prompt gia' mostrati | max 3 |
+| Intervallo minimo tra prompt | 14 giorni |
+
+### Architettura
+
+**`InAppReviewManager`** (`@Singleton`) — Gestisce il ciclo di vita del review flow in due fasi:
+
+1. **`warmUp()`** — Pre-carica il `ReviewInfo` in background alla creazione del `DashboardViewModel` (`init`). Il `ReviewInfo` ha validita' limitata nel tempo, quindi viene richiesto solo quando i criteri di eleggibilita' sono soddisfatti.
+2. **`launchIfEligible(activity)`** — Lancia il flow con il `ReviewInfo` pre-caricato. Protetto da un flag `alreadyRequestedThisSession` che garantisce un solo tentativo per sessione di processo.
+
+**`InAppReviewRules`** — Oggetto con funzione pura `shouldShowReview()` che riceve tutti i parametri come argomenti. Coperto da test unitari (`InAppReviewRulesTest`).
+
+### Persistenza stati
+
+Tutti gli stati sono salvati in `AppPreferencesStore` (DataStore Preferences):
+
+| Chiave | Tipo | Descrizione |
+|--------|------|-------------|
+| `app_launch_count` | Int | Conteggio avvii, incrementato in `MainActivity` solo se `savedInstanceState == null` |
+| `has_successful_analysis` | Boolean | Marcato `true` al primo caricamento statistiche riuscito |
+| `has_completed_review_flow` | Boolean | Marcato `true` dopo il completamento del review flow |
+| `review_prompt_shown_count` | Int | Contatore tentativi di prompt |
+| `last_review_request_time` | Long | Timestamp ultimo tentativo (per intervallo 14 giorni) |
+
+### Protezione contro trigger multipli
+
+Tre livelli di guard indipendenti:
+
+1. **UI** — `remember { mutableStateOf(false) }` in `DashboardScreen` impedisce che il `LaunchedEffect` chiami piu' volte durante la stessa composizione.
+2. **Sessione** — `alreadyRequestedThisSession` in `InAppReviewManager` (`@Singleton`) blocca ogni chiamata successiva alla prima nel processo.
+3. **Persistenza** — Le regole in `InAppReviewRules` verificano contatori e timestamp su DataStore.
+
+### Comportamento dopo reinstallazione
+
+I contatori DataStore vengono persi con la disinstallazione. L'API Google gestisce autonomamente la quota lato server: anche se l'app riparte da zero, Google puo' decidere di non mostrare il dialog se l'utente ha gia' interagito di recente.
+
+### Test
+
+- **`FakeReviewManager`** — Sostituire `ReviewManagerFactory.create(context)` con `FakeReviewManager(context)` per simulare il flusso completo senza contattare Google Play.
+- **Internal App Sharing** — Per vedere il dialog reale, caricare l'APK/AAB su Play Console > Internal App Sharing.
+- **Test unitari** — `InAppReviewRulesTest` copre tutti gli scenari di eleggibilita' (avvii insufficienti, limite prompt, intervallo 14 giorni, review completata).
+
+### File coinvolti
+
+| File | Ruolo |
+|------|-------|
+| `ui/review/InAppReviewManager.kt` | Singleton: warm-up, eleggibilita', lancio flow |
+| `ui/review/InAppReviewManager.kt` (oggetto `InAppReviewRules`) | Logica pura di eleggibilita' |
+| `data/store/AppPreferencesStore.kt` | Persistenza contatori e flag su DataStore |
+| `MainActivity.kt` | Incremento `appLaunchCount` (guard `savedInstanceState == null`) |
+| `ui/MainViewModel.kt` | Proxy per `incrementAppLaunchCount()` |
+| `ui/screen/dashboard/DashboardViewModel.kt` | `warmUp()` in `init`, `launchReviewIfEligible()`, `markAnalysisSuccessful()` |
+| `ui/screen/dashboard/DashboardScreen.kt` | `LaunchedEffect` trigger con guard UI |
+| `app/build.gradle.kts` | Dipendenza `com.google.android.play:review-ktx` |

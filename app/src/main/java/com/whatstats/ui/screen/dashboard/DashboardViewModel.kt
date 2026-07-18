@@ -1,5 +1,6 @@
 package com.whatstats.ui.screen.dashboard
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.ViewModel
@@ -13,8 +14,10 @@ import com.whatstats.data.db.model.MonthOfYearCount
 import com.whatstats.data.db.model.TimeRange
 import com.whatstats.data.db.model.YearTrendCount
 import com.whatstats.data.repository.AnalyticsRepository
+import com.whatstats.data.store.AppPreferencesStore
 import com.whatstats.domain.model.GlobalStats
 import com.whatstats.service.LexicalAnalysisService
+import com.whatstats.ui.review.InAppReviewManager
 import com.whatstats.ui.state.FilterStateHolder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -34,6 +37,8 @@ class DashboardViewModel
         private val analyticsRepository: AnalyticsRepository,
         private val filterState: FilterStateHolder,
         private val lexicalAnalysisManager: LexicalAnalysisManager,
+        private val appPreferencesStore: AppPreferencesStore,
+        private val reviewManager: InAppReviewManager,
         @ApplicationContext private val context: Context,
     ) : ViewModel() {
         private val _globalStats = MutableStateFlow<GlobalStats?>(null)
@@ -100,6 +105,8 @@ class DashboardViewModel
             // Non forzare il refresh: usa la cache se disponibile.
             // Sarà il collect su liteCacheVersion a triggerare il reload quando serve.
             loadStats(forceRefresh = false)
+            // Pre-carica il ReviewInfo una sola volta alla creazione del ViewModel
+            viewModelScope.launch { reviewManager.warmUp() }
 
             // Ricarica ogni volta che viene completata una nuova importazione Lite
             if (isLite) {
@@ -164,6 +171,7 @@ class DashboardViewModel
                     _isLoadingSlow.value = false
                     _slowStatsRequested.value = false
                     _error.value = null
+
                     try {
                         _loadingProgress.value = 0
                         val quickStats =
@@ -183,6 +191,8 @@ class DashboardViewModel
 
                         _isLoading.value = false
                         _loadingProgress.value = null
+
+                        appPreferencesStore.markAnalysisSuccessful()
 
                         // Prova a caricare slow stats dalla cache (senza bloccare la UI)
                         if (_selectedTimeRange.value == TimeRange.ALL_TIME) {
@@ -313,6 +323,12 @@ class DashboardViewModel
                     filterState.setGlobal(TimeRange.ALL_TIME)
                     loadStats()
                 }
+            }
+        }
+
+        fun launchReviewIfEligible(activity: Activity) {
+            viewModelScope.launch {
+                reviewManager.launchIfEligible(activity)
             }
         }
     }

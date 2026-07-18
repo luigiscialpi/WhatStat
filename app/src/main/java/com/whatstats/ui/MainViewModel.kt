@@ -115,6 +115,12 @@ class MainViewModel
             telemetryRepository.trackAppOpen()
         }
 
+        fun incrementAppLaunchCount() {
+            viewModelScope.launch {
+                appPreferencesStore.incrementAppLaunchCount()
+            }
+        }
+
         fun trackScreenView(
             screenName: String,
             graphName: String,

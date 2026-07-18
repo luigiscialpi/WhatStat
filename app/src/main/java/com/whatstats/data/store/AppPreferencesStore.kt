@@ -4,6 +4,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -32,6 +34,11 @@ class AppPreferencesStore
             private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
             private val LANGUAGE_KEY = stringPreferencesKey("app_language")
             private val TUTORIAL_SEEN_KEY = booleanPreferencesKey("tutorial_seen")
+            private val APP_LAUNCH_COUNT_KEY = intPreferencesKey("app_launch_count")
+            private val LAST_REVIEW_REQUEST_TIME_KEY = longPreferencesKey("last_review_request_time")
+            private val REVIEW_PROMPT_SHOWN_COUNT_KEY = intPreferencesKey("review_prompt_shown_count")
+            private val HAS_COMPLETED_REVIEW_FLOW_KEY = booleanPreferencesKey("has_completed_review_flow")
+            private val HAS_SUCCESSFUL_ANALYSIS_KEY = booleanPreferencesKey("has_successful_analysis")
         }
 
         val themeMode: Flow<ThemeMode> =
@@ -69,6 +76,58 @@ class AppPreferencesStore
         suspend fun setTutorialSeen(seen: Boolean = true) {
             dataStore.edit { preferences ->
                 preferences[TUTORIAL_SEEN_KEY] = seen
+            }
+        }
+
+        val appLaunchCount: Flow<Int> =
+            dataStore.data.map { preferences ->
+                preferences[APP_LAUNCH_COUNT_KEY] ?: 0
+            }
+
+        suspend fun incrementAppLaunchCount() {
+            dataStore.edit { preferences ->
+                val current = preferences[APP_LAUNCH_COUNT_KEY] ?: 0
+                preferences[APP_LAUNCH_COUNT_KEY] = current + 1
+            }
+        }
+
+        val lastReviewRequestTime: Flow<Long> =
+            dataStore.data.map { preferences ->
+                preferences[LAST_REVIEW_REQUEST_TIME_KEY] ?: 0L
+            }
+
+        val reviewPromptShownCount: Flow<Int> =
+            dataStore.data.map { preferences ->
+                preferences[REVIEW_PROMPT_SHOWN_COUNT_KEY] ?: 0
+            }
+
+        suspend fun recordReviewPromptShown(timestamp: Long) {
+            dataStore.edit { preferences ->
+                val current = preferences[REVIEW_PROMPT_SHOWN_COUNT_KEY] ?: 0
+                preferences[REVIEW_PROMPT_SHOWN_COUNT_KEY] = current + 1
+                preferences[LAST_REVIEW_REQUEST_TIME_KEY] = timestamp
+            }
+        }
+
+        val hasCompletedReviewFlow: Flow<Boolean> =
+            dataStore.data.map { preferences ->
+                preferences[HAS_COMPLETED_REVIEW_FLOW_KEY] ?: false
+            }
+
+        suspend fun markReviewFlowCompleted() {
+            dataStore.edit { preferences ->
+                preferences[HAS_COMPLETED_REVIEW_FLOW_KEY] = true
+            }
+        }
+
+        val hasSuccessfulAnalysis: Flow<Boolean> =
+            dataStore.data.map { preferences ->
+                preferences[HAS_SUCCESSFUL_ANALYSIS_KEY] ?: false
+            }
+
+        suspend fun markAnalysisSuccessful() {
+            dataStore.edit { preferences ->
+                preferences[HAS_SUCCESSFUL_ANALYSIS_KEY] = true
             }
         }
     }

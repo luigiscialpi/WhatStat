@@ -98,6 +98,9 @@ class MainActivity : ComponentActivity() {
         mainViewModel.requestAdsConsent(this)
         mainViewModel.initializeTelemetry()
         mainViewModel.trackAppOpen()
+        if (savedInstanceState == null) {
+            mainViewModel.incrementAppLaunchCount()
+        }
 
         setContent {
             val themeMode by mainViewModel.themeMode.collectAsState()
