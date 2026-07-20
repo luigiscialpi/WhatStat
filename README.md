@@ -992,7 +992,7 @@ In basso: indicatori dot animati (dot attivo = `width 20 dp`, inattivo = `8 dp`)
 | `ui/MainViewModel.kt` | `showTutorial: StateFlow`, `requestTutorial()`, `dismissTutorial()`, `completeTutorial()` |
 | `ui/component/AppDrawer.kt` | Voce "Tutorial" con icona `HelpOutline` |
 | `ui/navigation/AppNavigation.kt` | `LaunchedEffect` primo avvio + overlay Dialog sovrapposto all'`AppScaffold` |
-| `res/values*/strings.xml` | Chiavi `tutorial_*` in 8 lingue |
+| `res/values*/strings.xml` | Chiavi `tutorial_*` in 12 lingue |
 
 ---
 
@@ -1029,10 +1029,16 @@ Tutte le stringhe visibili nella UI sono esternalizzate in file di risorse Andro
 | `values-hi/` | Hindi |
 | `values-pt-rBR/` | Portoghese (Brasile) |
 | `values-tr/` | Turco |
+| `values-in/` | Bahasa Indonesia |
+| `values-kk/` | Қазақша |
+| `values-ro/` | Română |
+| `values-ru/` | Русский |
 
 Le stringhe coprono navigazione, titoli, pulsanti, dialog, formati data/ora e label di accessibilità.
 
 **Cambio lingua a runtime** — La lingua selezionata dall'utente viene persistita in `SharedPreferences` (`app_language_prefs`, chiave `app_language`, valori `"system"` / `"en"` / `"it"` / ecc.). `MainActivity.attachBaseContext()` legge questa preferenza in modo sincrono **prima** che il contesto Activity venga creato e applica il `Locale` tramite `Context.createConfigurationContext()`. Questo garantisce che tutti i contesti derivati — inclusi quelli creati internamente da `Dialog` e `ModalBottomSheet` in Compose — ereditino il locale corretto senza eccezioni. Al cambio di lingua da UI, `Activity.recreate()` riapplica il meccanismo.
+
+**Importante**: per ogni nuova lingua aggiunta in `res/values-*/`, è necessario aggiornare anche `res/xml/locales_config.xml`. Senza questa voce, Android non applica la lingua anche se la cartella di risorse esiste.
 
 ---
 
@@ -1186,7 +1192,7 @@ DD/MM/YY, HH:MM - NomeMittente: testo del messaggio
 - I media sono indicati come `<etichetta: filename>` invece che inline
 - Gli eventi di sistema appaiono come messaggi con mittente (es. "Tu: Hai cambiato il nome del gruppo")
 
-**Rilevamento media** (`hasMedia`): un messaggio è considerato multimediale se il `body` contiene una delle seguenti stringhe (supportate in tutte le 8 localizzazioni):
+**Rilevamento media** (`hasMedia`): un messaggio è considerato multimediale se il `body` contiene una delle seguenti stringhe (supportate in tutte le 12 localizzazioni):
 
 - IT: `"omesso"`, `"omessi"`, `"omessa"`, `"allegato"`
 - EN: `"omitted"`, `"attached"`
@@ -1352,7 +1358,7 @@ La Lite Mode ha un proprio grafo di navigazione `NavGraphRoute.Lite`, con la ste
 | Timestamp media | Esatto (DB) | Derivato dal messaggio; fallback a `file.lastModified()` |
 | `isCurrentUser` | `from_me=1` da DB WhatsApp | Aggiornato da `finalizeOwnerSelection()` |
 | Analisi lessicale incrementale | Sì (indice gzipped delta) | No (query SQL diretta ogni volta) |
-| Supporto lingue export | N/A | Supporto multilingua completo per le 8 localizzazioni (italiano, inglese, tedesco, spagnolo, francese, portoghese, turco, hindi) |
+| Supporto lingue export | N/A | Supporto multilingua completo per le 12 localizzazioni (italiano, inglese, tedesco, spagnolo, francese, portoghese, turco, hindi, indonesiano, kazako, rumeno, russo) |
 | Mappatura GIF | N/A | Classificate ed esposte come VIDEO nel DB e nella galleria (supportate in riproduzione da Coil Video) |
 | Classificazione Sticker iOS | N/A | Riconoscimento ed inclusione degli sticker iOS (pattern `STICKER`) nella corretta tab Galleria |
 
@@ -1469,7 +1475,7 @@ In questo README manteniamo una vista sintetica. I dettagli operativi (runbook, 
 - Tracking schermate (`screen_view_custom`) e overlay/dialog (`overlay_view`).
 - Forced update gestito da `UpdateGate` con fallback Play Store.
 - Remote warning configurabile via JSON (`remote_warning_config`) con azioni `dismiss`, `open_url`, `open_play_store`.
-- Localizzazione messaggi remoto su 8 lingue (`it`, `en`, `es`, `fr`, `de`, `tr`, `pt_br`, `hi`).
+- Localizzazione messaggi remoto su 12 lingue (`it`, `en`, `es`, `fr`, `de`, `tr`, `pt_br`, `hi`, `id`, `kk`, `ro`, `ru`).
 - TTL fetch Remote Config separato per ambiente:
     - debug: `0`
     - release: da `tracking_config_ttl_minutes` (default consigliato: `10080`, 7 giorni)

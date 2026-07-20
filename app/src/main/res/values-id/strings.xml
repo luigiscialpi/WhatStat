@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WhatStat</string>
+
+    <!-- Navigation & Common -->
+    <string name="back_desc">Kembali</string>
+    <string name="back_button_desc">Kembali ke halaman sebelumnya</string>
+    <string name="cancel">Batal</string>
+    <string name="save">Simpan</string>
+    <string name="delete">Hapus</string>
+    <string name="retry">Coba lagi</string>
+    <string name="error_title">KESALAHAN</string>
+    <string name="exit_toast">Tekan sekali lagi untuk keluar</string>
+    <string name="processing">Memproses…</string>
+    <string name="loading">Memuat…</string>
+    <string name="loading_domains">Menghitung domain…</string>
+    <string name="loading_media_gallery">Memuat galeri…</string>
+    <string name="loading_messages_preview">Memuat pratinjau…</string>
+    <string name="show_more">Tampilkan semua</string>
+    <string name="show_more_with_count">Tampilkan semua (%d)</string>
+    <string name="show_less">Tampilkan lebih sedikit</string>
+    <string name="info_dialog_title">Informasi</string>
+    <string name="ho_capito">Saya mengerti</string>
+    <string name="ok">OK</string>
+    <string name="add_zip_title">Tambahkan ZIP</string>
+    <string name="select_zip_file">PILIH FILE ZIP</string>
+    <string name="processing_label">Memproses...</string>
+    <string name="nav_dashboard">Beranda</string>
+    <string name="nav_chats">Chat</string>
+    <string name="nav_media">Media</string>
+    <string name="nav_radar">Radar</string>
+    <string name="nav_calls">Panggilan</string>
+    <string name="close">Tutup</string>
+    <string name="activity_breakdown_title">Rincian Aktivitas</string>
+    <string name="activity_breakdown_subtitle">Total %d pesan</string>
+    <string name="sender_color_picker_title">Warna untuk %1$s</string>
+    <string name="sender_color_picker_subtitle">Pilih warna: ini berlaku untuk diagram lingkaran dan grafik aktivitas di chat ini.</string>
+    <string name="sender_color_reset">Kembalikan ke default</string>
+    <string name="sender_color_change_cd">Ubah warna peserta ini</string>
+
+    <string name="group_history_title">Riwayat Grup</string>
+    <string name="group_history_no_events">Tidak ada riwayat peristiwa yang ditemukan untuk grup ini.</string>
+    <string name="group_history_info_title">Riwayat Grup</string>
+    <string name="group_history_info_text">Layar ini menampilkan riwayat lengkap grup dalam urutan kronologis.\n\nDi sebelah kiri muncul perubahan nama dan deskripsi dengan teks lama dan baru.\n\nDi sebelah kanan muncul tindakan pada peserta: ditambahkan, dihapus, promosi menjadi admin, dan keluar dari grup.\n\nSetiap peristiwa menampilkan anggota yang terlibat, avatar, serta tanggal dan waktu yang tepat.</string>
+    <string name="history_legend_names">Nama</string>
+    <string name="history_legend_descriptions">Deskripsi</string>
+    <string name="history_legend_io">Masuk/Keluar</string>
+
+    <string name="tab_hourly">Per Jam</string>
+    <string name="tab_weekly">Mingguan</string>
+    <string name="tab_daily">Harian</string>
+    <string name="tab_monthly">Bulanan</string>
+    <string name="tab_yearly">Tahunan</string>
+    <string name="activity_hourly_title">Distribusi per jam</string>
+    <string name="activity_weekly_title">Aktivitas mingguan</string>
+    <string name="activity_daily_title">Hari dalam sebulan (1-31)</string>
+    <string name="activity_monthly_title">Musiman (Jan-Des)</string>
+    <string name="activity_yearly_title">Tren selama bertahun-tahun</string>
+    <string name="click_hour_format">Jam %d:00</string>
+    <string name="click_day_prefix">Hari %s</string>
+    <string name="click_year_prefix">Tahun %s</string>
+
+    <!-- Setup Screen -->
+    <string name="setup_title">WhatStat</string>
+    <string name="setup_subtitle">Analisis lengkap chat WhatsApp Anda.\nSemua data tetap berada di perangkat.</string>
+    <string name="tab_lite">Lite</string>
+    <string name="tab_root">Root</string>
+    <string name="permesso_notifiche_toast">Izin pemberitahuan diperlukan untuk memantau proses di latar belakang</string>
+    <string name="lite_import_notification_channel_name">Impor Chat Lite</string>
+    <string name="lite_import_notification_channel_desc">Menampilkan kemajuan impor chat Lite</string>
+    <string name="lite_import_notification_title">Impor Chat Lite</string>
+    <string name="lite_import_notification_starting">Memulai...</string>
+    <string name="importing_overlay">Mengimpor chat…</string>
+    <string name="checking_data_overlay">Memverifikasi data…</string>
+    <string name="who_are_you_title">Siapa Anda?</string>
+    <string name="who_are_you_desc">Pilih nama Anda dari daftar untuk membedakan pesan yang dikirim dan yang diterima.</string>
+    <string name="lite_import_extract_zip">Mengekstrak ZIP…</string>
+    <string name="lite_import_error_no_txt">Tidak ada file .txt yang ditemukan di dalam ZIP</string>
+    <string name="lite_import_read_messages">Membaca pesan…</string>
+    <string name="lite_import_analyze_media">Menganalisis media…</string>
+    <string name="lite_import_save_db">Menyimpan database…</string>
+    <string name="lite_import_write_db_progress">Menulis DB: %d%%</string>
+    <string name="lite_import_select_owner">Pilih nama Anda…</string>
+    <string name="lite_import_error_no_chat_to_finalize">Tidak ada chat yang diimpor untuk diselesaikan</string>
+    <string name="lite_import_finalize_owner">Menyelesaikan pengirim…</string>
+    <string name="lite_import_completed">Selesai</string>
+    <string name="lite_hint_import_found">Data yang diimpor sebelumnya ditemukan. Anda dapat mengakses dasbor atau mengimpor chat ZIP lainnya.</string>
+    <string name="lite_hint_no_import">Belum ada data yang diimpor. Silakan unggah chat WhatsApp yang diekspor sebagai file ZIP.</string>
+    <string name="go_to_dashboard">Buka Ikhtisar</string>
+    <string name="import_zip_button">Impor Chat dari file ZIP</string>
+    <string name="root_step_access">Akses root</string>
+    <string name="root_step_extraction">Ekstraksi file</string>
+    <string name="root_step_decryption">Dekripsi database</string>
+    <string name="root_step_contacts">Membaca kontak</string>
+    <string name="root_hint_session_found">Sesi Root yang tersimpan ditemukan. Anda dapat mengakses dasbor atau memulai analisis baru.</string>
+    <string name="root_hint_no_session">Tidak ada sesi Root yang aktif. Mulai analisis untuk mengekstrak data terbaru.</string>
+    <string name="manual_mode_button">Pilih File Secara Manual</string>
+    <string name="manual_mode_title">Opsi Manual (Tanpa Root)</string>
+    <string name="manual_file_key">File Kunci (key)</string>
+    <string name="manual_file_crypt14">Database (msgstore.db.crypt14)</string>
+    <string name="manual_file_decrypted">Database sudah didekripsi (msgstore.db)</string>
+    <string name="manual_file_wadb">Kontak (wa.db) - Opsional</string>
+    <string name="lite_open_whatsapp_button">Bagikan dari WhatsApp</string>
+    <string name="lite_whatsapp_not_installed">WhatsApp tidak terinstal</string>
+    <string name="lite_guide_cd">Cara mengekspor chat</string>
+    <string name="lite_guide_title">Cara mengekspor chat</string>
+    <string name="lite_guide_step1">Buka WhatsApp di perangkat Anda.</string>
+    <string name="lite_guide_step2">Buka chat, ketuk tiga titik (...) di kanan atas, lalu ketuk Ekspor chat.</string>
+    <string name="lite_guide_step3">Pilih Tanpa media atau Sertakan media &lt;b&gt;(disarankan!)&lt;/b&gt;, lalu ketuk Bagikan.</string>
+    <string name="lite_guide_step4">Pada menu berbagi, pilih WhatStat: chat akan diimpor secara otomatis. Alternatif lain, simpan file ZIP (atau minta teman Anda mengirimkannya!) dan impor secara manual menggunakan tombol di bawah ini.</string>
+    <string name="start_analysis">Mulai analisis</string>
+    <string name="decrypt_db_button">Dekripsi Database</string>
+    <string name="button_replace">Ganti</string>
+    <string name="button_select">Pilih</string>
+    <string name="setup_cancelled">Operasi dibatalkan</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Ikhtisar</string>
+    <string name="lite_mode_badge">MODE LITE (ZIP)</string>
+    <string name="stat_total_messages">Total pesan</string>
+    <string name="stat_avg_per_day">Rata-rata/hari</string>
+    <string name="stat_active_chats">Chat aktif</string>
+    <string name="stat_longest_streak">Runtutan terpanjang</string>
+    <string name="stat_streak_days">%d hari</string>
+    <string name="stat_contacts">Kontak</string>
+    <string name="stat_total_media">File media</string>
+    <string name="stat_most_active_chat">Chat paling aktif</string>
+    <string name="lexical_analysis_title">Analisis Leksikal</string>
+    <string name="lexical_analysis_subtitle">Kata dan emoji yang paling sering digunakan</string>
+    <string name="lexical_analysis_info">Analisis ini mungkin memerlukan waktu beberapa detik - bahkan beberapa menit!</string>
+    <string name="run_analysis_button">Mulai analisis</string>
+    <string name="text_analysis_title">Analisis teks</string>
+    <string name="text_analysis_subtitle">Kata, emoji, dan stiker yang paling sering digunakan</string>
+    <string name="tab_words">Kata</string>
+    <string name="tab_emojis">Emoji</string>
+    <string name="tab_stickers">Stiker</string>
+    <string name="no_words_found">Tidak ada kata yang ditemukan</string>
+    <string name="no_emojis_found">Tidak ada emoji yang ditemukan</string>
+    <string name="sticker_info_hint">Stiker serupa dapat muncul beberapa kali karena WhatsApp menyimpannya sebagai file terpisah.</string>
+    <string name="no_stickers_found">Tidak ada stiker yang ditemukan</string>
+    <string name="no_data_for_period">Tidak ada data untuk periode ini</string>
+
+    <!-- Errors (Service) -->
+    <string name="error_root_not_available">Root tidak tersedia. Pastikan Magisk telah terinstal dan aplikasi memiliki izin root.</string>
+    <string name="error_root_not_granted">Izin root ditolak. Buka Magisk dan berikan izin ke WhatStat.</string>
+    <string name="error_key_not_found">File kunci tidak ditemukan. Apakah WhatsApp terinstal?</string>
+    <string name="error_crypt14_not_found">Database terenkripsi tidak ditemukan. Pastikan cadangan lokal aktif di WhatsApp.</string>
+    <string name="error_crypt15_detected">Terdeteksi cadangan crypt15 (E2E). Nonaktifkan cadangan terenkripsi end-to-end di pengaturan WhatsApp Anda.</string>
+    <string name="error_decryption_failed">Dekripsi gagal: %s</string>
+    <string name="error_database_open">Tidak dapat membuka database: %s</string>
+    <string name="error_unknown">Kesalahan tidak terduga: %s</string>
+
+    <!-- Chat List -->
+    <string name="chatlist_title">Chat Anda</string>
+    <string name="chatlist_search_hint">Cari chat…</string>
+    <string name="chatlist_count_suffix">%d chat</string>
+    <string name="add_zip_fab">Tambahkan ZIP</string>
+    <string name="delete_chat_title">Hapus chat</string>
+    <string name="delete_chat_confirm">Apakah Anda ingin menghapus \"%s\" dan semua pesannya?</string>
+    <string name="rename_chat_title">Ubah nama chat</string>
+    <string name="chat_name_label">Nama chat</string>
+    <string name="exported_on_prefix">Diekspor pada: %s</string>
+    <string name="messages_count_suffix">%,d pesan</string>
+    <string name="messages_label">pesan</string>
+
+    <!-- Chat Detail -->
+    <string name="chatdetail_sent">Dikirim</string>
+    <string name="chatdetail_received">Diterima</string>
+    <string name="chatdetail_top_sender_title">Siapa yang paling banyak menulis</string>
+    <string name="top_senders_info_title">Informasi tentang grafik ini</string>
+    <string name="top_senders_info_desc">Diagram lingkaran ini menunjukkan bagaimana pesan didistribusikan di antara para peserta chat ini.\n\n💡 Tips: ketuk kotak warna di samping nama untuk memilih warna khusus bagi peserta tersebut.</string>
+    <string name="fallback_them">Mereka</string>
+    <string name="fallback_me">Anda</string>
+    <string name="activity_period_label">Periode aktivitas</string>
+    <string name="avg_response_time">Waktu respons rata-rata</string>
+    <string name="media_length_label">Rata-rata panjang pesan</string>
+    <string name="chatdetail_words_per_msg">Kata / pesan</string>
+    <string name="chatdetail_emoji_per_msg">Emoji / pesan</string>
+    <string name="stat_split_format">%1$s: %2$s • %3$s: %4$s</string>
+    <string name="chars_abbr">kar.</string>
+    <string name="conv_starters_title">Siapa yang memulai percakapan</string>
+    <string name="conv_starters_center">percakapan</string>
+    <string name="view_mode_all">Semua</string>
+    <string name="view_mode_person">Per Orang</string>
+    <string name="conv_starters_info">Percakapan baru dihitung ketika sebuah pesan dikirim setelah setidaknya 3 jam keheningan sejak pesan terakhir sebelumnya.\n\n💡 Tips: ketuk kotak warna di samping nama untuk menyesuaikan warna peserta tersebut.</string>
+    
+    <!-- Action Cards -->
+    <string name="radar_parole_title">Radar Kata</string>
+    <string name="radar_parole_sub">Cari kata yang sering digunakan</string>
+    <string name="log_chiamate_title">Log Panggilan</string>
+    <string name="log_chiamate_sub">Audio, video, tidak terjawab</string>
+    <string name="media_link_title">Media &amp; Link</string>
+    <string name="media_link_sub">Dokumen dan URL</string>
+    <string name="group_history_sub">Peristiwa grup</string>
+
+    <!-- Units & Time -->
+    <string name="unit_hours">j</string>
+    <string name="unit_minutes">m</string>
+    <string name="unit_min_full">menit</string>
+    <string name="less_than_one_min">&lt;1 menit</string>
+
+    <!-- Radar Parole -->
+    <string name="word_search_placeholder">Cari kata atau frasa…</string>
+    <string name="suggested_words_label">Kata yang disarankan</string>
+    <string name="search_button">Cari</string>
+    <string name="no_results_word">Tidak ada pesan yang ditemukan untuk kata ini.</string>
+    <string name="results_for">Hasil untuk</string>
+    <string name="occurrences_by_sender">Kemunculan per pengirim</string>
+    <string name="message_preview_title">Pratinjau pesan</string>
+    <string name="sort_newest">Paling baru</string>
+    <string name="sort_oldest">Paling lama</string>
+    <string name="load_more">Muat lebih banyak</string>
+    <string name="word_search_hint_min">Masukkan minimal 2 karakter untuk mencari</string>
+    <string name="word_search_invite">Mulai pencarian dengan menekan ikon kaca pembesar</string>
+    <string name="filter_multi">Multi</string>
+    <string name="and_label">DAN</string>
+    <string name="or_label">ATAU</string>
+    <string name="month_jan">Jan</string>
+    <string name="month_feb">Feb</string>
+    <string name="month_mar">Mar</string>
+    <string name="month_apr">Apr</string>
+    <string name="month_may">Mei</string>
+    <string name="month_jun">Jun</string>
+    <string name="month_jul">Jul</string>
+    <string name="month_aug">Agu</string>
+    <string name="month_sep">Sep</string>
+    <string name="month_oct">Okt</string>
+    <string name="month_nov">Nov</string>
+    <string name="month_dec">Des</string>
+
+    <string name="day_sunday">Minggu</string>
+    <string name="day_monday">Senin</string>
+    <string name="day_tuesday">Selasa</string>
+    <string name="day_wednesday">Rabu</string>
+    <string name="day_thursday">Kamis</string>
+    <string name="day_friday">Jumat</string>
+    <string name="day_saturday">Sabtu</string>
+
+    <string name="month_january">Januari</string>
+    <string name="month_february">Februari</string>
+    <string name="month_march">Maret</string>
+    <string name="month_april">April</string>
+    <string name="month_may_full">Mei</string>
+    <string name="month_june">Juni</string>
+    <string name="month_july">Juli</string>
+    <string name="month_august">Agustus</string>
+    <string name="month_september">September</string>
+    <string name="month_october">Oktober</string>
+    <string name="month_november">November</string>
+    <string name="month_december">Desember</string>
+    <string name="radar_info_text">Radar menganalisis frekuensi kata dalam pesan.\n\nPerilaku standar:\n• Pencarian menemukan semua kemunculan kata, bahkan jika termasuk dalam kata lain (misalnya \'rumah\' juga akan menemukan \'perumahan\').\n• Saran muncul setelah 3 karakter dan menampilkan kata yang paling sering digunakan.\n\nOpsi pencarian:\n• Aa: Aktifkan sensitivitas huruf besar/kecil (case-sensitive).\n• ab: Cari hanya kata yang persis sama, mengabaikan pencocokan parsial.\n• ?: Hanya tampilkan pesan yang berisi tanda tanya.\n• Multi: Klik untuk mengubah mode:\n   - Multi: Cari frasa yang persis sama.\n   - Multi: DAN: Cari pesan yang berisi SEMUA kata (AND).\n   - Multi: ATAU: Cari pesan yang berisi SETIDAKNYA SATU kata (OR).</string>
+
+    <!-- Media & Link -->
+    <string name="tab_media">Galeri media</string>
+    <string name="tab_links">Link yang dibagikan</string>
+    <string name="search_links_placeholder">Cari link or domain…</string>
+    <string name="type_images">Foto</string>
+    <string name="type_videos">Video</string>
+    <string name="type_audio">Audio</string>
+    <string name="type_docs">Dokumen</string>
+    <string name="unit_mb">MB</string>
+    <string name="unit_gb">GB</string>
+    <string name="links_grouped_domain">Link yang dibagikan dikelompokkan berdasarkan domain</string>
+    <string name="last_link_prefix">Link terakhir: %s</string>
+    <string name="sent_by_prefix">Dikirim oleh: %s</string>
+    <string name="media_info_title">Informasi tentang Media</string>
+    <string name="media_info_text_global">Pghitung mencakup Foto dan Video yang dipertukarkan dari waktu ke waktu.\n\nTombol menunjukkan total riwayat absolut, sedangkan di galeri hanya file yang masih ada di telepon yang dimuat (yang dihapus tidak dapat ditampilkan).\n\n💡 Tips: ketuk jumlah media atau link untuk melihat detail lebih lanjut 😉</string>
+    <string name="media_info_text_gallery">Galeri hanya menampilkan file yang saat ini ada di telepon. Penghitung dan rincian bisa lebih tinggi karena mereka juga mencakup media yang dihapus dari waktu ke waktu.\n\n💡 Tips: tekan dan tahan pada media untuk memilih dan membagikannya.</string>
+    <string name="error_open_file">Tidak dapat membuka file</string>
+    <string name="back_to_all_links">Semua link</string>
+    <string name="avatar_desc">Avatar</string>
+    <string name="domain_no_stats">Tidak ada statistik domain yang tersedia.</string>
+    <string name="selected_count">%d dipilih</string>
+
+    <!-- Calls Stats -->
+    <string name="total_calls_label">Total panggilan</string>
+    <string name="call_type_audio">Audio</string>
+    <string name="call_type_video">Video</string>
+    <string name="call_type_missed">Tidak terjawab</string>
+    <string name="total_duration_label">Total durasi</string>
+    <string name="search_calls_placeholder">Cari kontak atau tanggal…</string>
+    <string name="no_calls_found">Tidak ada panggilan yang ditemukan</string>
+    <string name="call_audio_label">Panggilan audio</string>
+    <string name="call_video_label">Panggilan video</string>
+    <string name="call_missed_label">Panggilan tidak terjawab</string>
+    <string name="call_outgoing">Keluar</string>
+    <string name="call_incoming">Masuk</string>
+    <string name="calls_summary_title">Ringkasan</string>
+    <string name="calls_total_label">Total</string>
+    <string name="calls_grouped_stats">Statistik panggilan</string>
+    <string name="calls_grouped_person">Rincian per orang</string>
+    <string name="calls_log_title">Log Panggilan</string>
+
+    <!-- Days of week -->
+    <string name="day_sun">Min</string>
+    <string name="day_mon">Sen</string>
+    <string name="day_tue">Sel</string>
+    <string name="day_wed">Rab</string>
+    <string name="day_thu">Kam</string>
+    <string name="day_fri">Jum</string>
+    <string name="day_sat">Sab</string>
+    <string name="total_duration">Total durasi: %s</string>
+    <string name="date_from">Dari</string>
+    <string name="date_to">Ke</string>
+    <string name="clear">Bersihkan</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_title">Prediksi Target</string>
+    <string name="prediction_info_title">Informasi tentang prediksi</string>
+    <string name="prediction_info_desc">Prediksi memperkirakan kapan Anda akan mencapai target di masa depan berdasarkan ritme pesan terakhir Anda.\n\nRitme dihitung menggunakan pesan yang dikirim dalam periode yang dipilih. Jika Anda mengubah filter waktu, prediksi akan diperbarui sebagaimana mestinya.</string>
+    <string name="prediction_custom">Kustom</string>
+    <string name="prediction_target_label">Target kustom</string>
+    <string name="prediction_target_placeholder">misal: 50000</string>
+    <string name="prediction_error_already_reached">Target sudah tercapai!</string>
+    <string name="prediction_unavailable">Prediksi tidak tersedia</string>
+    <string name="prediction_estimated_date">Tanggal perkiraan</string>
+    <string name="prediction_date_unavailable">Tanggal tidak tersedia</string>
+    <string name="prediction_uncalculable">Tidak dapat dihitung</string>
+    <string name="prediction_reached">Tercapai</string>
+    <string name="prediction_low_confidence">Perkiraan kurang stabil</string>
+    <string name="prediction_period_filtered_label">Berdasarkan ritme periode yang dipilih</string>
+
+    <!-- Time Range Filters -->
+    <string name="time_range_label">Periode yang dianalisis</string>
+    <string name="time_range_all">Semua</string>
+    <string name="time_range_30_days">30 hari</string>
+    <string name="time_range_6_months">6 bulan</string>
+    <string name="time_range_year">Tahun</string>
+    <string name="time_range_custom">Kustom</string>
+    <string name="time_range_custom_button">Kustom</string>
+
+    <!-- Tutorial -->
+    <string name="drawer_tutorial">Tutorial</string>
+    <string name="tutorial_skip">Lewati</string>
+    <string name="tutorial_next">Lanjut</string>
+    <string name="tutorial_start">Mulai</string>
+    <string name="tutorial_next_wait">Tunggu %ds</string>
+    <string name="tutorial_title_welcome">Selamat datang di WhatStat</string>
+    <string name="tutorial_desc_welcome">Analisis chat WhatsApp Anda dengan aman. Data Anda tidak pernah meninggalkan perangkat.</string>
+    <string name="tutorial_title_modes">Dua mode</string>
+    <string name="tutorial_desc_modes">Root: analisis lengkap dari database langsung. Lite: impor file ZIP yang dibuat dari WhatsApp dengan Ekspor chat, tanpa root.</string>
+    <string name="tutorial_title_import">Cara mengimpor chat</string>
+    <string name="tutorial_import_step_1">Buka WhatsApp di perangkat Anda.</string>
+    <string name="tutorial_import_step_2">Buka chat, ketuk tiga titik (...) di kanan atas, lalu ketuk Ekspor chat.</string>
+    <string name="tutorial_import_step_3">Pilih Sertakan media (disarankan), lalu ketuk Bagikan.</string>
+    <string name="tutorial_import_step_4">Pilih WhatStat dari menu berbagi, atau simpan ZIP dan impor secara manual.</string>
+    <string name="tutorial_title_dashboard">Dasbor dan statistik</string>
+    <string name="tutorial_desc_dashboard">Lihat total, grafik aktivitas, rincian per pengirim, dan tren secara sekilas.</string>
+    <string name="tutorial_title_radar">Radar kata</string>
+    <string name="tutorial_desc_radar">Cari kata dalam chat dengan rincian per pengirim dan pratinjau pesan lengkap, ditambah filter lanjutan.</string>
+    <string name="tutorial_radar_previews_badge">Pratinjau pesan sorotan</string>
+    <string name="tutorial_radar_search_example">Cari kata atau frasa…</string>
+    <string name="tutorial_radar_keyword">rumah</string>
+    <string name="tutorial_radar_preview_before">“… saya melihat</string>
+    <string name="tutorial_radar_preview_after">kemarin, apakah Anda mencari hal yang sama? …”</string>
+    <string name="tutorial_radar_preview_1">[Pratinjau] "... saya kirim filenya besok ..."</string>
+    <string name="tutorial_radar_preview_2">[Pratinjau] "... di mana Anda melihat kata itu?"</string>
+    <string name="tutorial_radar_preview_3">[Pratinjau] "... saya periksa di pratinjau dulu ..."</string>
+    <string name="tutorial_modes_root_sub">Analisis lengkap dari DB langsung, memerlukan root.</string>
+    <string name="tutorial_modes_lite_sub">Impor ZIP dari WhatsApp, tanpa root.</string>
+    <string name="tutorial_title_media">Galeri media</string>
+    <string name="tutorial_desc_media">Jelajahi foto, video, audio, dan link dengan statistik kaya dan pratinjau cepat.</string>
+    <string name="tutorial_title_ready">Siap</string>
+    <string name="tutorial_desc_ready">Ketuk Mulai untuk menjalankan analisis pertama Anda. Anda dapat membuka kembali tutorial ini dari menu kapan saja.</string>
+
+    <!-- Drawer -->
+    <string name="drawer_app_name">WhatStat</string>
+    <string name="whatstat_drawer_theme">Tema Aplikasi</string>
+    <string name="whatstat_drawer_language">Ganti Bahasa</string>
+    <string name="whatstat_drawer_cache">Hapus Data</string>
+    <string name="drawer_ads_privacy_options">Opsi Privasi Iklan</string>
+    <string name="whatstat_drawer_about">Informasi</string>
+    <string name="dialog_choose_theme">Pilih Tema</string>
+    <string name="theme_system_default">Default sistem</string>
+    <string name="theme_light">Terang</string>
+    <string name="theme_dark">Gelap</string>
+    <string name="dialog_choose_language">Pilih Bahasa</string>
+    <string name="dialog_cancel">Batal</string>
+    <string name="dialog_clear_cache_title">Hapus Data</string>
+    <string name="dialog_clear_data_message_root">Database yang diekstrak, avatar, dan cache Root akan dihapus secara permanen. Anda perlu melakukan pengaturan Root kembali.</string>
+    <string name="dialog_clear_data_message_lite">Semua chat yang diimpor, file media, and cache Lite akan dihapus secara permanen. Anda perlu mengimpor ulang chat.</string>
+    <string name="dialog_clear_data_message_both">Semua data akan dihapus secara permanen: database Root, semua chat Lite yang diimpor, file media, dan cache. Anda perlu melakukan pengaturan ulang.</string>
+    <string name="dialog_clear">Hapus</string>
+    <string name="dialog_about_title">Informasi</string>
+    <string name="dialog_about_message">WhatStat\nVersi: %s\n\nWhatStat memproses chat WhatsApp Anda sepenuhnya secara lokal. Tidak ada data yang dikirim ke server eksternal.</string>
+    <string name="dialog_close">Tutup</string>
+    <string name="force_update_dialog_title">Pembaruan Diperlukan</string>
+    <string name="force_update_dialog_message_default">Versi baru WhatStat telah tersedia. Silakan perbarui untuk melanjutkan.</string>
+    <string name="force_update_dialog_button">Perbarui</string>
+    <string name="loading_calculating">Menghitung...</string>
+
+    <!-- Milestone Prediction -->
+    <string name="prediction_messages_format">%s pesan</string>
+    <string name="prediction_daily_rate_format">Ritme: %.1f pesan/hari</string>
+    <string name="days_remaining_format">%d hari</string>
+    <string name="month_remaining_format">1 bulan</string>
+    <string name="months_remaining_format">%d bulan</string>
+    <string name="year_remaining_format">1 tahun</string>
+    <string name="years_remaining_format">%d tahun</string>
+
+    <!-- New DB Update -->
+    <string name="new_db_available_title">Cadangan baru terdeteksi</string>
+    <string name="new_db_available_desc">Cadangan WhatsApp baru telah tersedia. Apakah Anda ingin memperbarui data WhatStat?</string>
+    <string name="new_db_update_button">Perbarui sekarang</string>
+
+    <!-- Lite fallback chat names -->
+    <string name="lite_fallback_chat_name">Chat diimpor</string>
+    <string name="lite_fallback_group_name">Grup diimpor</string>
+
+    <!-- Emoji / Sticker preview -->
+    <string name="used_n_times">Digunakan %1$s kali</string>
+
+    <!-- SetupService notification -->
+    <string name="setup_service_channel_name">Pengaturan WhatStat</string>
+    <string name="setup_service_channel_desc">Menampilkan kemajuan dekripsi</string>
+    <string name="setup_service_notif_title">Dekripsi Database</string>
+    <string name="setup_service_progress">Kemajuan: %d%%</string>
+    <string name="setup_service_starting">Memulai…</string>
+
+    <!-- Errors -->
+    <string name="error_decryption_error">Kesalahan dekripsi: %s</string>
+    <string name="error_extraction">Kesalahan ekstraksi file: %s</string>
+    <string name="error_unknown_simple">Kesalahan tidak dikenal</string>
+    <string name="error_db_unavailable">Database tidak tersedia</string>
+    <string name="error_file_read_detail">Kesalahan membaca file: %s</string>
+    <string name="error_with_detail">Kesalahan: %s</string>
+
+    <!-- Easter Egg -->
+    <string name="easter_egg_pro_unlocked">Versione Pro dibuka! Persembahan dari Luigi Scialpi 😉</string>
+
+    <!-- Rewarded Insights -->
+    <string name="rewarded_unlock_prompt_title">Buka statistik lanjutan</string>
+    <string name="rewarded_unlock_prompt_message">Tonton iklan singkat untuk membuka prediksi serta grafik harian, bulanan, dan tahunan selama 2 jam.</string>
+    <string name="rewarded_unlock_button">Buka dengan iklan</string>
+    <string name="rewarded_unlock_tabs_success_2h_toast">Grafik harian, bulanan, dan tahunan dibuka selama 2 jam.</string>
+    <string name="rewarded_unlock_prediction_success_2h_toast">Prediksi dibuka selama 2 jam.</string>
+    <string name="rewarded_unlock_success_2h_toast">Statistik lanjutan dibuka selama 2 jam.</string>
+    <string name="rewarded_unlock_not_available_toast">Iklan reward tidak tersedia. Coba lagi sesaat lagi.</string>
+
+    <!-- Domain Breakdown Sheet -->
+    <string name="domain_analysis_title">Analisis Link</string>
+    <string name="link_sort_label">Urutkan berdasarkan: </string>
+    <string name="link_sort_more_recent">Paling baru</string>
+    <string name="share_media">Bagikan media</string>
+    <string name="share">Bagikan</string>
+    <string name="selected">Dipilih</string>
+    <string name="media_label">media</string>
+    <string name="link_label">link</string>
+    <string name="link_preview_toggle">Tampilkan pratinjau link</string>
+    <string name="link_preview_loading">Memuat pratinjau…</string>
+    <string name="link_preview_unavailable">Pratinjau tidak tersedia untuk link ini.</string>
+    <string name="link_info_title">Informasi tentang link</string>
+    <string name="link_info_text">Di sini Anda dapat menjelajahi semua link yang dibagikan dalam chat ini, dikelompokkan berdasarkan situs web.\n\nKetuk sebuah domain untuk meluaskannya dan melihat masing-masing URL. Setiap link menampilkan tanggal pengiriman terakhir.\n\nGunakan penggeser di bagian atas untuk memfilter hasil dalam rentang tanggal.\n\n💡 Tips: ketuk panah di samping link untuk memuat pratinjau cepat yang berisi judul, gambar, dan nama situs — tanpa membuka browser.</string>
+    <string name="link_sort_less_recent">Paling lama</string>
+    <string name="image_desc">Gambar</string>
+    <string name="menu_desc">Menu</string>
+    <string name="scroll_to_top">Gulir ke atas</string>
+    <string name="info_desc">Info</string>
+</resources>
