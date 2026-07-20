@@ -31,7 +31,10 @@ class InAppReviewManager
         suspend fun warmUp() {
             if (cachedReviewInfo != null) return
             if (alreadyRequestedThisSession) return
-            if (!shouldShowReview()) return
+
+            val hasCompletedReview = appPreferencesStore.hasCompletedReviewFlow.first()
+            val reviewPromptShownCount = appPreferencesStore.reviewPromptShownCount.first()
+            if (hasCompletedReview || reviewPromptShownCount >= 3) return
 
             try {
                 cachedReviewInfo = manager.requestReviewFlow().await()
@@ -42,17 +45,19 @@ class InAppReviewManager
         }
 
         /**
-         * Lancia il flusso di recensione se elegibile e se il ReviewInfo e' stato pre-caricato.
+         * Lancia il flusso di recensione se elegibile.
+         * Se il ReviewInfo non e' stato pre-caricato o e' nullo, tenta una richiesta al volo.
          * Deve essere chiamato una sola volta per sessione (guarded da alreadyRequestedThisSession).
          */
         suspend fun launchIfEligible(activity: Activity): Boolean {
             if (alreadyRequestedThisSession) return false
-            alreadyRequestedThisSession = true
-
-            val reviewInfo = cachedReviewInfo ?: return false
-            cachedReviewInfo = null
 
             if (!shouldShowReview()) return false
+
+            alreadyRequestedThisSession = true
+
+            val reviewInfo = cachedReviewInfo ?: fetchReviewInfoOrNull() ?: return false
+            cachedReviewInfo = null
 
             val currentTime = System.currentTimeMillis()
             appPreferencesStore.recordReviewPromptShown(currentTime)
@@ -98,6 +103,16 @@ class InAppReviewManager
             }
 
             return eligible
+        }
+
+        private suspend fun fetchReviewInfoOrNull(): ReviewInfo? {
+            return try {
+                DebugLogManager.log("InAppReviewManager | cachedReviewInfo nullo, recupero al volo...")
+                manager.requestReviewFlow().await()
+            } catch (e: Exception) {
+                DebugLogManager.log("InAppReviewManager | Errore recupero al volo ReviewInfo: ${e.message}")
+                null
+            }
         }
     }
 

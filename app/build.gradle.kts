@@ -26,8 +26,8 @@ android {
         applicationId = "com.whatstats"
         minSdk = 26
         targetSdk = 36
-        versionCode = 31
-        versionName = "1.5.8"
+        versionCode = 34
+        versionName = "1.5.9"
         val admobAppId =
             project
                 .findProperty("ADMOB_APP_ID")
@@ -115,7 +115,7 @@ android {
     }
 
     androidResources {
-        localeFilters += listOf("en", "it", "de", "es", "fr", "hi", "pt-rBR", "tr")
+        localeFilters += listOf("en", "it", "de", "es", "fr", "hi", "pt-rBR", "tr", "in", "id", "kk", "ro", "ru")
     }
 
     bundle {

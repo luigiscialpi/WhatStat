@@ -1038,7 +1038,7 @@ Le stringhe coprono navigazione, titoli, pulsanti, dialog, formati data/ora e la
 
 **Cambio lingua a runtime** — La lingua selezionata dall'utente viene persistita in `SharedPreferences` (`app_language_prefs`, chiave `app_language`, valori `"system"` / `"en"` / `"it"` / ecc.). `MainActivity.attachBaseContext()` legge questa preferenza in modo sincrono **prima** che il contesto Activity venga creato e applica il `Locale` tramite `Context.createConfigurationContext()`. Questo garantisce che tutti i contesti derivati — inclusi quelli creati internamente da `Dialog` e `ModalBottomSheet` in Compose — ereditino il locale corretto senza eccezioni. Al cambio di lingua da UI, `Activity.recreate()` riapplica il meccanismo.
 
-**Importante**: per ogni nuova lingua aggiunta in `res/values-*/`, è necessario aggiornare anche `res/xml/locales_config.xml`. Senza questa voce, Android non applica la lingua anche se la cartella di risorse esiste.
+**Importante**: per ogni nuova lingua aggiunta in `res/values-*/`, è necessario aggiornare anche `res/xml/locales_config.xml` e i localeFilters in `app/build.gradle.kts`. Senza queste modifiche, Android non applica la lingua anche se la cartella di risorse esiste.
 
 ---
 
