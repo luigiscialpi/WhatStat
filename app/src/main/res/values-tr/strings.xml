@@ -363,6 +363,9 @@
     <string name="whatstat_drawer_language">Dili değiştir</string>
     <string name="whatstat_drawer_cache">Verileri sil</string>
     <string name="drawer_ads_privacy_options">Reklam gizlilik seçenekleri</string>
+    <string name="drawer_ads_free_unlock">Reklamları kaldır (video izle)</string>
+    <string name="drawer_ads_free_unlocked_active">Reklamlar kapalı (%1$d sa kaldı)</string>
+    <string name="drawer_ads_free_already_active_toast">Reklamlar zaten kapalı. Keyfini çıkar!</string>
     <string name="whatstat_drawer_about">Bilgiler</string>
     <string name="dialog_choose_theme">Tema seç</string>
     <string name="theme_system_default">Sistem varsayılanı</string>
@@ -428,6 +431,7 @@
     <string name="rewarded_unlock_tabs_success_2h_toast">Günlük, aylık ve yıllık grafikler 2 saatliğine açıldı.</string>
     <string name="rewarded_unlock_prediction_success_2h_toast">Tahmin 2 saatliğine açıldı.</string>
     <string name="rewarded_unlock_success_2h_toast">Gelişmiş içgörüler 2 saatliğine açıldı.</string>
+    <string name="rewarded_unlock_ads_free_success_toast">Reklamlar 2 saatliğine kapatıldı.</string>
     <string name="rewarded_unlock_not_available_toast">Ödüllü reklam kullanılamıyor. Lütfen kısa süre sonra tekrar dene.</string>
     <!-- Domain Breakdown Sheet -->
     <string name="domain_analysis_title">Alan Adı Analizi</string>

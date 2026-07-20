@@ -369,6 +369,9 @@
     <string name="whatstat_drawer_language">Ganti Bahasa</string>
     <string name="whatstat_drawer_cache">Hapus Data</string>
     <string name="drawer_ads_privacy_options">Opsi Privasi Iklan</string>
+    <string name="drawer_ads_free_unlock">Hapus iklan (tonton video)</string>
+    <string name="drawer_ads_free_unlocked_active">Iklan dinonaktifkan (%1$d jam lagi)</string>
+    <string name="drawer_ads_free_already_active_toast">Iklan sudah dinonaktifkan. Nikmati!</string>
     <string name="whatstat_drawer_about">Informasi</string>
     <string name="dialog_choose_theme">Pilih Tema</string>
     <string name="theme_system_default">Default sistem</string>
@@ -435,6 +438,7 @@
     <string name="rewarded_unlock_tabs_success_2h_toast">Grafik harian, bulanan, dan tahunan dibuka selama 2 jam.</string>
     <string name="rewarded_unlock_prediction_success_2h_toast">Prediksi dibuka selama 2 jam.</string>
     <string name="rewarded_unlock_success_2h_toast">Statistik lanjutan dibuka selama 2 jam.</string>
+    <string name="rewarded_unlock_ads_free_success_toast">Iklan dinonaktifkan selama 2 jam.</string>
     <string name="rewarded_unlock_not_available_toast">Iklan reward tidak tersedia. Coba lagi sesaat lagi.</string>
 
     <!-- Domain Breakdown Sheet -->

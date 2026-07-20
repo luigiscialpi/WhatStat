@@ -363,6 +363,9 @@
     <string name="whatstat_drawer_language">Sprache ändern</string>
     <string name="whatstat_drawer_cache">Daten löschen</string>
     <string name="drawer_ads_privacy_options">Datenschutzoptionen für Werbung</string>
+    <string name="drawer_ads_free_unlock">Werbung entfernen (Video ansehen)</string>
+    <string name="drawer_ads_free_unlocked_active">Werbung deaktiviert (noch %1$d Std.)</string>
+    <string name="drawer_ads_free_already_active_toast">Werbung ist bereits deaktiviert. Viel Spaß!</string>
     <string name="whatstat_drawer_about">Informationen</string>
     <string name="dialog_choose_theme">Design wählen</string>
     <string name="theme_system_default">Systemstandard</string>
@@ -428,6 +431,7 @@
     <string name="rewarded_unlock_tabs_success_2h_toast">Tägliche, monatliche und jährliche Diagramme für 2 Stunden freigeschaltet.</string>
     <string name="rewarded_unlock_prediction_success_2h_toast">Prognose für 2 Stunden freigeschaltet.</string>
     <string name="rewarded_unlock_success_2h_toast">Erweiterte Einblicke für 2 Stunden freigeschaltet.</string>
+    <string name="rewarded_unlock_ads_free_success_toast">Werbung für 2 Stunden deaktiviert.</string>
     <string name="rewarded_unlock_not_available_toast">Belohnungsanzeige nicht verfügbar. Bitte versuche es in Kürze erneut.</string>
     <!-- Domain Breakdown Sheet -->
     <string name="domain_analysis_title">Domain-Analyse</string>

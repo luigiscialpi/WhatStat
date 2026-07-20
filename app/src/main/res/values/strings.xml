@@ -375,6 +375,9 @@
     <string name="whatstat_drawer_language">Change Language</string>
     <string name="whatstat_drawer_cache">Delete Data</string>
     <string name="drawer_ads_privacy_options">Ads privacy options</string>
+    <string name="drawer_ads_free_unlock">Remove ads (watch a video)</string>
+    <string name="drawer_ads_free_unlocked_active">Ads disabled (%1$d h left)</string>
+    <string name="drawer_ads_free_already_active_toast">Ads are already disabled. Enjoy!</string>
     <string name="whatstat_drawer_about">Information</string>
     <string name="dialog_choose_theme">Choose Theme</string>
     <string name="theme_system_default">System default</string>
@@ -433,6 +436,7 @@
     <string name="rewarded_unlock_tabs_success_2h_toast">Daily, monthly and yearly charts unlocked for 2 hours.</string>
     <string name="rewarded_unlock_prediction_success_2h_toast">Prediction unlocked for 2 hours.</string>
     <string name="rewarded_unlock_success_2h_toast">Advanced insights unlocked for 2 hours.</string>
+    <string name="rewarded_unlock_ads_free_success_toast">Ads disabled for 2 hours.</string>
     <string name="rewarded_unlock_not_available_toast">Rewarded ad unavailable. Try again shortly.</string>
 
     <!-- Domain Breakdown Sheet -->

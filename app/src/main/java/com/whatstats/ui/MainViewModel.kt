@@ -220,6 +220,14 @@ class MainViewModel
             adsRepository.requestRewardedPredictionUnlock(activity, source, onResult)
         }
 
+        fun requestRewardedAdsFreeUnlock(
+            activity: Activity,
+            source: String,
+            onResult: (Boolean) -> Unit,
+        ) {
+            adsRepository.requestRewardedAdsFreeUnlock(activity, source, onResult)
+        }
+
         fun refreshRewardedInsightsLockState() {
             adsRepository.refreshRewardedInsightsLockState()
         }

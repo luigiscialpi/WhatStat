@@ -369,6 +369,9 @@
     <string name="whatstat_drawer_language">Сменить язык</string>
     <string name="whatstat_drawer_cache">Удалить данные</string>
     <string name="drawer_ads_privacy_options">Конфиденциальность рекламы</string>
+    <string name="drawer_ads_free_unlock">Убрать рекламу (посмотреть видео)</string>
+    <string name="drawer_ads_free_unlocked_active">Реклама отключена (осталось %1$d ч)</string>
+    <string name="drawer_ads_free_already_active_toast">Реклама уже отключена. Приятного пользования!</string>
     <string name="whatstat_drawer_about">О приложении</string>
     <string name="dialog_choose_theme">Выберите тему</string>
     <string name="theme_system_default">Системная тема</string>
@@ -435,6 +438,7 @@
     <string name="rewarded_unlock_tabs_success_2h_toast">Графики по дням, месяцам и годам разблокированы на 2 часа.</string>
     <string name="rewarded_unlock_prediction_success_2h_toast">Прогнозы разблокированы на 2 часа.</string>
     <string name="rewarded_unlock_success_2h_toast">Расширенная статистика разблокирована на 2 часа.</string>
+    <string name="rewarded_unlock_ads_free_success_toast">Реклама отключена на 2 часа.</string>
     <string name="rewarded_unlock_not_available_toast">Видео пока недоступно. Пожалуйста, попробуйте чуть позже.</string>
 
     <!-- Domain Breakdown Sheet -->

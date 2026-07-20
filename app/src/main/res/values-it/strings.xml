@@ -369,6 +369,9 @@
     <string name="whatstat_drawer_language">Cambia Lingua</string>
     <string name="whatstat_drawer_cache">Elimina Dati</string>
     <string name="drawer_ads_privacy_options">Opzioni sulla privacy degli annunci</string>
+    <string name="drawer_ads_free_unlock">Rimuovi pubblicità (guarda un video)</string>
+    <string name="drawer_ads_free_unlocked_active">Pubblicità disattivate (%1$d h rimanenti)</string>
+    <string name="drawer_ads_free_already_active_toast">Le pubblicità sono già disattivate. Buona navigazione!</string>
     <string name="whatstat_drawer_about">Informazioni</string>
     <string name="dialog_choose_theme">Scegli Tema</string>
     <string name="theme_system_default">Predefinito di sistema</string>
@@ -435,6 +438,7 @@
     <string name="rewarded_unlock_tabs_success_2h_toast">Grafici giornaliero, mensile e annuale sbloccati per 2 ore.</string>
     <string name="rewarded_unlock_prediction_success_2h_toast">Previsione sbloccata per 2 ore.</string>
     <string name="rewarded_unlock_success_2h_toast">Statistiche avanzate sbloccate per 2 ore.</string>
+    <string name="rewarded_unlock_ads_free_success_toast">Pubblicità disattivate per 2 ore.</string>
     <string name="rewarded_unlock_not_available_toast">Annuncio con premio non disponibile. Riprova tra poco.</string>
 
     <!-- Domain Breakdown Sheet -->

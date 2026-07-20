@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,7 +35,14 @@ import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.whatstats.BuildConfig
 import com.whatstats.util.DebugLogManager
+import kotlinx.coroutines.delay
 import android.graphics.Color as AndroidColor
+
+// Un solo retry automatico dopo fallimento, poi il composable smette di riservare spazio.
+private const val NATIVE_AD_MAX_RETRIES = 1
+private const val NATIVE_AD_RETRY_DELAY_MS = 20_000L
+
+private enum class NativeAdLoadPhase { LOADING, LOADED, FAILED }
 
 @Composable
 @Suppress("FunctionName")
@@ -43,14 +52,17 @@ fun NativeAdCard(
 ) {
     val context = LocalContext.current
     var nativeAd by remember(adUnitId) { mutableStateOf<NativeAd?>(null) }
+    var loadPhase by remember(adUnitId) { mutableStateOf(NativeAdLoadPhase.LOADING) }
+    var retryCount by remember(adUnitId) { mutableIntStateOf(0) }
 
-    DisposableEffect(context, adUnitId) {
+    DisposableEffect(context, adUnitId, retryCount) {
         val adLoader =
             AdLoader
                 .Builder(context, adUnitId)
                 .forNativeAd { loadedAd ->
                     nativeAd?.destroy()
                     nativeAd = loadedAd
+                    loadPhase = NativeAdLoadPhase.LOADED
                 }.withNativeAdOptions(
                     NativeAdOptions
                         .Builder()
@@ -59,8 +71,9 @@ fun NativeAdCard(
                     object : AdListener() {
                         override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                             DebugLogManager.log(
-                                "Native ad load failed | code=${loadAdError.code} msg=${loadAdError.message}",
+                                "Native ad load failed | code=${loadAdError.code} msg=${loadAdError.message} retry=$retryCount",
                             )
+                            loadPhase = NativeAdLoadPhase.FAILED
                         }
                     },
                 ).build()
@@ -71,6 +84,20 @@ fun NativeAdCard(
             nativeAd?.destroy()
             nativeAd = null
         }
+    }
+
+    // Singolo retry automatico dopo un breve delay in caso di fallimento del caricamento.
+    LaunchedEffect(loadPhase, adUnitId) {
+        if (loadPhase == NativeAdLoadPhase.FAILED && retryCount < NATIVE_AD_MAX_RETRIES) {
+            delay(NATIVE_AD_RETRY_DELAY_MS)
+            retryCount += 1
+            loadPhase = NativeAdLoadPhase.LOADING
+        }
+    }
+
+    if (loadPhase == NativeAdLoadPhase.FAILED) {
+        // Ad non disponibile dopo il retry: non riservare piu' spazio in UI.
+        return
     }
 
     val loadedAd = nativeAd

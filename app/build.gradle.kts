@@ -26,8 +26,8 @@ android {
         applicationId = "com.whatstats"
         minSdk = 26
         targetSdk = 36
-        versionCode = 34
-        versionName = "1.5.9"
+        versionCode = 35
+        versionName = "1.6.0"
         val admobAppId =
             project
                 .findProperty("ADMOB_APP_ID")
@@ -52,6 +52,12 @@ android {
                 ?.toString()
                 ?: localProps.getProperty("ADMOB_INTERSTITIAL_UNIT_ID")
                 ?: "ca-app-pub-3940256099942544/1033173712"
+        val admobRewardedUnitId =
+            project
+                .findProperty("ADMOB_REWARDED_UNIT_ID")
+                ?.toString()
+                ?: localProps.getProperty("ADMOB_REWARDED_UNIT_ID")
+                ?: "ca-app-pub-3940256099942544/5224354917"
         val admobRewardedInterstitialUnitId =
             project
                 .findProperty("ADMOB_REWARDED_INTERSTITIAL_UNIT_ID")
@@ -63,6 +69,7 @@ android {
         buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"${admobBannerUnitId.replace("\"", "\\\"")}\"")
         buildConfigField("String", "ADMOB_NATIVE_UNIT_ID", "\"${admobNativeUnitId.replace("\"", "\\\"")}\"")
         buildConfigField("String", "ADMOB_INTERSTITIAL_UNIT_ID", "\"${admobInterstitialUnitId.replace("\"", "\\\"")}\"")
+        buildConfigField("String", "ADMOB_REWARDED_UNIT_ID", "\"${admobRewardedUnitId.replace("\"", "\\\"")}\"")
         buildConfigField(
             "String",
             "ADMOB_REWARDED_INTERSTITIAL_UNIT_ID",
@@ -199,7 +206,7 @@ dependencies {
     // Rimosso: app gratuita senza acquisti in-app
 
     // ── AdMob + UMP ───────────────────────────────────────────────
-    implementation("com.google.android.gms:play-services-ads:24.7.0")
+    implementation("com.google.android.gms:play-services-ads:24.8.0")
     implementation("com.google.android.ump:user-messaging-platform:4.0.0")
 
     // ── Test ─────────────────────────────────────────────────────

@@ -27,11 +27,13 @@ class RewardedUnlockStore
         data class UnlockState(
             val tabsUnlockUntilMs: Long,
             val predictionUnlockUntilMs: Long,
+            val adsFreeUnlockUntilMs: Long,
         )
 
         private companion object {
             val KEY_TABS_UNLOCK_UNTIL_MS = longPreferencesKey("tabs_unlock_until_ms")
             val KEY_PREDICTION_UNLOCK_UNTIL_MS = longPreferencesKey("prediction_unlock_until_ms")
+            val KEY_ADS_FREE_UNLOCK_UNTIL_MS = longPreferencesKey("ads_free_unlock_until_ms")
         }
 
         val unlockState: Flow<UnlockState> =
@@ -39,6 +41,7 @@ class RewardedUnlockStore
                 UnlockState(
                     tabsUnlockUntilMs = prefs[KEY_TABS_UNLOCK_UNTIL_MS] ?: 0L,
                     predictionUnlockUntilMs = prefs[KEY_PREDICTION_UNLOCK_UNTIL_MS] ?: 0L,
+                    adsFreeUnlockUntilMs = prefs[KEY_ADS_FREE_UNLOCK_UNTIL_MS] ?: 0L,
                 )
             }
 
@@ -51,6 +54,12 @@ class RewardedUnlockStore
         suspend fun setPredictionUnlockUntilMs(untilMs: Long) {
             dataStore.edit { prefs ->
                 prefs[KEY_PREDICTION_UNLOCK_UNTIL_MS] = untilMs
+            }
+        }
+
+        suspend fun setAdsFreeUnlockUntilMs(untilMs: Long) {
+            dataStore.edit { prefs ->
+                prefs[KEY_ADS_FREE_UNLOCK_UNTIL_MS] = untilMs
             }
         }
     }

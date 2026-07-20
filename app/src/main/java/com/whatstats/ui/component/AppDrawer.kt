@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.os.Handler
 import android.os.Looper
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.outlined.BrightnessMedium
 import androidx.compose.material.icons.outlined.Cached
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.HorizontalDivider
@@ -122,6 +124,49 @@ fun AppDrawerContent(
                         closeDrawer()
                     },
                 )
+
+                if (adsUiState.areAdsEnabled || adsUiState.rewardedAdsFreeUnlocked) {
+                    val adsFreeLabel =
+                        if (adsUiState.rewardedAdsFreeUnlocked) {
+                            val remainingMs = adsUiState.rewardedAdsFreeUnlockedUntilMs - System.currentTimeMillis()
+                            val remainingHours = (remainingMs / (60 * 60 * 1000L) + 1).coerceAtLeast(1)
+                            stringResource(R.string.drawer_ads_free_unlocked_active, remainingHours)
+                        } else {
+                            stringResource(R.string.drawer_ads_free_unlock)
+                        }
+                    DrawerItem(
+                        icon = Icons.Outlined.VisibilityOff,
+                        label = adsFreeLabel,
+                        onClick = {
+                            mainViewModel.trackClick("drawer", "ads_free_unlock", "monetization")
+                            if (adsUiState.rewardedAdsFreeUnlocked) {
+                                Toast
+                                    .makeText(
+                                        context,
+                                        context.getString(R.string.drawer_ads_free_already_active_toast),
+                                        Toast.LENGTH_LONG,
+                                    ).show()
+                            } else {
+                                val activity = context.findActivity()
+                                if (activity != null) {
+                                    mainViewModel.requestRewardedAdsFreeUnlock(
+                                        activity = activity,
+                                        source = "drawer",
+                                    ) { unlocked ->
+                                        val msgRes =
+                                            if (unlocked) {
+                                                R.string.rewarded_unlock_ads_free_success_toast
+                                            } else {
+                                                R.string.rewarded_unlock_not_available_toast
+                                            }
+                                        Toast.makeText(context, context.getString(msgRes), Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+                            closeDrawer()
+                        },
+                    )
+                }
 
                 DrawerItem(
                     icon = Icons.AutoMirrored.Outlined.HelpOutline,

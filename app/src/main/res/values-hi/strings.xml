@@ -363,6 +363,9 @@
     <string name="whatstat_drawer_language">भाषा बदलें</string>
     <string name="whatstat_drawer_cache">डेटा हटाएं</string>
     <string name="drawer_ads_privacy_options">विज्ञापन गोपनीयता विकल्प</string>
+    <string name="drawer_ads_free_unlock">विज्ञापन हटाएं (एक वीडियो देखें)</string>
+    <string name="drawer_ads_free_unlocked_active">विज्ञापन बंद हैं (%1$d घंटे शेष)</string>
+    <string name="drawer_ads_free_already_active_toast">विज्ञापन पहले से ही बंद हैं। आनंद लें!</string>
     <string name="whatstat_drawer_about">जानकारी</string>
     <string name="dialog_choose_theme">थीम चुनें</string>
     <string name="theme_system_default">सिस्टम डिफ़ॉल्ट</string>
@@ -428,6 +431,7 @@
     <string name="rewarded_unlock_tabs_success_2h_toast">दैनिक, मासिक और वार्षिक चार्ट 2 घंटे के लिए अनलॉक हो गए हैं।</string>
     <string name="rewarded_unlock_prediction_success_2h_toast">प्रीडिक्शन 2 घंटे के लिए अनलॉक हो गई है।</string>
     <string name="rewarded_unlock_success_2h_toast">उन्नत इनसाइट्स 2 घंटे के लिए अनलॉक हो गए हैं।</string>
+    <string name="rewarded_unlock_ads_free_success_toast">2 घंटे के लिए विज्ञापन बंद कर दिए गए हैं।</string>
     <string name="rewarded_unlock_not_available_toast">रिवॉर्डेड विज्ञापन उपलब्ध नहीं है। कृपया थोड़ी देर में फिर कोशिश करें।</string>
     <!-- Domain Breakdown Sheet -->
     <string name="domain_analysis_title">डोमेन विश्लेषण</string>

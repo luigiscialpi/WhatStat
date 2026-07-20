@@ -10,4 +10,6 @@ data class AdsUiState(
     val easterEggActive: Boolean = false,
     val rewardedTabsUnlocked: Boolean = false,
     val rewardedPredictionUnlocked: Boolean = false,
+    val rewardedAdsFreeUnlocked: Boolean = false,
+    val rewardedAdsFreeUnlockedUntilMs: Long = 0L,
 )

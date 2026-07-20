@@ -1002,10 +1002,37 @@ In basso: indicatori dot animati (dot attivo = `width 20 dp`, inattivo = `8 dp`)
 
 - Confronto tra due periodi temporali
 - Supporto WhatsApp Business
-- Modalità "time capsule" (analisi di un anno fa)
-- Supporto formato crypt15 con inserimento manuale della chiave a 64 hex
 - Backup automatico delle statistiche (non dei messaggi)
-- Supporto lingue export Lite Mode oltre l'italiano
+
+### Monetizzazione ads — TODO da audit AdMob (non ancora scelti/implementati)
+
+Riferimento completo: [docs/admob-knowledge-base.md](docs/admob-knowledge-base.md) e
+[docs/ads-revenue-roadmap.md](docs/ads-revenue-roadmap.md) (interventi gia' fatti: fix
+placeholder NativeAdCard, TTL ad precaricati, upgrade SDK, rewarded ads-free, migrazione a
+Rewarded classico). Punti dell'audit ancora da valutare/implementare:
+
+- Ad unit ID dedicati per placement (non solo per formato): oggi un solo
+  `ADMOB_NATIVE_UNIT_ID` condiviso da 6 schermate e un solo `ADMOB_INTERSTITIAL_UNIT_ID` per 4
+  trigger diversi impediscono A/B test e reporting granulare per posizione
+- Ad unit ID gestiti via Firebase Remote Config invece che statici in `BuildConfig`/
+  `local.properties`, per poterli cambiare/testare senza nuova release
+- Mediation multi-rete di terze parti (es. Meta, Liftoff/Vungle, Unity, InMobi) in bidding:
+  oggi nessun adapter oltre Google AdMob diretta
+- Collapsible banner (banner che si espande poi si riduce) e/o App Open Ad al ritorno in app
+  (impatto UX da valutare con attenzione)
+- Frequency capping pilotato da Firebase Remote Config invece che hardcoded
+  (`INTERSTITIAL_COOLDOWN_MS` in `AdsRepository.kt`)
+- Banner refresh via codice (~30s) con auto-refresh disabilitato lato console AdMob, invece
+  del solo refresh su cambio larghezza/orientamento
+- MREC (300x250) come alternativa/test A/B al banner adattivo standard
+- Fallback chain full-screen sullo stesso slot (rewarded -> rewarded interstitial ->
+  interstitial, dal piu' al meno remunerativo) per massimizzare eCPM nei punti generici non
+  legati a un reward specifico
+- `moveTaskToBack` invece di `finish()` Activity su back, per preservare ad precaricati in
+  memoria (rischio gia' basso: `AdsRepository` e' singleton Hilt a livello Application)
+- `setHttpTimeoutMillis` personalizzato (bassa priorita', solo se si notano richieste lente)
+- `app-ads.txt` sul dominio/sito del developer (fuori dallo scope di questo repository
+  Android)
 
 ---
 
@@ -1410,22 +1437,22 @@ WhatStat usa un modello **Free con pubblicità** all'interno di un'unica app su 
 **`ads/AdsRepository`** — singleton `@Inject` che centralizza:
 - gestione consenso UMP (`UserMessagingPlatform`)
 - inizializzazione `MobileAds`
-- precaricamento e mostraggio interstitial
+- precaricamento e mostraggio interstitial, con TTL di 1 ora sugli ad precaricati (interstitial e rewarded): un ad piu' vecchio viene scartato e ricaricato invece di essere mostrato
 - pubblicazione di `AdsUiState` come `StateFlow`
 - cooldown interstitial (fisso: 12 minuti)
 - flag `isTestBuild` (confronta `BuildConfig.ADMOB_APP_ID` con il demo ID Google)
 
 ```kotlin
-val areAdsEnabled = canRequestAds && isMobileAdsInitialized && !easterEggActive
+val areAdsEnabled = canRequestAds && isMobileAdsInitialized && !easterEggActive && !rewardedAdsFreeUnlocked
 ```
 
-`AdsRepository` gestisce lo stato ads, inclusi interstitial classici e rewarded interstitial.
+`AdsRepository` gestisce lo stato ads, inclusi interstitial classici e rewarded (`RewardedAd`).
 
 **`ads/AdsUiState`** — data class esposta come `StateFlow` da `MainViewModel.adsUiState`:
 
 | Campo | Tipo | Significato |
 |-------|------|-------------|
-| `areAdsEnabled` | `Boolean` | Condizione master: `canRequestAds && isMobileAdsInitialized` |
+| `areAdsEnabled` | `Boolean` | Condizione master: `canRequestAds && isMobileAdsInitialized && !easterEggActive && !rewardedAdsFreeUnlocked` |
 | `canRequestAds` | `Boolean` | Consenso UMP valido (bypass automatico in test build) |
 | `isPrivacyOptionsRequired` | `Boolean` | UMP richiede il pulsante "Opzioni privacy" nell'AppDrawer |
 | `isMobileAdsInitialized` | `Boolean` | `MobileAds.initialize()` completato |
@@ -1433,6 +1460,8 @@ val areAdsEnabled = canRequestAds && isMobileAdsInitialized && !easterEggActive
 | `easterEggActive` | `Boolean` | Easter egg attivo (disattiva ads e sblocca insight) |
 | `rewardedTabsUnlocked` | `Boolean` | Sblocco rewarded attivo per tab daily/monthly/yearly |
 | `rewardedPredictionUnlocked` | `Boolean` | Sblocco rewarded attivo per card prediction |
+| `rewardedAdsFreeUnlocked` | `Boolean` | Sblocco rewarded attivo: nasconde banner/native in tutta l'app e blocca l'interstitial |
+| `rewardedAdsFreeUnlockedUntilMs` | `Long` | Timestamp epoch di scadenza dello sblocco ads-free, usato per il countdown in AppDrawer |
 
 ### Flusso consenso UMP
 
@@ -1442,6 +1471,14 @@ All'avvio (`MainActivity.requestAdsConsent()`), `AdsRepository.requestConsent()`
 3. Se `canRequestAds()` è `true` dopo il form → `initializeMobileAdsIfPossible()`
 
 In test build (`isTestBuild = true`), il consenso UMP è bypassato (`DEBUG_GEOGRAPHY_DISABLED`) e `MobileAds` viene inizializzato immediatamente, senza attendere callbacks.
+
+### Rewarded ad per disattivare temporaneamente tutte le pubblicita'
+Oltre ai due sblocchi rewarded esistenti (tab avanzati, prediction), l'AppDrawer offre uno
+sblocco rewarded con effetto globale: guardando un rewarded, banner e native ad
+vengono nascosti in tutta l'app per 2 ore (`RewardedUnlockStore.adsFreeUnlockUntilMs`). Poiche'
+il calcolo di `areAdsEnabled` include `!rewardedAdsFreeUnlocked`, la propagazione a
+`AppNavigation`/`AppScaffold` e' automatica, senza toccare i singoli screen. L'interstitial
+viene bloccato esplicitamente in `AdsRepository.tryShowInterstitialAfterLongOperation`.
 
 ### Flag `isTestBuild` e configurazione ID
 
@@ -1453,10 +1490,26 @@ ADMOB_APP_ID=<real_app_id>
 ADMOB_BANNER_UNIT_ID=<real_banner_unit_id>
 ADMOB_NATIVE_UNIT_ID=<real_native_unit_id>
 ADMOB_INTERSTITIAL_UNIT_ID=<real_interstitial_unit_id>
+ADMOB_REWARDED_UNIT_ID=<real_rewarded_unit_id>
 ADMOB_REWARDED_INTERSTITIAL_UNIT_ID=<real_rewarded_interstitial_unit_id>
 ```
 
 `isTestBuild` è calcolato automaticamente: `BuildConfig.ADMOB_APP_ID == "ca-app-pub-3940256099942544~3347511713"`. Nessun toggle manuale — basta inserire gli ID reali in `local.properties` per disabilitare il bypass test.
+
+**Formato Rewarded usato**: i 3 sblocchi rewarded (tabs, prediction, ads-free) usano tutti
+`com.google.android.gms.ads.rewarded.RewardedAd` (`ADMOB_REWARDED_UNIT_ID`), NON Rewarded
+Interstitial. Motivo: in tutti e 3 i casi l'utente clicca esplicitamente un bottone per
+richiedere la ricompensa (opt-in esplicito) — lo use case raccomandato da Google per il
+formato Rewarded classico, che ha eCPM full-screen piu' alto di Rewarded Interstitial (pensato
+per punti di transizione naturali mostrati senza azione esplicita dell'utente). Il campo
+`ADMOB_REWARDED_INTERSTITIAL_UNIT_ID`/`BuildConfig.ADMOB_REWARDED_INTERSTITIAL_UNIT_ID` resta
+disponibile in `BuildConfig` ma non e' piu' usato da `AdsRepository` (nessun formato
+Rewarded Interstitial mostrato oggi in app).
+
+**Azione richiesta lato AdMob console**: prima di questa modifica il progetto non aveva un
+ad unit "Rewarded" (non-interstitial) configurato. Serve crearne uno nella console AdMob e
+inserire il suo ID reale in `ADMOB_REWARDED_UNIT_ID` su `local.properties`/CI — finche' non
+viene fatto, in build reale (non test) il caricamento del rewarded fallira'.
 
 ---
 
@@ -1543,7 +1596,7 @@ File coinvolti: `telemetry/TelemetryRepository.kt` (eventi + User Property), `te
 
 Trigger esplicitamente vietati: back, cambio tab, apertura media, progress in corso, errori. Il cooldown da 12 minuti garantisce che qualsiasi trigger consecutivo venga silenziosamente ignorato.
 
-**Rewarded interstitial (insight avanzati)** — caricati da `AdsRepository.preloadRewardedInterstitialIfPossible()`, mostrati su richiesta utente da Dashboard/ChatDetail per sbloccare sezioni bloccate.
+**Rewarded (insight avanzati)** — caricati da `AdsRepository.preloadRewardedAdIfPossible()` come `com.google.android.gms.ads.rewarded.RewardedAd`, mostrati su richiesta utente da Dashboard/ChatDetail per sbloccare sezioni bloccate.
 
 Unlock separati:
 
@@ -1579,7 +1632,7 @@ Senza queste regole, le classi vengono strippate da `-repackageclasses '' -overl
 
 | File | Ruolo |
 |------|-------|
-| `ads/AdsRepository.kt` | Centralizza consenso UMP, init MobileAds, interstitial e rewarded interstitial, state |
+| `ads/AdsRepository.kt` | Centralizza consenso UMP, init MobileAds, interstitial e rewarded (`RewardedAd`), state |
 | `ads/RewardedUnlockStore.kt` | Persistenza DataStore TTL unlock rewarded (`tabs`, `prediction`) |
 | `ads/AdsUiState.kt` | Data class stato ads |
 | `ui/MainViewModel.kt` | Espone `adsUiState` come `StateFlow` |

@@ -369,6 +369,9 @@
     <string name="whatstat_drawer_language">Тілді өзгерту</string>
     <string name="whatstat_drawer_cache">Деректерді жою</string>
     <string name="drawer_ads_privacy_options">Жарнама құпиялылығының параметрлері</string>
+    <string name="drawer_ads_free_unlock">Жарнаманы алып тастау (бейне қарау)</string>
+    <string name="drawer_ads_free_unlocked_active">Жарнама өшірілген (%1$d сағ қалды)</string>
+    <string name="drawer_ads_free_already_active_toast">Жарнама қазірдің өзінде өшірілген. Ләззат алыңыз!</string>
     <string name="whatstat_drawer_about">Ақпарат</string>
     <string name="dialog_choose_theme">Тақырыпты таңдау</string>
     <string name="theme_system_default">Жүйелік әдепкі</string>
@@ -435,6 +438,7 @@
     <string name="rewarded_unlock_tabs_success_2h_toast">Күндік, айлық және жылдық графиктер 2 сағатқа ашылды.</string>
     <string name="rewarded_unlock_prediction_success_2h_toast">Болжам 2 сағатқа ашылды.</string>
     <string name="rewarded_unlock_success_2h_toast">Кеңейтілген статистика 2 сағатқа ашылды.</string>
+    <string name="rewarded_unlock_ads_free_success_toast">Жарнама 2 сағатқа өшірілді.</string>
     <string name="rewarded_unlock_not_available_toast">Марапатты жарнама қолжетімді емес. Сәлден кейін қайталап көріңіз.</string>
 
     <!-- Domain Breakdown Sheet -->

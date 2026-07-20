@@ -369,6 +369,9 @@
     <string name="whatstat_drawer_language">Schimbă limba</string>
     <string name="whatstat_drawer_cache">Șterge datele</string>
     <string name="drawer_ads_privacy_options">Opțiuni confidențialitate reclame</string>
+    <string name="drawer_ads_free_unlock">Elimină reclamele (urmărește un videoclip)</string>
+    <string name="drawer_ads_free_unlocked_active">Reclame dezactivate (%1$d h rămase)</string>
+    <string name="drawer_ads_free_already_active_toast">Reclamele sunt deja dezactivate. Bucură-te!</string>
     <string name="whatstat_drawer_about">Despre</string>
     <string name="dialog_choose_theme">Alege tema</string>
     <string name="theme_system_default">Setarea implicită a sistemului</string>
@@ -435,6 +438,7 @@
     <string name="rewarded_unlock_tabs_success_2h_toast">Graficele zilnice, lunare și anuale au fost deblocate timp de 2 ore.</string>
     <string name="rewarded_unlock_prediction_success_2h_toast">Predicțiile au fost deblocate timp de 2 ore.</string>
     <string name="rewarded_unlock_success_2h_toast">Statisticile avansate au fost deblocate timp de 2 ore.</string>
+    <string name="rewarded_unlock_ads_free_success_toast">Reclamele au fost dezactivate timp de 2 ore.</string>
     <string name="rewarded_unlock_not_available_toast">Reclama nu este disponibilă în acest moment. Reîncearcă în curând.</string>
 
     <!-- Domain Breakdown Sheet -->
