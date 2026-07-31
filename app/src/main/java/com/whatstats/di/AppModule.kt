@@ -23,7 +23,8 @@ object AppModule {
     @Singleton
     fun provideWhatsAppDatabase(
         @ApplicationContext context: Context,
-    ): WhatsAppDatabase = WhatsAppDatabase(context)
+        telemetryRepository: com.whatstats.telemetry.TelemetryRepository,
+    ): WhatsAppDatabase = WhatsAppDatabase(context, telemetryRepository)
 
     @Provides
     @Singleton
@@ -57,6 +58,7 @@ object AppModule {
         liteModeManager: com.whatstats.data.lite.LiteModeManager,
         filterStateHolder: com.whatstats.ui.state.FilterStateHolder,
         @ApplicationContext context: Context,
+        telemetryRepository: com.whatstats.telemetry.TelemetryRepository,
     ): AnalyticsRepository =
         AnalyticsRepository(
             messageDao,
@@ -68,5 +70,6 @@ object AppModule {
             liteModeManager,
             filterStateHolder,
             context,
+            telemetryRepository,
         )
 }

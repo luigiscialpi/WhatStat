@@ -12,6 +12,7 @@ class LiteDatabase
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
+        private val telemetryRepository: com.whatstats.telemetry.TelemetryRepository,
     ) {
         private var db: SQLiteDatabase? = null
         private var waDb: SQLiteDatabase? = null
@@ -23,13 +24,24 @@ class LiteDatabase
         fun getOrCreate(): SQLiteDatabase {
             if (db?.isOpen == true) return db!!
             val file = File(context.filesDir, "lite_msgstore.db")
-            db = SQLiteDatabase.openOrCreateDatabase(file, null)
-            db!!.enableWriteAheadLogging()
-            db!!.execSQL("PRAGMA synchronous = NORMAL")
-            db!!.execSQL("PRAGMA cache_size = -64000") // 64 MB di cache
-            db!!.execSQL("PRAGMA temp_store = MEMORY")
-            createSchema(db!!)
-            return db!!
+            val startTime = System.currentTimeMillis()
+            try {
+                db = SQLiteDatabase.openOrCreateDatabase(file, null)
+                db!!.enableWriteAheadLogging()
+                db!!.execSQL("PRAGMA synchronous = NORMAL")
+                db!!.execSQL("PRAGMA cache_size = -64000") // 64 MB di cache
+                db!!.execSQL("PRAGMA temp_store = MEMORY")
+                createSchema(db!!)
+
+                val duration = System.currentTimeMillis() - startTime
+                val dbSizeMb = if (file.exists()) (file.length().toDouble() / (1024.0 * 1024.0)) else null
+                telemetryRepository.trackDbParseDuration(durationMs = duration, isLite = true, dbSizeMb = dbSizeMb)
+                dbSizeMb?.let { telemetryRepository.setUserProperties(dbSizeMb = it) }
+                return db!!
+            } catch (e: Exception) {
+                telemetryRepository.trackDbParseError(reason = "lite_db_open_failed", exceptionMessage = e.message)
+                throw e
+            }
         }
 
         fun getWaDb(): SQLiteDatabase {

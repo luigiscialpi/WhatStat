@@ -177,6 +177,72 @@ class TelemetryRepository
             )
         }
 
+        fun trackDbParseError(
+            reason: String,
+            exceptionMessage: String? = null,
+        ) {
+            logIfAllowed(
+                eventName = "db_parse_error",
+                extra =
+                    bundleOf(
+                        "reason" to reason,
+                        "error_message" to (exceptionMessage?.take(100) ?: "none"),
+                    ),
+            )
+        }
+
+        fun trackDbParseDuration(
+            durationMs: Long,
+            isLite: Boolean,
+            dbSizeMb: Double? = null,
+        ) {
+            val bundle =
+                Bundle().apply {
+                    putLong("duration_ms", durationMs)
+                    putString("duration_bucket", bucketDuration(durationMs))
+                    putBoolean("is_lite", isLite)
+                    dbSizeMb?.let { putDouble("db_size_mb", it) }
+                }
+            logIfAllowed(
+                eventName = "db_parse_duration",
+                extra = bundle,
+            )
+        }
+
+        fun trackEmptyStateShown(
+            screenName: String,
+            reason: String,
+        ) {
+            logIfAllowed(
+                eventName = "empty_state_shown",
+                extra =
+                    bundleOf(
+                        "ws_screen_name" to screenName,
+                        "screen_name" to screenName,
+                        "reason" to reason,
+                    ),
+            )
+        }
+
+        fun trackMediaShare(mediaType: String) {
+            logIfAllowed(
+                eventName = "media_share",
+                extra =
+                    bundleOf(
+                        "media_type" to mediaType,
+                    ),
+            )
+        }
+
+        fun setUserProperties(
+            chatsCount: Int? = null,
+            dbSizeMb: Double? = null,
+        ) {
+            if (!isFirebaseAvailable) return
+            chatsCount?.let { firebaseAnalytics?.setUserProperty("chats_count", it.toString()) }
+            dbSizeMb?.let { firebaseAnalytics?.setUserProperty("db_size_mb", String.format(java.util.Locale.US, "%.2f", it)) }
+        }
+
         fun refreshRemoteConfig() {
             if (!isFirebaseAvailable) {
                 _isReady.value = false

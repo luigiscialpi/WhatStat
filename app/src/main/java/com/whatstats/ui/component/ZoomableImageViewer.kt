@@ -72,8 +72,10 @@ import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.whatstats.R
+import com.whatstats.telemetry.OverlayTrackingEntryPoint
 import com.whatstats.telemetry.TrackOverlayView
 import com.whatstats.ui.component.ads.BottomBannerAd
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -287,6 +289,12 @@ fun ZoomableImageGallery(
                                 val now = System.currentTimeMillis()
                                 if (now - lastShareClickTime > 1500L) {
                                     lastShareClickTime = now
+                                    val telemetry =
+                                        EntryPointAccessors.fromApplication(
+                                            context.applicationContext,
+                                            OverlayTrackingEntryPoint::class.java,
+                                        ).telemetryRepository()
+                                    telemetry.trackMediaShare("image")
                                     onShare(filePaths[pagerState.currentPage])
                                 }
                             },

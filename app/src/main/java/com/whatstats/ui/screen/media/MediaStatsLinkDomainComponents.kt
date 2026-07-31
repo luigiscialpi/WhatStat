@@ -73,6 +73,7 @@ import coil.request.ImageRequest
 import com.whatstats.R
 import com.whatstats.data.db.model.DomainStat
 import com.whatstats.data.db.model.LinkStat
+import com.whatstats.telemetry.TrackOverlayView
 import com.whatstats.ui.component.AnimatedInfoButton
 import com.whatstats.ui.component.ContactNameWithPhone
 import com.whatstats.ui.component.LoadingSection
@@ -325,6 +326,7 @@ internal fun DomainBreakdownSheet(
     avatarPath: String? = null,
     progress: Int? = null,
 ) {
+    TrackOverlayView("media_domains")
     var expandedDomain by remember { mutableIntStateOf(-1) }
     var expandedPreviewUrl by remember { mutableStateOf<String?>(null) }
     val previewCache = remember { mutableStateMapOf<String, LinkPreviewCacheEntry>() }

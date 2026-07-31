@@ -22,6 +22,7 @@ class WhatsAppDatabase
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
+        private val telemetryRepository: com.whatstats.telemetry.TelemetryRepository,
     ) : DatabaseProvider {
         private var msgDb: SQLiteDatabase? = null
         private var waDb: SQLiteDatabase? = null
@@ -38,26 +39,37 @@ class WhatsAppDatabase
             waDbFile: File,
         ) {
             close() // Chiudi eventuali connessioni precedenti
+            val startTime = System.currentTimeMillis()
+            val dbSizeMb = (msgstoreFile.length().toDouble() / (1024.0 * 1024.0))
 
-            msgDb =
-                SQLiteDatabase.openDatabase(
-                    msgstoreFile.absolutePath,
-                    null,
-                    SQLiteDatabase.OPEN_READWRITE or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
-                )
-            // Abilita WAL per letture concorrenti (più thread possono leggere in parallelo)
-            msgDb?.enableWriteAheadLogging()
-            if (waDbFile.exists()) {
-                waDb =
+            try {
+                msgDb =
                     SQLiteDatabase.openDatabase(
-                        waDbFile.absolutePath,
+                        msgstoreFile.absolutePath,
                         null,
-                        SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
+                        SQLiteDatabase.OPEN_READWRITE or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
                     )
-            }
+                // Abilita WAL per letture concorrenti (più thread possono leggere in parallelo)
+                msgDb?.enableWriteAheadLogging()
+                if (waDbFile.exists()) {
+                    waDb =
+                        SQLiteDatabase.openDatabase(
+                            waDbFile.absolutePath,
+                            null,
+                            SQLiteDatabase.OPEN_READONLY or SQLiteDatabase.NO_LOCALIZED_COLLATORS,
+                        )
+                }
 
-            // Crea indici per ottimizzare le query
-            createIndexes()
+                // Crea indici per ottimizzare le query
+                createIndexes()
+
+                val duration = System.currentTimeMillis() - startTime
+                telemetryRepository.trackDbParseDuration(durationMs = duration, isLite = false, dbSizeMb = dbSizeMb)
+                telemetryRepository.setUserProperties(dbSizeMb = dbSizeMb)
+            } catch (e: Exception) {
+                telemetryRepository.trackDbParseError(reason = "root_db_open_failed", exceptionMessage = e.message)
+                throw e
+            }
         }
 
         /**

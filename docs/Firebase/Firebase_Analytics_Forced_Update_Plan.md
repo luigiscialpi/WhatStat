@@ -135,19 +135,39 @@ Minimal mode (core):
 
 Eventi app correnti/supportati:
 
-- app_opened
-- screen_view_custom
-- cta_click
-- screen_time
-- analysis_started (flow analysis)
-- analysis_completed (flow analysis)
+- `app_opened`
+- `screen_view_custom`
+- `overlay_view`
+- `cta_click`
+- `screen_time`
+- `analysis_started` (flow analysis)
+- `analysis_completed` (flow analysis)
+- `db_parse_error` (frizione/errore apertura SQLite)
+- `db_parse_duration` (performance apertura e dimensione DB)
+- `empty_state_shown` (nessun dato disponibile per chat/intervallo)
+- `media_share` (condivisione singola/multipla immagini o media)
 
 Parametri principali consigliati:
 
-- app_opened: version_code, build_type, mode_root_or_lite
-- screen_view_custom: ws_screen_name, ws_graph_name, ws_mode
-- cta_click: screen_name, cta_name, section
-- screen_time: screen_name, stay_ms_bucket
+- `app_opened`: version_code, build_type, mode_root_or_lite
+- `screen_view_custom`: ws_screen_name, ws_graph_name, ws_mode
+- `overlay_view`: ws_overlay_name, ws_screen_name, ws_mode
+- `cta_click`: screen_name, cta_name, section
+- `screen_time`: screen_name, stay_ms_bucket
+- `db_parse_error`: reason, error_message
+- `db_parse_duration`: duration_ms, duration_bucket, is_lite, db_size_mb
+- `empty_state_shown`: ws_screen_name, reason
+- `media_share`: media_type
+
+User Properties attive su GA4 / Firebase Analytics:
+
+- `installation_id`: ID anonimo installazione
+- `app_version`: Versione app (es. 1.2.0)
+- `app_version_code`: Codice versione
+- `build_type`: debug/release
+- `mode`: root/lite
+- `chats_count`: Numero totale chat rilevate nel DB
+- `db_size_mb`: Dimensione in MB del database analizzato
 
 Bucketing durata raccomandato:
 

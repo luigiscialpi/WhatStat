@@ -70,6 +70,7 @@ import coil.decode.VideoFrameDecoder
 import coil.request.ImageRequest
 import com.whatstats.R
 import com.whatstats.data.db.model.MediaStat
+import com.whatstats.telemetry.OverlayTrackingEntryPoint
 import com.whatstats.telemetry.TrackOverlayView
 import com.whatstats.ui.MainViewModel
 import com.whatstats.ui.component.AnimatedInfoButton
@@ -80,6 +81,7 @@ import com.whatstats.ui.component.LoadingSection
 import com.whatstats.ui.component.RootFileFetcher
 import com.whatstats.ui.component.ScrollToEdgeFab
 import com.whatstats.ui.component.ZoomableImageGallery
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -200,6 +202,12 @@ internal fun MediaGallerySheet(
                         // Soglia di 1.5 secondi per evitare l'apertura di molteplici dialog di condivisione
                         if (currentTime - lastShareClickTime > 1500L) {
                             lastShareClickTime = currentTime
+                            val telemetry =
+                                EntryPointAccessors.fromApplication(
+                                    context.applicationContext,
+                                    OverlayTrackingEntryPoint::class.java,
+                                ).telemetryRepository()
+                            telemetry.trackMediaShare("multiple")
                             scope.launch {
                                 val uris = selectedMedia.mapNotNull { getShareableUri(context, it.filePath) }
                                 if (uris.isNotEmpty()) {

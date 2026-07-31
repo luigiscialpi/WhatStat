@@ -68,6 +68,7 @@ class AnalyticsRepository
         private val liteModeManager: LiteModeManager,
         private val filterStateHolder: FilterStateHolder,
         @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
+        private val telemetryRepository: com.whatstats.telemetry.TelemetryRepository,
     ) {
         private val _isLiteMode = kotlinx.coroutines.flow.MutableStateFlow(activeDatabaseProvider.isLiteMode)
         val isLiteMode: kotlinx.coroutines.flow.StateFlow<Boolean> = _isLiteMode.asStateFlow()
@@ -268,6 +269,10 @@ class AnalyticsRepository
                     val totalMessages = dTotalMessages.await()
                     onProgress(20)
                     val totalChats = dTotalChats.await()
+                    telemetryRepository.setUserProperties(chatsCount = totalChats)
+                    if (totalMessages == 0) {
+                        telemetryRepository.trackEmptyStateShown("dashboard", "no_messages")
+                    }
                     onProgress(30)
                     val rawHourly = dHourly.await()
                     val rawWeekly = dWeekly.await()
