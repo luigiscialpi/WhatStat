@@ -260,6 +260,31 @@ class ChatDetailViewModel
                         // Popola gli sticker AGGREGATED dal pool slow stats (stesso pattern di parole/emoji)
                         stickerPool = slowStats.topStickers
                         _topStickers.value = stickerPool.take(_topStickerLimit.value)
+
+                        // Invalida i pool per-sender: i time bounds sono cambiati
+                        senderWordsPool = emptyList()
+                        senderWordsPoolSender = null
+                        senderWordsPoolStartTime = null
+                        senderWordsPoolEndTime = null
+                        senderEmojisPool = emptyList()
+                        senderEmojisPoolSender = null
+                        senderEmojisPoolStartTime = null
+                        senderEmojisPoolEndTime = null
+                        senderStickersPool = emptyList()
+                        senderStickersPoolSender = null
+                        senderStickersPoolStartTime = null
+                        senderStickersPoolEndTime = null
+
+                        // Ri-esegui query individuali se il view mode e' attivo
+                        if (_wordViewMode.value == WordViewMode.INDIVIDUAL) {
+                            loadSenderTopWords()
+                        }
+                        if (_emojiViewMode.value == EmojiViewMode.INDIVIDUAL) {
+                            loadSenderTopEmojis()
+                        }
+                        if (_stickerViewMode.value == StickerViewMode.INDIVIDUAL) {
+                            loadTopStickers()
+                        }
                     } catch (e: Exception) {
                         android.util.Log.w("WhatStat", "Slow stats failed: ${e.message}")
                     } finally {
@@ -617,27 +642,40 @@ class ChatDetailViewModel
                 _topStickers.value = stickerPool.take(_topStickerLimit.value)
                 return
             }
+            val sender = _selectedSenderForStickers.value ?: return
+            val limit = _topStickerLimit.value
+            val (startTime, endTime) = getTimeBounds()
+
+            // Check if we can use cached pool (same sender and time bounds)
+            if (senderStickersPoolSender == sender.jid &&
+                senderStickersPoolStartTime == startTime &&
+                senderStickersPoolEndTime == endTime
+            ) {
+                _topStickers.value = senderStickersPool.take(limit)
+                _senderTopStickers.value = senderStickersPool.take(limit)
+                return
+            }
+
             viewModelScope.launch {
                 _isStickerLoading.value = true
                 try {
-                    val (startTime, endTime) = getTimeBounds()
-                    val sender = _selectedSenderForStickers.value ?: return@launch
-                    val limit = _topStickerLimit.value
-
-                    // Check if we can use cached pool (same sender and time bounds)
-                    if (senderStickersPoolSender == sender.jid &&
-                        senderStickersPoolStartTime == startTime &&
-                        senderStickersPoolEndTime == endTime
-                    ) {
-                        // Use cached pool, just apply limit
-                        _topStickers.value = senderStickersPool.take(limit)
-                        _senderTopStickers.value = senderStickersPool.take(limit)
-                        return@launch
-                    }
+                    val stickers =
+                        analyticsRepository.getTopStickersBySender(
+                            chatId = chatId,
+                            jid = sender.jid,
+                            startTime = startTime,
+                            endTime = endTime,
+                            limit = 50,
+                        )
+                    senderStickersPool = stickers
+                    senderStickersPoolSender = sender.jid
+                    senderStickersPoolStartTime = startTime
+                    senderStickersPoolEndTime = endTime
+                    _topStickers.value = stickers.take(limit)
+                    _senderTopStickers.value = stickers.take(limit)
                 } catch (e: Exception) {
                     _topStickers.value = emptyList()
                     _senderTopStickers.value = emptyList()
-                    // Clear cache on error
                     senderStickersPool = emptyList()
                     senderStickersPoolSender = null
                     senderStickersPoolStartTime = null
