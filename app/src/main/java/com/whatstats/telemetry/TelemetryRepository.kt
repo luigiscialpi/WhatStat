@@ -195,6 +195,7 @@ class TelemetryRepository
             durationMs: Long,
             isLite: Boolean,
             dbSizeMb: Double? = null,
+            hasMedia: Boolean? = null,
         ) {
             val bundle =
                 Bundle().apply {
@@ -202,6 +203,7 @@ class TelemetryRepository
                     putString("duration_bucket", bucketDuration(durationMs))
                     putBoolean("is_lite", isLite)
                     dbSizeMb?.let { putDouble("db_size_mb", it) }
+                    hasMedia?.let { putBoolean("has_media", it) }
                 }
             logIfAllowed(
                 eventName = "db_parse_duration",

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.whatstats.R
 import com.whatstats.data.root.FileExtractor
+import com.whatstats.telemetry.TelemetryRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +41,7 @@ class LiteModeManager
         private val mediaManager: LiteMediaManager,
         private val liteDbWriter: LiteDbWriter,
         private val liteDatabase: LiteDatabase,
+        private val telemetryRepository: TelemetryRepository,
     ) {
         private val _importProgress = MutableStateFlow(LiteImportProgress(0f, ""))
         val importProgress: StateFlow<LiteImportProgress> = _importProgress.asStateFlow()
@@ -74,6 +76,7 @@ class LiteModeManager
             ownerName: String,
         ): Result<ImportResult> =
             withContext(Dispatchers.IO) {
+                val startTime = System.currentTimeMillis()
                 runCatching {
                     // 1. Estrazione ZIP
                     _importProgress.value = LiteImportProgress(0.05f, context.getString(R.string.lite_import_extract_zip))
@@ -138,6 +141,23 @@ class LiteModeManager
                     }
 
                     _importProgress.value = LiteImportProgress(0.92f, context.getString(R.string.lite_import_select_owner))
+
+                    val durationMs = System.currentTimeMillis() - startTime
+                    val hasMedia = mediaStats.mediaItems.isNotEmpty()
+                    val zipSizeMb =
+                        runCatching {
+                            context.contentResolver.openFileDescriptor(zipUri, "r")?.use { pfd ->
+                                pfd.statSize.toDouble() / (1024.0 * 1024.0)
+                            }
+                        }.getOrNull()
+
+                    telemetryRepository.trackDbParseDuration(
+                        durationMs = durationMs,
+                        isLite = true,
+                        dbSizeMb = zipSizeMb,
+                        hasMedia = hasMedia,
+                    )
+
                     ImportResult(identifiedSenders)
                 }
             }

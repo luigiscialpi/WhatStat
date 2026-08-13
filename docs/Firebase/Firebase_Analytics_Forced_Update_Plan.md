@@ -142,8 +142,8 @@ Eventi app correnti/supportati:
 - `screen_time`
 - `analysis_started` (flow analysis)
 - `analysis_completed` (flow analysis)
-- `db_parse_error` (frizione/errore apertura SQLite)
-- `db_parse_duration` (performance apertura e dimensione DB)
+- `db_parse_error` (frizione/errore apertura SQLite o import)
+- `db_parse_duration` (durata importazione chat Lite, dimensione ZIP e presenza media)
 - `empty_state_shown` (nessun dato disponibile per chat/intervallo)
 - `media_share` (condivisione singola/multipla immagini o media)
 
@@ -155,7 +155,7 @@ Parametri principali consigliati:
 - `cta_click`: screen_name, cta_name, section
 - `screen_time`: screen_name, stay_ms_bucket
 - `db_parse_error`: reason, error_message
-- `db_parse_duration`: duration_ms, duration_bucket, is_lite, db_size_mb
+- `db_parse_duration`: duration_ms, duration_bucket, is_lite, db_size_mb, has_media
 - `empty_state_shown`: ws_screen_name, reason
 - `media_share`: media_type
 

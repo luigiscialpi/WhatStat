@@ -1563,7 +1563,7 @@ Due eventi distinti, entrambi soggetti a gating Remote Config (sampling, cap, al
 
 - Il reporting schermate automatico Firebase è disattivato (`google_analytics_automatic_screen_reporting_enabled = false`): le dimensioni integrate GA4 "Screen name"/"Screen class" restano `not_set`. Il nome reale della schermata sta nel parametro custom `ws_screen_name` (e `ws_overlay_name` per gli overlay). Per i report GA4 registrare queste come Custom Dimension event-scoped.
 - Gli overlay non sono destinazioni di navigazione: vengono tracciati con l'helper Composable `TrackOverlayView(name)`, che recupera `TelemetryRepository` via Hilt EntryPoint (stesso pattern di `DbThumbnailFetcher`) ed emette una sola volta per apertura (`LaunchedEffect`). Overlay coperti: tutorial, media gallery, media domains (link breakdown), image viewer, emoji/sticker preview, activity detail, sender color picker, chart tooltip, sender selection, guida Lite, selezione tema/lingua, date picker inizio/fine, force update, remote warning.
-- Eventi anti-churn e diagnostici supportati in `TelemetryRepository`: `db_parse_error`, `db_parse_duration`, `empty_state_shown`, `media_share`.
+- Eventi anti-churn e diagnostici supportati in `TelemetryRepository`: `db_parse_error`, `db_parse_duration` (durata import Lite), `empty_state_shown`, `media_share`.
 - User Properties impostate per analisi e segmentazione: `installation_id`, `app_version`, `app_version_code`, `build_type`, `mode`, `chats_count`, `db_size_mb`.
 - `overlay_view` non è incluso nei `minimalEvents`: in modalità tracking MINIMAL non viene inviato.
 

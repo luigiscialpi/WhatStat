@@ -39,7 +39,6 @@ class WhatsAppDatabase
             waDbFile: File,
         ) {
             close() // Chiudi eventuali connessioni precedenti
-            val startTime = System.currentTimeMillis()
             val dbSizeMb = (msgstoreFile.length().toDouble() / (1024.0 * 1024.0))
 
             try {
@@ -63,8 +62,6 @@ class WhatsAppDatabase
                 // Crea indici per ottimizzare le query
                 createIndexes()
 
-                val duration = System.currentTimeMillis() - startTime
-                telemetryRepository.trackDbParseDuration(durationMs = duration, isLite = false, dbSizeMb = dbSizeMb)
                 telemetryRepository.setUserProperties(dbSizeMb = dbSizeMb)
             } catch (e: Exception) {
                 telemetryRepository.trackDbParseError(reason = "root_db_open_failed", exceptionMessage = e.message)
