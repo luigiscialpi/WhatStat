@@ -39,6 +39,8 @@ class AppPreferencesStore
             private val REVIEW_PROMPT_SHOWN_COUNT_KEY = intPreferencesKey("review_prompt_shown_count")
             private val HAS_COMPLETED_REVIEW_FLOW_KEY = booleanPreferencesKey("has_completed_review_flow")
             private val HAS_SUCCESSFUL_ANALYSIS_KEY = booleanPreferencesKey("has_successful_analysis")
+            private val LAST_FEEDBACK_SENT_TIME_KEY = longPreferencesKey("last_feedback_sent_time")
+            private val FEEDBACK_FALLBACK_USER_ID_KEY = stringPreferencesKey("feedback_fallback_user_id")
         }
 
         val themeMode: Flow<ThemeMode> =
@@ -128,6 +130,28 @@ class AppPreferencesStore
         suspend fun markAnalysisSuccessful() {
             dataStore.edit { preferences ->
                 preferences[HAS_SUCCESSFUL_ANALYSIS_KEY] = true
+            }
+        }
+
+        val lastFeedbackSentTime: Flow<Long> =
+            dataStore.data.map { preferences ->
+                preferences[LAST_FEEDBACK_SENT_TIME_KEY] ?: 0L
+            }
+
+        suspend fun recordFeedbackSent(timestamp: Long) {
+            dataStore.edit { preferences ->
+                preferences[LAST_FEEDBACK_SENT_TIME_KEY] = timestamp
+            }
+        }
+
+        val feedbackFallbackUserId: Flow<String?> =
+            dataStore.data.map { preferences ->
+                preferences[FEEDBACK_FALLBACK_USER_ID_KEY]
+            }
+
+        suspend fun setFeedbackFallbackUserId(userId: String) {
+            dataStore.edit { preferences ->
+                preferences[FEEDBACK_FALLBACK_USER_ID_KEY] = userId
             }
         }
     }

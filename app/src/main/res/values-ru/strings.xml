@@ -460,4 +460,34 @@
     <string name="menu_desc">Меню</string>
     <string name="scroll_to_top">Наверх</string>
     <string name="info_desc">Инфо</string>
+
+    <!-- Feedback -->
+    <string name="drawer_feedback">Обратная связь</string>
+    <string name="feedback_dialog_title">Отправить отзыв</string>
+    <string name="feedback_tab_new">Новое сообщение</string>
+    <string name="feedback_tab_history">История</string>
+    <string name="feedback_type_bug">Сообщить об ошибке</string>
+    <string name="feedback_type_feature">Предложить функцию</string>
+    <string name="feedback_type_other">Другое</string>
+    <string name="feedback_message_hint">Опишите проблему или предложение…</string>
+    <string name="feedback_send">Отправить</string>
+    <string name="feedback_sending">Отправка…</string>
+    <string name="feedback_sent_toast">Отзыв отправлен!</string>
+    <string name="feedback_cooldown">Подождите %d мин.</string>
+    <string name="feedback_error_empty">Сначала напишите сообщение</string>
+    <string name="feedback_error_generic">Ошибка отправки. Попробуйте еще раз.</string>
+    <string name="feedback_reply_alert_title">Ответ разработчика</string>
+    <string name="feedback_reply_alert_body">Разработчик ответил на ваш отзыв!</string>
+    <string name="feedback_reply_alert_view">Посмотреть</string>
+    <string name="feedback_reply_label">Ответ разработчика</string>
+    <string name="feedback_no_history">Отзывы еще не отправлялись</string>
+    <string name="feedback_rate_play">Оценить в Google Play</string>
+    <string name="feedback_diagnostics_label">Диагностика (отправляется автоматически)</string>
+    <string name="feedback_char_count">%1$d / %2$d</string>
+    <string name="feedback_status_pending">В ожидании</string>
+    <string name="feedback_status_replied">Получен ответ</string>
+    <string name="feedback_notif_title">Ответ разработчика</string>
+    <string name="feedback_notif_body">Разработчик ответил на ваш отзыв. Нажмите, чтобы посмотреть.</string>
+    <string name="feedback_notif_channel_name">Ответы разработчика</string>
+    <string name="feedback_notif_channel_desc">Уведомления об ответах разработчика на ваши отзывы</string>
 </resources>

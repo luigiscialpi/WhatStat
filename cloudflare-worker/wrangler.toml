@@ -1,0 +1,14 @@
+name = "whatstat-feedback-worker"
+main = "src/index.ts"
+compatibility_date = "2024-10-01"
+
+# KV namespace per rate limiting (creare con: wrangler kv:namespace create FEEDBACK_KV)
+# Incollare qui l'id restituito dal comando
+[[kv_namespaces]]
+binding = "FEEDBACK_KV"
+id = "07dbd1b06a9a462092ebc0f18e21e406"
+
+# Variabili segrete da impostare con wrangler secret put:
+# - TELEGRAM_BOT_TOKEN
+# - TELEGRAM_CHAT_ID
+# - FIREBASE_SERVICE_ACCOUNT_KEY (JSON service account per Firestore REST API)

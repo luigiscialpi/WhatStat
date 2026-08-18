@@ -1,13 +1,25 @@
 package com.whatstats
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import com.topjohnwu.superuser.Shell
+import com.whatstats.ui.feedback.FeedbackPollingWorker
 import com.whatstats.util.DebugLogManager
 import com.whatstats.util.IntegrityChecker
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 @HiltAndroidApp
-class App : Application() {
+class App :
+    Application(),
+    Configuration.Provider {
+    @Inject
+    lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
+
     override fun onCreate() {
         super.onCreate()
         DebugLogManager.init(this)
@@ -29,5 +41,8 @@ class App : Application() {
                 )
                 .setTimeout(10),
         )
+
+        // Avvia polling periodico risposte feedback (ogni 15 min, sopravvive a chiusura app)
+        FeedbackPollingWorker.schedule(this)
     }
 }

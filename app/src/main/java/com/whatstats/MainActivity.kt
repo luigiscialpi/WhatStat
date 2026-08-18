@@ -13,29 +13,42 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.rememberNavController
 import com.whatstats.data.repository.WhatsAppRepository
 import com.whatstats.data.store.ThemeMode
 import com.whatstats.telemetry.TrackOverlayView
 import com.whatstats.ui.MainViewModel
+import com.whatstats.ui.component.FeedbackDialog
+import com.whatstats.ui.feedback.FeedbackViewModel
 import com.whatstats.ui.navigation.appNavigation
 import com.whatstats.ui.theme.WhatStatTheme
 import com.whatstats.update.ForceUpdateState
 import com.whatstats.update.RemoteWarningState
 import com.whatstats.util.DebugLogManager
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.Locale
 import javax.inject.Inject
 
@@ -44,12 +57,17 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val LANGUAGE_PREFS_NAME = "app_language_prefs"
         const val LANGUAGE_PREFS_KEY = "app_language"
+        const val EXTRA_OPEN_FEEDBACK = "extra_open_feedback"
     }
 
     @Inject lateinit var repository: WhatsAppRepository
     private lateinit var mainViewModel: MainViewModel
     private var lastHandledIncomingUri: String? = null
     private var lastHandledIncomingAtMs: Long = 0L
+
+    // Signal osservato da Compose per aprire FeedbackDialog dal tap sulla notifica
+    private val openFeedbackSignal = MutableStateFlow(0)
+
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
@@ -91,6 +109,7 @@ class MainActivity : ComponentActivity() {
         // SetupViewModel.init legge isLiteMode durante la prima composizione,
         // quindi dobbiamo resettare lo stato Lite *prima* che la UI venga creata.
         intent?.let { handleIncomingIntent(it) }
+        checkFeedbackIntent(intent)
 
         // Richiesta consenso UMP prima di setContent per minimizzare la latenza
         // (pattern standard Google: requestConsentInfoUpdate deve essere la prima
@@ -103,7 +122,21 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            val feedbackViewModel: FeedbackViewModel = hiltViewModel()
             val themeMode by mainViewModel.themeMode.collectAsState()
+            val isLiteMode by mainViewModel.isLiteMode.collectAsState()
+            val unreadReply by feedbackViewModel.unreadReply.collectAsState()
+            var showFeedbackFromAlert by remember { mutableStateOf(false) }
+            var dismissedReplyId by remember { mutableStateOf<String?>(null) }
+
+            // Reagisce al tap della notifica (funziona sia da app chiusa che aperta)
+            val openFeedback by openFeedbackSignal.collectAsState()
+            LaunchedEffect(openFeedback) {
+                if (openFeedback > 0) {
+                    showFeedbackFromAlert = true
+                }
+            }
+
             val darkTheme =
                 when (themeMode) {
                     ThemeMode.DARK -> true
@@ -175,6 +208,64 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                     )
+                } else if (unreadReply != null && !showFeedbackFromAlert && unreadReply?.id != dismissedReplyId) {
+                    val reply = unreadReply!!
+                    TrackOverlayView("feedback_reply_alert")
+                    AlertDialog(
+                        onDismissRequest = {
+                            dismissedReplyId = reply.id
+                            feedbackViewModel.markReplyAsRead(reply.id)
+                        },
+                        title = { Text(stringResource(R.string.feedback_reply_alert_title)) },
+                        text = {
+                            Column {
+                                Text(stringResource(R.string.feedback_reply_alert_body))
+                                if (!reply.replyMessage.isNullOrBlank()) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "\"${reply.replyMessage}\"",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    dismissedReplyId = reply.id
+                                    showFeedbackFromAlert = true
+                                },
+                            ) {
+                                Text(stringResource(R.string.feedback_reply_alert_view))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
+                                    dismissedReplyId = reply.id
+                                    feedbackViewModel.markReplyAsRead(reply.id)
+                                },
+                            ) {
+                                Text(stringResource(R.string.ok))
+                            }
+                        },
+                    )
+                }
+
+                if (showFeedbackFromAlert) {
+                    FeedbackDialog(
+                        initialTab = 1,
+                        isLiteMode = isLiteMode,
+                        onDismiss = {
+                            showFeedbackFromAlert = false
+                            unreadReply?.let {
+                                dismissedReplyId = it.id
+                                feedbackViewModel.markReplyAsRead(it.id)
+                            }
+                        },
+                        feedbackViewModel = feedbackViewModel,
+                    )
                 }
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
@@ -194,6 +285,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         DebugLogManager.log("MainActivity.onNewIntent | action=${intent.action ?: "-"} type=${intent.type ?: "-"}")
+        checkFeedbackIntent(intent)
         handleIncomingIntent(intent)
     }
 
@@ -202,6 +294,18 @@ class MainActivity : ComponentActivity() {
         if (::mainViewModel.isInitialized) {
             mainViewModel.checkForUpdate()
             mainViewModel.checkRemoteWarning()
+        }
+    }
+
+    private fun checkFeedbackIntent(intent: Intent?) {
+        if (intent == null) return
+        val isOpenFeedback =
+            intent.getBooleanExtra(EXTRA_OPEN_FEEDBACK, false) ||
+                intent.getStringExtra(EXTRA_OPEN_FEEDBACK) == "true" ||
+                intent.getStringExtra("extra_open_feedback") == "true"
+        if (isOpenFeedback) {
+            DebugLogManager.log("MainActivity.checkFeedbackIntent | opening feedback dialog from notification")
+            openFeedbackSignal.value++
         }
     }
 

@@ -457,4 +457,34 @@
     <string name="tutorial_radar_preview_2">[Aperçu] "... où as-tu vu ce mot ?"</string>
     <string name="tutorial_radar_preview_3">[Aperçu] "... je vérifie dans les aperçus avant ..."</string>
     <string name="tutorial_radar_previews_badge">Aperçus de messages en surbrillance</string>
+
+    <!-- Feedback -->
+    <string name="drawer_feedback">Commentaires</string>
+    <string name="feedback_dialog_title">Envoyer un commentaire</string>
+    <string name="feedback_tab_new">Nouveau message</string>
+    <string name="feedback_tab_history">Historique</string>
+    <string name="feedback_type_bug">Rapport d\'erreur</string>
+    <string name="feedback_type_feature">Conseil</string>
+    <string name="feedback_type_other">Autre</string>
+    <string name="feedback_message_hint">Décrivez le problème ou le conseil…</string>
+    <string name="feedback_send">Envoyer</string>
+    <string name="feedback_sending">Envoi en cours…</string>
+    <string name="feedback_sent_toast">Commentaire envoyé !</string>
+    <string name="feedback_cooldown">Veuillez patienter %d minutes</string>
+    <string name="feedback_error_empty">Veuillez d\'abord écrire un message</string>
+    <string name="feedback_error_generic">Échec de l\'envoi. Réessayez.</string>
+    <string name="feedback_reply_alert_title">Réponse du développeur</string>
+    <string name="feedback_reply_alert_body">Le développeur a répondu à votre commentaire!</string>
+    <string name="feedback_reply_alert_view">Voir</string>
+    <string name="feedback_reply_label">Réponse du développeur</string>
+    <string name="feedback_no_history">Aucun commentaire envoyé</string>
+    <string name="feedback_rate_play">Évaluer sur Google Play</string>
+    <string name="feedback_diagnostics_label">Diagnostics (envoyés automatiquement)</string>
+    <string name="feedback_char_count">%1$d / %2$d</string>
+    <string name="feedback_status_pending">En attente</string>
+    <string name="feedback_status_replied">Réponse reçue</string>
+    <string name="feedback_notif_title">Réponse du développeur</string>
+    <string name="feedback_notif_body">Le développeur a répondu à votre commentaire. Appuyez pour voir.</string>
+    <string name="feedback_notif_channel_name">Réponses du développeur</string>
+    <string name="feedback_notif_channel_desc">Notification lorsque le développeur répond à vos commentaires</string>
 </resources>

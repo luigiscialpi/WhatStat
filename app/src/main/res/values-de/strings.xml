@@ -458,4 +458,34 @@
     <string name="tutorial_radar_preview_2">[Vorschau] "... wo hast du das Wort gesehen?"</string>
     <string name="tutorial_radar_preview_3">[Vorschau] "... ich schaue zuerst in die Vorschauen ..."</string>
     <string name="tutorial_radar_previews_badge">Nachrichtenvorschauen hervorgehoben</string>
+
+    <!-- Feedback -->
+    <string name="drawer_feedback">Feedback</string>
+    <string name="feedback_dialog_title">Feedback senden</string>
+    <string name="feedback_tab_new">Neue Nachricht</string>
+    <string name="feedback_tab_history">Verlauf</string>
+    <string name="feedback_type_bug">Fehler melden</string>
+    <string name="feedback_type_feature">Funktionswunsch</string>
+    <string name="feedback_type_other">Sonstiges</string>
+    <string name="feedback_message_hint">Beschreiben Sie das Problem oder den Vorschlag…</string>
+    <string name="feedback_send">Senden</string>
+    <string name="feedback_sending">Wird gesendet…</string>
+    <string name="feedback_sent_toast">Feedback gesendet!</string>
+    <string name="feedback_cooldown">Bitte warten Sie %d Minuten</string>
+    <string name="feedback_error_empty">Bitte schreiben Sie zuerst eine Nachricht</string>
+    <string name="feedback_error_generic">Senden fehlgeschlagen. Bitte versuchen Sie es erneut.</string>
+    <string name="feedback_reply_alert_title">Antwort des Entwicklers</string>
+    <string name="feedback_reply_alert_body">Der Entwickler hat auf Ihr Feedback geantwortet!</string>
+    <string name="feedback_reply_alert_view">Ansehen</string>
+    <string name="feedback_reply_label">Antwort des Entwicklers</string>
+    <string name="feedback_no_history">Noch kein Feedback gesendet</string>
+    <string name="feedback_rate_play">Auf Google Play bewerten</string>
+    <string name="feedback_diagnostics_label">Diagnosedaten (automatisch gesendet)</string>
+    <string name="feedback_char_count">%1$d / %2$d</string>
+    <string name="feedback_status_pending">Ausstehend</string>
+    <string name="feedback_status_replied">Antwort erhalten</string>
+    <string name="feedback_notif_title">Antwort des Entwicklers</string>
+    <string name="feedback_notif_body">Der Entwickler hat auf Ihr Feedback geantwortet. Zum Anzeigen tippen.</string>
+    <string name="feedback_notif_channel_name">Entwickler-Antworten</string>
+    <string name="feedback_notif_channel_desc">Benachrichtigt Sie, wenn der Entwickler auf Ihr Feedback antwortet</string>
 </resources>

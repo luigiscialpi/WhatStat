@@ -460,4 +460,34 @@
     <string name="menu_desc">Menu</string>
     <string name="scroll_to_top">Scorri in alto</string>
     <string name="info_desc">Info</string>
+
+    <!-- Feedback -->
+    <string name="drawer_feedback">Feedback</string>
+    <string name="feedback_dialog_title">Invia Feedback</string>
+    <string name="feedback_tab_new">Nuovo Messaggio</string>
+    <string name="feedback_tab_history">Cronologia</string>
+    <string name="feedback_type_bug">Segnalazione Bug</string>
+    <string name="feedback_type_feature">Suggerimento</string>
+    <string name="feedback_type_other">Altro</string>
+    <string name="feedback_message_hint">Descrivi il problema o il suggerimento…</string>
+    <string name="feedback_send">Invia</string>
+    <string name="feedback_sending">Invio in corso…</string>
+    <string name="feedback_sent_toast">Feedback inviato!</string>
+    <string name="feedback_cooldown">Attendi %d minuti</string>
+    <string name="feedback_error_empty">Scrivi un messaggio prima</string>
+    <string name="feedback_error_generic">Invio fallito. Riprova.</string>
+    <string name="feedback_reply_alert_title">Risposta dallo Sviluppatore</string>
+    <string name="feedback_reply_alert_body">Lo sviluppatore ha risposto al tuo feedback!</string>
+    <string name="feedback_reply_alert_view">Visualizza</string>
+    <string name="feedback_reply_label">Risposta Sviluppatore</string>
+    <string name="feedback_no_history">Nessun feedback inviato</string>
+    <string name="feedback_rate_play">Valuta su Google Play</string>
+    <string name="feedback_diagnostics_label">Diagnostica (inviata automaticamente)</string>
+    <string name="feedback_char_count">%1$d / %2$d</string>
+    <string name="feedback_status_pending">In attesa</string>
+    <string name="feedback_status_replied">Risposta ricevuta</string>
+    <string name="feedback_notif_title">Risposta dallo Sviluppatore</string>
+    <string name="feedback_notif_body">Lo sviluppatore ha risposto al tuo feedback. Tocca per vedere.</string>
+    <string name="feedback_notif_channel_name">Risposte Sviluppatore</string>
+    <string name="feedback_notif_channel_desc">Notifica quando lo sviluppatore risponde al tuo feedback</string>
 </resources>

@@ -458,4 +458,34 @@
     <string name="tutorial_radar_preview_2">[पूर्वावलोकन] "... उस शब्द को तुमने कहां देखा?"</string>
     <string name="tutorial_radar_preview_3">[पूर्वावलोकन] "... पहले पूर्वावलोकनों में देखता हूं ..."</string>
     <string name="tutorial_radar_previews_badge">संदेश पूर्वावलोकन हाइलाइट किए गए</string>
+
+    <!-- Feedback -->
+    <string name="drawer_feedback">फ़ीडबैक</string>
+    <string name="feedback_dialog_title">फ़ीडबैक भेजें</string>
+    <string name="feedback_tab_new">नया संदेश</string>
+    <string name="feedback_tab_history">इतिहास</string>
+    <string name="feedback_type_bug">बग रिपोर्ट</string>
+    <string name="feedback_type_feature">सुविधा का सुझाव</string>
+    <string name="feedback_type_other">अन्य</string>
+    <string name="feedback_message_hint">समस्या या सुझाव का वर्णन करें…</string>
+    <string name="feedback_send">भेजें</string>
+    <string name="feedback_sending">भेजा जा रहा है…</string>
+    <string name="feedback_sent_toast">फ़ीडबैक भेज दिया गया!</string>
+    <string name="feedback_cooldown">%d मिनट प्रतीक्षा करें</string>
+    <string name="feedback_error_empty">पहले एक संदेश लिखें</string>
+    <string name="feedback_error_generic">भेजना विफल रहा। पुनः प्रयास करें।</string>
+    <string name="feedback_reply_alert_title">डेवलपर की प्रतिक्रिया</string>
+    <string name="feedback_reply_alert_body">डेवलपर ने आपके फ़ीडबैक का उत्तर दिया है!</string>
+    <string name="feedback_reply_alert_view">देखें</string>
+    <string name="feedback_reply_label">डेवलपर का उत्तर</string>
+    <string name="feedback_no_history">अभी तक कोई फ़ीडबैक नहीं भेजा गया है</string>
+    <string name="feedback_rate_play">Google Play पर रेट करें</string>
+    <string name="feedback_diagnostics_label">डायग्नोस्टिक्स (स्वचालित रूप से भेजा गया)</string>
+    <string name="feedback_char_count">%1$d / %2$d</string>
+    <string name="feedback_status_pending">लंबित</string>
+    <string name="feedback_status_replied">उत्तर प्राप्त हुआ</string>
+    <string name="feedback_notif_title">डेवलपर की प्रतिक्रिया</string>
+    <string name="feedback_notif_body">डेवलपर ने आपके फ़ीडबैक का उत्तर दिया है। देखने के लिए टैप करें।</string>
+    <string name="feedback_notif_channel_name">डेवलपर के उत्तर</string>
+    <string name="feedback_notif_channel_desc">डेवलपर द्वारा आपके फ़ीडबैक का उत्तर दिए जाने पर सूचित करता है</string>
 </resources>

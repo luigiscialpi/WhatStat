@@ -458,4 +458,34 @@
     <string name="tutorial_radar_preview_2">[Önizleme] "... o kelimeyi nerede gördün?"</string>
     <string name="tutorial_radar_preview_3">[Önizleme] "... önce önizlemelere bakıyorum ..."</string>
     <string name="tutorial_radar_previews_badge">Öne çıkarılan mesaj önizlemeleri</string>
+
+    <!-- Feedback -->
+    <string name="drawer_feedback">Geri Bildirim</string>
+    <string name="feedback_dialog_title">Geri Bildirim Gönder</string>
+    <string name="feedback_tab_new">Yeni Mesaj</string>
+    <string name="feedback_tab_history">Geçmiş</string>
+    <string name="feedback_type_bug">Hata Bildirimi</string>
+    <string name="feedback_type_feature">Özellik İsteği</string>
+    <string name="feedback_type_other">Diğer</string>
+    <string name="feedback_message_hint">Sorunu veya öneriyi açıklayın…</string>
+    <string name="feedback_send">Gönder</string>
+    <string name="feedback_sending">Gönderiliyor…</string>
+    <string name="feedback_sent_toast">Geri bildirim gönderildi!</string>
+    <string name="feedback_cooldown">%d dakika bekleyin</string>
+    <string name="feedback_error_empty">Önce bir mesaj yazın</string>
+    <string name="feedback_error_generic">Gönderilemedi. Tekrar deneyin.</string>
+    <string name="feedback_reply_alert_title">Geliştirici Yanıtı</string>
+    <string name="feedback_reply_alert_body">Geliştirici geri bildiriminizi yanıtladı!</string>
+    <string name="feedback_reply_alert_view">Görüntüle</string>
+    <string name="feedback_reply_label">Geliştirici Yanıtı</string>
+    <string name="feedback_no_history">Henüz geri bildirim gönderilmedi</string>
+    <string name="feedback_rate_play">Google Play\'de Değerlendir</string>
+    <string name="feedback_diagnostics_label">Teşhis verileri (otomatik gönderilir)</string>
+    <string name="feedback_char_count">%1$d / %2$d</string>
+    <string name="feedback_status_pending">Beklemede</string>
+    <string name="feedback_status_replied">Yanıt alındı</string>
+    <string name="feedback_notif_title">Geliştirici Yanıtı</string>
+    <string name="feedback_notif_body">Geliştirici geri bildiriminizi yanıtladı. Görmek için dokunun.</string>
+    <string name="feedback_notif_channel_name">Geliştirici Yanıtları</string>
+    <string name="feedback_notif_channel_desc">Geliştirici geri bildiriminizi yanıtladığında bildirir</string>
 </resources>

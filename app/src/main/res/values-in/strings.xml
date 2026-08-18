@@ -460,4 +460,34 @@
     <string name="menu_desc">Menu</string>
     <string name="scroll_to_top">Gulir ke atas</string>
     <string name="info_desc">Info</string>
+
+    <!-- Feedback -->
+    <string name="drawer_feedback">Masukan</string>
+    <string name="feedback_dialog_title">Kirim Masukan</string>
+    <string name="feedback_tab_new">Pesan Baru</string>
+    <string name="feedback_tab_history">Riwayat</string>
+    <string name="feedback_type_bug">Laporkan Bug</string>
+    <string name="feedback_type_feature">Saran Fitur</string>
+    <string name="feedback_type_other">Lainnya</string>
+    <string name="feedback_message_hint">Jelaskan masalah atau saran…</string>
+    <string name="feedback_send">Kirim</string>
+    <string name="feedback_sending">Mengirim…</string>
+    <string name="feedback_sent_toast">Masukan terkirim!</string>
+    <string name="feedback_cooldown">Tunggu %d menit</string>
+    <string name="feedback_error_empty">Tulis pesan terlebih dahulu</string>
+    <string name="feedback_error_generic">Gagal mengirim. Coba lagi.</string>
+    <string name="feedback_reply_alert_title">Balasan Pengembang</string>
+    <string name="feedback_reply_alert_body">Pengembang telah membalas masukan Anda!</string>
+    <string name="feedback_reply_alert_view">Lihat</string>
+    <string name="feedback_reply_label">Balasan Pengembang</string>
+    <string name="feedback_no_history">Belum ada masukan yang dikirim</string>
+    <string name="feedback_rate_play">Beri nilai di Google Play</string>
+    <string name="feedback_diagnostics_label">Diagnostik (dikirim otomatis)</string>
+    <string name="feedback_char_count">%1$d / %2$d</string>
+    <string name="feedback_status_pending">Tertunda</string>
+    <string name="feedback_status_replied">Balasan diterima</string>
+    <string name="feedback_notif_title">Balasan Pengembang</string>
+    <string name="feedback_notif_body">Pengembang telah membalas masukan Anda. Ketuk untuk melihat.</string>
+    <string name="feedback_notif_channel_name">Balasan Pengembang</string>
+    <string name="feedback_notif_channel_desc">Pemberitahuan saat pengembang membalas masukan Anda</string>
 </resources>

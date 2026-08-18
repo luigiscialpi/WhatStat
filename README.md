@@ -28,6 +28,7 @@
 20. [Monetizzazione: Ads e Pro](#20-monetizzazione-ads-e-pro)
 21. [Telemetria Firebase, Remote Config e Forced Update](#21-telemetria-firebase-remote-config-e-forced-update)
 22. [In-App Review](#22-in-app-review)
+23. [Sistema di Feedback In-App](#23-sistema-di-feedback-in-app)
 
 ---
 
@@ -1726,3 +1727,80 @@ I contatori DataStore vengono persi con la disinstallazione. L'API Google gestis
 | `ui/screen/dashboard/DashboardViewModel.kt` | `warmUp()` in `init`, `launchReviewIfEligible()`, `markAnalysisSuccessful()` |
 | `ui/screen/dashboard/DashboardScreen.kt` | `LaunchedEffect` trigger con guard UI |
 | `app/build.gradle.kts` | Dipendenza `com.google.android.play:review-ktx` |
+
+---
+
+## 23. Sistema di Feedback In-App
+
+Il sistema di feedback in-app consente agli utenti di inviare segnalazioni (Bug, Proposte di feature o Altro) direttamente dall'app e ricevere risposte dallo sviluppatore consultabili in tempo reale, tramite notifica push di sistema (FCM) anche ad app chiusa, o tramite popup modale all'avvio.
+
+### Architettura e Flusso Dati
+
+L'infrastruttura combina **Firebase Firestore** (persistenza ticket), un **Cloudflare Worker** serverless (edge), **Firebase Cloud Messaging (FCM HTTP v1)** e un **Bot Telegram** per le notifiche e risposte:
+
+1. **Invio segnalazione (Client -> Firestore & Worker)**:
+   - L'utente compila la segnalazione nel `FeedbackDialog` (accessibile dal drawer).
+   - L'app recupera il token FCM del dispositivo (`FirebaseMessaging.getInstance().token`) e il nome commerciale del device (`Settings.Global.device_name`).
+   - L'app scrive il documento nella collezione Firestore `feedbacks/{feedbackId}` con `status = "PENDING"`, `readByDevice = false` e `fcmToken`.
+   - In parallelo (best-effort), l'app invia il payload al Cloudflare Worker sull'endpoint `POST /notify`.
+   - Il Worker valida il payload, verifica il rate limit KV e invia un messaggio Telegram formattato in HTML allo sviluppatore con badge tipo, versione, modalità (root/lite) e modello dispositivo.
+2. **Risposta dello sviluppatore (Telegram -> Worker -> Firestore & FCM)**:
+   - Lo sviluppatore risponde direttamente citando il messaggio del Bot su Telegram (funzione *Reply*).
+   - Il webhook Telegram notifica il Worker sull'endpoint `POST /webhook`.
+   - Il Worker estrae il `feedbackId` dalla citazione, aggiorna il documento Firestore via REST API (`replyMessage`, `repliedAt`, `status = "REPLIED"`).
+   - Il Worker recupera il `fcmToken` del ticket e invia **immediatamente una notifica push ad alta priorità (FCM v1)** al dispositivo.
+3. **Ricezione e Notifiche Push (FCM & WorkManager -> Client)**:
+   - **Ad app chiusa / in background**: Google Play Services riceve il push FCM istantaneo e mostra la notifica nella status bar sul canale `feedback_reply_channel` (*"Risposta dallo sviluppatore: Lo sviluppatore ha risposto al tuo feedback. Tocca per vedere."*).
+   - **Fallback periodico (WorkManager)**: `FeedbackPollingWorker` interroga periodicamente Firestore (ogni 15 min) per intercettare risposte anche su dispositivi privi di Google Play Services.
+   - **Tap sulla notifica**: L'intent con extra `EXTRA_OPEN_FEEDBACK` risveglia `MainActivity`, che apre direttamente `FeedbackDialog` sulla scheda cronologia risposte.
+   - **Ad app aperta / in-app**: `MainActivity` e `AppDrawer` osservano il flow in tempo reale. Viene mostrato il badge `!` nel drawer e un dialog di avviso in `MainActivity` (con gestione `dismissedReplyId` per sopprimere popup duplicati o transitori durante la chiusura del dialog).
+   - La visualizzazione o chiusura della risposta marca `readByDevice = true` su Firestore.
+
+### Identificatore Utente Persistente
+
+Per associare i ticket allo stesso utente in modo sicuro e senza richiedere login/account:
+
+- Viene utilizzato il **Firebase Installations ID (FID)** tramite `FeedbackUserIdProvider`.
+- L'ID utente è formattato come `usr_${fid.take(16)}`.
+- In caso di assenza temporanea di connettività al primo avvio, viene generato un UUID locale persistito in DataStore e riutilizzato come fallback.
+
+### Rate Limiting e Cooldown (Debug vs Release)
+
+Il rate limit è differenziato automaticamente tramite `BuildConfig.DEBUG` e il flag `isDebug` inviato al Worker:
+
+- **Release Build**:
+  - **Lato Client**: Cooldown di **60 minuti** per invio, con timestamp salvato in DataStore Preferences (`last_feedback_sent_time`). Il pulsante di invio mostra i minuti rimanenti.
+  - **Lato Cloudflare Worker (KV)**: Max **1 richiesta / 60 minuti per `userId`** e **1 richiesta / 30 minuti per `IP`**.
+- **Debug Build**:
+  - **Lato Client**: Cooldown ridotto a **5 secondi** per consentire test e iterazioni rapide.
+  - **Lato Cloudflare Worker (KV)**: Rate limit disattivato e notifica Telegram con badge `🛠 [DEBUG]`.
+
+### Sicurezza e Google Play Protect
+
+- **Zero secret nell'APK**: Nessun token Telegram o chiave privata Firebase è presente nel codice client.
+- **Worker Secrets**: I secret sensibili (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `FIREBASE_SERVICE_ACCOUNT_KEY`) risiedono esclusivamente nell'ambiente protetto di Cloudflare.
+- **Regole di sicurezza Firestore (`firestore.rules`)**:
+  - `create`: consentita solo con campi validati (lunghezza messaggio max 2000 caratteri, tipo valido `BUG`/`FEATURE`/`OTHER`).
+  - `read`: consentita la lettura dei documenti.
+  - `update`: consentito al client unicamente per il campo booleano `readByDevice`. Le risposte sono aggiornate solo dal Worker tramite service account.
+  - `delete`: disabilitato per tutti i client.
+
+### File Coinvolti
+
+| File | Ruolo |
+|------|-------|
+| `data/feedback/FeedbackUserIdProvider.kt` | Generazione/recupero `persistentUserId` con FID e fallback DataStore |
+| `data/feedback/FeedbackItem.kt` | Data model `FeedbackItem`, enum `FeedbackType` e `FeedbackStatus` |
+| `data/feedback/FeedbackRepository.kt` | Scrittura Firestore, recupero FCM token, rilevamento modello reale device, osservazione Flow unread/cronologia, notifica Worker |
+| `di/FeedbackModule.kt` | Modulo Hilt per singleton `FirebaseFirestore` |
+| `service/WhatStatFirebaseMessagingService.kt` | Ricezione notifiche push Firebase Cloud Messaging (FCM) |
+| `ui/feedback/FeedbackNotificationHelper.kt` | Helper per canale notifica `feedback_reply_channel` e intent tap-to-open |
+| `ui/feedback/FeedbackPollingWorker.kt` | Worker periodico WorkManager (fallback ogni 15 min per risposte non lette) |
+| `ui/feedback/FeedbackViewModel.kt` | ViewModel per unread reply, storico ticket e gestione stati invio/cooldown |
+| `ui/component/FeedbackDialog.kt` | Dialog Material 3 a 2 tab (Nuovo messaggio, Cronologia con risposte) e link Store |
+| `ui/component/AppDrawer.kt` | Voce di menu Feedback con badge `!` per risposte non lette |
+| `MainActivity.kt` | Alert modale di notifica risposta non letta all'avvio dell'app, gestione intent tap notifica (`EXTRA_OPEN_FEEDBACK`) e soppressione glitch doppio dialog (`dismissedReplyId`) |
+| `App.kt` | Inizializzazione WorkManager con `HiltWorkerFactory` e scheduling `FeedbackPollingWorker` |
+| `firestore.rules` | Regole di sicurezza granulari Firestore |
+| `firestore.indexes.json` | Configurazione indici Firestore |
+| `cloudflare-worker/` | Progetto serverless TypeScript per endpoint `/notify`, invio push FCM v1 e webhook Telegram `/webhook` |

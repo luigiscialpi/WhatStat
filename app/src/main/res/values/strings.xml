@@ -458,4 +458,34 @@
     <string name="menu_desc">Menu</string>
     <string name="scroll_to_top">Scroll to top</string>
     <string name="info_desc">Info</string>
+
+    <!-- Feedback -->
+    <string name="drawer_feedback">Feedback</string>
+    <string name="feedback_dialog_title">Send Feedback</string>
+    <string name="feedback_tab_new">New Message</string>
+    <string name="feedback_tab_history">History</string>
+    <string name="feedback_type_bug">Bug Report</string>
+    <string name="feedback_type_feature">Feature Request</string>
+    <string name="feedback_type_other">Other</string>
+    <string name="feedback_message_hint">Describe the issue or suggestion…</string>
+    <string name="feedback_send">Send</string>
+    <string name="feedback_sending">Sending…</string>
+    <string name="feedback_sent_toast">Feedback sent!</string>
+    <string name="feedback_cooldown">Wait %d minutes</string>
+    <string name="feedback_error_empty">Write a message first</string>
+    <string name="feedback_error_generic">Send failed. Try again.</string>
+    <string name="feedback_reply_alert_title">Developer Response</string>
+    <string name="feedback_reply_alert_body">The developer replied to your feedback!</string>
+    <string name="feedback_reply_alert_view">View</string>
+    <string name="feedback_reply_label">Developer Reply</string>
+    <string name="feedback_no_history">No feedback sent yet</string>
+    <string name="feedback_rate_play">Rate on Google Play</string>
+    <string name="feedback_diagnostics_label">Diagnostics (sent automatically)</string>
+    <string name="feedback_char_count">%1$d / %2$d</string>
+    <string name="feedback_status_pending">Pending</string>
+    <string name="feedback_status_replied">Reply received</string>
+    <string name="feedback_notif_title">Developer Response</string>
+    <string name="feedback_notif_body">The developer replied to your feedback. Tap to view.</string>
+    <string name="feedback_notif_channel_name">Developer Replies</string>
+    <string name="feedback_notif_channel_desc">Notifies when the developer replies to your feedback</string>
 </resources>

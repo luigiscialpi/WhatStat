@@ -6,7 +6,9 @@ import android.content.ContextWrapper
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,11 +17,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.BrightnessMedium
 import androidx.compose.material.icons.outlined.Cached
+import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -43,6 +47,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -55,6 +60,7 @@ import com.whatstats.R
 import com.whatstats.data.store.ThemeMode
 import com.whatstats.telemetry.TrackOverlayView
 import com.whatstats.ui.MainViewModel
+import com.whatstats.ui.feedback.FeedbackViewModel
 import kotlinx.coroutines.launch
 
 val LocalDrawerState = compositionLocalOf<DrawerState> { error("No DrawerState provided") }
@@ -65,17 +71,20 @@ fun AppDrawerContent(
     isOnSetupScreen: Boolean = false,
     onNavigateToSetup: () -> Unit = {},
     mainViewModel: MainViewModel = hiltViewModel(),
+    feedbackViewModel: FeedbackViewModel = hiltViewModel(),
 ) {
     val themeMode by mainViewModel.themeMode.collectAsState()
     val appLanguage by mainViewModel.appLanguage.collectAsState()
     val isLiteMode by mainViewModel.isLiteMode.collectAsState()
     val adsUiState by mainViewModel.adsUiState.collectAsState()
+    val unreadReply by feedbackViewModel.unreadReply.collectAsState()
     val context = LocalContext.current
 
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showCacheDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showFeedbackDialog by remember { mutableStateOf(false) }
 
     val drawerState = LocalDrawerState.current
     val coroutineScope = rememberCoroutineScope()
@@ -167,6 +176,17 @@ fun AppDrawerContent(
                         },
                     )
                 }
+
+                DrawerItem(
+                    icon = Icons.Outlined.Feedback,
+                    label = stringResource(R.string.drawer_feedback),
+                    badge = if (unreadReply != null) "!" else null,
+                    onClick = {
+                        mainViewModel.trackClick("drawer", "feedback", "help")
+                        showFeedbackDialog = true
+                        closeDrawer()
+                    },
+                )
 
                 DrawerItem(
                     icon = Icons.AutoMirrored.Outlined.HelpOutline,
@@ -307,6 +327,15 @@ fun AppDrawerContent(
             )
         }
     }
+
+    if (showFeedbackDialog) {
+        FeedbackDialog(
+            initialTab = if (unreadReply != null) 1 else 0,
+            isLiteMode = isLiteMode,
+            onDismiss = { showFeedbackDialog = false },
+            feedbackViewModel = feedbackViewModel,
+        )
+    }
 }
 
 @Composable
@@ -314,6 +343,7 @@ fun AppDrawerContent(
 private fun DrawerItem(
     icon: ImageVector,
     label: String,
+    badge: String? = null,
     onClick: () -> Unit,
 ) {
     Row(
@@ -334,7 +364,25 @@ private fun DrawerItem(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
         )
+        if (badge != null) {
+            Box(
+                modifier =
+                    Modifier
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.error)
+                        .padding(horizontal = 7.dp, vertical = 2.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = badge,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onError,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
     }
 }
 

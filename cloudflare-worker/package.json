@@ -1,0 +1,17 @@
+{
+  "name": "whatstat-feedback-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for WhatStat in-app feedback notifications and Telegram replies",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20241022.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "wrangler": "^3.80.0"
+  }
+}

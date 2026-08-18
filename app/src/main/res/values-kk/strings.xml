@@ -460,4 +460,34 @@
     <string name="menu_desc">Мәзір</string>
     <string name="scroll_to_top">Жоғарыға айналдыру</string>
     <string name="info_desc">Ақпарат</string>
+
+    <!-- Feedback -->
+    <string name="drawer_feedback">Кері байланыс</string>
+    <string name="feedback_dialog_title">Кері байланыс жіберу</string>
+    <string name="feedback_tab_new">Жаңа хабарлама</string>
+    <string name="feedback_tab_history">Тарихы</string>
+    <string name="feedback_type_bug">Қате туралы хабарлау</string>
+    <string name="feedback_type_feature">Мүмкіндік ұсыну</string>
+    <string name="feedback_type_other">Басқа</string>
+    <string name="feedback_message_hint">Мәселені немесе ұсынысты сипаттаңыз…</string>
+    <string name="feedback_send">Жіберу</string>
+    <string name="feedback_sending">Жіберілуде…</string>
+    <string name="feedback_sent_toast">Кері байланыс жіберілді!</string>
+    <string name="feedback_cooldown">%d минут күте тұрыңыз</string>
+    <string name="feedback_error_empty">Алдымен хабарлама жазыңыз</string>
+    <string name="feedback_error_generic">Жіберу сәтсіз аяқталды. Қайталап көріңіз.</string>
+    <string name="feedback_reply_alert_title">Әзірлеушінің жауабы</string>
+    <string name="feedback_reply_alert_body">Әзірлеуші кері байланысыңызға жауап берді!</string>
+    <string name="feedback_reply_alert_view">Қарау</string>
+    <string name="feedback_reply_label">Әзірлеушінің жауабы</string>
+    <string name="feedback_no_history">Кері байланыс әлі жіберілмеген</string>
+    <string name="feedback_rate_play">Google Play-де бағалау</string>
+    <string name="feedback_diagnostics_label">Диагностика (автоматты түрде жіберіледі)</string>
+    <string name="feedback_char_count">%1$d / %2$d</string>
+    <string name="feedback_status_pending">Күтуде</string>
+    <string name="feedback_status_replied">Жауап алынды</string>
+    <string name="feedback_notif_title">Әзірлеушінің жауабы</string>
+    <string name="feedback_notif_body">Әзірлеуші кері байланысыңызға жауап берді. Көру үшін түртіңіз.</string>
+    <string name="feedback_notif_channel_name">Әзірлеуші жауаптары</string>
+    <string name="feedback_notif_channel_desc">Әзірлеуші кері байланысыңызға жауап бергенде хабарлайды</string>
 </resources>

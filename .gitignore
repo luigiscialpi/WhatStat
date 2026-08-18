@@ -30,3 +30,11 @@ wa.db
 /wa-crypt-tools
 # Added by code-review-graph
 .code-review-graph/
+
+# Cloudflare Worker
+node_modules/
+.wrangler/
+.dev.vars
+package-lock.json
+cloudflare-worker/dist/
+

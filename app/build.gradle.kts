@@ -26,8 +26,8 @@ android {
         applicationId = "com.whatstats"
         minSdk = 26
         targetSdk = 36
-        versionCode = 37
-        versionName = "1.6.2"
+        versionCode = 38
+        versionName = "1.7.0"
         val admobAppId =
             project
                 .findProperty("ADMOB_APP_ID")
@@ -165,7 +165,9 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-config-ktx")
     implementation("com.google.firebase:firebase-crashlytics-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-installations-ktx")
+    implementation("com.google.firebase:firebase-messaging-ktx")
 
     // ── In-app updates ──────────────────────────────────────────
     implementation("com.google.android.play:app-update:2.1.0")
@@ -182,6 +184,11 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.53.1")
     ksp("com.google.dagger:hilt-android-compiler:2.53.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    ksp("androidx.hilt:hilt-compiler:1.2.0")
+
+    // ── WorkManager ──────────────────────────────────────────────
+    implementation("androidx.work:work-runtime-ktx:2.10.2")
 
     // ── Room (lettura db decifrato) ──────────────────────────────
     implementation("androidx.room:room-runtime:2.8.4")

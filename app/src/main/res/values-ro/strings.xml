@@ -460,4 +460,34 @@
     <string name="menu_desc">Meniu</string>
     <string name="scroll_to_top">Mergi sus</string>
     <string name="info_desc">Info</string>
+
+    <!-- Feedback -->
+    <string name="drawer_feedback">Feedback</string>
+    <string name="feedback_dialog_title">Trimite feedback</string>
+    <string name="feedback_tab_new">Mesaj nou</string>
+    <string name="feedback_tab_history">Istoric</string>
+    <string name="feedback_type_bug">Raportează o eroare</string>
+    <string name="feedback_type_feature">Sugerează o funcție</string>
+    <string name="feedback_type_other">Altele</string>
+    <string name="feedback_message_hint">Descrie problema sau sugestia…</string>
+    <string name="feedback_send">Trimite</string>
+    <string name="feedback_sending">Se trimite…</string>
+    <string name="feedback_sent_toast">Feedback trimis!</string>
+    <string name="feedback_cooldown">Așteaptă %d minute</string>
+    <string name="feedback_error_empty">Scrie un mesaj mai întâi</string>
+    <string name="feedback_error_generic">Trimiterea a eșuat. Încearcă din nou.</string>
+    <string name="feedback_reply_alert_title">Răspuns dezvoltator</string>
+    <string name="feedback_reply_alert_body">Dezvoltatorul a răspuns la feedbackul tău!</string>
+    <string name="feedback_reply_alert_view">Vizualizează</string>
+    <string name="feedback_reply_label">Răspuns dezvoltator</string>
+    <string name="feedback_no_history">Niciun feedback trimis încă</string>
+    <string name="feedback_rate_play">Evaluează pe Google Play</string>
+    <string name="feedback_diagnostics_label">Diagnosticare (trimisă automat)</string>
+    <string name="feedback_char_count">%1$d / %2$d</string>
+    <string name="feedback_status_pending">În așteptare</string>
+    <string name="feedback_status_replied">Răspuns primit</string>
+    <string name="feedback_notif_title">Răspuns dezvoltator</string>
+    <string name="feedback_notif_body">Dezvoltatorul a răspuns la feedbackul tău. Atinge pentru a vizualiza.</string>
+    <string name="feedback_notif_channel_name">Răspunsuri dezvoltator</string>
+    <string name="feedback_notif_channel_desc">Notifică atunci când dezvoltatorul răspunde la feedbackul tău</string>
 </resources>
