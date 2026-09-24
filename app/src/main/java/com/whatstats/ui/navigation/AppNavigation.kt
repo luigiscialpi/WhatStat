@@ -33,10 +33,12 @@ import androidx.navigation.navigation
 import com.whatstats.R
 import com.whatstats.data.repository.WhatsAppRepository
 import com.whatstats.ui.MainViewModel
+import com.whatstats.ui.screen.badges.BadgesScreen
 import com.whatstats.ui.screen.calls.CallsStatsScreen
 import com.whatstats.ui.screen.chatdetail.ChatDetailScreen
 import com.whatstats.ui.screen.chatlist.ChatListScreen
 import com.whatstats.ui.screen.dashboard.DashboardScreen
+import com.whatstats.ui.screen.highlights.HighlightsScreen
 import com.whatstats.ui.screen.history.GroupHistoryScreen
 import com.whatstats.ui.screen.home.AppScaffold
 import com.whatstats.ui.screen.media.mediaStatsScreen
@@ -95,6 +97,10 @@ sealed class Screen(val route: String) {
     data object GroupHistory : Screen("group_history") {
         fun createRoute(chatId: Long) = "group_history/$chatId"
     }
+
+    data object Highlights : Screen("highlights")
+
+    data object Badges : Screen("badges")
 }
 
 object NavGraphRoute {
@@ -300,6 +306,8 @@ private fun NavGraphBuilder.rootModeGraph(
                     onNavigateToChatDetail = { chatId ->
                         navController.navigate(Screen.ChatDetail.createRoute(chatId))
                     },
+                    onNavigateToHighlights = { navController.navigate(Screen.Highlights.route) { launchSingleTop = true } },
+                    onNavigateToBadges = { navController.navigate(Screen.Badges.route) { launchSingleTop = true } },
                     onNavigateBack = {
                         scope.launch {
                             repository.resetState()
@@ -338,6 +346,7 @@ private fun NavGraphBuilder.rootModeGraph(
                 )
             }
 
+            sharedEngagementRoutes(navController)
             sharedChatDetailRoutes(navController, mainViewModel)
         }
 
@@ -432,6 +441,8 @@ private fun NavGraphBuilder.liteModeGraph(
                     onNavigateToChatDetail = { chatId ->
                         navController.navigate(Screen.ChatDetail.createRoute(chatId))
                     },
+                    onNavigateToHighlights = { navController.navigate(Screen.Highlights.route) { launchSingleTop = true } },
+                    onNavigateToBadges = { navController.navigate(Screen.Badges.route) { launchSingleTop = true } },
                     onNavigateBack = {
                         mainViewModel.setIncomingZipUri(null)
                         navController.navigate(Screen.Setup.createRoute(autoNavigate = false)) {
@@ -494,6 +505,7 @@ private fun NavGraphBuilder.liteModeGraph(
                 )
             }
 
+            sharedEngagementRoutes(navController)
             sharedChatDetailRoutes(navController, mainViewModel)
         }
 
@@ -534,6 +546,15 @@ private fun NavGraphBuilder.liteModeGraph(
 }
 
 // ── Route condivise ChatDetail (usate da entrambi i graph) ─────────────────────
+
+private fun NavGraphBuilder.sharedEngagementRoutes(navController: NavHostController) {
+    composable(Screen.Highlights.route) {
+        HighlightsScreen(onNavigateBack = { navController.popBackStack() })
+    }
+    composable(Screen.Badges.route) {
+        BadgesScreen(onNavigateBack = { navController.popBackStack() })
+    }
+}
 
 private fun NavGraphBuilder.sharedChatDetailRoutes(
     navController: NavHostController,

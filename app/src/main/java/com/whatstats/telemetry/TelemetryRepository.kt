@@ -236,6 +236,20 @@ class TelemetryRepository
             )
         }
 
+        fun trackBadgeUnlocked(
+            badgeId: String,
+            isInitial: Boolean,
+        ) {
+            logIfAllowed(
+                eventName = "badge_unlocked",
+                extra =
+                    bundleOf(
+                        "badge_id" to badgeId,
+                        "is_initial" to isInitial.toString(),
+                    ),
+            )
+        }
+
         fun setUserProperties(
             chatsCount: Int? = null,
             dbSizeMb: Double? = null,

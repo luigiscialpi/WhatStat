@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.whatstats.ads.AdsRepository
 import com.whatstats.ads.AdsUiState
+import com.whatstats.data.preferences.BadgeUnlockStore
 import com.whatstats.data.repository.AnalyticsRepository
 import com.whatstats.data.repository.WhatsAppRepository
 import com.whatstats.data.store.AppPreferencesStore
@@ -39,6 +40,7 @@ class MainViewModel
         private val telemetryRepository: TelemetryRepository,
         private val updateGate: UpdateGate,
         @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
+        private val badgeUnlockStore: BadgeUnlockStore,
     ) : ViewModel() {
         val isLiteMode: StateFlow<Boolean> = analyticsRepository.isLiteMode
         val adsUiState: StateFlow<AdsUiState> = adsRepository.uiState
@@ -248,10 +250,12 @@ class MainViewModel
                     if (clearRoot) {
                         whatsAppRepository.cleanup()
                         File(context.filesDir, "avatars").deleteRecursively()
+                        badgeUnlockStore.clear(isLiteMode = false)
                     }
                     if (clearLite) {
                         analyticsRepository.fullResetLiteMode()
                         File(context.filesDir, "lite_media").deleteRecursively()
+                        badgeUnlockStore.clear(isLiteMode = true)
                     }
                 }
                 _resetComplete.emit(Unit)

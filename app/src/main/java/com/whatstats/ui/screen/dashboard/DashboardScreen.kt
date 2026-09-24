@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Button
@@ -46,6 +48,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.whatstats.R
 import com.whatstats.data.db.model.TimeRange
 import com.whatstats.ui.MainViewModel
+import com.whatstats.ui.component.ActionCard
 import com.whatstats.ui.component.ActivityRecapCard
 import com.whatstats.ui.component.LoadingProgressSlot
 import com.whatstats.ui.component.LoadingSection
@@ -65,6 +68,8 @@ fun DashboardScreen(
     onNavigateToCalls: () -> Unit = {},
     onNavigateToMedia: () -> Unit = {},
     onNavigateToChatDetail: (Long) -> Unit = {},
+    onNavigateToHighlights: () -> Unit = {},
+    onNavigateToBadges: () -> Unit = {},
     onNavigateBack: () -> Unit,
 ) {
     val mainVm: MainViewModel = hiltViewModel()
@@ -262,6 +267,34 @@ fun DashboardScreen(
                             rewardedInsightsUnlocked = !tabsRewardGateLocked,
                             onRequestUnlockInsights = { requestTabsUnlock("dashboard_activity_tabs") },
                         )
+                    }
+
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            ActionCard(
+                                modifier = Modifier.weight(1f),
+                                title = stringResource(R.string.highlights_entry_title),
+                                subtitle = stringResource(R.string.highlights_entry_sub),
+                                icon = Icons.Outlined.AutoAwesome,
+                                onClick = {
+                                    mainVm.trackClick("dashboard", "open_highlights", "engagement_entry")
+                                    onNavigateToHighlights()
+                                },
+                            )
+                            ActionCard(
+                                modifier = Modifier.weight(1f),
+                                title = stringResource(R.string.badges_entry_title),
+                                subtitle = stringResource(R.string.badges_entry_sub),
+                                icon = Icons.Outlined.EmojiEvents,
+                                onClick = {
+                                    mainVm.trackClick("dashboard", "open_badges", "engagement_entry")
+                                    onNavigateToBadges()
+                                },
+                            )
+                        }
                     }
 
                     // ── Milestone Prediction (Root Only) ──────────────────────

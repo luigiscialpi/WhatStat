@@ -490,4 +490,45 @@
     <string name="feedback_notif_body">El desarrollador respondió a tus comentarios. Toca para ver.</string>
     <string name="feedback_notif_channel_name">Respuestas del desarrollador</string>
     <string name="feedback_notif_channel_desc">Notifica cuando el desarrollador responde a tus comentarios</string>
+
+    <string name="engagement_percent_value" translatable="false">%1$d%%</string>
+    <string name="highlights_entry_title">Momentos destacados</string>
+    <string name="highlights_entry_sub">Curiosidades sobre ti</string>
+    <string name="badges_entry_title">Insignias</string>
+    <string name="badges_entry_sub">Desbloquea logros</string>
+    <string name="highlights_title">Tus momentos destacados</string>
+    <string name="highlights_empty">Aún no hay suficientes mensajes. Vuelve después de chatear un poco más.</string>
+    <string name="highlight_messages_sent_title">Mensajes enviados</string>
+    <string name="highlight_peak_hour_title">Tu hora punta</string>
+    <string name="highlight_top_weekday_title">Tu día más activo</string>
+    <string name="highlight_night_share_title">Enviados después de medianoche</string>
+    <string name="highlight_record_streak_title">Tu racha más larga</string>
+    <string name="highlight_streak_value">%1$d días</string>
+    <string name="badges_title">Insignias</string>
+    <string name="badge_new_label">Nueva</string>
+    <string name="badge_unlocked_label">Desbloqueada</string>
+    <string name="badge_night_owl_title">Ave nocturna</string>
+    <string name="badge_night_owl_desc">Al menos el %1$d%% de tus mensajes enviados entre las 00:00 y las 04:59 (mín. %2$d mensajes)</string>
+    <string name="badge_early_bird_title">Madrugador</string>
+    <string name="badge_early_bird_desc">Al menos el %1$d%% de tus mensajes enviados entre las 05:00 y las 07:59 (mín. %2$d mensajes)</string>
+    <string name="badge_chatterbox_title">Hablador</string>
+    <string name="badge_chatterbox_desc">Envía %1$s mensajes</string>
+    <string name="badge_marathon_title">Maratonista</string>
+    <string name="badge_marathon_desc">%1$d días seguidos con al menos un mensaje (enviado o recibido)</string>
+
+    <string name="highlight_messages_sent_quip_1">Tus pulgares se merecen unas vacaciones.</string>
+    <string name="highlight_messages_sent_quip_2">Son muchos mensajes.</string>
+    <string name="highlight_messages_sent_quip_3">Guerrero del teclado confirmado.</string>
+    <string name="highlight_peak_hour_quip_1">Es cuando eres imparable.</string>
+    <string name="highlight_peak_hour_quip_2">Todo el mundo sabe cuándo encontrarte.</string>
+    <string name="highlight_peak_hour_quip_3">La hora punta de tu teléfono.</string>
+    <string name="highlight_top_weekday_quip_1">El día en que tus chats cobran vida.</string>
+    <string name="highlight_top_weekday_quip_2">Márcalo en el calendario.</string>
+    <string name="highlight_top_weekday_quip_3">Tu día más hablador.</string>
+    <string name="highlight_night_share_quip_1">Al parecer, dormir está sobrevalorado.</string>
+    <string name="highlight_night_share_quip_2">La noche es tuya.</string>
+    <string name="highlight_night_share_quip_3">¿Las mejores ideas llegan después de medianoche?</string>
+    <string name="highlight_record_streak_quip_1">Constancia, nivel experto.</string>
+    <string name="highlight_record_streak_quip_2">Ni un solo día de descanso.</string>
+    <string name="highlight_record_streak_quip_3">Tus chats nunca duermen.</string>
 </resources>

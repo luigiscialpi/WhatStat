@@ -146,6 +146,7 @@ Eventi app correnti/supportati:
 - `db_parse_duration` (durata importazione chat Lite, dimensione ZIP e presenza media)
 - `empty_state_shown` (nessun dato disponibile per chat/intervallo)
 - `media_share` (condivisione singola/multipla immagini o media)
+- `badge_unlocked` (badge sbloccato; is_initial=true se gia' raggiunto alla prima valutazione)
 
 Parametri principali consigliati:
 
@@ -158,6 +159,7 @@ Parametri principali consigliati:
 - `db_parse_duration`: duration_ms, duration_bucket, is_lite, db_size_mb, has_media
 - `empty_state_shown`: ws_screen_name, reason
 - `media_share`: media_type
+- `badge_unlocked`: badge_id, is_initial
 
 User Properties attive su GA4 / Firebase Analytics:
 
