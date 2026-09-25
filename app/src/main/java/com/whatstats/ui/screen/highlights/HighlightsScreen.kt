@@ -23,8 +23,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -207,15 +208,58 @@ private fun highlightContent(highlight: Highlight): HighlightContent =
                     stringResource(R.string.highlight_night_share_quip_3),
                 ),
             )
-        is Highlight.RecordStreak ->
+        is Highlight.PeakTimeBlock ->
             HighlightContent(
-                Icons.Outlined.LocalFireDepartment,
-                stringResource(R.string.highlight_record_streak_title),
-                stringResource(R.string.highlight_streak_value, highlight.days),
+                Icons.Outlined.Schedule,
+                stringResource(R.string.highlight_peak_time_block_title),
+                stringResource(R.string.highlight_peak_time_block_value, highlight.startHour, highlight.endHour),
                 listOf(
-                    stringResource(R.string.highlight_record_streak_quip_1),
-                    stringResource(R.string.highlight_record_streak_quip_2),
-                    stringResource(R.string.highlight_record_streak_quip_3),
+                    stringResource(R.string.highlight_peak_time_block_quip_1),
+                    stringResource(R.string.highlight_peak_time_block_quip_2),
+                    stringResource(R.string.highlight_peak_time_block_quip_3),
+                ),
+            )
+        is Highlight.IntenseDay ->
+            HighlightContent(
+                Icons.Outlined.CalendarMonth,
+                stringResource(R.string.highlight_intense_day_title),
+                stringResource(
+                    R.string.highlight_intense_day_value,
+                    stringResource(WEEKDAY_NAMES[highlight.dayOfWeek]),
+                    highlight.count,
+                ),
+                listOf(
+                    stringResource(R.string.highlight_intense_day_quip_1),
+                    stringResource(R.string.highlight_intense_day_quip_2),
+                    stringResource(R.string.highlight_intense_day_quip_3),
+                ),
+            )
+        is Highlight.WeekendShare ->
+            HighlightContent(
+                Icons.Outlined.DateRange,
+                stringResource(R.string.highlight_weekend_share_title),
+                stringResource(R.string.highlight_weekend_share_value, highlight.percent),
+                listOf(
+                    stringResource(R.string.highlight_weekend_share_quip_1),
+                    stringResource(R.string.highlight_weekend_share_quip_2),
+                    stringResource(R.string.highlight_weekend_share_quip_3),
+                ),
+            )
+        is Highlight.ActivityPeriod ->
+            HighlightContent(
+                Icons.Outlined.WbSunny,
+                stringResource(R.string.highlight_activity_period_title),
+                stringResource(
+                    R.string.highlight_activity_period_value,
+                    stringResource(
+                        if (highlight.isEvening) R.string.activity_period_evening else R.string.activity_period_day,
+                    ),
+                    highlight.percent,
+                ),
+                listOf(
+                    stringResource(R.string.highlight_activity_period_quip_1),
+                    stringResource(R.string.highlight_activity_period_quip_2),
+                    stringResource(R.string.highlight_activity_period_quip_3),
                 ),
             )
     }

@@ -10,8 +10,8 @@ class HighlightEngineTest {
     fun noDataGivesNoCards() = assertTrue(HighlightEngine.build(globalStats()).isEmpty())
 
     @Test
-    fun belowMinimumMessagesOnlyStreakCardIsBuilt() {
-        assertEquals(listOf(Highlight.RecordStreak(5)), HighlightEngine.build(globalStats(mapOf(10 to 99), longestStreak = 5)))
+    fun belowMinimumMessagesGivesNoCards() {
+        assertTrue(HighlightEngine.build(globalStats(mapOf(10 to 99), longestStreak = 5)).isEmpty())
     }
 
     @Test
@@ -39,7 +39,16 @@ class HighlightEngineTest {
     }
 
     @Test
-    fun streakOfOneDayIsHidden() {
-        assertTrue(HighlightEngine.build(globalStats(mapOf(12 to 100), longestStreak = 1)).none { it is Highlight.RecordStreak })
+    fun extraHighlightsUseMyActivity() {
+        val stats =
+            globalStats(
+                myByHour = mapOf(2 to 10, 8 to 20, 19 to 70),
+                myByWeekday = mapOf(0 to 30, 2 to 10, 4 to 20, 6 to 40),
+            )
+        val result = HighlightEngine.build(stats)
+        assertTrue(Highlight.PeakTimeBlock(18, 24) in result)
+        assertTrue(Highlight.IntenseDay(6, 40) in result)
+        assertTrue(Highlight.WeekendShare(70) in result)
+        assertTrue(Highlight.ActivityPeriod(isEvening = true, percent = 80) in result)
     }
 }

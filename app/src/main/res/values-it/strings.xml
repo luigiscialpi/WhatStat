@@ -502,8 +502,16 @@
     <string name="highlight_peak_hour_title">La tua ora di punta</string>
     <string name="highlight_top_weekday_title">Il tuo giorno più attivo</string>
     <string name="highlight_night_share_title">Inviati dopo mezzanotte</string>
-    <string name="highlight_record_streak_title">La tua serie più lunga</string>
-    <string name="highlight_streak_value">%1$d giorni</string>
+    <string name="highlight_peak_time_block_title">La tua fascia oraria preferita</string>
+    <string name="highlight_peak_time_block_value">%1$02d:00-%2$02d:00</string>
+    <string name="highlight_intense_day_title">Il tuo giorno più intenso</string>
+    <string name="highlight_intense_day_value">%1$s · %2$d messaggi</string>
+    <string name="highlight_weekend_share_title">Modalità weekend</string>
+    <string name="highlight_weekend_share_value">%1$d%%</string>
+    <string name="highlight_activity_period_title">Il tuo ritmo di messaggi</string>
+    <string name="highlight_activity_period_value">%1$s · %2$d%%</string>
+    <string name="activity_period_day">Giorno</string>
+    <string name="activity_period_evening">Sera</string>
     <string name="badges_title">Badge</string>
     <string name="badge_new_label">Nuovo</string>
     <string name="badge_unlocked_label">Sbloccato</string>
@@ -528,8 +536,17 @@
     <string name="highlight_night_share_quip_1">A quanto pare, dormire è sopravvalutato.</string>
     <string name="highlight_night_share_quip_2">La notte è tutta tua.</string>
     <string name="highlight_night_share_quip_3">Le idee migliori arrivano dopo mezzanotte?</string>
-    <string name="highlight_record_streak_quip_1">Costanza, livello esperto.</string>
-    <string name="highlight_record_streak_quip_2">Nemmeno un giorno di pausa.</string>
-    <string name="highlight_record_streak_quip_3">Le tue chat non dormono mai.</string>
+    <string name="highlight_peak_time_block_quip_1">La tua fascia d\'oro per scrivere.</string>
+    <string name="highlight_peak_time_block_quip_2">Qui dai il meglio di te.</string>
+    <string name="highlight_peak_time_block_quip_3">Il tuo telefono conosce i tuoi ritmi.</string>
+    <string name="highlight_intense_day_quip_1">Quel giorno è il tuo campo di battaglia.</string>
+    <string name="highlight_intense_day_quip_2">Il tuo giorno più intenso, numeri alla mano.</string>
+    <string name="highlight_intense_day_quip_3">Una giornata di chat davvero produttiva.</string>
+    <string name="highlight_weekend_share_quip_1">Modalità weekend attivata.</string>
+    <string name="highlight_weekend_share_quip_2">Nel weekend hai molto da dire.</string>
+    <string name="highlight_weekend_share_quip_3">Sabato e domenica sono tuoi.</string>
+    <string name="highlight_activity_period_quip_1">Persona da giorno o da notte?</string>
+    <string name="highlight_activity_period_quip_2">I tuoi messaggi hanno già risposto.</string>
+    <string name="highlight_activity_period_quip_3">Le tue ore sociali di punta.</string>
 
 </resources>

@@ -19,7 +19,19 @@ sealed interface Highlight {
         override val key = "night_share"
     }
 
-    data class RecordStreak(val days: Int) : Highlight {
-        override val key = "record_streak"
+    data class PeakTimeBlock(val startHour: Int, val endHour: Int) : Highlight {
+        override val key = "peak_time_block"
+    }
+
+    data class IntenseDay(val dayOfWeek: Int, val count: Int) : Highlight {
+        override val key = "intense_day"
+    }
+
+    data class WeekendShare(val percent: Int) : Highlight {
+        override val key = "weekend_share"
+    }
+
+    data class ActivityPeriod(val isEvening: Boolean, val percent: Int) : Highlight {
+        override val key = "activity_period"
     }
 }

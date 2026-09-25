@@ -233,9 +233,24 @@ sealed interface Highlight {
         override val key = "night_share"
     }
 
-    /** Record storico di giorni consecutivi con almeno un messaggio (GlobalStats.longestStreak). */
-    data class RecordStreak(val days: Int) : Highlight {
-        override val key = "record_streak"
+    /** Fascia oraria con piu' messaggi inviati: start inclusivo, end esclusivo. */
+    data class PeakTimeBlock(val startHour: Int, val endHour: Int) : Highlight {
+        override val key = "peak_time_block"
+    }
+
+    /** Giorno della settimana con piu' messaggi inviati, incluso il conteggio. */
+    data class IntenseDay(val dayOfWeek: Int, val count: Int) : Highlight {
+        override val key = "intense_day"
+    }
+
+    /** Percentuale intera (0..100) dei MIEI messaggi inviati sabato o domenica. */
+    data class WeekendShare(val percent: Int) : Highlight {
+        override val key = "weekend_share"
+    }
+
+    /** Periodo prevalente: giorno 06:00-17:59, sera 18:00-05:59. */
+    data class ActivityPeriod(val isEvening: Boolean, val percent: Int) : Highlight {
+        override val key = "activity_period"
     }
 }
 ```
@@ -343,13 +358,12 @@ object HighlightEngine {
     /** Sotto questa soglia di messaggi inviati le card "su di te" non hanno senso. */
     const val MIN_MY_MESSAGES = 100
 
-    /** Da 2 in su: la stringa "%1$d giorni" resta sempre al plurale. */
-    const val MIN_STREAK_DAYS = 2
-
     const val MIN_NIGHT_SHARE_PERCENT = 5
+    const val MIN_WEEKEND_SHARE_PERCENT = 20
 
     /** 00:00-04:59 locale. */
     val NIGHT_HOURS = 0..4
+    val TIME_BLOCKS = listOf(0..5, 6..11, 12..17, 18..23)
 
     fun build(stats: GlobalStats): List<Highlight> {
         val result = mutableListOf<Highlight>()
@@ -362,6 +376,13 @@ object HighlightEngine {
             val byWeekday = MyActivity.byWeekday(stats)
             if (byWeekday.sum() > 0) {
                 result += Highlight.TopWeekday(byWeekday.indices.maxBy { byWeekday[it] })
+                val intenseDay = byWeekday.indices.maxBy { byWeekday[it] }
+                result += Highlight.IntenseDay(intenseDay, byWeekday[intenseDay])
+                val weekend = byWeekday[0] + byWeekday[6]
+                val weekendPercent = (weekend.toLong() * 100 / myTotal).toInt()
+                if (weekendPercent >= MIN_WEEKEND_SHARE_PERCENT) {
+                    result += Highlight.WeekendShare(weekendPercent)
+                }
             }
             val night = NIGHT_HOURS.sumOf { byHour[it] }
             // Long per evitare overflow su archivi enormi
@@ -369,9 +390,12 @@ object HighlightEngine {
             if (nightPercent >= MIN_NIGHT_SHARE_PERCENT) {
                 result += Highlight.NightShare(nightPercent)
             }
-        }
-        if (stats.longestStreak >= MIN_STREAK_DAYS) {
-            result += Highlight.RecordStreak(stats.longestStreak)
+            val day = (6..17).sumOf { byHour[it] }
+            val evening = myTotal - day
+            val eveningPercent = (evening.toLong() * 100 / myTotal).toInt()
+            result += Highlight.ActivityPeriod(isEvening = evening > day, percent = maxOf(eveningPercent, 100 - eveningPercent))
+            val block = TIME_BLOCKS.maxBy { range -> range.sumOf { byHour[it] } }
+            result += Highlight.PeakTimeBlock(block.first, block.last + 1)
         }
         return result
     }
@@ -576,9 +600,9 @@ class HighlightEngineTest {
     }
 
     @Test
-    fun belowMinimumMessagesOnlyStreakCardIsBuilt() {
-        val stats = globalStats(myByHour = mapOf(10 to 99), longestStreak = 5)
-        assertEquals(listOf(Highlight.RecordStreak(5)), HighlightEngine.build(stats))
+    fun belowMinimumMessagesGivesNoCards() {
+        val stats = globalStats(myByHour = mapOf(10 to 99))
+        assertTrue(HighlightEngine.build(stats).isEmpty())
     }
 
     @Test
@@ -608,9 +632,17 @@ class HighlightEngineTest {
     }
 
     @Test
-    fun streakOfOneDayIsHidden() {
-        val stats = globalStats(myByHour = mapOf(12 to 100), longestStreak = 1)
-        assertTrue(HighlightEngine.build(stats).none { it is Highlight.RecordStreak })
+    fun extraHighlightsUseMyActivity() {
+        val stats =
+            globalStats(
+                myByHour = mapOf(2 to 10, 8 to 20, 19 to 70),
+                myByWeekday = mapOf(0 to 30, 2 to 10, 4 to 20, 6 to 40),
+            )
+        val result = HighlightEngine.build(stats)
+        assertTrue(Highlight.PeakTimeBlock(18, 24) in result)
+        assertTrue(Highlight.IntenseDay(6, 40) in result)
+        assertTrue(Highlight.WeekendShare(70) in result)
+        assertTrue(Highlight.ActivityPeriod(isEvening = true, percent = 80) in result)
     }
 }
 ```
@@ -731,7 +763,7 @@ class CopyVariantPickerTest {
 
     @Test
     fun variantChangesAcrossDays() {
-        val variants = (0L until 30L).map { day -> CopyVariantPicker.pick("record_streak", 20_000L + day, 3) }.toSet()
+        val variants = (0L until 30L).map { day -> CopyVariantPicker.pick("peak_time_block", 20_000L + day, 3) }.toSet()
         assertTrue(variants.size > 1)
     }
 }
@@ -896,9 +928,9 @@ Nel documento Firebase:
 - Un apostrofo dentro un valore XML si scrive `\'`. Un simbolo percento letterale in una stringa con placeholder si scrive `%%`. Nessun valore inizia con `?` o `@`.
 - Ogni `<string-array>` ha esattamente 3 `<item>` in OGNI locale, nessuna eccezione.
 - Gli argomenti di formato (`%1$d`, `%1$s`, ecc.) sono identici per la stessa chiave in tutte le locale: non aggiungerne o toglierne traducendo.
-- I 5 array si chiamano: `highlight_messages_sent_quips`, `highlight_peak_hour_quips`, `highlight_top_weekday_quips`, `highlight_night_share_quips`, `highlight_record_streak_quips`.
+- Le 8 famiglie di quip sono: messages_sent, peak_hour, top_weekday, night_share, peak_time_block, intense_day, weekend_share, activity_period.
 
-Le 23 chiavi Release A, nell'ordine in cui vanno scritte (piu' i 5 array subito dopo la 23esima):
+Le 29 chiavi Release A, nell'ordine in cui vanno scritte (piu' gli 8 gruppi di quip subito dopo la 29esima):
 
 1. `highlights_entry_title`
 2. `highlights_entry_sub`
@@ -910,21 +942,36 @@ Le 23 chiavi Release A, nell'ordine in cui vanno scritte (piu' i 5 array subito 
 8. `highlight_peak_hour_title`
 9. `highlight_top_weekday_title`
 10. `highlight_night_share_title`
-11. `highlight_record_streak_title`
-12. `highlight_streak_value`
-13. `badges_title`
-14. `badge_new_label`
-15. `badge_unlocked_label`
-16. `badge_night_owl_title`
-17. `badge_night_owl_desc`
-18. `badge_early_bird_title`
-19. `badge_early_bird_desc`
-20. `badge_chatterbox_title`
-21. `badge_chatterbox_desc`
-22. `badge_marathon_title`
-23. `badge_marathon_desc`
+11. `highlight_peak_time_block_title`
+12. `highlight_peak_time_block_value`
+13. `highlight_intense_day_title`
+14. `highlight_intense_day_value`
+15. `highlight_weekend_share_title`
+16. `highlight_weekend_share_value`
+17. `highlight_activity_period_title`
+18. `highlight_activity_period_value`
+19. `badges_title`
+20. `badge_new_label`
+21. `badge_unlocked_label`
+22. `badge_night_owl_title`
+23. `badge_night_owl_desc`
+24. `badge_early_bird_title`
+25. `badge_early_bird_desc`
+26. `badge_chatterbox_title`
+27. `badge_chatterbox_desc`
+28. `badge_marathon_title`
+29. `badge_marathon_desc`
 
-Sotto, i contenuti locale per locale. Le 5 righe "Quips" nell'ordine: messages_sent / peak_hour / top_weekday / night_share / record_streak (3 varianti separate da `|`, una per `<item>`). Le chiavi B1-B9 sono per la Release B (sezione 5), incluse qui per completezza di traduzione.
+ Sotto, i contenuti locale per locale. Le 8 righe "Quips" seguono l'ordine: messages_sent / peak_hour / top_weekday / night_share / peak_time_block / intense_day / weekend_share / activity_period. Le chiavi B1-B9 sono per la Release B (sezione 5), incluse qui per completezza di traduzione.
+
+Aggiornamento Highlights: rimuovere completamente `RecordStreak`, `record_streak`, `highlight_record_streak_title`, `highlight_streak_value` e i relativi quip. Aggiungere le quattro card nuove con questi valori semantici:
+
+- `highlight_peak_time_block_value`: fascia tra le 4 fasce locali `00:00-06:00`, `06:00-12:00`, `12:00-18:00`, `18:00-24:00`.
+- `highlight_intense_day_value`: nome giorno + conteggio messaggi inviati, ad esempio `Sabato · 240`.
+- `highlight_weekend_share_value`: percentuale dei messaggi inviati sabato o domenica.
+- `highlight_activity_period_value`: `Giorno` per 06:00-17:59 oppure `Sera` per 18:00-05:59, seguito dalla percentuale dominante.
+
+Ogni nuova card riceve 3 quip tradotti in tutte le 13 locale.
 
 #### values (EN, default)
 
@@ -938,26 +985,35 @@ Sotto, i contenuti locale per locale. Le 5 righe "Quips" nell'ordine: messages_s
 8. Your peak hour
 9. Your most active day
 10. Sent after midnight
-11. Your longest streak
-12. `%1$d days`
-13. Badges
-14. New
-15. Unlocked
-16. Night owl
-17. `At least %1$d%% of your messages sent between 00:00 and 04:59 (min. %2$d messages)`
-18. Early bird
-19. `At least %1$d%% of your messages sent between 05:00 and 07:59 (min. %2$d messages)`
-20. Chatterbox
-21. `Send %1$s messages`
-22. Marathoner
-23. `%1$d days in a row with at least one message (sent or received)`
+11. Your peak time block
+12. `%1$02d:00-%2$02d:00`
+13. Your most intense day
+14. `%1$s · %2$d messages`
+15. Weekend mode
+16. `%1$d%% of your messages sent on Saturday or Sunday`
+17. Day or evening person?
+18. `%1$s · %2$d%%`
+19. Badges
+20. New
+21. Unlocked
+22. Night owl
+23. `At least %1$d%% of your messages sent between 00:00 and 04:59 (min. %2$d messages)`
+24. Early bird
+25. `At least %1$d%% of your messages sent between 05:00 and 07:59 (min. %2$d messages)`
+26. Chatterbox
+27. `Send %1$s messages`
+28. Marathoner
+29. `%1$d days in a row with at least one message (sent or received)`
 
 Quips:
 - Your thumbs deserve a vacation. | That's a lot of typing. | Keyboard warrior confirmed.
 - That's when you're unstoppable. | Everyone knows when to find you. | Your phone's rush hour.
 - The day your chats come alive. | Mark it on the calendar. | Your chattiest day.
 - Sleep is overrated, apparently. | The night belongs to you. | Best ideas come after midnight?
-- Consistency, expert level. | Not a single day off. | Your chats never sleep.
+- Your prime texting window. | This is your golden hour block. | Your phone knows your schedule.
+- That day is your messaging arena. | Saturday has competition. | Your busiest weekday, quantified.
+- Weekend mode activated. | Your weekends are chatty. | Saturday and Sunday are yours.
+- Day person or night owl? | Your messages reveal the answer. | Your peak social hours.
 
 B keys (EN): B1 Replies to you the fastest | B2 You reply the fastest to | B3 You start the most chats with | B4 `Average reply: %1$s` | B5 `%1$d%% of conversations started by you` | B6 Icebreaker | B7 `Start at least %1$d%% of your one-to-one conversations (min. %2$d conversations)` | B8 Quick draw | B9 `At least %1$d%% of your one-to-one replies within 5 minutes (min. %2$d replies)`
 
@@ -973,8 +1029,8 @@ B keys (EN): B1 Replies to you the fastest | B2 You reply the fastest to | B3 Yo
 8. La tua ora di punta
 9. Il tuo giorno piu' attivo
 10. Inviati dopo mezzanotte
-11. La tua serie piu' lunga
-12. `%1$d giorni`
+11. La tua fascia oraria preferita
+12. `%1$02d:00-%2$02d:00`
 13. Badge
 14. Nuovo
 15. Sbloccato
@@ -1078,8 +1134,8 @@ B keys (ES): B1 Quien te responde mas rapido | B2 Respondes mas rapido a | B3 In
 8. Votre heure de pointe
 9. Votre jour le plus actif
 10. Envoyes apres minuit
-11. Votre plus longue serie
-12. `%1$d jours`
+11. Votre plage horaire préférée
+12. `%1$02d:00-%2$02d:00`
 13. Badges
 14. Nouveau
 15. Debloque
@@ -1222,7 +1278,7 @@ B keys: stessa lista semantica B1-B9.
 
 **Attenzione HI:** scrivi in devanagari reale nell'XML, non in traslitterazione latina.
 
-Contenuto da tradurre in hindi, stesso ordine e placeholder, registro formale "aap". Stessa lista semantica delle altre locale per le 23 chiavi, i 5 array di quip (3 varianti ciascuno) e le chiavi B1-B9.
+Contenuto da tradurre in hindi, stesso ordine e placeholder, registro formale "aap". Stessa lista semantica delle altre locale per le 29 chiavi, gli 8 gruppi di quip (3 varianti ciascuno) e le chiavi B1-B9.
 
 #### values-id e values-in (Anda / formale, contenuto identico in entrambi i file)
 
@@ -1353,7 +1409,7 @@ class HighlightsViewModel
 
 **HighlightsScreen - cosa fare:** `@file:Suppress("FunctionName")`, package `com.whatstats.ui.screen.highlights`.
 
-Import: `androidx.annotation.ArrayRes`; `androidx.compose.foundation.background`; da `foundation.layout`: `Arrangement`, `Box`, `Column`, `PaddingValues`, `Row`, `Spacer`, `fillMaxSize`, `fillMaxWidth`, `height`, `padding`, `size`, `statusBarsPadding`, `width`; `androidx.compose.foundation.pager.HorizontalPager`, `androidx.compose.foundation.pager.rememberPagerState`; `androidx.compose.foundation.shape.CircleShape`, `androidx.compose.foundation.shape.RoundedCornerShape`; `androidx.compose.material.icons.Icons`, `androidx.compose.material.icons.outlined.Bedtime`, `CalendarMonth`, `ChatBubbleOutline`, `LocalFireDepartment`, `Schedule`; `androidx.compose.material3.Card`, `CardDefaults`, `Icon`, `MaterialTheme`, `Text`; `androidx.compose.runtime.Composable`, `collectAsState`, `getValue`, `remember`; `androidx.compose.ui.Alignment`, `androidx.compose.ui.Modifier`, `androidx.compose.ui.draw.clip`; `androidx.compose.ui.graphics.Color`, `androidx.compose.ui.graphics.vector.ImageVector`; `androidx.compose.ui.res.stringArrayResource`, `stringResource`; `androidx.compose.ui.text.font.FontWeight`, `androidx.compose.ui.text.style.TextAlign`, `TextOverflow`; `androidx.compose.ui.unit.dp`; `androidx.hilt.navigation.compose.hiltViewModel`; `com.whatstats.R`; `com.whatstats.domain.engagement.CopyVariantPicker`; `com.whatstats.domain.model.Highlight`; `com.whatstats.ui.component.LoadingSection`, `SimpleScreenHeader`; `java.time.LocalDate`.
+Import: `androidx.annotation.ArrayRes`; `androidx.compose.foundation.background`; da `foundation.layout`: `Arrangement`, `Box`, `Column`, `PaddingValues`, `Row`, `Spacer`, `fillMaxSize`, `fillMaxWidth`, `height`, `padding`, `size`, `statusBarsPadding`, `width`; `androidx.compose.foundation.pager.HorizontalPager`, `androidx.compose.foundation.pager.rememberPagerState`; `androidx.compose.foundation.shape.CircleShape`, `androidx.compose.foundation.shape.RoundedCornerShape`; `androidx.compose.material.icons.Icons`, `androidx.compose.material.icons.outlined.Bedtime`, `CalendarMonth`, `ChatBubbleOutline`, `DateRange`, `LocalFireDepartment`, `Schedule`, `WbSunny`; `androidx.compose.material3.Card`, `CardDefaults`, `Icon`, `MaterialTheme`, `Text`; `androidx.compose.runtime.Composable`, `collectAsState`, `getValue`, `remember`; `androidx.compose.ui.Alignment`, `androidx.compose.ui.Modifier`, `androidx.compose.ui.draw.clip`; `androidx.compose.ui.graphics.Color`, `androidx.compose.ui.graphics.vector.ImageVector`; `androidx.compose.ui.res.stringArrayResource`, `stringResource`; `androidx.compose.ui.text.font.FontWeight`, `androidx.compose.ui.text.style.TextAlign`, `TextOverflow`; `androidx.compose.ui.unit.dp`; `androidx.hilt.navigation.compose.hiltViewModel`; `com.whatstats.R`; `com.whatstats.domain.engagement.CopyVariantPicker`; `com.whatstats.domain.model.Highlight`; `com.whatstats.ui.component.LoadingSection`, `SimpleScreenHeader`; `java.time.LocalDate`.
 
 ```kotlin
 private val WEEKDAY_NAMES =
@@ -1460,12 +1516,40 @@ private fun highlightContent(highlight: Highlight): HighlightContent =
                 quipsRes = R.array.highlight_night_share_quips,
             )
         }
-        is Highlight.RecordStreak -> {
+        is Highlight.PeakTimeBlock -> {
             HighlightContent(
-                icon = Icons.Outlined.LocalFireDepartment,
-                title = stringResource(R.string.highlight_record_streak_title),
-                value = stringResource(R.string.highlight_streak_value, highlight.days),
-                quipsRes = R.array.highlight_record_streak_quips,
+                icon = Icons.Outlined.Schedule,
+                title = stringResource(R.string.highlight_peak_time_block_title),
+                value = stringResource(R.string.highlight_peak_time_block_value, highlight.startHour, highlight.endHour),
+                quipsRes = R.array.highlight_peak_time_block_quips,
+            )
+        }
+        is Highlight.IntenseDay -> {
+            HighlightContent(
+                icon = Icons.Outlined.CalendarMonth,
+                title = stringResource(R.string.highlight_intense_day_title),
+                value = stringResource(R.string.highlight_intense_day_value, stringResource(WEEKDAY_NAMES[highlight.dayOfWeek]), highlight.count),
+                quipsRes = R.array.highlight_intense_day_quips,
+            )
+        }
+        is Highlight.WeekendShare -> {
+            HighlightContent(
+                icon = Icons.Outlined.DateRange,
+                title = stringResource(R.string.highlight_weekend_share_title),
+                value = stringResource(R.string.highlight_weekend_share_value, highlight.percent),
+                quipsRes = R.array.highlight_weekend_share_quips,
+            )
+        }
+        is Highlight.ActivityPeriod -> {
+            HighlightContent(
+                icon = Icons.Outlined.WbSunny,
+                title = stringResource(R.string.highlight_activity_period_title),
+                value = stringResource(
+                    R.string.highlight_activity_period_value,
+                    stringResource(if (highlight.isEvening) R.string.activity_period_evening else R.string.activity_period_day),
+                    highlight.percent,
+                ),
+                quipsRes = R.array.highlight_activity_period_quips,
             )
         }
     }

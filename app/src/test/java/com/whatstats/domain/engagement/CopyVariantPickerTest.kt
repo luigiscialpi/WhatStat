@@ -27,7 +27,7 @@ class CopyVariantPickerTest {
 
     @Test
     fun variantChangesAcrossDays() {
-        val variants = (0L until 30L).map { day -> CopyVariantPicker.pick("record_streak", 20_000L + day, 3) }.toSet()
+        val variants = (0L until 30L).map { day -> CopyVariantPicker.pick("peak_time_block", 20_000L + day, 3) }.toSet()
         assertTrue(variants.size > 1)
     }
 }
