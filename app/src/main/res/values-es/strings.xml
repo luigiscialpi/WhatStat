@@ -548,4 +548,13 @@
     <string name="highlight_activity_period_quip_1">¿Persona de día o noctámbula?</string>
     <string name="highlight_activity_period_quip_2">Tus mensajes tienen la respuesta.</string>
     <string name="highlight_activity_period_quip_3">Tus horas sociales punta.</string>
+    <string name="badge_icebreaker_title">Rompehielos</string>
+    <string name="badge_icebreaker_desc">Inicia al menos el %1$d%% de tus conversaciones individuales (mín. %2$d conversaciones)</string>
+    <string name="badge_quick_draw_title">Rayo</string>
+    <string name="badge_quick_draw_desc">Al menos el %1$d%% de tus respuestas en chats individuales en menos de 5 minutos (mín. %2$d respuestas)</string>
+    <string name="highlight_fastest_replier_title">Quién te responde más rápido</string>
+    <string name="highlight_you_reply_fastest_title">A quién respondes más rápido</string>
+    <string name="highlight_you_start_most_title">Con quién inicias más chats</string>
+    <string name="highlight_reply_average_detail">Respuesta media: %1$s</string>
+    <string name="highlight_you_start_most_detail">Inicias tú el %1$d%% de las conversaciones</string>
 </resources>

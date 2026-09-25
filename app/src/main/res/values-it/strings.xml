@@ -548,5 +548,14 @@
     <string name="highlight_activity_period_quip_1">Persona da giorno o da notte?</string>
     <string name="highlight_activity_period_quip_2">I tuoi messaggi hanno già risposto.</string>
     <string name="highlight_activity_period_quip_3">Le tue ore sociali di punta.</string>
+    <string name="badge_icebreaker_title">Rompighiaccio</string>
+    <string name="badge_icebreaker_desc">Inizia almeno il %1$d%% delle conversazioni 1-a-1 (min. %2$d conversazioni)</string>
+    <string name="badge_quick_draw_title">Fulmine</string>
+    <string name="badge_quick_draw_desc">Almeno il %1$d%% delle tue risposte nelle chat 1-a-1 entro 5 minuti (min. %2$d risposte)</string>
+    <string name="highlight_fastest_replier_title">Chi ti risponde più in fretta</string>
+    <string name="highlight_you_reply_fastest_title">A chi rispondi più in fretta</string>
+    <string name="highlight_you_start_most_title">Con chi inizi più chat</string>
+    <string name="highlight_reply_average_detail">Risposta media: %1$s</string>
+    <string name="highlight_you_start_most_detail">Il %1$d%% delle conversazioni le inizi tu</string>
 
 </resources>

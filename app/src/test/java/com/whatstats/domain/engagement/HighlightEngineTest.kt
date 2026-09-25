@@ -1,6 +1,7 @@
 package com.whatstats.domain.engagement
 
 import com.whatstats.domain.model.Highlight
+import com.whatstats.domain.model.NamedReplyStats
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -50,5 +51,25 @@ class HighlightEngineTest {
         assertTrue(Highlight.IntenseDay(6, 40) in result)
         assertTrue(Highlight.WeekendShare(70) in result)
         assertTrue(Highlight.ActivityPeriod(isEvening = true, percent = 80) in result)
+    }
+
+    @Test
+    fun personCardsRespectThresholdsAndMode() {
+        val anna = NamedReplyStats("Anna", replyStats(chatId = 1, theirReplyCount = 20, theirReplySumMs = 20 * 60_000L))
+        val bruno = NamedReplyStats("Bruno", replyStats(chatId = 2, theirReplyCount = 19, theirReplySumMs = 19 * 1_000L))
+        val result = HighlightEngine.buildPersonHighlights(listOf(anna, bruno), includeReplyTimes = true)
+        assertEquals(listOf(Highlight.FastestReplier("Anna", 60_000L)), result)
+        assertTrue(HighlightEngine.buildPersonHighlights(listOf(anna, bruno), includeReplyTimes = false).isEmpty())
+    }
+
+    @Test
+    fun youStartMostNeedsHalfOfConversations() {
+        val carla = NamedReplyStats("Carla", replyStats(chatId = 1, iStarted = 10, theyStarted = 10))
+        assertEquals(
+            listOf(Highlight.YouStartMost("Carla", 50)),
+            HighlightEngine.buildPersonHighlights(listOf(carla), includeReplyTimes = false),
+        )
+        val dario = NamedReplyStats("Dario", replyStats(chatId = 2, iStarted = 9, theyStarted = 11))
+        assertTrue(HighlightEngine.buildPersonHighlights(listOf(dario), includeReplyTimes = false).isEmpty())
     }
 }

@@ -544,4 +544,13 @@
     <string name="highlight_activity_period_quip_1">दिन के व्यक्ति या रात के?</string>
     <string name="highlight_activity_period_quip_2">आपके संदेश इसका जवाब देते हैं।</string>
     <string name="highlight_activity_period_quip_3">आपके सामाजिक चरम घंटे।</string>
+    <string name="badge_icebreaker_title">आइसब्रेकर</string>
+    <string name="badge_icebreaker_desc">अपनी आमने-सामने की कम से कम %1$d%% बातचीत शुरू करें (कम से कम %2$d बातचीत)</string>
+    <string name="badge_quick_draw_title">फुर्तीला</string>
+    <string name="badge_quick_draw_desc">5 मिनट के भीतर आपकी आमने-सामने की कम से कम %1$d%% प्रतिक्रियाएँ (कम से कम %2$d प्रतिक्रियाएँ)</string>
+    <string name="highlight_fastest_replier_title">आपको सबसे तेज़ जवाब देता है</string>
+    <string name="highlight_you_reply_fastest_title">आप सबसे तेज़ जवाब देते हैं</string>
+    <string name="highlight_you_start_most_title">आप सबसे ज़्यादा चैट इनके साथ शुरू करते हैं</string>
+    <string name="highlight_reply_average_detail">औसत जवाब: %1$s</string>
+    <string name="highlight_you_start_most_detail">%1$d%% बातचीत आपने शुरू की</string>
 </resources>

@@ -546,4 +546,13 @@
     <string name="highlight_activity_period_quip_1">Күндізгі адамсыз ба, түнгі ме?</string>
     <string name="highlight_activity_period_quip_2">Хабарламаларыңыз жауабын көрсетеді.</string>
     <string name="highlight_activity_period_quip_3">Сіздің әлеуметтік белсенді сағаттарыңыз.</string>
+    <string name="badge_icebreaker_title">Мұзжарғыш</string>
+    <string name="badge_icebreaker_desc">Жеке чаттарыңыздың кемінде %1$d%%-ын бастаңыз (кемінде %2$d чат)</string>
+    <string name="badge_quick_draw_title">Найзағай</string>
+    <string name="badge_quick_draw_desc">Жеке чаттардағы жауаптарыңыздың кемінде %1$d%%-ы 5 минут ішінде (кемінде %2$d жауап)</string>
+    <string name="highlight_fastest_replier_title">Сізге ең жылдам жауап береді</string>
+    <string name="highlight_you_reply_fastest_title">Сіз ең жылдам жауап беретін адам</string>
+    <string name="highlight_you_start_most_title">Ең көп чатты осы адаммен бастайсыз</string>
+    <string name="highlight_reply_average_detail">Орташа жауап: %1$s</string>
+    <string name="highlight_you_start_most_detail">Әңгімелердің %1$d%%-ын сіз бастадыңыз</string>
 </resources>

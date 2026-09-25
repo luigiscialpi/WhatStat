@@ -3,6 +3,7 @@ package com.whatstats.domain.model
 enum class BadgeId(
     val key: String,
     val target: Int,
+    val rootOnly: Boolean = false,
 ) {
     NIGHT_OWL("night_owl", 10),
     EARLY_BIRD("early_bird", 10),
@@ -13,6 +14,8 @@ enum class BadgeId(
     MARATHON_30("marathon_30", 30),
     MARATHON_100("marathon_100", 100),
     MARATHON_365("marathon_365", 365),
+    ICEBREAKER("icebreaker", 70),
+    QUICK_DRAW("quick_draw", 50, rootOnly = true),
 }
 
 data class BadgeProgress(

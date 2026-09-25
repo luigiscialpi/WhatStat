@@ -546,4 +546,13 @@
     <string name="highlight_activity_period_quip_1">Tipe siang atau burung hantu malam?</string>
     <string name="highlight_activity_period_quip_2">Pesan Anda memberi jawabannya.</string>
     <string name="highlight_activity_period_quip_3">Jam sosial puncak Anda.</string>
+    <string name="badge_icebreaker_title">Pemecah kebekuan</string>
+    <string name="badge_icebreaker_desc">Mulai setidaknya %1$d%% percakapan pribadi (min. %2$d percakapan)</string>
+    <string name="badge_quick_draw_title">Kilat</string>
+    <string name="badge_quick_draw_desc">Setidaknya %1$d%% balasan Anda di chat pribadi dalam 5 menit (min. %2$d balasan)</string>
+    <string name="highlight_fastest_replier_title">Paling cepat membalas Anda</string>
+    <string name="highlight_you_reply_fastest_title">Anda paling cepat membalas</string>
+    <string name="highlight_you_start_most_title">Anda paling sering memulai obrolan dengan</string>
+    <string name="highlight_reply_average_detail">Rata-rata balasan: %1$s</string>
+    <string name="highlight_you_start_most_detail">Anda memulai %1$d%% percakapan</string>
 </resources>

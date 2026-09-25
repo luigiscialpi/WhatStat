@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.whatstats.data.db.model.TimeRange
 import com.whatstats.data.preferences.BadgeUnlockStore
 import com.whatstats.data.repository.AnalyticsRepository
+import com.whatstats.data.repository.EngagementRepository
 import com.whatstats.domain.engagement.BadgeEngine
 import com.whatstats.domain.model.BadgeProgress
 import com.whatstats.telemetry.TelemetryRepository
@@ -20,6 +21,7 @@ class BadgesViewModel
     @Inject
     constructor(
         private val analyticsRepository: AnalyticsRepository,
+        private val engagementRepository: EngagementRepository,
         private val badgeUnlockStore: BadgeUnlockStore,
         private val telemetryRepository: TelemetryRepository,
     ) : ViewModel() {
@@ -41,7 +43,19 @@ class BadgesViewModel
                         val isLite = analyticsRepository.isLiteMode.value
                         val stats = analyticsRepository.getQuickGlobalStats(timeRange = TimeRange.ALL_TIME)
                         val stored = badgeUnlockStore.read(isLiteMode = isLite)
-                        val badges = BadgeEngine.evaluate(stats, stored.unlockedIds)
+                        val oneToOne =
+                            try {
+                                engagementRepository.getOneToOneReplyStats().map { it.stats }
+                            } catch (e: Exception) {
+                                emptyList()
+                            }
+                        val badges =
+                            BadgeEngine.evaluate(
+                                stats = stats,
+                                oneToOne = oneToOne,
+                                isLiteMode = isLite,
+                                alreadyUnlocked = stored.unlockedIds,
+                            )
                         val unlockedNow = badges.filter { it.unlocked }.map { it.id.key }.toSet()
                         val newlyUnlocked = unlockedNow - stored.unlockedIds
                         if (newlyUnlocked.isNotEmpty() || !stored.initialized) {

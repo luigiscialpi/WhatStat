@@ -21,6 +21,7 @@ import com.whatstats.data.db.model.SenderStat
 import com.whatstats.data.db.model.StickerStat
 import com.whatstats.data.db.model.WordFrequency
 import com.whatstats.data.db.model.YearTrendCount
+import com.whatstats.domain.model.ChatReplyStats
 import com.whatstats.domain.model.ChatStats
 import com.whatstats.domain.model.GlobalStats
 import com.whatstats.domain.model.SlowChatStats
@@ -560,6 +561,7 @@ class CacheManager
             // v3: bump per rigenerare la cache con pool da 50 words/emoji
             private val KEY_GLOBAL_SLOW = stringPreferencesKey("global_slow_v4")
             private val KEY_CHAT_LIST = stringPreferencesKey("chat_list_v1")
+            private val KEY_REPLY_STATS = stringPreferencesKey("reply_stats_v1")
 
             /**
              * Soglia minima di variazione (in byte) della dimensione del DB live
@@ -857,6 +859,21 @@ class CacheManager
                 }
             val json = cacheJson.encodeToString(CachedChatList(cached))
             dataStore.edit { prefs -> prefs[KEY_CHAT_LIST] = json }
+        }
+
+        suspend fun getReplyStats(): List<ChatReplyStats>? {
+            val json = dataStore.data.first()[KEY_REPLY_STATS] ?: return null
+            return try {
+                cacheJson.decodeFromString(json)
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        suspend fun saveReplyStats(stats: List<ChatReplyStats>) {
+            dataStore.edit { prefs ->
+                prefs[KEY_REPLY_STATS] = cacheJson.encodeToString(stats)
+            }
         }
 
         @Volatile var globalWordIndex: WordFrequencyIndexData? = null

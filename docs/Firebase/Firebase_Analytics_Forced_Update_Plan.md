@@ -147,6 +147,7 @@ Eventi app correnti/supportati:
 - `empty_state_shown` (nessun dato disponibile per chat/intervallo)
 - `media_share` (condivisione singola/multipla immagini o media)
 - `badge_unlocked` (badge sbloccato; is_initial=true se gia' raggiunto alla prima valutazione)
+- `highlight_shared` (card highlight condivisa come immagine)
 
 Parametri principali consigliati:
 
@@ -160,6 +161,7 @@ Parametri principali consigliati:
 - `empty_state_shown`: ws_screen_name, reason
 - `media_share`: media_type
 - `badge_unlocked`: badge_id, is_initial
+- `highlight_shared`: card_id
 
 User Properties attive su GA4 / Firebase Analytics:
 

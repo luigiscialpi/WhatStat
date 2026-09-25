@@ -125,6 +125,7 @@ import com.whatstats.ui.component.TimeRangeFilterRow
 import com.whatstats.ui.component.ZoomableImageGallery
 import com.whatstats.ui.component.ads.BottomBannerAd
 import com.whatstats.ui.component.ads.NativeAdCard
+import com.whatstats.ui.component.formatReplyDuration
 import com.whatstats.ui.component.rememberShimmerBrush
 import com.whatstats.ui.theme.getSenderColor
 import com.whatstats.ui.theme.senderColorOverrideKey
@@ -135,7 +136,6 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -596,7 +596,7 @@ fun ChatDetailScreen(
                                 StatCard(
                                     modifier = Modifier.weight(1f),
                                     label = stringResource(R.string.avg_response_time),
-                                    value = formatDuration(s.averageResponseTimeMs),
+                                    value = formatReplyDuration(s.averageResponseTimeMs),
                                     icon = Icons.Outlined.AccessTime,
                                     isSmallText = true,
                                 )
@@ -1209,18 +1209,6 @@ fun ChatDetailScreen(
             )
         }
     } // end Box
-}
-
-@Composable
-private fun formatDuration(ms: Long): String {
-    if (ms <= 0) return "—"
-    val hours = TimeUnit.MILLISECONDS.toHours(ms)
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(ms) % 60
-    return when {
-        hours > 0 -> "${hours}${stringResource(R.string.unit_hours)} ${minutes}${stringResource(R.string.unit_minutes)}"
-        minutes > 0 -> "$minutes ${stringResource(R.string.unit_min_full)}"
-        else -> stringResource(R.string.less_than_one_min)
-    }
 }
 
 // ── Pie Chart messaggi per mittente ──────────────────────────────────────────

@@ -2,6 +2,7 @@
 
 package com.whatstats.ui.screen.badges
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -54,7 +56,9 @@ fun BadgesScreen(
     viewModel: BadgesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
-    Column(Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier.fillMaxSize().statusBarsPadding().background(MaterialTheme.colorScheme.background),
+    ) {
         SimpleScreenHeader(title = stringResource(R.string.badges_title), onBack = onNavigateBack)
         when (val current = state) {
             BadgesViewModel.UiState.Loading -> LoadingSection()
@@ -160,6 +164,18 @@ private fun badgeText(id: BadgeId): BadgeText =
                 Icons.Outlined.LocalFireDepartment,
                 stringResource(R.string.badge_marathon_title),
                 stringResource(R.string.badge_marathon_desc, id.target),
+            )
+        BadgeId.ICEBREAKER ->
+            BadgeText(
+                Icons.Outlined.Forum,
+                stringResource(R.string.badge_icebreaker_title),
+                stringResource(R.string.badge_icebreaker_desc, id.target, BadgeEngine.MIN_CONVERSATIONS_FOR_ICEBREAKER),
+            )
+        BadgeId.QUICK_DRAW ->
+            BadgeText(
+                Icons.Outlined.Forum,
+                stringResource(R.string.badge_quick_draw_title),
+                stringResource(R.string.badge_quick_draw_desc, id.target, BadgeEngine.MIN_REPLIES_FOR_QUICK_DRAW),
             )
     }
 

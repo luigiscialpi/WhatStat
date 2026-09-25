@@ -546,4 +546,13 @@
     <string name="highlight_activity_period_quip_1">Вы дневной человек или сова?</string>
     <string name="highlight_activity_period_quip_2">Ваши сообщения знают ответ.</string>
     <string name="highlight_activity_period_quip_3">Ваши часы социальной активности.</string>
+    <string name="badge_icebreaker_title">Ледокол</string>
+    <string name="badge_icebreaker_desc">Начните не менее %1$d%% личных разговоров (минимум %2$d разговоров)</string>
+    <string name="badge_quick_draw_title">Молниеносный ответ</string>
+    <string name="badge_quick_draw_desc">Не менее %1$d%% ваших ответов в личных чатах за 5 минут (минимум %2$d ответов)</string>
+    <string name="highlight_fastest_replier_title">Быстрее всех отвечает вам</string>
+    <string name="highlight_you_reply_fastest_title">Кому вы отвечаете быстрее всего</string>
+    <string name="highlight_you_start_most_title">С кем вы чаще всего начинаете чат</string>
+    <string name="highlight_reply_average_detail">Средний ответ: %1$s</string>
+    <string name="highlight_you_start_most_detail">Вы начинаете %1$d%% разговоров</string>
 </resources>

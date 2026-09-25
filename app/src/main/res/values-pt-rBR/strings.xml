@@ -544,4 +544,13 @@
     <string name="highlight_activity_period_quip_1">Você é do dia ou da noite?</string>
     <string name="highlight_activity_period_quip_2">Suas mensagens sabem a resposta.</string>
     <string name="highlight_activity_period_quip_3">Seus horários sociais de pico.</string>
+    <string name="badge_icebreaker_title">Quebra-gelo</string>
+    <string name="badge_icebreaker_desc">Inicie pelo menos %1$d%% das suas conversas individuais (mín. %2$d conversas)</string>
+    <string name="badge_quick_draw_title">Relâmpago</string>
+    <string name="badge_quick_draw_desc">Pelo menos %1$d%% das suas respostas em conversas individuais em até 5 minutos (mín. %2$d respostas)</string>
+    <string name="highlight_fastest_replier_title">Quem responde mais rápido a você</string>
+    <string name="highlight_you_reply_fastest_title">Para quem você responde mais rápido</string>
+    <string name="highlight_you_start_most_title">Com quem você inicia mais conversas</string>
+    <string name="highlight_reply_average_detail">Resposta média: %1$s</string>
+    <string name="highlight_you_start_most_detail">Você inicia %1$d%% das conversas</string>
 </resources>

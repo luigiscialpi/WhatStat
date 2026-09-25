@@ -250,6 +250,13 @@ class TelemetryRepository
             )
         }
 
+        fun trackHighlightShared(cardId: String) {
+            logIfAllowed(
+                eventName = "highlight_shared",
+                extra = bundleOf("card_id" to cardId),
+            )
+        }
+
         fun setUserProperties(
             chatsCount: Int? = null,
             dbSizeMb: Double? = null,

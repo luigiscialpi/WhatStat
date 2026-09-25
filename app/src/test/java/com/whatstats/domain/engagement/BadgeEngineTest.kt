@@ -11,8 +11,16 @@ import org.junit.Test
 class BadgeEngineTest {
     private fun evaluate(
         stats: GlobalStats,
+        oneToOne: List<com.whatstats.domain.model.ChatReplyStats> = emptyList(),
+        isLiteMode: Boolean = false,
         alreadyUnlocked: Set<String> = emptySet(),
-    ): Map<BadgeId, BadgeProgress> = BadgeEngine.evaluate(stats, alreadyUnlocked).associateBy { it.id }
+    ): Map<BadgeId, BadgeProgress> =
+        BadgeEngine.evaluate(
+            stats = stats,
+            oneToOne = oneToOne,
+            isLiteMode = isLiteMode,
+            alreadyUnlocked = alreadyUnlocked,
+        ).associateBy { it.id }
 
     @Test
     fun returnsEveryBadgeInCatalogOrder() {
@@ -62,5 +70,31 @@ class BadgeEngineTest {
         val badge = evaluate(globalStats(), alreadyUnlocked = setOf(BadgeId.MARATHON_365.key)).getValue(BadgeId.MARATHON_365)
         assertTrue(badge.unlocked)
         assertEquals(1f, badge.progress, 0f)
+    }
+
+    @Test
+    fun rootOnlyBadgesAreHiddenInLite() {
+        assertTrue(BadgeId.QUICK_DRAW in evaluate(globalStats(), isLiteMode = false).keys)
+        assertFalse(BadgeId.QUICK_DRAW in evaluate(globalStats(), isLiteMode = true).keys)
+    }
+
+    @Test
+    fun icebreakerUsesOneToOneTotals() {
+        val oneToOne =
+            listOf(
+                replyStats(chatId = 1, iStarted = 10, theyStarted = 5),
+                replyStats(chatId = 2, iStarted = 4, theyStarted = 1),
+            )
+        assertTrue(evaluate(globalStats(), oneToOne = oneToOne).getValue(BadgeId.ICEBREAKER).unlocked)
+        val locked = listOf(replyStats(chatId = 1, iStarted = 19, theyStarted = 0))
+        assertFalse(evaluate(globalStats(), oneToOne = locked).getValue(BadgeId.ICEBREAKER).unlocked)
+    }
+
+    @Test
+    fun quickDrawNeedsHalfRepliesUnderFiveMinutes() {
+        val unlocked = listOf(replyStats(chatId = 1, myReplyCount = 50, myFastReplyCount = 25))
+        assertTrue(evaluate(globalStats(), oneToOne = unlocked).getValue(BadgeId.QUICK_DRAW).unlocked)
+        val locked = listOf(replyStats(chatId = 1, myReplyCount = 50, myFastReplyCount = 24))
+        assertFalse(evaluate(globalStats(), oneToOne = locked).getValue(BadgeId.QUICK_DRAW).unlocked)
     }
 }

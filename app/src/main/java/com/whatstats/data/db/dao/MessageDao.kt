@@ -2967,6 +2967,27 @@ class MessageDao
             }
         }
 
+        /**
+         * Scorre tutti i messaggi utili ordinati per chat e tempo.
+         * Niente window function: Android 8-10 potrebbe non supportarle.
+         * Chiamare solo da Dispatchers.IO.
+         */
+        fun forEachReplyStatsRow(onRow: (chatId: Long, fromMe: Boolean, timestamp: Long) -> Unit) {
+            val query =
+                """
+                SELECT chat_row_id, from_me, timestamp
+                FROM message
+                WHERE message_type NOT IN (7, 15, 90)
+                  AND timestamp > 0
+                ORDER BY chat_row_id, timestamp, _id
+                """.trimIndent()
+            database.getMsgDb().rawQuery(query, null).use { cursor ->
+                while (cursor.moveToNext()) {
+                    onRow(cursor.getLong(0), cursor.getInt(1) == 1, cursor.getLong(2))
+                }
+            }
+        }
+
         private fun hasColumn(
             tableName: String,
             columnName: String,

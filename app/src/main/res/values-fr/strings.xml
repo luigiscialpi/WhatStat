@@ -545,4 +545,13 @@
     <string name="highlight_activity_period_quip_1">Plutôt jour ou oiseau de nuit ?</string>
     <string name="highlight_activity_period_quip_2">Vos messages ont la réponse.</string>
     <string name="highlight_activity_period_quip_3">Vos heures sociales de pointe.</string>
+    <string name="badge_icebreaker_title">Brise-glace</string>
+    <string name="badge_icebreaker_desc">Lancez au moins %1$d%% de vos conversations individuelles (min. %2$d conversations)</string>
+    <string name="badge_quick_draw_title">Éclair</string>
+    <string name="badge_quick_draw_desc">Au moins %1$d%% de vos réponses en discussion individuelle en moins de 5 minutes (min. %2$d réponses)</string>
+    <string name="highlight_fastest_replier_title">Vous répond le plus vite</string>
+    <string name="highlight_you_reply_fastest_title">À qui vous répondez le plus vite</string>
+    <string name="highlight_you_start_most_title">Avec qui vous lancez le plus de discussions</string>
+    <string name="highlight_reply_average_detail">Réponse moyenne : %1$s</string>
+    <string name="highlight_you_start_most_detail">Vous lancez %1$d%% des conversations</string>
 </resources>

@@ -521,6 +521,15 @@
     <string name="badge_chatterbox_desc">Send %1$s messages</string>
     <string name="badge_marathon_title">Marathoner</string>
     <string name="badge_marathon_desc">%1$d days in a row with at least one message (sent or received)</string>
+    <string name="badge_icebreaker_title">Icebreaker</string>
+    <string name="badge_icebreaker_desc">Start at least %1$d%% of your one-to-one conversations (min. %2$d conversations)</string>
+    <string name="badge_quick_draw_title">Quick draw</string>
+    <string name="badge_quick_draw_desc">At least %1$d%% of your one-to-one replies within 5 minutes (min. %2$d replies)</string>
+    <string name="highlight_fastest_replier_title">Replies to you the fastest</string>
+    <string name="highlight_you_reply_fastest_title">You reply the fastest to</string>
+    <string name="highlight_you_start_most_title">You start the most chats with</string>
+    <string name="highlight_reply_average_detail">Average reply: %1$s</string>
+    <string name="highlight_you_start_most_detail">%1$d%% of conversations started by you</string>
 
     <string name="highlight_messages_sent_quip_1">Your thumbs deserve a vacation.</string>
     <string name="highlight_messages_sent_quip_2">That\'s a lot of typing.</string>

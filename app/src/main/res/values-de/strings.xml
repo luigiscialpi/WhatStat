@@ -546,4 +546,13 @@
     <string name="highlight_activity_period_quip_1">Tag- oder Nachtmensch?</string>
     <string name="highlight_activity_period_quip_2">Deine Nachrichten kennen die Antwort.</string>
     <string name="highlight_activity_period_quip_3">Deine sozialen Spitzenzeiten.</string>
+    <string name="badge_icebreaker_title">Eisbrecher</string>
+    <string name="badge_icebreaker_desc">Beginne mindestens %1$d%% deiner Einzelunterhaltungen (mind. %2$d Unterhaltungen)</string>
+    <string name="badge_quick_draw_title">Blitzschnell</string>
+    <string name="badge_quick_draw_desc">Mindestens %1$d%% deiner Antworten in Einzelchats innerhalb von 5 Minuten (mind. %2$d Antworten)</string>
+    <string name="highlight_fastest_replier_title">Antwortet dir am schnellsten</string>
+    <string name="highlight_you_reply_fastest_title">Denen antwortest du am schnellsten</string>
+    <string name="highlight_you_start_most_title">Mit diesen Personen beginnst du die meisten Chats</string>
+    <string name="highlight_reply_average_detail">Durchschnittliche Antwort: %1$s</string>
+    <string name="highlight_you_start_most_detail">%1$d%% der Unterhaltungen beginnst du</string>
 </resources>

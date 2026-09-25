@@ -546,4 +546,13 @@
     <string name="highlight_activity_period_quip_1">Ești o persoană de zi sau de noapte?</string>
     <string name="highlight_activity_period_quip_2">Mesajele tale au răspunsul.</string>
     <string name="highlight_activity_period_quip_3">Orele tale sociale de vârf.</string>
+    <string name="badge_icebreaker_title">Spărgătorul de gheață</string>
+    <string name="badge_icebreaker_desc">Începe cel puțin %1$d%% dintre conversațiile individuale (min. %2$d conversații)</string>
+    <string name="badge_quick_draw_title">Fulger</string>
+    <string name="badge_quick_draw_desc">Cel puțin %1$d%% dintre răspunsurile tale în chat-uri individuale în maximum 5 minute (min. %2$d răspunsuri)</string>
+    <string name="highlight_fastest_replier_title">Îți răspunde cel mai repede</string>
+    <string name="highlight_you_reply_fastest_title">Cui îi răspunzi cel mai repede</string>
+    <string name="highlight_you_start_most_title">Cu cine începi cele mai multe conversații</string>
+    <string name="highlight_reply_average_detail">Răspuns mediu: %1$s</string>
+    <string name="highlight_you_start_most_detail">Începi tu %1$d%% dintre conversații</string>
 </resources>
