@@ -53,7 +53,7 @@ class EngagementRepository
                 getReplyStats().mapNotNull { stats ->
                     val chat = chatsById[stats.chatId] ?: return@mapNotNull null
                     val name = names[chat.jid] ?: chat.displayName
-                    NamedReplyStats(name = name, stats = stats)
+                    NamedReplyStats(name = name, stats = stats, totalMessages = chat.totalMessages)
                 }
             }
 

@@ -55,11 +55,59 @@ class HighlightEngineTest {
 
     @Test
     fun personCardsRespectThresholdsAndMode() {
-        val anna = NamedReplyStats("Anna", replyStats(chatId = 1, theirReplyCount = 20, theirReplySumMs = 20 * 60_000L))
-        val bruno = NamedReplyStats("Bruno", replyStats(chatId = 2, theirReplyCount = 19, theirReplySumMs = 19 * 1_000L))
+        val anna =
+            NamedReplyStats(
+                "Anna",
+                replyStats(chatId = 1, theirReplyCount = 20, theirReplySumMs = 20 * 60_000L),
+                totalMessages = 200,
+            )
+        val bruno =
+            NamedReplyStats(
+                "Bruno",
+                replyStats(chatId = 2, theirReplyCount = 19, theirReplySumMs = 19 * 1_000L),
+                totalMessages = 200,
+            )
         val result = HighlightEngine.buildPersonHighlights(listOf(anna, bruno), includeReplyTimes = true)
         assertEquals(listOf(Highlight.FastestReplier("Anna", 60_000L)), result)
         assertTrue(HighlightEngine.buildPersonHighlights(listOf(anna, bruno), includeReplyTimes = false).isEmpty())
+    }
+
+    @Test
+    fun replySpeedHighlightsIgnoreChatsWithLessThan200Messages() {
+        val lowMsgChat =
+            NamedReplyStats(
+                name = "LowMsg",
+                stats =
+                    replyStats(
+                        chatId = 1,
+                        theirReplyCount = 25,
+                        theirReplySumMs = 25 * 1_000L,
+                        myReplyCount = 25,
+                        myReplySumMs = 25 * 1_000L,
+                    ),
+                totalMessages = 199,
+            )
+        val normalChat =
+            NamedReplyStats(
+                name = "Normal",
+                stats =
+                    replyStats(
+                        chatId = 2,
+                        theirReplyCount = 20,
+                        theirReplySumMs = 20 * 60_000L,
+                        myReplyCount = 20,
+                        myReplySumMs = 20 * 60_000L,
+                    ),
+                totalMessages = 200,
+            )
+        val result = HighlightEngine.buildPersonHighlights(listOf(lowMsgChat, normalChat), includeReplyTimes = true)
+        assertEquals(
+            listOf(
+                Highlight.FastestReplier("Normal", 60_000L),
+                Highlight.YouReplyFastest("Normal", 60_000L),
+            ),
+            result,
+        )
     }
 
     @Test
@@ -69,7 +117,7 @@ class HighlightEngineTest {
             listOf(Highlight.YouStartMost("Carla", 50)),
             HighlightEngine.buildPersonHighlights(listOf(carla), includeReplyTimes = false),
         )
-        val dario = NamedReplyStats("Dario", replyStats(chatId = 2, iStarted = 9, theyStarted = 11))
-        assertTrue(HighlightEngine.buildPersonHighlights(listOf(dario), includeReplyTimes = false).isEmpty())
+        val luigi = NamedReplyStats("Luigi", replyStats(chatId = 2, iStarted = 9, theyStarted = 11))
+        assertTrue(HighlightEngine.buildPersonHighlights(listOf(luigi), includeReplyTimes = false).isEmpty())
     }
 }

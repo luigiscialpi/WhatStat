@@ -8,6 +8,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+.kilo/
 
 # App build output
 /app/build

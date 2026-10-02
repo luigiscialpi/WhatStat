@@ -10,6 +10,7 @@ object HighlightEngine {
     const val MIN_WEEKEND_SHARE_PERCENT = 20
     const val MIN_PERSON_SAMPLES = 20
     const val MIN_START_SHARE_PERCENT = 50
+    const val MIN_REPLY_CHAT_MESSAGES = 200
     val NIGHT_HOURS = 0..4
     val TIME_BLOCKS = listOf(0..5, 6..11, 12..17, 18..23)
 
@@ -58,7 +59,7 @@ object HighlightEngine {
         val orderedChats = chats.sortedBy { it.name }
         if (includeReplyTimes) {
             orderedChats
-                .filter { it.stats.theirReplyCount >= MIN_PERSON_SAMPLES }
+                .filter { it.totalMessages >= MIN_REPLY_CHAT_MESSAGES && it.stats.theirReplyCount >= MIN_PERSON_SAMPLES }
                 .minByOrNull { it.stats.theirReplySumMs / it.stats.theirReplyCount }
                 ?.let {
                     result +=
@@ -68,7 +69,7 @@ object HighlightEngine {
                         )
                 }
             orderedChats
-                .filter { it.stats.myReplyCount >= MIN_PERSON_SAMPLES }
+                .filter { it.totalMessages >= MIN_REPLY_CHAT_MESSAGES && it.stats.myReplyCount >= MIN_PERSON_SAMPLES }
                 .minByOrNull { it.stats.myReplySumMs / it.stats.myReplyCount }
                 ?.let {
                     result +=

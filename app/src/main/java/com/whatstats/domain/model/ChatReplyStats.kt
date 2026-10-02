@@ -17,4 +17,5 @@ data class ChatReplyStats(
 data class NamedReplyStats(
     val name: String,
     val stats: ChatReplyStats,
+    val totalMessages: Int = 0,
 )
