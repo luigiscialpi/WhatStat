@@ -29,6 +29,7 @@
 21. [Telemetria Firebase, Remote Config e Forced Update](#21-telemetria-firebase-remote-config-e-forced-update)
 22. [In-App Review](#22-in-app-review)
 23. [Sistema di Feedback In-App](#23-sistema-di-feedback-in-app)
+24. [Highlights e Badges — Storie e Trofei](#24-highlights-e-badges--storie-e-trofei)
 
 ---
 
@@ -204,8 +205,12 @@ Le chiavi di cache disponibili:
 | `global_slow_v4` | Slow stats (top parole, emoji, sticker) |
 | `chat_quick_{id}` | Stats rapide per singola chat |
 | `chat_slow_{id}` | Stats lente per singola chat |
+| `chat_list_v1` | Lista chat per il ranking (`List<ChatListItem>`) |
+| `reply_stats_v1` | Statistiche aggregate di risposta per chat (`List<ChatReplyStats>`) |
 
 **DataStore colori mittente** — Le personalizzazioni di colore per i mittenti sono persistite in un DataStore dedicato tramite `SenderColorOverrideStore`. Le chiavi sono composte da `chatId|jid` e il valore è il colore ARGB scelto dall'utente. Questo DataStore è separato da `stats_cache_root` e `stats_cache_lite` e non viene invalidato al cambio del database.
+
+**DataStore sblocchi trofei (`badge_unlocks`)** — I trofei sbloccati nella sezione Badges sono persistiti in modo permanente tramite `BadgeUnlockStore` su un DataStore dedicato (`badge_unlocks`). Mantiene due set separati (`unlocked_ids_root` e `unlocked_ids_lite`) e flag di inizializzazione per garantire la persistenza sticky dei traguardi raggiunti senza subire invalidazioni con la cache ordinaria delle statistiche.
 
 ### Invalidazione della cache
 
@@ -318,6 +323,14 @@ I grafici sono interattivi:
 - **Tooltip (Bubble)**: toccando una barra appare una nuvoletta che mostra il totale dei messaggi e i primi 3 contributori (mittenti) per quel periodo, con pallini colorati coerenti.
 - **Dettaglio esteso**: toccando la nuvoletta si apre un `ActivityDetailDialog` con la lista completa dei mittenti, i conteggi esatti e le percentuali di contribuzione.
 - **Auto-dismiss**: toccare fuori dall'area del grafico chiude la selezione tramite il meccanismo `dismissSignal`.
+
+### Action Card Engagement (Highlights e Badges)
+
+Nella parte centrale della Dashboard, due card affiancate (`ActionCard`) offrono accesso rapido alle funzioni di engagement e gamification dell'app sia in Root che in Lite Mode:
+- **I tuoi Highlight** (icona `AutoAwesome`): apre la schermata delle storie interattive con statistiche salienti, abitudini temporali e dinamiche di risposta per-persona.
+- **I tuoi Trofei** (icona `EmojiEvents`): apre la bacheca dei badge sbloccabili basati su volume messaggi, costanza d'uso (streak), abitudini orarie e reattività.
+
+Ogni interazione traccia l'evento telemetrico Firebase `engagement_entry` (con action `open_highlights` o `open_badges`). Per i dettagli completi sul funzionamento, calcolo e sblocco, vedi [Sezione 24 — Highlights e Badges — Storie e Trofei](#24-highlights-e-badges--storie-e-trofei).
 
 ### Previsione Traguardi (Milestone Prediction)
 
@@ -686,6 +699,8 @@ app_graph  (NavHost root)
 ├── root_mode_graph
 │   ├── overview_graph
 │   │   └── dashboard
+│   ├── highlights
+│   ├── badges
 │   ├── chats_graph
 │   │   ├── chat_list
 │   │   └── chat_detail/{chatId}
@@ -702,6 +717,8 @@ app_graph  (NavHost root)
 └── lite_mode_graph
     ├── overview_graph
     │   └── dashboard
+    ├── highlights
+    ├── badges
     ├── chats_graph
     │   ├── chat_list
     │   ├── lite_setup_add?zipUri={zipUri}
@@ -724,6 +741,8 @@ app_graph  (NavHost root)
 |---------|-------|
 | `Screen.Setup` | `setup?autoNavigate={autoNavigate}` |
 | `Screen.Dashboard` | `dashboard` |
+| `Screen.Highlights` | `highlights` |
+| `Screen.Badges` | `badges` |
 | `Screen.ChatList` | `chat_list` |
 | `Screen.ChatDetail` | `chat_detail/{chatId}` |
 | `Screen.WordSearch` | `word_search` / `word_search/{chatId}` |
@@ -1389,6 +1408,8 @@ La Lite Mode ha un proprio grafo di navigazione `NavGraphRoute.Lite`, con la ste
 | Supporto lingue export | N/A | Supporto multilingua completo per le 12 localizzazioni (italiano, inglese, tedesco, spagnolo, francese, portoghese, turco, hindi, indonesiano, kazako, rumeno, russo) |
 | Mappatura GIF | N/A | Classificate ed esposte come VIDEO nel DB e nella galleria (supportate in riproduzione da Coil Video) |
 | Classificazione Sticker iOS | N/A | Riconoscimento ed inclusione degli sticker iOS (pattern `STICKER`) nella corretta tab Galleria |
+| Highlights (Storie) | Completi (inclusi tempi di risposta relazionali `FastestReplier` e `YouReplyFastest`) | Parziali (esclusi tempi di risposta relazionali per precisione oraria export) |
+| Trofei (Badges) | Tutti gli 11 trofei disponibili | 10 trofei (escluso `QUICK_DRAW` / Risposta lampo `rootOnly`) |
 
 ---
 
@@ -1804,3 +1825,157 @@ Il rate limit è differenziato automaticamente tramite `BuildConfig.DEBUG` e il 
 | `firestore.rules` | Regole di sicurezza granulari Firestore |
 | `firestore.indexes.json` | Configurazione indici Firestore |
 | `cloudflare-worker/` | Progetto serverless TypeScript per endpoint `/notify`, invio push FCM v1 e webhook Telegram `/webhook` |
+
+---
+
+## 24. Highlights e Badges — Storie e Trofei
+
+Le funzionalità di engagement e gamification di WhatStat offrono all'utente una visualizzazione accattivante delle metriche salienti e un percorso di traguardi sbloccabili basati sulle proprie abitudini di messaggistica.
+
+---
+
+### 24.1 — Panoramica ed Entry Point
+
+Le due esperienze sono accessibili direttamente dalla schermata principale (`DashboardScreen`):
+
+- **ActionCard dedicate**: affiancate nella sezione centrale della Dashboard, "I tuoi Highlight" (`Icons.Outlined.AutoAwesome`) e "I tuoi Trofei" (`Icons.Outlined.EmojiEvents`).
+- **Telemetria**: ogni apertura registra l'evento `engagement_entry` con parametro `screen=dashboard` e action `open_highlights` o `open_badges`.
+- **Navigazione**: le route `Screen.Highlights` (`highlights`) e `Screen.Badges` (`badges`) sono integrate nei grafi `root_mode_graph` e `lite_mode_graph` tramite `sharedEngagementRoutes`, garantendo coerenza di back stack tra le modalità.
+
+---
+
+### 24.2 — Highlights: Storie Personali e Relazionali
+
+**Schermata**: `HighlightsScreen` / `HighlightsViewModel`  
+**Engine**: `HighlightEngine`  
+**Modello dati**: `Highlight` (sealed interface)
+
+La schermata adotta un formato narrativo a "storie" a tutto schermo:
+
+- **Interazione a schede orizzontali**: basata su `HorizontalPager` di Jetpack Compose.
+- **Navigazione tap/swipe**: tap sul terzo sinistro dello schermo torna alla card precedente; tap sul terzo destro avanza alla successiva; swipe orizzontale libero.
+- **Segmented Progress Bar**: una riga di indicatori a segmenti in cima allo schermo mostra la posizione e il progresso temporale della storia attiva.
+- **Pausa su pressione prolungata**: il long-press sospende l'avanzamento automatico del timer consentendo una lettura prolungata.
+- **Condivisione social**: ogni card espone un pulsante di condivisione (`Icons.Default.Share`) che genera il testo o l'immagine della card tramite `Intent.ACTION_SEND` e traccia l'evento `trackHighlightShared(cardId)`.
+
+#### Tipologie di Highlight
+
+Gli highlight sono generati dinamicamente da `HighlightEngine` in due categorie:
+
+1. **Highlight di Attività Globale (`HighlightEngine.build(stats)`)**:
+   - `MessagesSent`: totale dei messaggi inviati dall'utente (richiede `myTotal >= 100`).
+   - `PeakHour`: l'ora del giorno (0–23) in cui l'utente invia più messaggi in assoluto.
+   - `TopWeekday`: il giorno della settimana con maggior volume di messaggi (0 = domenica).
+   - `IntenseDay`: giorno record con conteggio dei messaggi inviati.
+   - `WeekendShare`: percentuale di messaggi inviati nel fine settimana (sabato e domenica); appare se `weekendPercent >= 20%`.
+   - `NightShare`: percentuale di messaggi notturni (fascia 00:00–04:59); appare se `nightPercent >= 5%`.
+   - `ActivityPeriod`: profilo abitudinario diurno (06:00–17:59) o serale/notturno (18:00–05:59) con la relativa percentuale.
+   - `PeakTimeBlock`: fascia oraria di 6 ore di massimo traffico (0–5, 6–11, 12–17 o 18–23).
+
+2. **Highlight Relazionali / Per-Persona (`HighlightEngine.buildPersonHighlights(chats, includeReplyTimes)`)**:
+   - Analizzati sulle chat 1-a-1 tramite `EngagementRepository.getOneToOneReplyStats()`:
+   - `FastestReplier`: il contatto che risponde più velocemente ai messaggi dell'utente. Richiede almeno 20 risposte ricevute (`theirReplyCount >= 20`) e una chat con almeno 200 messaggi totali (`totalMessages >= 200`).
+   - `YouReplyFastest`: il contatto a cui l'utente risponde più rapidamente in media. Richiede almeno 20 risposte inviate (`myReplyCount >= 20`) e una chat con almeno 200 messaggi totali (`totalMessages >= 200`).
+   - `YouStartMost`: il contatto con cui l'utente avvia più spesso le conversazioni dopo almeno 3 ore di silenzio. Richiede almeno 20 conversazioni complessive (`iStarted + theyStarted >= 20`) e una quota di avvio `>= 50%`.
+
+#### Copywriting Deterministico (`CopyVariantPicker`)
+
+Per rendere le storie fresche e coinvolgenti senza perdere coerenza tra visualizzazioni della stessa sessione, i testi di accompagnamento e le battute umoristiche (quip) vengono selezionati da `CopyVariantPicker` tramite hash deterministico dei parametri dell'highlight.
+
+---
+
+### 24.3 — Badges: Gamification e Trofei
+
+**Schermata**: `BadgesScreen` / `BadgesViewModel`  
+**Engine**: `BadgeEngine`  
+**Store**: `BadgeUnlockStore`  
+**Modello dati**: `BadgeId` (enum), `BadgeProgress`
+
+La sezione Trofei offre un percorso di sblocco a lungo termine:
+
+- **Riepilogo e avanzamento**: un header mostra il totale dei trofei sbloccati su quelli disponibili, con progress bar percentuale.
+- **Griglia Trofei**: schede con icone tematiche, titolo, stato (sbloccato con data o bloccato con percentuale di avanzamento 0–99%).
+- **Dettaglio modale**: toccando un trofeo si apre una bottom sheet con descrizione dettagliata dei criteri, stato di avanzamento e pulsante di condivisione traguardo.
+
+#### Catalogo Trofei (`BadgeId`)
+
+| ID Trofeo | Nome | Obiettivo / Criterio | Note |
+|-----------|------|----------------------|------|
+| `NIGHT_OWL` | Gufo Notturno | >= 10% di messaggi notturni (00:00–04:59) su almeno 500 messaggi totali inviati | Tutte le modalità |
+| `EARLY_BIRD` | Mattiniero | >= 10% di messaggi mattinieri (05:00–07:59) su almeno 500 messaggi totali inviati | Tutte le modalità |
+| `CHATTERBOX_1K` | Chiacchierone 1K | 1.000 messaggi inviati | Tutte le modalità |
+| `CHATTERBOX_10K` | Chiacchierone 10K | 10.000 messaggi inviati | Tutte le modalità |
+| `CHATTERBOX_50K` | Chiacchierone 50K | 50.000 messaggi inviati | Tutte le modalità |
+| `CHATTERBOX_100K` | Chiacchierone 100K | 100.000 messaggi inviati | Tutte le modalità |
+| `MARATHON_30` | Maratona 30 | Streak di 30 giorni consecutivi di messaggi | Tutte le modalità |
+| `MARATHON_100` | Maratona 100 | Streak di 100 giorni consecutivi di messaggi | Tutte le modalità |
+| `MARATHON_365` | Maratona 365 | Streak di 365 giorni consecutivi di messaggi (1 anno) | Tutte le modalità |
+| `ICEBREAKER` | Rompighiaccio | Avvia >= 70% delle conversazioni 1-a-1 (su almeno 20 conversazioni) | Tutte le modalità |
+| `QUICK_DRAW` | Risposta Lampo | >= 50% di risposte veloci (inviate entro 60 secondi) su almeno 50 risposte totali | **Solo Root Mode** (`rootOnly = true`) |
+
+#### Persistenza Sticky degli Sblocchi (`BadgeUnlockStore`)
+
+I trofei utilizzano una semantica di sblocco **sticky**:
+- I traguardi raggiunti vengono salvati in modo permanente nel DataStore Preferences `badge_unlocks` (`unlocked_ids_root` e `unlocked_ids_lite`).
+- Una volta conquistato, un badge non torna mai allo stato bloccato, anche se successive abitudini o cambi di filtri/dati riducono le percentuali sotto la soglia.
+- Il reset dei trofei avviene unicamente tramite la funzione "Elimina dati" (`MainViewModel.fullReset()`).
+
+---
+
+### 24.4 — Pipeline Dati e Prestazioni
+
+**Repository**: `EngagementRepository`  
+**Accumulatore**: `ReplyStatsAccumulator`  
+**DAO**: `MessageDao`, `ChatDao`, `ContactDao`
+
+Il calcolo delle metriche relazionali è ottimizzato per database di grandi dimensioni (centinaia di migliaia di messaggi):
+
+1. **Streaming sequenziale SQLite (`forEachReplyStatsRow`)**:
+   - `MessageDao.forEachReplyStatsRow` esegue una query su cursore grezzo: `SELECT chat_row_id, from_me, timestamp FROM message ORDER BY chat_row_id, timestamp ASC`.
+   - I messaggi non vengono caricati simultaneamente in memoria. La coroutine processa lo stream riga per riga tramite `ReplyStatsAccumulator`.
+
+2. **Logica di accumulo (`ReplyStatsAccumulator`)**:
+   - **Risposta**: rilevata quando cambia `from_me` (`fromMe != lastFromMe`) entro una finestra massima di 24 ore (86.400.000 ms).
+   - **Risposta veloce**: risposta inviata entro 60 secondi (60.000 ms).
+   - **Inizio conversazione**: primo messaggio in assoluto o messaggio inviato dopo un periodo di inattività superiore a 3 ore (10.800.000 ms).
+
+3. **Filtraggio rigoroso chat 1-a-1**:
+   - Vengono escluse le chat di gruppo (`@g.us`), le liste broadcast (`@broadcast`) e i canali (`@newsletter`).
+   - Viene escluso l'utente corrente `me@s.whatsapp.net` e il numero personale dell'utente ricavato tramite `messageDao.guessUserJid()` (chat "Note to Self").
+   - Vengono escluse dalle metriche di velocità di risposta le chat con meno di 200 messaggi totali (`MIN_REPLY_CHAT_MESSAGES = 200`) per evitare bias statistici dovuti a campioni ridotti.
+
+4. **Cache persistente**:
+   - I risultati aggregati vengono cachati con chiave `reply_stats_v1` in `CacheManager` (`stats_cache_root` o `stats_cache_lite`).
+
+---
+
+### 24.5 — Differenze Root Mode vs Lite Mode
+
+| Aspetto | Root Mode | Lite Mode |
+|---------|-----------|-----------|
+| **Highlights di attività** | Completi (ore, giorni, weekend, notte, blocchi) | Completi |
+| **Highlights relazionali** | Completi (`FastestReplier`, `YouReplyFastest`, `YouStartMost`) | Solo `YouStartMost` (esclusi tempi di risposta a livello millisecondo) |
+| **Trofei disponibili** | 11 trofei | 10 trofei (escluso `QUICK_DRAW`) |
+| **Precisione temporale** | Timestamp precisi al millisecondo da SQLite | Timestamp arrotondati al minuto dall'export `.txt` |
+| **Soglia chat minime** | Minimo 200 messaggi per tempi di risposta | N/A (tempi di risposta disabilitati) |
+
+---
+
+### 24.6 — File Coinvolti
+
+| File | Ruolo |
+|------|-------|
+| `ui/screen/highlights/HighlightsScreen.kt` | UI a storie swipeabili con indicatori a segmenti e share intent |
+| `ui/screen/highlights/HighlightsViewModel.kt` | Caricamento parallelo stats globali + relazionali e gestione stato UI |
+| `domain/engagement/HighlightEngine.kt` | Regole di business per generazione highlight globali e per-persona |
+| `domain/engagement/CopyVariantPicker.kt` | Assegnazione deterministica di testi e battute alle storie |
+| `domain/model/Highlight.kt` | Sealed interface e classi di dati degli highlight |
+| `ui/screen/badges/BadgesScreen.kt` | UI bacheca trofei, griglia con progresso e dialog di dettaglio |
+| `ui/screen/badges/BadgesViewModel.kt` | Calcolo progresso, recupero e persistenza sblocchi |
+| `domain/engagement/BadgeEngine.kt` | Valutazione criteri di sblocco e calcolo percentuali parziali (0..99%) |
+| `domain/model/BadgeModels.kt` | Enum `BadgeId` con target/rootOnly e data class `BadgeProgress` |
+| `data/preferences/BadgeUnlockStore.kt` | DataStore `badge_unlocks` per la persistenza sticky dei traguardi |
+| `data/repository/EngagementRepository.kt` | Orchestrazione calcolo statistiche di risposta, filtri 1-a-1 e caching |
+| `domain/engagement/ReplyStatsAccumulator.kt` | Accumulatore a riga singola per tempi di risposta e avvii conversazione |
+| `domain/model/ChatReplyStats.kt` | Modelli dati `ChatReplyStats` e `NamedReplyStats` |
+| `ui/component/ActionCard.kt` | Componente card interattiva riutilizzabile nella Dashboard |
