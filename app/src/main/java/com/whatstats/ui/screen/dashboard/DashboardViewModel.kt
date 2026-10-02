@@ -193,6 +193,7 @@ class DashboardViewModel
                         _loadingProgress.value = null
 
                         appPreferencesStore.markAnalysisSuccessful()
+                        appPreferencesStore.recordAppActive()
 
                         // Prova a caricare slow stats dalla cache (senza bloccare la UI)
                         if (_selectedTimeRange.value == TimeRange.ALL_TIME) {

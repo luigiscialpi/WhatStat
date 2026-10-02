@@ -555,4 +555,9 @@
     <string name="highlight_you_start_most_title">С кем вы чаще всего начинаете чат</string>
     <string name="highlight_reply_average_detail">Средний ответ: %1$s</string>
     <string name="highlight_you_start_most_detail">Вы начинаете %1$d%% разговоров</string>
+    <string name="monthly_reminder_notif_title">Ваша статистика ждёт!</string>
+    <string name="monthly_reminder_notif_body">Вы давно не открывали WhatStat. Нажмите, чтобы обновить статистику чатов.</string>
+    <string name="monthly_reminder_notif_channel_name">Ежемесячное напоминание</string>
+    <string name="monthly_reminder_notif_channel_desc">Ежемесячное уведомление для проверки статистики WhatsApp</string>
+    <string name="drawer_monthly_reminder">Ежемесячное напоминание</string>
 </resources>

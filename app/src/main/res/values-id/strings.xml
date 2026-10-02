@@ -555,4 +555,9 @@
     <string name="highlight_you_start_most_title">Anda paling sering memulai obrolan dengan</string>
     <string name="highlight_reply_average_detail">Rata-rata balasan: %1$s</string>
     <string name="highlight_you_start_most_detail">Anda memulai %1$d%% percakapan</string>
+    <string name="monthly_reminder_notif_title">Statistikmu menunggu!</string>
+    <string name="monthly_reminder_notif_body">Kamu belum membuka WhatStat cukup lama. Ketuk untuk memperbarui statistik chatmu.</string>
+    <string name="monthly_reminder_notif_channel_name">Pengingat bulanan</string>
+    <string name="monthly_reminder_notif_channel_desc">Pengingat bulanan untuk memeriksa statistik WhatsApp</string>
+    <string name="drawer_monthly_reminder">Pengingat bulanan</string>
 </resources>

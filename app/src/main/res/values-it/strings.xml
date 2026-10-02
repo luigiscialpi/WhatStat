@@ -557,5 +557,10 @@
     <string name="highlight_you_start_most_title">Con chi inizi più chat</string>
     <string name="highlight_reply_average_detail">Risposta media: %1$s</string>
     <string name="highlight_you_start_most_detail">Il %1$d%% delle conversazioni le inizi tu</string>
+    <string name="monthly_reminder_notif_title">Le tue statistiche ti aspettano!</string>
+    <string name="monthly_reminder_notif_body">Non apri WhatStat da un po\'. Tocca per aggiornare le statistiche delle tue chat.</string>
+    <string name="monthly_reminder_notif_channel_name">Promemoria mensile</string>
+    <string name="monthly_reminder_notif_channel_desc">Promemoria mensile per controllare le statistiche di WhatsApp</string>
+    <string name="drawer_monthly_reminder">Promemoria mensile</string>
 
 </resources>

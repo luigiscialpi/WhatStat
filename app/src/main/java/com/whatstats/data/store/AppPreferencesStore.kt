@@ -41,6 +41,9 @@ class AppPreferencesStore
             private val HAS_SUCCESSFUL_ANALYSIS_KEY = booleanPreferencesKey("has_successful_analysis")
             private val LAST_FEEDBACK_SENT_TIME_KEY = longPreferencesKey("last_feedback_sent_time")
             private val FEEDBACK_FALLBACK_USER_ID_KEY = stringPreferencesKey("feedback_fallback_user_id")
+            private val MONTHLY_REMINDER_ENABLED_KEY = booleanPreferencesKey("monthly_reminder_enabled")
+            private val LAST_REMINDER_SENT_TIME_KEY = longPreferencesKey("last_reminder_sent_time")
+            private val LAST_APP_ACTIVE_TIME_KEY = longPreferencesKey("last_app_active_time")
         }
 
         val themeMode: Flow<ThemeMode> =
@@ -152,6 +155,39 @@ class AppPreferencesStore
         suspend fun setFeedbackFallbackUserId(userId: String) {
             dataStore.edit { preferences ->
                 preferences[FEEDBACK_FALLBACK_USER_ID_KEY] = userId
+            }
+        }
+
+        val monthlyReminderEnabled: Flow<Boolean> =
+            dataStore.data.map { preferences ->
+                preferences[MONTHLY_REMINDER_ENABLED_KEY] ?: true
+            }
+
+        suspend fun setMonthlyReminderEnabled(enabled: Boolean) {
+            dataStore.edit { preferences ->
+                preferences[MONTHLY_REMINDER_ENABLED_KEY] = enabled
+            }
+        }
+
+        val lastReminderSentTime: Flow<Long> =
+            dataStore.data.map { preferences ->
+                preferences[LAST_REMINDER_SENT_TIME_KEY] ?: 0L
+            }
+
+        suspend fun recordReminderSent(timestamp: Long = System.currentTimeMillis()) {
+            dataStore.edit { preferences ->
+                preferences[LAST_REMINDER_SENT_TIME_KEY] = timestamp
+            }
+        }
+
+        val lastAppActiveTime: Flow<Long> =
+            dataStore.data.map { preferences ->
+                preferences[LAST_APP_ACTIVE_TIME_KEY] ?: 0L
+            }
+
+        suspend fun recordAppActive(timestamp: Long = System.currentTimeMillis()) {
+            dataStore.edit { preferences ->
+                preferences[LAST_APP_ACTIVE_TIME_KEY] = timestamp
             }
         }
     }

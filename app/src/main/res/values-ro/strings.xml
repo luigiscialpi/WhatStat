@@ -555,4 +555,9 @@
     <string name="highlight_you_start_most_title">Cu cine începi cele mai multe conversații</string>
     <string name="highlight_reply_average_detail">Răspuns mediu: %1$s</string>
     <string name="highlight_you_start_most_detail">Începi tu %1$d%% dintre conversații</string>
+    <string name="monthly_reminder_notif_title">Statisticile tale te așteaptă!</string>
+    <string name="monthly_reminder_notif_body">Nu ai deschis WhatStat de ceva timp. Atinge pentru a actualiza statisticile chat-urilor tale.</string>
+    <string name="monthly_reminder_notif_channel_name">Memento lunar</string>
+    <string name="monthly_reminder_notif_channel_desc">Memento lunar pentru a verifica statisticile WhatsApp</string>
+    <string name="drawer_monthly_reminder">Memento lunar</string>
 </resources>

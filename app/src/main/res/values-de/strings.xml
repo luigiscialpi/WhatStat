@@ -555,4 +555,9 @@
     <string name="highlight_you_start_most_title">Mit diesen Personen beginnst du die meisten Chats</string>
     <string name="highlight_reply_average_detail">Durchschnittliche Antwort: %1$s</string>
     <string name="highlight_you_start_most_detail">%1$d%% der Unterhaltungen beginnst du</string>
+    <string name="monthly_reminder_notif_title">Deine Stats warten!</string>
+    <string name="monthly_reminder_notif_body">Du hast WhatStat schon lange nicht geöffnet. Tippe, um deine Chat-Statistiken zu aktualisieren.</string>
+    <string name="monthly_reminder_notif_channel_name">Monatliche Erinnerung</string>
+    <string name="monthly_reminder_notif_channel_desc">Monatliche Benachrichtigung für deine WhatsApp-Statistiken</string>
+    <string name="drawer_monthly_reminder">Monatliche Erinnerung</string>
 </resources>

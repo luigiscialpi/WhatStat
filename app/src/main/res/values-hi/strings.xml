@@ -553,4 +553,9 @@
     <string name="highlight_you_start_most_title">आप सबसे ज़्यादा चैट इनके साथ शुरू करते हैं</string>
     <string name="highlight_reply_average_detail">औसत जवाब: %1$s</string>
     <string name="highlight_you_start_most_detail">%1$d%% बातचीत आपने शुरू की</string>
+    <string name="monthly_reminder_notif_title">आपके आँकड़े इंतज़ार कर रहे हैं!</string>
+    <string name="monthly_reminder_notif_body">आपने काफ़ी समय से WhatStat नहीं खोला। अपने चैट आँकड़े अपडेट करने के लिए टैप करें।</string>
+    <string name="monthly_reminder_notif_channel_name">मासिक अनुस्मारक</string>
+    <string name="monthly_reminder_notif_channel_desc">WhatsApp आँकड़े जाँचने के लिए मासिक सूचना</string>
+    <string name="drawer_monthly_reminder">मासिक अनुस्मारक</string>
 </resources>

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.outlined.Cached
 import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerState
@@ -34,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -78,6 +81,7 @@ fun AppDrawerContent(
     val isLiteMode by mainViewModel.isLiteMode.collectAsState()
     val adsUiState by mainViewModel.adsUiState.collectAsState()
     val unreadReply by feedbackViewModel.unreadReply.collectAsState()
+    val monthlyReminderEnabled by mainViewModel.monthlyReminderEnabled.collectAsState()
     val context = LocalContext.current
 
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -176,6 +180,16 @@ fun AppDrawerContent(
                         },
                     )
                 }
+
+                DrawerSwitchItem(
+                    icon = Icons.Outlined.NotificationsActive,
+                    label = stringResource(R.string.drawer_monthly_reminder),
+                    checked = monthlyReminderEnabled,
+                    onCheckedChange = { enabled ->
+                        mainViewModel.trackClick("drawer", "monthly_reminder_toggle", "preferences")
+                        mainViewModel.setMonthlyReminderEnabled(enabled)
+                    },
+                )
 
                 DrawerItem(
                     icon = Icons.Outlined.Feedback,
@@ -383,6 +397,42 @@ private fun DrawerItem(
                 )
             }
         }
+    }
+}
+
+@Composable
+@Suppress("FunctionName")
+private fun DrawerSwitchItem(
+    icon: ImageVector,
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onCheckedChange(!checked) }
+                .padding(vertical = 12.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+        )
     }
 }
 

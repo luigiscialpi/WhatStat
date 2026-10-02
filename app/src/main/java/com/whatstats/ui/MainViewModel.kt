@@ -1,6 +1,7 @@
 package com.whatstats.ui
 
 import android.app.Activity
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.whatstats.ads.AdsRepository
@@ -15,7 +16,9 @@ import com.whatstats.update.ForceUpdateState
 import com.whatstats.update.RemoteWarningAction
 import com.whatstats.update.RemoteWarningState
 import com.whatstats.update.UpdateGate
+import com.whatstats.worker.MonthlyReminderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,7 +42,7 @@ class MainViewModel
         private val adsRepository: AdsRepository,
         private val telemetryRepository: TelemetryRepository,
         private val updateGate: UpdateGate,
-        @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
+        @ApplicationContext private val context: Context,
         private val badgeUnlockStore: BadgeUnlockStore,
     ) : ViewModel() {
         val isLiteMode: StateFlow<Boolean> = analyticsRepository.isLiteMode
@@ -61,6 +64,13 @@ class MainViewModel
 
         val hasSeenTutorial: StateFlow<Boolean> =
             appPreferencesStore.hasSeenTutorial.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = true,
+            )
+
+        val monthlyReminderEnabled: StateFlow<Boolean> =
+            appPreferencesStore.monthlyReminderEnabled.stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = true,
@@ -162,6 +172,23 @@ class MainViewModel
         fun setAppLanguage(lang: String) {
             viewModelScope.launch {
                 appPreferencesStore.setLanguage(lang)
+            }
+        }
+
+        fun setMonthlyReminderEnabled(enabled: Boolean) {
+            viewModelScope.launch {
+                appPreferencesStore.setMonthlyReminderEnabled(enabled)
+                if (enabled) {
+                    MonthlyReminderWorker.schedule(context)
+                } else {
+                    MonthlyReminderWorker.cancel(context)
+                }
+            }
+        }
+
+        fun recordAppActive() {
+            viewModelScope.launch {
+                appPreferencesStore.recordAppActive()
             }
         }
 

@@ -553,4 +553,9 @@
     <string name="highlight_you_start_most_title">En çok sohbeti başlattığın kişi</string>
     <string name="highlight_reply_average_detail">Ortalama yanıt: %1$s</string>
     <string name="highlight_you_start_most_detail">Sohbetlerin %1$d%% kadarını sen başlatıyorsun</string>
+    <string name="monthly_reminder_notif_title">İstatistiklerin seni bekliyor!</string>
+    <string name="monthly_reminder_notif_body">WhatStat uygulamasini bir suredir acmadin. Sohbet istatistiklerini guncellemek icin dokun.</string>
+    <string name="monthly_reminder_notif_channel_name">Aylık hatırlatıcı</string>
+    <string name="monthly_reminder_notif_channel_desc">WhatsApp istatistiklerini kontrol etmek için aylık bildirim</string>
+    <string name="drawer_monthly_reminder">Aylık hatırlatıcı</string>
 </resources>

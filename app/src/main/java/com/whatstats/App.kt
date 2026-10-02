@@ -7,6 +7,7 @@ import com.topjohnwu.superuser.Shell
 import com.whatstats.ui.feedback.FeedbackPollingWorker
 import com.whatstats.util.DebugLogManager
 import com.whatstats.util.IntegrityChecker
+import com.whatstats.worker.MonthlyReminderWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -44,5 +45,7 @@ class App :
 
         // Avvia polling periodico risposte feedback (ogni 15 min, sopravvive a chiusura app)
         FeedbackPollingWorker.schedule(this)
+        // Avvia controllo reminder mensile (ogni giorno, sopravvive a chiusura app)
+        MonthlyReminderWorker.schedule(this)
     }
 }

@@ -555,4 +555,10 @@
     <string name="highlight_activity_period_quip_1">Day person or night owl?</string>
     <string name="highlight_activity_period_quip_2">Your messages reveal the answer.</string>
     <string name="highlight_activity_period_quip_3">Your peak social hours.</string>
+    <string name="monthly_reminder_notif_title">Your stats are waiting!</string>
+    <string name="monthly_reminder_notif_body">You haven\'t opened WhatStat in a while. Tap to refresh your chat stats.</string>
+    <string name="monthly_reminder_notif_channel_name">Monthly Reminder</string>
+    <string name="monthly_reminder_notif_channel_desc">Monthly nudge to check your WhatsApp stats</string>
+    <string name="drawer_monthly_reminder">Monthly reminder</string>
+
 </resources>

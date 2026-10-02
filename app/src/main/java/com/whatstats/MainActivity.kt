@@ -117,6 +117,7 @@ class MainActivity : ComponentActivity() {
         mainViewModel.requestAdsConsent(this)
         mainViewModel.initializeTelemetry()
         mainViewModel.trackAppOpen()
+        mainViewModel.recordAppActive()
         if (savedInstanceState == null) {
             mainViewModel.incrementAppLaunchCount()
         }
@@ -294,6 +295,7 @@ class MainActivity : ComponentActivity() {
         if (::mainViewModel.isInitialized) {
             mainViewModel.checkForUpdate()
             mainViewModel.checkRemoteWarning()
+            mainViewModel.recordAppActive()
         }
     }
 

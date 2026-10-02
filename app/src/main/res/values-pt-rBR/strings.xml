@@ -553,4 +553,9 @@
     <string name="highlight_you_start_most_title">Com quem você inicia mais conversas</string>
     <string name="highlight_reply_average_detail">Resposta média: %1$s</string>
     <string name="highlight_you_start_most_detail">Você inicia %1$d%% das conversas</string>
+    <string name="monthly_reminder_notif_title">Suas estatísticas estão esperando!</string>
+    <string name="monthly_reminder_notif_body">Você não abriu o WhatStat há algum tempo. Toque para atualizar as estatísticas dos seus chats.</string>
+    <string name="monthly_reminder_notif_channel_name">Lembrete mensal</string>
+    <string name="monthly_reminder_notif_channel_desc">Lembrete mensal para verificar suas estatísticas do WhatsApp</string>
+    <string name="drawer_monthly_reminder">Lembrete mensal</string>
 </resources>

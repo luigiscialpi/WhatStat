@@ -30,6 +30,7 @@
 22. [In-App Review](#22-in-app-review)
 23. [Sistema di Feedback In-App](#23-sistema-di-feedback-in-app)
 24. [Highlights e Badges — Storie e Trofei](#24-highlights-e-badges--storie-e-trofei)
+25. [Promemoria Mensile di Inattività](#25-promemoria-mensile-di-inattività)
 
 ---
 
@@ -1979,3 +1980,90 @@ Il calcolo delle metriche relazionali è ottimizzato per database di grandi dime
 | `domain/engagement/ReplyStatsAccumulator.kt` | Accumulatore a riga singola per tempi di risposta e avvii conversazione |
 | `domain/model/ChatReplyStats.kt` | Modelli dati `ChatReplyStats` e `NamedReplyStats` |
 | `ui/component/ActionCard.kt` | Componente card interattiva riutilizzabile nella Dashboard |
+
+---
+
+## 25. Promemoria Mensile di Inattività
+
+> Sistema proattivo di retention che invia una notifica push locale all'utente dopo un periodo prolungato di mancato utilizzo dell'app (30 giorni di inattività), invitandolo ad aprire WhatStat per aggiornare e consultare le statistiche aggiornate delle proprie chat.
+
+---
+
+### 25.1 — Obiettivo e Funzionamento
+
+- **Obiettivo**: favorire il riutilizzo dell'app (retention) stimolando l'utente a sincronizzare i nuovi messaggi di WhatsApp.
+- **Soglia di inattività**: 30 giorni dall'ultimo utilizzo attivo (`INACTIVITY_THRESHOLD_MS = 30 giorni`).
+- **Cooldown tra notifiche**: almeno 30 giorni tra due notifiche consecutive per prevenire spam o invii ravvicinati.
+- **Tracciamento attività utente**:
+  - All'avvio dell'app (`MainActivity.onCreate`), viene registrato il timestamp corrente tramite `mainViewModel.recordAppActive()`.
+  - Al termine di una sincronizzazione dati completata con successo nella Dashboard (`DashboardViewModel.onSyncCompleted`), il timestamp viene aggiornato tramite `appPreferencesStore.recordAppActive()`.
+- **Comportamento al tap**: la notifica apre direttamente `MainActivity` (`FLAG_ACTIVITY_NEW_TASK` / `FLAG_ACTIVITY_SINGLE_TOP`) permettendo un accesso immediato alla schermata principale.
+
+---
+
+### 25.2 — Architettura e Componenti
+
+#### 1. Motore Logico Puro (`MonthlyReminderEngine`)
+- **Percorso**: `domain/reminder/MonthlyReminderEngine.kt`
+- Oggetto Kotlin isolato senza dipendenze dal framework Android.
+- Funzione deterministica:
+  ```kotlin
+  fun shouldTriggerReminder(
+      isEnabled: Boolean,
+      lastActiveTimeMs: Long,
+      lastReminderSentTimeMs: Long,
+      currentTimeMs: Long,
+      inactivityThresholdMs: Long = DEFAULT_INACTIVITY_THRESHOLD_MS,
+  ): Boolean
+  ```
+- Valuta contemporaneamente: abilitazione della preferenza, validità dei timestamp, superamento della soglia di inattività e rispetto del cooldown.
+- Coperto al 100% da test unitari in `domain/reminder/MonthlyReminderEngineTest.kt`.
+
+#### 2. Esecutore in Background (`MonthlyReminderWorker`)
+- **Percorso**: `worker/MonthlyReminderWorker.kt`
+- `CoroutineWorker` con iniezione Hilt (`@HiltWorker`).
+- Schedulato all'avvio dell'app in `App.onCreate()` via Android Jetpack `WorkManager`:
+  - Cadenza di verifica: periodica ogni 24 ore (`PeriodicWorkRequestBuilder<MonthlyReminderWorker>(1, TimeUnit.DAYS)`).
+  - Politica di accodamento: `ExistingPeriodicWorkPolicy.KEEP` (non duplica mai job attivi).
+  - Sopravvive a terminazioni dell'app, standby/Doze mode e riavvii del dispositivo.
+- Se l'utente ha disattivato l'opzione, il worker provvede autonomamente ad annullare il lavoro schedulato (`cancelUniqueWork`).
+
+#### 3. Gestore Notifiche Locali (`MonthlyReminderNotificationHelper`)
+- **Percorso**: `worker/MonthlyReminderNotificationHelper.kt`
+- Crea e mantiene il canale di notifica dedicato:
+  - `CHANNEL_ID = "monthly_reminder_channel"`
+  - Importanza: `IMPORTANCE_DEFAULT`
+  - Nome: `Promemoria mensile` (localizzato)
+- Verifica preventivamente i permessi runtime (`notificationManager.areNotificationsEnabled()`). Se revocati, l'azione fallisce silenziosamente senza crash.
+- Notifica costruita con `NotificationCompat.BigTextStyle` per estensione testo e icona `ic_notification`.
+
+#### 4. Persistenza Dati (`AppPreferencesStore`)
+- Memorizzato nel Jetpack DataStore Preferences (`app_preferences`):
+  - `monthly_reminder_enabled`: stato switch (default `true`, attivo per default).
+  - `last_app_active_time`: timestamp epoch ultimo utilizzo dell'app.
+  - `last_reminder_sent_time`: timestamp epoch ultima notifica inviata con successo.
+- Completamente separato dalla cache temporanea di analisi (`CacheManager`): i contatori e le preferenze non vengono cancellati con lo svuotamento cache dell'app.
+
+#### 5. Controllo Utente nel Menu Laterale (`AppDrawer`)
+- Voce dedicata con switch interattivo `DrawerSwitchItem`:
+  - Icona: `Icons.Outlined.NotificationsActive`
+  - Etichetta: "Promemoria mensile" (localizzata)
+  - Layout compatto su singola riga, armonizzato con gli altri elementi del menu.
+- Al cambio di stato:
+  - Disattivazione (OFF): salva lo stato su DataStore e invoca `WorkManager.cancelUniqueWork("monthly_reminder_work")`.
+  - Attivazione (ON): salva lo stato e rischedula immediatamente il worker con `ExistingPeriodicWorkPolicy.KEEP`.
+  - Traccia l'evento di interazione con `mainViewModel.trackClick("drawer", "monthly_reminder_toggle", "preferences")`.
+
+---
+
+### 25.3 — Internazionalizzazione (i18n)
+
+Tutti i testi relativi alla notifica e all'interfaccia sono localizzati in tutte le 13 lingue supportate dall'applicazione:
+
+| Chiave Stringa | Descrizione |
+|----------------|-------------|
+| `monthly_reminder_notif_title` | Titolo notifica di promemoria |
+| `monthly_reminder_notif_body` | Testo esplicativo con invito a verificare le statistiche |
+| `monthly_reminder_notif_channel_name` | Nome del canale di notifica nelle impostazioni di sistema |
+| `monthly_reminder_notif_channel_desc` | Descrizione del canale nelle impostazioni Android |
+| `drawer_monthly_reminder` | Etichetta per lo switch nel menu laterale (Drawer) |
