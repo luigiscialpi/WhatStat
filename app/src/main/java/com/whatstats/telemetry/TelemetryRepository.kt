@@ -238,9 +238,9 @@ class TelemetryRepository
                 Bundle().apply {
                     putLong("duration_ms", durationMs)
                     putString("duration_bucket", bucketDuration(durationMs))
-                    putBoolean("is_lite", isLite)
+                    putString("is_lite", if (isLite) "true" else "false")
                     dbSizeMb?.let { putDouble("db_size_mb", it) }
-                    hasMedia?.let { putBoolean("has_media", it) }
+                    hasMedia?.let { putString("has_media", if (it) "true" else "false") }
                 }
             logIfAllowed(
                 eventName = "db_parse_duration",
