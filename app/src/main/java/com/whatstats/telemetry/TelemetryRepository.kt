@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
+import java.io.FileInputStream
 import java.security.SecureRandom
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -80,9 +81,22 @@ class TelemetryRepository
                 context.getSharedPreferences(ActiveDatabaseProvider.PREFS_NAME, Context.MODE_PRIVATE)
                     .getBoolean(ActiveDatabaseProvider.KEY_IS_LITE_MODE, false)
             if (isLite) return "lite"
-            val rootDbExists =
-                File(context.filesDir, ActiveDatabaseProvider.ROOT_DB_NAME).let { it.exists() && it.length() > 0L }
-            return if (rootDbExists) "root" else "none"
+            // "root" = sessione con database msgstore.db completo e valido (Live DB via su, crypt14 o setup manuale), NON "device rootato".
+            val rootDbFile = File(context.filesDir, ActiveDatabaseProvider.ROOT_DB_NAME)
+            return if (isSqliteHeaderValid(rootDbFile)) "root" else "none"
+        }
+
+        private fun isSqliteHeaderValid(file: File): Boolean {
+            if (!file.exists() || file.length() < 16L) return false
+            return try {
+                FileInputStream(file).use { stream ->
+                    val buffer = ByteArray(16)
+                    val bytesRead = stream.read(buffer)
+                    bytesRead == 16 && buffer.contentEquals(SQLITE_HEADER)
+                }
+            } catch (_: Exception) {
+                false
+            }
         }
 
         fun updateMode() {
@@ -440,4 +454,8 @@ class TelemetryRepository
                 "analysis_started",
                 "analysis_completed",
             )
+
+        companion object {
+            private val SQLITE_HEADER = "SQLite format 3\u0000".toByteArray(Charsets.US_ASCII)
+        }
     }
