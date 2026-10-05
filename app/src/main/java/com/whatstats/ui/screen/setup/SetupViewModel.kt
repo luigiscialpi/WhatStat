@@ -222,6 +222,7 @@ class SetupViewModel
         fun clearRootSession() {
             viewModelScope.launch {
                 repository.cleanup()
+                analyticsRepository.updateMode()
                 _state.update { it.copy(isRootReady = false, isComplete = false) }
             }
         }

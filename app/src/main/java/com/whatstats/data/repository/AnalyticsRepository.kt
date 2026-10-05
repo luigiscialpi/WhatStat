@@ -95,6 +95,11 @@ class AnalyticsRepository
             _isLiteMode.value = enabled
             activeDatabaseProvider.isLiteMode = enabled
             filterStateHolder.resetAll()
+            telemetryRepository.updateMode()
+        }
+
+        fun updateMode() {
+            telemetryRepository.updateMode()
         }
 
         /** Chiamato dopo ogni importazione riuscita: aggiorna il version stamp e invalida la cache. */

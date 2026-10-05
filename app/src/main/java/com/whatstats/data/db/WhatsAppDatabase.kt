@@ -63,6 +63,7 @@ class WhatsAppDatabase
                 createIndexes()
 
                 telemetryRepository.setUserProperties(dbSizeMb = dbSizeMb)
+                telemetryRepository.updateMode()
             } catch (e: Exception) {
                 telemetryRepository.trackDbParseError(reason = "root_db_open_failed", exceptionMessage = e.message)
                 throw e

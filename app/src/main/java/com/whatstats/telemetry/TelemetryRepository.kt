@@ -8,6 +8,7 @@ import com.google.firebase.analytics.logEvent
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.remoteConfigSettings
 import com.whatstats.BuildConfig
+import com.whatstats.data.db.ActiveDatabaseProvider
 import com.whatstats.util.DebugLogManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import java.io.File
 import java.security.SecureRandom
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -64,15 +66,35 @@ class TelemetryRepository
             firebaseAnalytics?.setUserProperty("app_version", BuildConfig.VERSION_NAME)
             firebaseAnalytics?.setUserProperty("app_version_code", BuildConfig.VERSION_CODE.toString())
             firebaseAnalytics?.setUserProperty("build_type", if (BuildConfig.DEBUG) "debug" else "release")
+            val initialMode = resolveInitialMode()
+            firebaseAnalytics?.setUserProperty("mode", initialMode)
+            lastGraphName = initialMode
+            debugTelemetry("init mode=$initialMode")
             ensureInstallationIdBootstrap()
             debugTelemetry("init ok: analytics enabled")
             refreshRemoteConfig()
         }
 
+        fun resolveInitialMode(): String {
+            val isLite =
+                context.getSharedPreferences(ActiveDatabaseProvider.PREFS_NAME, Context.MODE_PRIVATE)
+                    .getBoolean(ActiveDatabaseProvider.KEY_IS_LITE_MODE, false)
+            if (isLite) return "lite"
+            val rootDbExists =
+                File(context.filesDir, ActiveDatabaseProvider.ROOT_DB_NAME).let { it.exists() && it.length() > 0L }
+            return if (rootDbExists) "root" else "none"
+        }
+
+        fun updateMode() {
+            setMode(resolveInitialMode())
+        }
+
         fun setMode(mode: String) {
             if (!isFirebaseAvailable) return
-            if (mode == "root" || mode == "lite") {
+            if (mode == "root" || mode == "lite" || mode == "none") {
                 firebaseAnalytics?.setUserProperty("mode", mode)
+                lastGraphName = mode
+                debugTelemetry("mode=$mode")
             }
         }
 
@@ -114,8 +136,9 @@ class TelemetryRepository
         }
 
         fun trackOverlayView(overlayName: String) {
-            val underlyingScreen = lastScreenName ?: "unknown"
-            val mode = lastGraphName ?: "unknown"
+            val underlyingScreen = lastScreenName ?: "setup"
+            val rawMode = lastGraphName ?: resolveInitialMode()
+            val mode = if (rawMode == "none") "setup" else rawMode
             logIfAllowed(
                 eventName = "overlay_view",
                 extra =
