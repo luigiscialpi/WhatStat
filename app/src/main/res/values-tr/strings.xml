@@ -116,7 +116,7 @@
 
     <!-- Dashboard -->
     <string name="dashboard_title">Genel bakış</string>
-    <string name="lite_mode_badge">LİTE MODU (ZIP)</string>
+    <string name="lite_mode_badge">Lite modu (ZIP)</string>
     <string name="stat_total_messages">Toplam mesaj</string>
     <string name="stat_avg_per_day">Ortalama/gün</string>
     <string name="stat_active_chats">Aktif sohbetler</string>

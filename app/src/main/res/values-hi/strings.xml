@@ -116,7 +116,7 @@
 
     <!-- Dashboard -->
     <string name="dashboard_title">सारांश</string>
-    <string name="lite_mode_badge">LITE मोड (ZIP)</string>
+    <string name="lite_mode_badge">Lite मोड (ZIP)</string>
     <string name="stat_total_messages">कुल संदेश</string>
     <string name="stat_avg_per_day">औसत/दिन</string>
     <string name="stat_active_chats">सक्रिय चैट्स</string>

@@ -19,15 +19,27 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.whatstats.ui.component.ShimmerBox
+import com.whatstats.ui.component.ShimmerTextPlaceholder
+import com.whatstats.ui.component.StatCardLayout
 import com.whatstats.ui.component.rememberShimmerBrush
 
 // ── Skeleton: coppia di StatCard ──────────────────────────────────────────────
 
 @Composable
 @Suppress("FunctionName")
-private fun SkeletonStatCardPair(brush: androidx.compose.ui.graphics.Brush) {
+private fun SkeletonStatCardPair(
+    brush: androidx.compose.ui.graphics.Brush,
+    isSmallText: Boolean = false,
+) {
+    val valueStyle =
+        if (isSmallText) {
+            MaterialTheme.typography.titleMedium
+        } else {
+            MaterialTheme.typography.headlineSmall
+        }
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         repeat(2) {
             Column(
@@ -36,12 +48,18 @@ private fun SkeletonStatCardPair(brush: androidx.compose.ui.graphics.Brush) {
                         .weight(1f)
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                        .padding(StatCardLayout.contentPadding),
             ) {
-                ShimmerBox(modifier = Modifier.size(24.dp), brush = brush, shape = RoundedCornerShape(6.dp))
-                ShimmerBox(modifier = Modifier.fillMaxWidth(0.65f).height(24.dp), brush = brush)
-                ShimmerBox(modifier = Modifier.fillMaxWidth(0.5f).height(11.dp), brush = brush)
+                ShimmerBox(modifier = Modifier.size(StatCardLayout.iconSize), brush = brush, shape = RoundedCornerShape(6.dp))
+                Spacer(Modifier.height(StatCardLayout.iconValueSpacing))
+                ShimmerTextPlaceholder(
+                    brush,
+                    valueStyle,
+                    widthFraction = 0.65f,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(StatCardLayout.valueLabelSpacing))
+                ShimmerTextPlaceholder(brush, MaterialTheme.typography.bodySmall, widthFraction = 0.5f)
             }
         }
     }
@@ -88,7 +106,7 @@ private fun SkeletonActivityCard(brush: androidx.compose.ui.graphics.Brush) {
     ) {
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
         ) {
             items(5) {
                 ShimmerBox(
@@ -98,15 +116,15 @@ private fun SkeletonActivityCard(brush: androidx.compose.ui.graphics.Brush) {
                 )
             }
         }
-        ShimmerBox(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .padding(horizontal = 16.dp),
-            brush = brush,
-            shape = RoundedCornerShape(12.dp),
-        )
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
+            ShimmerBox(modifier = Modifier.fillMaxWidth(0.4f).height(16.dp), brush = brush)
+            Spacer(Modifier.height(16.dp))
+            ShimmerBox(
+                modifier = Modifier.fillMaxWidth().height(68.dp),
+                brush = brush,
+                shape = RoundedCornerShape(12.dp),
+            )
+        }
     }
 }
 
@@ -129,7 +147,7 @@ fun ChatDetailSkeletonContent(modifier: Modifier = Modifier) {
         // Info cards (date, risposta)
         item { SkeletonStatCardPair(brush) }
         // Info cards (media, lunghezza)
-        item { SkeletonStatCardPair(brush) }
+        item { SkeletonStatCardPair(brush, isSmallText = true) }
         // Chi inizia conversazioni (pie)
         item { SkeletonPieChartCard(brush) }
         // Activity recap

@@ -74,6 +74,7 @@ fun BottomNavigationBar(
         )
 
     NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
         modifier =
             Modifier.drawBehind {
                 val shadowHeight = 8.dp.toPx()

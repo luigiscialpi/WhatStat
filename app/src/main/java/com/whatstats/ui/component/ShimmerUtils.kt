@@ -8,14 +8,23 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
@@ -61,5 +70,34 @@ fun ShimmerBox(
             modifier
                 .clip(shape)
                 .background(brush),
+    )
+}
+
+@Composable
+@Suppress("FunctionName")
+fun ShimmerTextPlaceholder(
+    brush: Brush,
+    textStyle: TextStyle,
+    widthFraction: Float,
+    fontWeight: FontWeight? = null,
+) {
+    Text(
+        text = "M",
+        style = textStyle,
+        color = Color.Transparent,
+        fontWeight = fontWeight,
+        maxLines = 1,
+        softWrap = false,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clearAndSetSemantics {}
+                .drawBehind {
+                    drawRoundRect(
+                        brush = brush,
+                        size = Size(width = size.width * widthFraction.coerceIn(0f, 1f), height = size.height),
+                        cornerRadius = CornerRadius(6.dp.toPx()),
+                    )
+                },
     )
 }

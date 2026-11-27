@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +29,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+
+internal object StatCardLayout {
+    val contentPadding = 12.dp
+    val iconSize = 18.dp
+    val iconValueSpacing = 8.dp
+    val valueLabelSpacing = 2.dp
+}
 
 /**
  * Card con statistiche premium: icona, valore grande e label.
@@ -99,15 +107,15 @@ fun StatCard(
                 .clip(RoundedCornerShape(16.dp))
                 .then(onClick?.let { Modifier.clickable(onClick = it) } ?: Modifier)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .padding(16.dp),
+                .padding(StatCardLayout.contentPadding),
     ) {
         Icon(
             icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.offset(y = iconOffsetY),
+            modifier = Modifier.size(StatCardLayout.iconSize).offset(y = iconOffsetY),
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(StatCardLayout.iconValueSpacing))
         AutoMarquee {
             Text(
                 value,
@@ -127,7 +135,7 @@ fun StatCard(
                     },
             )
         }
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(StatCardLayout.valueLabelSpacing))
         Text(
             label,
             style = MaterialTheme.typography.bodySmall,

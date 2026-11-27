@@ -116,7 +116,7 @@
 
     <!-- Dashboard -->
     <string name="dashboard_title">Обзор</string>
-    <string name="lite_mode_badge">РЕЖИМ LITE (ZIP)</string>
+    <string name="lite_mode_badge">Режим Lite (ZIP)</string>
     <string name="stat_total_messages">Всего сообщений</string>
     <string name="stat_avg_per_day">Среднее в день</string>
     <string name="stat_active_chats">Активные чаты</string>

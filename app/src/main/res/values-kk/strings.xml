@@ -116,7 +116,7 @@
 
     <!-- Dashboard -->
     <string name="dashboard_title">Шолу</string>
-    <string name="lite_mode_badge">LITE РЕЖИМІ (ZIP)</string>
+    <string name="lite_mode_badge">Lite режимі (ZIP)</string>
     <string name="stat_total_messages">Жалпы хабарламалар</string>
     <string name="stat_avg_per_day">Орташа/күн сайын</string>
     <string name="stat_active_chats">Белсенді чаттар</string>

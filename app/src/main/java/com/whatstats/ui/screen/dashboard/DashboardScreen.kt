@@ -2,6 +2,7 @@ package com.whatstats.ui.screen.dashboard
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,6 +57,7 @@ import com.whatstats.ui.component.MilestonePredictionCard
 import com.whatstats.ui.component.SectionCard
 import com.whatstats.ui.component.TimeRangeFilterRow
 import com.whatstats.ui.component.ads.NativeAdCard
+import com.whatstats.ui.component.rememberShimmerBrush
 import com.whatstats.util.findActivity
 
 @Composable
@@ -149,6 +151,7 @@ fun DashboardScreen(
 
     // ── FIX: estrai 's' fuori dal let, così è accessibile in tutto il LazyColumn ──
     val s = stats
+    val refreshShimmerBrush = if (isLoading && s != null) rememberShimmerBrush() else null
 
     var previewEmoji by remember { mutableStateOf<String?>(null) }
     var previewEmojiCount by remember { mutableIntStateOf(0) }
@@ -200,7 +203,7 @@ fun DashboardScreen(
             )
 
             // ── Scrollable Content ───────────────────────────────────
-            if (isLoading) {
+            if (isLoading && s == null) {
                 DashboardSkeletonContent(modifier = Modifier.fillMaxSize())
             } else {
                 LazyColumn(
@@ -240,11 +243,23 @@ fun DashboardScreen(
                     // ── Stat Cards Grid (2x3) ───────────────────────────────
                     if (s != null) {
                         item {
-                            DashboardStatsGrid(
-                                stats = s,
-                                onNavigateToMedia = onNavigateToMedia,
-                                onNavigateToChatDetail = onNavigateToChatDetail,
-                            )
+                            Box {
+                                DashboardStatsGrid(
+                                    stats = s,
+                                    onNavigateToMedia = onNavigateToMedia,
+                                    onNavigateToChatDetail = onNavigateToChatDetail,
+                                )
+                                refreshShimmerBrush?.let { brush ->
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .matchParentSize()
+                                                .background(MaterialTheme.colorScheme.background),
+                                    ) {
+                                        SkeletonStatCardsGrid(brush, Modifier.matchParentSize())
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -256,17 +271,29 @@ fun DashboardScreen(
 
                     // ── Activity Recap Card (Tabbed) ──────────────────────────
                     item {
-                        ActivityRecapCard(
-                            hourlyData = hourlyData,
-                            weeklyData = weeklyData,
-                            dailyData = dailyData,
-                            monthlyData = monthlyData,
-                            yearlyData = yearlyData,
-                            dismissSignal = chartDismissSignal,
-                            rewardGateEnabled = true,
-                            rewardedInsightsUnlocked = !tabsRewardGateLocked,
-                            onRequestUnlockInsights = { requestTabsUnlock("dashboard_activity_tabs") },
-                        )
+                        Box {
+                            ActivityRecapCard(
+                                hourlyData = hourlyData,
+                                weeklyData = weeklyData,
+                                dailyData = dailyData,
+                                monthlyData = monthlyData,
+                                yearlyData = yearlyData,
+                                dismissSignal = chartDismissSignal,
+                                rewardGateEnabled = true,
+                                rewardedInsightsUnlocked = !tabsRewardGateLocked,
+                                onRequestUnlockInsights = { requestTabsUnlock("dashboard_activity_tabs") },
+                            )
+                            refreshShimmerBrush?.let { brush ->
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .matchParentSize()
+                                            .background(MaterialTheme.colorScheme.background),
+                                ) {
+                                    SkeletonActivityCard(brush, Modifier.matchParentSize())
+                                }
+                            }
+                        }
                     }
 
                     item {

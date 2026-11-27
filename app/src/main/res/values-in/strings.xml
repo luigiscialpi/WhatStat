@@ -116,7 +116,7 @@
 
     <!-- Dashboard -->
     <string name="dashboard_title">Ikhtisar</string>
-    <string name="lite_mode_badge">MODE LITE (ZIP)</string>
+    <string name="lite_mode_badge">Mode Lite (ZIP)</string>
     <string name="stat_total_messages">Total pesan</string>
     <string name="stat_avg_per_day">Rata-rata/hari</string>
     <string name="stat_active_chats">Chat aktif</string>

@@ -55,16 +55,16 @@ fun DashboardHeader(
             )
             if (isLiteMode) {
                 Surface(
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(4.dp),
                     modifier = Modifier.padding(top = 2.dp),
                 ) {
                     Text(
                         stringResource(R.string.lite_mode_badge),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }

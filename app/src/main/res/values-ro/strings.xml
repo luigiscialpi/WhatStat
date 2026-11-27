@@ -116,7 +116,7 @@
 
     <!-- Dashboard -->
     <string name="dashboard_title">Tablou de bord</string>
-    <string name="lite_mode_badge">MOD LITE (ZIP)</string>
+    <string name="lite_mode_badge">Mod Lite (ZIP)</string>
     <string name="stat_total_messages">Total mesaje</string>
     <string name="stat_avg_per_day">Medie/zi</string>
     <string name="stat_active_chats">Chaturi active</string>

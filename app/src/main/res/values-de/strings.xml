@@ -116,7 +116,7 @@
 
     <!-- Dashboard -->
     <string name="dashboard_title">Übersicht</string>
-    <string name="lite_mode_badge">LITE-MODUS (ZIP)</string>
+    <string name="lite_mode_badge">Lite-Modus (ZIP)</string>
     <string name="stat_total_messages">Nachrichten gesamt</string>
     <string name="stat_avg_per_day">Durchschnitt/Tag</string>
     <string name="stat_active_chats">Aktive Chats</string>

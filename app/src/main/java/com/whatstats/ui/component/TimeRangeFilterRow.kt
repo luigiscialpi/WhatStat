@@ -16,11 +16,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,7 +36,7 @@ import com.whatstats.data.db.model.TimeRange
 
 /**
  * Riga filtri temporali riutilizzabile: carosello chip + DateRangePicker.
- * Il carosello si auto-scrolla al chip selezionato ad ogni cambio di [selectedRange].
+ * Il carosello si auto-scrolla solo se il chip selezionato non e' visibile.
  */
 @Composable
 @Suppress("FunctionName")
@@ -53,10 +59,20 @@ fun TimeRangeFilterRow(
             timeRangeItems.indexOf(selectedRange).coerceAtLeast(0)
         }
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
+    val showLeadingFade by remember(listState) { derivedStateOf { listState.canScrollBackward } }
+    val showTrailingFade by remember(listState) { derivedStateOf { listState.canScrollForward } }
+    val backgroundColor = MaterialTheme.colorScheme.background
     LaunchedEffect(selectedRange) {
         val idx = timeRangeItems.indexOf(selectedRange)
-        if (idx >= 0) {
-            listState.scrollToItem(idx)
+        val layoutInfo = listState.layoutInfo
+        val selectedItem = layoutInfo.visibleItemsInfo.firstOrNull { it.index == idx }
+        val isSelectedItemFullyVisible =
+            selectedItem?.let {
+                it.offset >= layoutInfo.viewportStartOffset &&
+                    it.offset + it.size <= layoutInfo.viewportEndOffset
+            } == true
+        if (idx >= 0 && !isSelectedItemFullyVisible) {
+            listState.animateScrollToItem(idx)
         }
         if (selectedRange != TimeRange.CUSTOM) {
             showDatePicker = false
@@ -78,7 +94,35 @@ fun TimeRangeFilterRow(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .drawWithContent {
+                        drawContent()
+                        val fadeWidth = 24.dp.toPx()
+                        if (showLeadingFade) {
+                            drawRect(
+                                brush =
+                                    Brush.horizontalGradient(
+                                        colors = listOf(backgroundColor, Color.Transparent),
+                                        startX = 0f,
+                                        endX = fadeWidth,
+                                    ),
+                                topLeft = Offset(0f, 0f),
+                                size = Size(fadeWidth, size.height),
+                            )
+                        }
+                        if (showTrailingFade) {
+                            drawRect(
+                                brush =
+                                    Brush.horizontalGradient(
+                                        colors = listOf(Color.Transparent, backgroundColor),
+                                        startX = size.width - fadeWidth,
+                                        endX = size.width,
+                                    ),
+                                topLeft = Offset(size.width - fadeWidth, 0f),
+                                size = Size(fadeWidth, size.height),
+                            )
+                        }
+                    },
         ) {
             items(timeRangeItems) { range ->
                 FilterChip(

@@ -24,8 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.whatstats.R
 import com.whatstats.data.db.model.DayCount
 import com.whatstats.data.db.model.DayOfMonthCount
@@ -117,7 +117,18 @@ fun ActivityRecapCard(
                         text = {
                             Text(
                                 title,
-                                fontSize = 12.sp,
+                                color =
+                                    if (selectedTab == index) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                fontWeight =
+                                    if (selectedTab == index) {
+                                        FontWeight.SemiBold
+                                    } else {
+                                        FontWeight.Normal
+                                    },
                                 style =
                                     if (selectedTab == index) {
                                         MaterialTheme.typography.labelLarge
