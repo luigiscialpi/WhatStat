@@ -80,6 +80,7 @@ fun ShimmerTextPlaceholder(
     textStyle: TextStyle,
     widthFraction: Float,
     fontWeight: FontWeight? = null,
+    modifier: Modifier = Modifier,
 ) {
     Text(
         text = "M",
@@ -89,7 +90,7 @@ fun ShimmerTextPlaceholder(
         maxLines = 1,
         softWrap = false,
         modifier =
-            Modifier
+            modifier
                 .fillMaxWidth()
                 .clearAndSetSemantics {}
                 .drawBehind {

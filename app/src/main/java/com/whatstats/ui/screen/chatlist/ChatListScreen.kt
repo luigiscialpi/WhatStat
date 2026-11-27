@@ -181,7 +181,10 @@ fun ChatListScreen(
 
             // ── Chat List ────────────────────────────────────────────
             if (isLoading) {
-                ChatListSkeletonContent(modifier = Modifier.fillMaxSize())
+                ChatListSkeletonContent(
+                    modifier = Modifier.fillMaxSize(),
+                    isLiteMode = isLiteMode,
+                )
             } else {
                 LazyColumn(
                     state = listState,

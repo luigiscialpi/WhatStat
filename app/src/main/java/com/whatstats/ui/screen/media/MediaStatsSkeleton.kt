@@ -21,27 +21,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.whatstats.ui.component.ShimmerBox
+import com.whatstats.ui.component.ShimmerTextPlaceholder
 import com.whatstats.ui.component.rememberShimmerBrush
 
 // ── Skeleton: riga domain chip ────────────────────────────────────────────────
 
 @Composable
 @Suppress("FunctionName")
-private fun SkeletonDomainChipsRow(brush: androidx.compose.ui.graphics.Brush) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        ShimmerBox(modifier = Modifier.fillMaxWidth(0.4f).height(16.dp), brush = brush)
+private fun SkeletonDomainChipsRow(brush: Brush) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        ShimmerTextPlaceholder(
+            brush,
+            MaterialTheme.typography.titleMedium,
+            widthFraction = 0.55f,
+            modifier = Modifier.padding(vertical = 8.dp),
+        )
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 8.dp),
+            contentPadding = PaddingValues(bottom = 16.dp),
         ) {
             items(6) {
                 ShimmerBox(
-                    modifier = Modifier.width(80.dp).height(32.dp),
+                    modifier = Modifier.width(80.dp).height(30.dp),
                     brush = brush,
                     shape = RoundedCornerShape(50.dp),
                 )
@@ -54,23 +59,61 @@ private fun SkeletonDomainChipsRow(brush: androidx.compose.ui.graphics.Brush) {
 
 @Composable
 @Suppress("FunctionName")
-private fun SkeletonLinkStatRow(brush: androidx.compose.ui.graphics.Brush) {
+private fun SkeletonLinkCountTile(
+    brush: Brush,
+    iconTint: Color,
+) {
+    Column(
+        modifier =
+            Modifier
+                .width(64.dp)
+                .background(iconTint.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        ShimmerBox(modifier = Modifier.size(24.dp), brush = brush, shape = RoundedCornerShape(5.dp))
+        ShimmerTextPlaceholder(
+            brush,
+            MaterialTheme.typography.headlineSmall,
+            widthFraction = 0.8f,
+        )
+        ShimmerTextPlaceholder(
+            brush,
+            MaterialTheme.typography.bodySmall,
+            widthFraction = 0.65f,
+        )
+    }
+}
+
+@Composable
+@Suppress("FunctionName")
+private fun SkeletonLinkStatRow(brush: Brush) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ShimmerBox(modifier = Modifier.size(44.dp), brush = brush, shape = CircleShape)
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            ShimmerBox(modifier = Modifier.fillMaxWidth(0.5f).height(14.dp), brush = brush)
-            ShimmerBox(modifier = Modifier.fillMaxWidth(0.35f).height(11.dp), brush = brush)
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ShimmerBox(modifier = Modifier.size(36.dp), brush = brush, shape = CircleShape)
+            Spacer(Modifier.width(10.dp))
+            ShimmerTextPlaceholder(
+                brush,
+                MaterialTheme.typography.titleMedium,
+                widthFraction = 0.8f,
+            )
         }
-        ShimmerBox(modifier = Modifier.width(36.dp).height(14.dp), brush = brush)
+        Spacer(Modifier.width(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SkeletonLinkCountTile(brush, MaterialTheme.colorScheme.secondary)
+            SkeletonLinkCountTile(brush, MaterialTheme.colorScheme.primary)
+        }
     }
 }
 
@@ -88,9 +131,11 @@ fun MediaStatsSkeletonContent(modifier: Modifier = Modifier) {
     ) {
         item { SkeletonDomainChipsRow(brush) }
         item {
-            ShimmerBox(
-                modifier = Modifier.fillMaxWidth(0.35f).height(16.dp).padding(vertical = 4.dp),
-                brush = brush,
+            ShimmerTextPlaceholder(
+                brush,
+                MaterialTheme.typography.titleMedium,
+                widthFraction = 0.6f,
+                modifier = Modifier.padding(vertical = 8.dp),
             )
         }
         items(7) { SkeletonLinkStatRow(brush) }
