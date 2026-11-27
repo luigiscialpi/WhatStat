@@ -1,8 +1,16 @@
 package com.whatstats.ui.screen.home
 
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalNavigationDrawer
@@ -10,6 +18,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
@@ -29,6 +39,7 @@ fun AppScaffold(
     showBannerAd: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
 ) {
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val route = currentDestination?.route.orEmpty()
     val isLiteImportRoute = route.contains("lite_setup")
     val isOnSetupScreen =
@@ -62,22 +73,42 @@ fun AppScaffold(
             Scaffold(
                 contentWindowInsets = WindowInsets(0),
                 bottomBar = {
-                    if (showBottomBar) {
+                    if (showBottomBar && (!isLandscape || showBannerAd)) {
                         Column {
                             if (showBannerAd) {
                                 BottomBannerAd()
                                 HorizontalDivider()
                             }
-                            BottomNavigationBar(
-                                navController = navController,
-                                currentDestination = currentDestination,
-                                isLiteMode = isLiteMode,
-                            )
+                            if (!isLandscape) {
+                                BottomNavigationBar(
+                                    navController = navController,
+                                    currentDestination = currentDestination,
+                                    isLiteMode = isLiteMode,
+                                )
+                            }
                         }
                     }
                 },
             ) { innerPadding ->
-                content(innerPadding)
+                Row(
+                    Modifier
+                        .fillMaxSize()
+                        .windowInsetsPadding(
+                            WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal),
+                        ),
+                ) {
+                    if (showBottomBar && isLandscape) {
+                        BottomNavigationBar(
+                            navController = navController,
+                            currentDestination = currentDestination,
+                            isLiteMode = isLiteMode,
+                            isLandscape = true,
+                        )
+                    }
+                    Box(Modifier.weight(1f).fillMaxSize()) {
+                        content(innerPadding)
+                    }
+                }
             }
         }
     }

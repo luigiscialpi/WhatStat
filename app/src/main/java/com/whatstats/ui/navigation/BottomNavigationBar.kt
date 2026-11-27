@@ -1,5 +1,6 @@
 package com.whatstats.ui.navigation
 
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.Call
@@ -11,12 +12,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -29,7 +36,7 @@ private data class BottomNavItem(
     val graphRoute: String,
     val destinationRoute: String,
     val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val icon: ImageVector,
 )
 
 @Composable
@@ -38,6 +45,7 @@ fun BottomNavigationBar(
     navController: NavHostController,
     currentDestination: NavDestination?,
     isLiteMode: Boolean = false,
+    isLandscape: Boolean = false,
 ) {
     val items =
         listOf(
@@ -73,65 +81,122 @@ fun BottomNavigationBar(
             ),
         )
 
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surface,
-        modifier =
-            Modifier.drawBehind {
-                val shadowHeight = 8.dp.toPx()
-                drawRect(
-                    brush =
-                        Brush.verticalGradient(
-                            colors =
-                                listOf(
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.08f),
-                                ),
-                            startY = -shadowHeight,
-                            endY = 0f,
-                        ),
-                    topLeft = androidx.compose.ui.geometry.Offset(0f, -shadowHeight),
-                    size = androidx.compose.ui.geometry.Size(size.width, shadowHeight),
-                )
-            },
-    ) {
-        val filteredItems = if (isLiteMode) items.filter { it.graphRoute != NavGraphRoute.CALLS } else items
+    val filteredItems = if (isLiteMode) items.filter { it.graphRoute != NavGraphRoute.CALLS } else items
 
-        filteredItems.forEach { item ->
-            val selected =
-                currentDestination
-                    ?.hierarchy
-                    ?.any { destination -> destination.route == item.graphRoute } == true
+    fun navigateTo(item: BottomNavItem) {
+        val topLevelRoute = if (isLiteMode) NavGraphRoute.LITE else NavGraphRoute.ROOT
+        navController.navigate(item.destinationRoute) {
+            popUpTo(topLevelRoute) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
-            NavigationBarItem(
-                selected = selected,
-                onClick = {
-                    val topLevelRoute = if (isLiteMode) NavGraphRoute.LITE else NavGraphRoute.ROOT
-                    navController.navigate(item.destinationRoute) {
-                        popUpTo(topLevelRoute) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                icon = {
-                    Icon(item.icon, contentDescription = item.label)
-                },
-                label = {
-                    Text(
-                        text = item.label,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        softWrap = false,
+    if (isLandscape) {
+        NavigationRail(
+            containerColor = MaterialTheme.colorScheme.surface,
+            modifier =
+                Modifier.drawBehind {
+                    val shadowWidth = 8.dp.toPx()
+                    drawRect(
+                        brush =
+                            Brush.horizontalGradient(
+                                colors =
+                                    listOf(
+                                        Color.Black.copy(alpha = 0.08f),
+                                        Color.Transparent,
+                                    ),
+                                startX = size.width,
+                                endX = size.width + shadowWidth,
+                            ),
+                        topLeft = Offset(size.width, 0f),
+                        size = Size(shadowWidth, size.height),
                     )
                 },
-                colors =
-                    NavigationBarItemDefaults.colors(
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    ),
-            )
+        ) {
+            filteredItems.forEachIndexed { index, item ->
+                val selected =
+                    currentDestination
+                        ?.hierarchy
+                        ?.any { destination -> destination.route == item.graphRoute } == true
+
+                NavigationRailItem(
+                    selected = selected,
+                    onClick = { navigateTo(item) },
+                    icon = { Icon(item.icon, contentDescription = item.label) },
+                    label = {
+                        Text(
+                            text = item.label,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    alwaysShowLabel = true,
+                    colors =
+                        NavigationRailItemDefaults.colors(
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                )
+
+                if (index < filteredItems.lastIndex) {
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    } else {
+        NavigationBar(
+            containerColor = MaterialTheme.colorScheme.surface,
+            modifier =
+                Modifier.drawBehind {
+                    val shadowHeight = 8.dp.toPx()
+                    drawRect(
+                        brush =
+                            Brush.verticalGradient(
+                                colors =
+                                    listOf(
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.08f),
+                                    ),
+                                startY = -shadowHeight,
+                                endY = 0f,
+                            ),
+                        topLeft = Offset(0f, -shadowHeight),
+                        size = Size(size.width, shadowHeight),
+                    )
+                },
+        ) {
+            filteredItems.forEach { item ->
+                val selected =
+                    currentDestination
+                        ?.hierarchy
+                        ?.any { destination -> destination.route == item.graphRoute } == true
+
+                NavigationBarItem(
+                    selected = selected,
+                    onClick = { navigateTo(item) },
+                    icon = {
+                        Icon(item.icon, contentDescription = item.label)
+                    },
+                    label = {
+                        Text(
+                            text = item.label,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = false,
+                        )
+                    },
+                    colors =
+                        NavigationBarItemDefaults.colors(
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                )
+            }
         }
     }
 }
